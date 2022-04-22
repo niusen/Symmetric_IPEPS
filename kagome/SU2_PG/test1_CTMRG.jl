@@ -1,9 +1,8 @@
 using LinearAlgebra
 using TensorKit
 using JSON
-#using ProfileView
-cd("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
-push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
+cd("/users/p1231/niu/Code/Julia_codes/Tensor_network/IPEPS_TensorKit/kagome/SU2_PG")
+#push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("load_tensor.jl")
 include("CTM.jl")
 #include("my_TensorKit_fun.jl")
@@ -44,32 +43,33 @@ end
 
 
 
-triangle_tensor=A1_set[1]*0;
+global triangle_tensor=A1_set[1]*0;
+global bond_tensor=A_set[1]*0;
 if Bond_irrep=="A"
-    bond_tensor=A_set[1]*0;
+    global bond_tensor=A_set[1]*0;
     for ct=1:length(Bond_A_coe)
-        bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct]
+        global bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct]
     end
 elseif Bond_irrep=="B"
-    bond_tensor=B_set[1]*0;
+    global bond_tensor=B_set[1]*0;
     for ct=1:length(Bond_B_coe)
-        bond_tensor=bond_tensor+B_set[ct]*Bond_B_coe[ct]
+        global bond_tensor=bond_tensor+B_set[ct]*Bond_B_coe[ct]
     end
 elseif Bond_irrep=="A+iB"
-    bond_tensor=A_set[1]*0;
+    global bond_tensor=A_set[1]*0;
     for ct=1:length(Bond_A_coe)
-        bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct]
+        global bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct]
     end
     for ct=1:length(Bond_B_coe)
-        bond_tensor=bond_tensor+B_set[ct]*Bond_B_coe[ct]
+        global bond_tensor=bond_tensor+B_set[ct]*Bond_B_coe[ct]
     end
 end
 
 for ct=1:length(Triangle_A1_coe)
-    triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct]
+    global triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct]
 end
 for ct=1:length(Triangle_A2_coe)
-    triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct]
+    global triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct]
 end
 
 @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
@@ -92,7 +92,6 @@ matwrite("matfile.mat", Dict(
 ); compress = false)
 
 init=Dict([("CTM", []), ("init_type", "PBC")])
-#@profview CTM=CTMRG(PEPS_tensor,chi,"singular_value",tol,init);
 CTM=CTMRG(PEPS_tensor,chi,"singular_value",tol,init);
 
 # ob_opts=Dict([("SiteNumber", 1), ("direction", "x")])
@@ -108,3 +107,6 @@ CTM=CTMRG(PEPS_tensor,chi,"singular_value",tol,init);
 # @tensor E[:]:=rho[1,2,3,4,5,6]*H[4,5,6,1,2,3];
 # E=E[1]*2;
 # display("energy is: "*string(E))
+
+
+

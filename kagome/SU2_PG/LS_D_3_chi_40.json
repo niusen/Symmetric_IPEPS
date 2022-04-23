@@ -7,17 +7,7 @@
             ],
             "numEntries": 1,
             "entries": [
-                "0 1.0000685679585215"
-            ]
-        },
-        "Bond_B_coe": {
-            "dtype": "float64",
-            "dims": [
-                1
-            ],
-            "numEntries": 1,
-            "entries": [
-                "0 -0.04606539846850312"
+                "0 1.0"
             ]
         },
         "Triangle_A1_coe": {
@@ -27,7 +17,7 @@
             ],
             "numEntries": 1,
             "entries": [
-                "0 0.10806862813212668"
+                "0 -0.9938034899367622"
             ]
         },
         "Triangle_A2_coe": {
@@ -37,9 +27,9 @@
             ],
             "numEntries": 1,
             "entries": [
-                "0 0.994143773694181"
+                "0 -0.1111513538670366"
             ]
         }
     },
-    "Bond_irrep": "A+iB"
+    "Bond_irrep": "A"
 }

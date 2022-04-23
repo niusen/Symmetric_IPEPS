@@ -95,16 +95,17 @@ init=Dict([("CTM", []), ("init_type", "PBC")])
 #@profview CTM=CTMRG(PEPS_tensor,chi,"singular_value",tol,init);
 CTM=CTMRG(PEPS_tensor,chi,"singular_value",tol,init);
 
-# ob_opts=Dict([("SiteNumber", 1), ("direction", "x")])
-# rho=ob_CTMRG(CTM,PEPS_tensor,ob_opts)
-# rho=permute(rho,(1,),(2,))
-# #display(reshape(convert(Array,rho),8,8))
+ob_opts=Dict([("SiteNumber", 1), ("direction", "x")])
+rho=ob_CTMRG(CTM,PEPS_tensor,ob_opts)
+rho=permute(rho,(1,),(2,))
+@tensor rho[:]:=U_phy[1,-1,-2,-3]*rho[1,2]*U_phy'[-4,-5,-6,2]
+#display(reshape(convert(Array,rho),8,8))
 
-# # Heisenberg interaction
-# Id=I(2);
-# sx=[[0,1] [1,0]]/2; sy=[[0,1] [-1,0]]/2*im; sz=[[1,0] [0,-1]]/2;
-# @tensor H[:]:=sx[-1,-4]*sx[-2,-5]*Id[-3,-6]+sy[-1,-4]*sy[-2,-5]*Id[-3,-6]+sz[-1,-4]*sz[-2,-5]*Id[-3,-6];
-# rho=convert(Array,rho);
-# @tensor E[:]:=rho[1,2,3,4,5,6]*H[4,5,6,1,2,3];
-# E=E[1]*2;
-# display("energy is: "*string(E))
+# Heisenberg interaction
+Id=I(2);
+sx=[[0,1] [1,0]]/2; sy=[[0,1] [-1,0]]/2*im; sz=[[1,0] [0,-1]]/2;
+@tensor H[:]:=sx[-1,-4]*sx[-2,-5]*Id[-3,-6]+sy[-1,-4]*sy[-2,-5]*Id[-3,-6]+sz[-1,-4]*sz[-2,-5]*Id[-3,-6];
+rho=convert(Array,rho);
+@tensor E[:]:=rho[1,2,3,4,5,6]*H[4,5,6,1,2,3];
+E=E[1]*2;
+display("energy is: "*string(E))

@@ -36,7 +36,7 @@ function CTMRG(A,chi,conv_check,tol,init)
             ss_new=sort(diag(ss_new), rev=true);
             ss_old=ss_old/ss_old[1];
             ss_new=ss_new/ss_new[1];
-            #display(ss_new)
+            display(ss_new)
             if length(ss_old)>length(ss_new)
                 dss=copy(ss_old);
                 siz=length(ss_new)

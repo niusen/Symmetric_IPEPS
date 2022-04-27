@@ -131,7 +131,7 @@ function CTMRG(A,chi,conv_check,tol,init)
             end
             dss[1:siz]=ss_old[1:siz]-ss_new[1:siz]
             er=norm(dss);
-            display("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
+            println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
             if er<tol
                 break;
             end

@@ -40,7 +40,3 @@ conv_check="singular_value";
 
 @time E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, CTM, "E_triangle");
 @time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, CTM, "E_bond");
-
-
-
-

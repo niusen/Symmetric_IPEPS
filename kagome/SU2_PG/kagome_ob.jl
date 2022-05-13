@@ -38,5 +38,5 @@ init=Dict([("CTM", []), ("init_type", "PBC")]);
 conv_check="singular_value";
 @time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,tol,init);
 
-@time E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, CTM, "E_triangle");
-@time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, CTM, "E_bond");
+@time E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
+@time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");

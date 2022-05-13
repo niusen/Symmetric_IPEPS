@@ -2,7 +2,7 @@ using LinearAlgebra
 using TensorKit
 
 
-function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, CTM, method)
+function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, method)
 
     norm_1site=ob_1site_closed(CTM,AA_fused);
     H_triangle, H_bond, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])

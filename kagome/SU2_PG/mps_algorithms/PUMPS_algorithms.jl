@@ -34,7 +34,7 @@ function solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,n_E,N,kset,ES_
             
             excitation_iterative(x)=excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transform,O1,O2,OO,Ag,pow,U,S,Vt,SPIN_group,N,k,DTrun_group,mpo_type)
 
-            @time Es,_=eigsolve(excitation_iterative, v_init, n_E,:LM,Arnoldi());
+            @time Es,_=eigsolve(excitation_iterative, v_init, n_E,:LM,Arnoldi(krylovdim=minimum([10,n_E*3])));
             Eset[kk,sector_ind]=Es
             display(Es)
         end
@@ -53,17 +53,22 @@ function excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transfo
     H_eff_x=x*0;
     cm=1;
 
+    H_eff_x_set=Vector{Any}(undef, N);
     for cn=1:N
-            coe=exp(-im*k*(cm-cn))
-            H_eff_x0=H_eff_x*0;
-            for c_sector=1:length(DTrun_list)
-                for  c_comp=1:length(DTrun_list[c_sector])
-                    #display(DTrun_list[c_sector][c_comp])
-                    
-                    H_eff_x0=H_eff_x0+coe*contract_H_eff_trun(x,O1,O2,OO,Ag,VR[c_sector][c_comp],EU[c_sector][c_comp],VL[c_sector][c_comp],SPIN[c_sector],cm,cn,pow,N,DTrun_list[c_sector][c_comp],mpo_type);
-                end
+        coe=exp(-im*k*(cm-cn))
+        H_eff_x0=H_eff_x*0;
+        for c_sector=1:length(DTrun_list)
+            for  c_comp=1:length(DTrun_list[c_sector])
+                #display(DTrun_list[c_sector][c_comp])
+                
+                H_eff_x0=H_eff_x0+coe*contract_H_eff_trun(x,O1,O2,OO,Ag,VR[c_sector][c_comp],EU[c_sector][c_comp],VL[c_sector][c_comp],SPIN[c_sector],cm,cn,pow,N,DTrun_list[c_sector][c_comp],mpo_type);
             end
-            H_eff_x=H_eff_x+H_eff_x0
+        end
+        H_eff_x_set[cn]=H_eff_x0
+    end
+
+    for cn=1:N
+        H_eff_x=H_eff_x+H_eff_x_set[cn];
     end
     x=permute(H_eff_x,(1,2,3,),(4,));
     x_output=output_transform*x;

@@ -1,7 +1,7 @@
 
 
 
-function solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,n_E,N,kset,ES_sectors,pow,U,S,Vt,SPIN_group,DTrun_group,mpo_type)
+function solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,n_E,N,kset,ES_sectors,pow,U,S,Vt,SPIN_group,DTrun_group,mpo_type,multi_threads)
     
     Eset=Matrix{Any}(undef, length(kset),length(ES_sectors)); 
 
@@ -32,7 +32,7 @@ function solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,n_E,N,kset,ES_
 
             v_init=TensorMap(randn,domain(input_transform), SU₂Space(SPIN=>1));
             
-            excitation_iterative(x)=excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transform,O1,O2,OO,Ag,pow,U,S,Vt,SPIN_group,N,k,DTrun_group,mpo_type)
+            excitation_iterative(x)=excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transform,O1,O2,OO,Ag,pow,U,S,Vt,SPIN_group,N,k,DTrun_group,mpo_type,multi_threads)
 
             @time Es,_=eigsolve(excitation_iterative, v_init, n_E,:LM,Arnoldi(krylovdim=minimum([10,n_E*3])));
             Eset[kk,sector_ind]=Es
@@ -46,7 +46,7 @@ function solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,n_E,N,kset,ES_
 end
 
         
-function excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transform,O1,O2,OO,Ag,pow,VR,EU,VL,SPIN,N,k,DTrun_list,mpo_type)
+function excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transform,O1,O2,OO,Ag,pow,VR,EU,VL,SPIN,N,k,DTrun_list,mpo_type,multi_threads)
     @assert pow==round((N-2)/2)
     x=input_transform*x;# do this calculation on cpu because the matrix 'input_transform' maybe large
     x=permute(x,(1,2,3,4,),());
@@ -54,17 +54,32 @@ function excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transfo
     cm=1;
 
     H_eff_x_set=Vector{Any}(undef, N);
-    for cn=1:N
-        coe=exp(-im*k*(cm-cn))
-        H_eff_x0=H_eff_x*0;
-        for c_sector=1:length(DTrun_list)
-            for  c_comp=1:length(DTrun_list[c_sector])
-                #display(DTrun_list[c_sector][c_comp])
-                
-                H_eff_x0=H_eff_x0+coe*contract_H_eff_trun(x,O1,O2,OO,Ag,VR[c_sector][c_comp],EU[c_sector][c_comp],VL[c_sector][c_comp],SPIN[c_sector],cm,cn,pow,N,DTrun_list[c_sector][c_comp],mpo_type);
+    if multi_threads
+        Threads.@threads for cn=1:N
+            coe=exp(-im*k*(cm-cn))
+            H_eff_x0=H_eff_x*0;
+            for c_sector=1:length(DTrun_list)
+                for  c_comp=1:length(DTrun_list[c_sector])
+                    #display(DTrun_list[c_sector][c_comp])
+                    
+                    H_eff_x0=H_eff_x0+coe*contract_H_eff_trun(x,O1,O2,OO,Ag,VR[c_sector][c_comp],EU[c_sector][c_comp],VL[c_sector][c_comp],SPIN[c_sector],cm,cn,pow,N,DTrun_list[c_sector][c_comp],mpo_type);
+                end
             end
+            H_eff_x_set[cn]=H_eff_x0
         end
-        H_eff_x_set[cn]=H_eff_x0
+    else
+        for cn=1:N
+            coe=exp(-im*k*(cm-cn))
+            H_eff_x0=H_eff_x*0;
+            for c_sector=1:length(DTrun_list)
+                for  c_comp=1:length(DTrun_list[c_sector])
+                    #display(DTrun_list[c_sector][c_comp])
+                    
+                    H_eff_x0=H_eff_x0+coe*contract_H_eff_trun(x,O1,O2,OO,Ag,VR[c_sector][c_comp],EU[c_sector][c_comp],VL[c_sector][c_comp],SPIN[c_sector],cm,cn,pow,N,DTrun_list[c_sector][c_comp],mpo_type);
+                end
+            end
+            H_eff_x_set[cn]=H_eff_x0
+        end
     end
 
     for cn=1:N

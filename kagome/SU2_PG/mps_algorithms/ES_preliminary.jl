@@ -22,10 +22,10 @@ function try_CTM(D,chi,parameters, U_phy, A_unfused, A_fused)
         U_R=convert(TensorMap,U_R_dict);
         U_U=convert(TensorMap,U_U_dict);
 
-        display("load CTM from saved data directly")
+        display("load CTM from saved data directly");flush(stdout);
     catch e
 
-        display("No CTM found from saved data, now do CTMRG")
+        display("No CTM found from saved data, now do CTMRG");flush(stdout);
 
 
         init=Dict([("CTM", []), ("init_type", "PBC")]);
@@ -34,7 +34,7 @@ function try_CTM(D,chi,parameters, U_phy, A_unfused, A_fused)
         
         @time E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
         @time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
-        display((E_up+E_down)/3)
+        display((E_up+E_down)/3);flush(stdout);
 
         
         CTM_dict=deepcopy(CTM)
@@ -69,10 +69,10 @@ function try_ITEBD(D,chi,W,CTM)
         Ag=convert(TensorMap,Ag_dict);
         O1=convert(TensorMap,O1_dict);
         O2=convert(TensorMap,O2_dict);
-        display("load itebd ground state from saved data directly")
+        display("load itebd ground state from saved data directly");flush(stdout);
     catch e
 
-        display("No itebd ground state found from saved data, now do itebd")
+        display("No itebd ground state found from saved data, now do itebd");flush(stdout);
         
         Tleft=CTM["Tset"][4];
         Tright=CTM["Tset"][2];

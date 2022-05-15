@@ -39,12 +39,12 @@ function TransfOp_decom(A,O,total_space,total_sec,pow,Dtrun_init,Dtrun_max,trun_
             eu=abs.(group_numbers(euR_set));
             eu_normed=eu/maximum(eu); 
             eu_normed=eu_normed.^pow;
-            display("FLR_eig, DTrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(euR_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)))
+            display("FLR_eig, DTrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(euR_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)));flush(stdout);
             if minimum(eu_normed)<trun_tol
                 break;
             else
                 if Dtrun>dim(total_space)
-                    display("Dtrun exceeds matrix size")
+                    display("Dtrun exceeds matrix size");flush(stdout);
                     break;
                 end
                 Dtrun=Dtrun+Dstep;
@@ -85,12 +85,12 @@ function TransfOp_decom(A,O,total_space,total_sec,pow,Dtrun_init,Dtrun_max,trun_
             eu=abs.(group_numbers(eur_set));
             eu_normed=eu/maximum(eu); 
             eu_normed=eu_normed.^pow;
-            display("GLR_eig, Dtrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(eur_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)))
+            display("GLR_eig, Dtrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(eur_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)));flush(stdout);
             if minimum(eu_normed)<trun_tol
                 break;
             else
                 if Dtrun>dim(total_space)
-                    display("Dtrun exceeds matrix size")
+                    display("Dtrun exceeds matrix size");flush(stdout);
                     break;
                 end
                 Dtrun=Dtrun+Dstep;
@@ -130,12 +130,12 @@ function TransfOp_decom(A,O,total_space,total_sec,pow,Dtrun_init,Dtrun_max,trun_
             S_set,U_set,Vh_set,SPIN_svd_set=truncate_sectors(Dtrun,S_set,U_set,Vh_set,SPIN_svd_set);  
             eu=abs.(group_numbers(S_set));
             eu_normed=eu/maximum(eu); 
-            display("FLR_svd, DTrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(S_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)))
+            display("FLR_svd, DTrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(S_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)));flush(stdout);
             if minimum(eu_normed)<trun_tol
                 break;
             else
                 if Dtrun>dim(total_space)
-                    display("Dtrun exceeds matrix size")
+                    display("Dtrun exceeds matrix size");flush(stdout);
                     break;
                 end
                 Dtrun=Dtrun+Dstep;
@@ -174,12 +174,12 @@ function TransfOp_decom(A,O,total_space,total_sec,pow,Dtrun_init,Dtrun_max,trun_
             s_set,u_set,vh_set,spin_svd_set=truncate_sectors(Dtrun,s_set,u_set,vh_set,spin_svd_set);
             eu=abs.(group_numbers(s_set));
             eu_normed=eu/maximum(eu); 
-            display("GLR_svd, Dtrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(s_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)))
+            display("GLR_svd, Dtrun="*string(Dtrun)*", SU2 reduced to "*string(length(group_numbers(s_set)))*", minimal eigenvalue: "*string(minimum(eu_normed)));flush(stdout);
             if minimum(eu_normed)<trun_tol
                 break;
             else
                 if Dtrun>dim(total_space)
-                    display("Dtrun exceeds matrix size")
+                    display("Dtrun exceeds matrix size");flush(stdout);
                     break;
                 end
                 Dtrun=Dtrun+Dstep;
@@ -236,7 +236,7 @@ function FLR_eig(A,O,n,full_space,sector_set)
             println("Number of eigenvalues obtained are not enough, use smaller tol")
             euL,evL,info=eigsolve(FLR_eig_L, vl_init, minimum([n_eff,dim(full_space,sec)]),:LM, Arnoldi(krylovdim=minimum([n_eff,dim(full_space,sec)])*8, tol=1e-14));
             if minimum(abs.(euL))/maximum(abs.(euL))<1e-7
-                display("minimal singular value in this sector is quite small, skip checking number of converged values")
+                display("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 if  info.converged >= minimum([n_eff,dim(full_space,sec)])
                     @warn "number of values converged is not enough"
@@ -264,7 +264,7 @@ function FLR_eig(A,O,n,full_space,sector_set)
             println("Number of eigenvalues obtained are not enough, use smaller tol")
             euR,evR,info=eigsolve(FLR_eig_R, vr_init, minimum([n_eff,dim(full_space,sec)]),:LM, Arnoldi(krylovdim=minimum([n_eff,dim(full_space,sec)])*4, tol=1e-14));
             if minimum(abs.(euR))/maximum(abs.(euR))<1e-7
-                display("minimal singular value in this sector is quite small, skip checking number of converged values")
+                display("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 if  info.converged >= minimum([n_eff,dim(full_space,sec)])
                     @warn "number of values converged is not enough"
@@ -318,7 +318,7 @@ function GLR_eig(A,n,full_space,sector_set)
             println("Number of eigenvalues obtained are not enough, use smaller tol")
             eul,evl,info=eigsolve(GLR_eig_L, vl_init, minimum([n_eff,dim(full_space,sec)]),:LM,Arnoldi(krylovdim=minimum([n_eff,dim(full_space,sec)])*4, tol=1e-14));
             if minimum(abs.(eul))/maximum(abs.eu(l))<1e-7
-                display("minimal singular value in this sector is quite small, skip checking number of converged values")
+                display("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 if  info.converged >= minimum([n_eff,dim(full_space,sec)])
                     @warn "number of values converged is not enough"
@@ -347,7 +347,7 @@ function GLR_eig(A,n,full_space,sector_set)
             println("Number of eigenvalues obtained are not enough, use smaller tol")
             eur,evr,info=eigsolve(GLR_eig_R, vr_init, minimum([n_eff,dim(full_space,sec)]),:LM,Arnoldi(krylovdim=minimum([n_eff,dim(full_space,sec)])*8, tol=1e-14));
             if minimum(abs.(eur))/maximum(abs.(eur))<1e-7
-                display("minimal singular value in this sector is quite small, skip checking number of converged values")
+                display("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 if  info.converged >= minimum([n_eff,dim(full_space,sec)])
                     @warn "number of values converged is not enough"
@@ -378,12 +378,12 @@ function FLR_svd(A,O,pow,n,full_space,sector_set)
     S_set=Vector{Any}(undef, length(sector_set));
     U_set=Vector{Any}(undef, length(sector_set));
     Vh_set=Vector{Any}(undef, length(sector_set));
-    #display("FLR_svd: ")
+    #display("FLR_svd: ");flush(stdout);
     for cc=1:length(sector_set)
         sec=sector_set[cc];
         spin=(dim(sec)-1)/2;
         n_eff=Int(round(n/dim(sec)))+1
-        #display("spin "*string(spin))
+        #display("spin "*string(spin));flush(stdout);
 
         FLR_svd_R(x)=HV_FR_pow(x,A,O,pow);
         FLR_svd_R_conj(x)=HV_FR_conj_pow(x,A,O,pow);
@@ -392,7 +392,7 @@ function FLR_svd(A,O,pow,n,full_space,sector_set)
         try
             S,U,V,info=svdsolve((FLR_svd_R,FLR_svd_R_conj), vr_init, minimum([n_eff,dim(full_space,sec)]),:LR, krylovdim=minimum([n_eff,dim(full_space,sec)])*4);
             if minimum(S)/maximum(S)<1e-7
-                display("minimal singular value in this sector is quite small, skip checking number of converged values")
+                display("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 @assert info.converged >= minimum([n_eff,dim(full_space,sec)])
             end
@@ -400,7 +400,7 @@ function FLR_svd(A,O,pow,n,full_space,sector_set)
             println("Number of singular values obtained are not enough, use smaller tol")
             S,U,V,info=svdsolve((FLR_svd_R,FLR_svd_R_conj), vr_init, minimum([n_eff,dim(full_space,sec)]),:LR, krylovdim=minimum([n_eff,dim(full_space,sec)])*8, tol=(1e-14));
             if minimum(S)/maximum(S)<1e-7
-                display("minimal singular value in this sector is quite small, skip checking number of converged values")
+                display("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 if  info.converged >= minimum([n_eff,dim(full_space,sec)])
                     @warn "number of values converged is not enough"
@@ -481,7 +481,7 @@ function GLR_svd(A,pow,n,full_space,sector_set)
             println("Number of singular values obtained are not enough, add noise, increase Krylov subspace and use smaller tol")
             s,u,v,info=svdsolve((GLR_svd_R,GLR_svd_R_conj), vr_init, minimum([n_eff,dim(full_space,sec)]),:LR, krylovdim=minimum([n_eff,dim(full_space,sec)])*8, tol=1e-14);
             if minimum(s)/maximum(s)<1e-7
-                display("minimal singular value in this sector is quite small, skip checking number of converged values")
+                display("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 if  info.converged >= minimum([n_eff,dim(full_space,sec)])
                     @warn "number of values converged is not enough"
@@ -744,9 +744,9 @@ function combine_singlespin_sector(E_set,vL_set,vR_set,spin_set,is_eig)
             vR_set_new[cc]=vR_grouped;
             E_set_new[cc]=E_grouped;
             spin_set_new[cc]=spin_set_new[cc][1]
-            # display(Base.summarysize(vL_grouped))
-            # display(space(vL_grouped))
-            # display(Base.summarysize(vL))
+            # display(Base.summarysize(vL_grouped));flush(stdout);
+            # display(space(vL_grouped));flush(stdout);
+            # display(Base.summarysize(vL));flush(stdout);
 
         end
     end
@@ -815,9 +815,9 @@ function combine_singlespin_sector_unitary(E_set,vL_set,vR_set,spin_set,is_eig) 
             vR_set_new[cc]=vR_grouped;
             E_set_new[cc]=E_grouped;
             spin_set_new[cc]=spin_set_new[cc][1]
-            # display(Base.summarysize(vL_grouped))
-            # display(space(vL_grouped))
-            # display(Base.summarysize(vL))
+            # display(Base.summarysize(vL_grouped));flush(stdout);
+            # display(space(vL_grouped));flush(stdout);
+            # display(Base.summarysize(vL));flush(stdout);
 
         end
     end
@@ -870,9 +870,9 @@ function combine_singlespin_sector_bruteforce(E_set,vL_set,vR_set,spin_set)
                 vR_set_new[cc]=vR_grouped;
                 E_set_new[cc]=E_grouped;
                 spin_set_new[cc]=spin_set[cc][1]
-                # display(Base.summarysize(vL_grouped))
-                # display(space(vL_grouped))
-                # display(Base.summarysize(vL))
+                # display(Base.summarysize(vL_grouped));flush(stdout);
+                # display(space(vL_grouped));flush(stdout);
+                # display(Base.summarysize(vL));flush(stdout);
             elseif length(single_size)==3
             end
         end

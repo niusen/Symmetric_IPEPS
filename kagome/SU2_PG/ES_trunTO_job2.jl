@@ -3,22 +3,23 @@ using TensorKit
 using KrylovKit
 using JSON
 using HDF5, JLD
-cd("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
+
+cd("/users/p1231/niu/Code/Julia_codes/Tensor_network/IPEPS_TensorKit/kagome/SU2_PG")
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("kagome_load_tensor.jl")
 include("kagome_CTMRG.jl")
 include("kagome_model.jl")
 include("kagome_IPESS.jl")
-include("mps_algorithms\\ITEBD_algorithms.jl")
-include("mps_algorithms\\TransfOp_decomposition.jl")
-include("mps_algorithms\\PUMPS_algorithms.jl")
-include("mps_algorithms\\ES_preliminary.jl")
+include("mps_algorithms/ITEBD_algorithms.jl")
+include("mps_algorithms/TransfOp_decomposition.jl")
+include("mps_algorithms/PUMPS_algorithms.jl")
+include("mps_algorithms/ES_preliminary.jl")
 
 
 
 D=8;
 chi=20;
-W=20;
+W=25;
 N=20;
 tol=1e-6;
 EH_n=3;#number of entanglement spectrum per k point
@@ -26,8 +27,9 @@ EH_n=3;#number of entanglement spectrum per k point
 multi_threads=true;if Threads.nthreads()==1; multi_threads=false; end
 display("number of threads: "*string(Threads.nthreads()));flush(stdout);
 
-Dtrun_init=200;
-Dtrun_max=200;
+Dtrun_method="svds";
+Dtrun_init=600;
+Dtrun_max=600;
 trun_tol=1e-8;
 group_size=Int(round((10^8)/(chi*chi*W*W*D)));
 
@@ -138,19 +140,17 @@ display(Dtrun_GLR_svd);flush(stdout);
 
 
 
-Dtrun_method="svds";
+
 ES_sectors=[0,1/2,1,3/2,2,5/2];
 kset=0:N-1;
 #kset=0:0
 Eset=[];
 Trun_err=0;
 DTrun=0;
-print("calculate ES for N="*string(N));flush(stdout);
-display("kset="*string(kset));;flush(stdout);
+print("calculate ES for N="*string(N));
+display("kset="*string(kset));
 pow=round((N-2)/2);
 k=0;
-
-
 
 norm_eff=excitation_TrunTransOp_iterative_norm_eff(Ag,pow,N,k) # put it on cpu because this matrix maybe large
 norm_eff=permute(norm_eff,(1,2,3,),(4,5,6,))
@@ -166,13 +166,5 @@ SPIN=ES_sectors[sector_ind];
 sectr=Irrep[SU₂](SPIN);
 
 v_init=TensorMap(randn,domain(input_transform), SU₂Space(SPIN=>1));
-
-
-
-
-mpo_type="OO"
-@time excitation_TrunTransOp_iterative_H_eff(v_init,input_transform,output_transform,O1,O2,OO,Ag,pow,U_set_grouped,S_set_grouped,Vh_set_grouped,SPIN_svd_set_grouped,N,k,DTrun_FLR_svd,mpo_type,multi_threads)
-@time excitation_TrunTransOp_iterative_H_eff(v_init,input_transform,output_transform,O1,O2,OO,Ag,pow,U_set_grouped,S_set_grouped,Vh_set_grouped,SPIN_svd_set_grouped,N,k,DTrun_FLR_svd,mpo_type,multi_threads)
-@time excitation_TrunTransOp_iterative_H_eff(v_init,input_transform,output_transform,O1,O2,OO,Ag,pow,U_set_grouped,S_set_grouped,Vh_set_grouped,SPIN_svd_set_grouped,N,k,DTrun_FLR_svd,mpo_type,multi_threads)
 
 

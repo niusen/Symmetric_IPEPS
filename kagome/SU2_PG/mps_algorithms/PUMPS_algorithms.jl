@@ -22,10 +22,10 @@ function solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,n_E,N,kset,ES_
         for sector_ind=1:length(ES_sectors)
             SPIN=ES_sectors[sector_ind];
             sectr=Irrep[SU₂](SPIN);
-            display("sector "*"k="*string(ck)*", spin="*string(SPIN)*":");
+            display("sector "*"k="*string(ck)*", spin="*string(SPIN)*":");;flush(stdout);
 
             if dim(fuse(domain(input_transform,1)),Irrep[SU₂](SPIN))==0
-                display("MPS decomposition does not have this sector, skip it")
+                display("MPS decomposition does not have this sector, skip it");flush(stdout);
                 Eset[kk,sector_ind]=[];
                 continue;
             end
@@ -36,7 +36,7 @@ function solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,n_E,N,kset,ES_
 
             @time Es,_=eigsolve(excitation_iterative, v_init, n_E,:LM,Arnoldi(krylovdim=minimum([10,n_E*3])));
             Eset[kk,sector_ind]=Es
-            display(Es)
+            display(Es);flush(stdout);
         end
 
     end
@@ -56,11 +56,12 @@ function excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transfo
     H_eff_x_set=Vector{Any}(undef, N);
     if multi_threads
         Threads.@threads for cn=1:N
+            display("Thread id: "*string(Threads.threadid()));flush(stdout);
             coe=exp(-im*k*(cm-cn))
             H_eff_x0=H_eff_x*0;
             for c_sector=1:length(DTrun_list)
                 for  c_comp=1:length(DTrun_list[c_sector])
-                    #display(DTrun_list[c_sector][c_comp])
+                    #display(DTrun_list[c_sector][c_comp]);flush(stdout);
                     
                     H_eff_x0=H_eff_x0+coe*contract_H_eff_trun(x,O1,O2,OO,Ag,VR[c_sector][c_comp],EU[c_sector][c_comp],VL[c_sector][c_comp],SPIN[c_sector],cm,cn,pow,N,DTrun_list[c_sector][c_comp],mpo_type);
                 end
@@ -73,7 +74,7 @@ function excitation_TrunTransOp_iterative_H_eff(x,input_transform,output_transfo
             H_eff_x0=H_eff_x*0;
             for c_sector=1:length(DTrun_list)
                 for  c_comp=1:length(DTrun_list[c_sector])
-                    #display(DTrun_list[c_sector][c_comp])
+                    #display(DTrun_list[c_sector][c_comp]);flush(stdout);
                     
                     H_eff_x0=H_eff_x0+coe*contract_H_eff_trun(x,O1,O2,OO,Ag,VR[c_sector][c_comp],EU[c_sector][c_comp],VL[c_sector][c_comp],SPIN[c_sector],cm,cn,pow,N,DTrun_list[c_sector][c_comp],mpo_type);
                 end

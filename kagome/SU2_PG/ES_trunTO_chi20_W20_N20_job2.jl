@@ -28,4 +28,11 @@ Dtrun_method="svds";
 Dtrun_init=400;
 Dtrun_max=400;
 
-cal_ES(D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method)
+J1=1;
+J2=0;
+J3=0;
+Jchi=0;
+Jtrip=0;
+parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", Jtrip)]);
+
+cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method)

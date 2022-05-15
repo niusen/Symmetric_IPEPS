@@ -1,4 +1,4 @@
-function cal_ES(D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method)
+function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method)
     # D=8;
     # chi=20;
     # W=20;
@@ -28,17 +28,7 @@ function cal_ES(D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method)
     
     pow=Int((N-2)/2);
     
-    J1=1;
-    J2=0;
-    J3=0;
-    Jchi=0;
-    Jtrip=0;
-    
-    
-    
-    
-    
-    parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", Jtrip)]);
+
     
     A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
     

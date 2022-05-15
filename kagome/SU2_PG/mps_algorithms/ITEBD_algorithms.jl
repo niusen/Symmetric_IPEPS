@@ -119,7 +119,7 @@ function itebd_ite(mpo,A,W,type)
     vr,_=right_eigenvector(AL,[],"A");
 
     U,S,_=tsvd(permute(vr,(1,),(2,)),trunc=truncdim(W));
-    #display(diag(convert(Array,S)))
+    #println(diag(convert(Array,S)))
     @tensor A_trun[:]:=U[1,-1]*AL[1,2,-3]*U'[-2,2];
 
     return A_trun
@@ -170,9 +170,9 @@ function ITEBD_boundary_groundstate(O1,O2,W,A_init,method)
             AL=left_right_normalize(A_trun);
     
             # vv,ee=right_eigenvector(AL,[],"A");
-            # display(ee)
+            # println(ee)
             # u,s,v=tsvd(permute(vv,(1,),(2,)));
-            # display(sort(diag(convert(Array,s)),rev=true))
+            # println(sort(diag(convert(Array,s)),rev=true))
             
             #dominant eigenvalue of transfer matrix
             E=left_eigenvalue(impo_imps(O2,impo_imps(O1,AL)),AL,1)[1]

@@ -20,7 +20,7 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
     multi_threads=true;if Threads.nthreads()==1; multi_threads=false; end
     println("number of threads: "*string(Threads.nthreads()));flush(stdout);
     
-    
+    CTM_conv_tol=1e-6;
     trun_tol=1e-8;
     group_size=Int(round((10^8)/(chi*chi*W*W*D)));
     
@@ -46,10 +46,10 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
     
     
     
-    CTM,U_L,U_D,U_R,U_U=try_CTM(D,chi,parameters, U_phy, A_unfused, A_fused);
+    CTM,U_L,U_D,U_R,U_U=try_CTM(D,chi,parameters, CTM_conv_tol, U_phy, A_unfused, A_fused);
     
     
-    Ag,O1,O2=try_ITEBD(D,chi,W,CTM);
+    Ag,O1,O2=try_ITEBD(D,chi,W,CTM,U_L,U_R);
     
     
     

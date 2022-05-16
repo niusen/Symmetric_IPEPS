@@ -1,4 +1,4 @@
-function try_CTM(D,chi,parameters, U_phy, A_unfused, A_fused)
+function try_CTM(D,chi,parameters, CTM_conv_tol,U_phy, A_unfused, A_fused)
     CTM=[];
     U_L=[];
     U_D=[];
@@ -30,7 +30,7 @@ function try_CTM(D,chi,parameters, U_phy, A_unfused, A_fused)
 
         init=Dict([("CTM", []), ("init_type", "PBC")]);
         conv_check="singular_value";
-        @time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,tol,init);
+        @time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init);
         
         @time E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
         @time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
@@ -56,7 +56,7 @@ function try_CTM(D,chi,parameters, U_phy, A_unfused, A_fused)
 end
 
 
-function try_ITEBD(D,chi,W,CTM)
+function try_ITEBD(D,chi,W,CTM,U_L,U_R)
     O1=[];
     O2=[];
     Ag=[];

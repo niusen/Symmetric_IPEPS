@@ -72,6 +72,8 @@ end
 
 
 
+
+
 function Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
 
     # Heisenberg interaction
@@ -96,7 +98,6 @@ function Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
     H_bond=J1*H_Heisenberg;
     return H_triangle, H_bond, H12_tensorkit, H31_tensorkit, H23_tensorkit 
 end
-
 
 function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
 

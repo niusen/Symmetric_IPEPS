@@ -56,7 +56,7 @@ function try_CTM(D,chi,parameters, CTM_conv_tol,U_phy, A_unfused, A_fused)
 end
 
 
-function try_ITEBD(D,chi,W,CTM,U_L,U_R)
+function try_ITEBD(D,chi,W,CTM,U_L,U_R,unitcell_size)
     O1=[];
     O2=[];
     Ag=[];
@@ -79,11 +79,18 @@ function try_ITEBD(D,chi,W,CTM,U_L,U_R)
         @tensor O1[:]:=Tleft[-3,1,-1]*U_L[1,-2,-4];
         @tensor O2[:]:=Tright[-1,1,-3]*U_R[-4,-2,1];
         
+        for cu=1:unitcell_size-1
+            U_unitcell=unitary(fuse(space(O1,4)⊗space(O1,4)),space(O1,4)⊗space(O1,4));
+            @tensor O1[:]:=O1[-1,1,2,4]*O1[2,3,-3,5]*U_unitcell[-4,4,5]*U_unitcell'[1,3,-2];
+            @tensor O2[:]:=O2[-1,1,2,4]*O2[2,3,-3,5]*U_unitcell[-4,4,5]*U_unitcell'[1,3,-2];
+        end
+
+
         mps_virtual=SU₂Space(0=>1,1/2=>1,1=>1);mps_phy=space(O1,2);
         A_init=permute(TensorMap(randn, mps_virtual*mps_virtual', mps_phy),(1,2,3,),());
 
-        #Ag,A_init=ITEBD_boundary_groundstate(O1,O2,W,A_init,"OO");
-        Ag,A_init=ITEBD_boundary_groundstate(O1,O2,W,A_init,"O_O");
+        #Ag,A_init=ITEBD_boundary_groundstate(O1,O2,W,A_init,"OO",unitcell_size);
+        Ag,A_init=ITEBD_boundary_groundstate(O1,O2,W,A_init,"O_O",unitcell_size);
 
         #save itebd data
         O1_dict=convert(Dict,O1);

@@ -1,4 +1,4 @@
-function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method)
+function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method,unitcell_size=1,save_mat_tensors=false)
     # D=8;
     # chi=20;
     # W=20;
@@ -48,12 +48,29 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
     
     CTM,U_L,U_D,U_R,U_U=try_CTM(D,chi,parameters, CTM_conv_tol, U_phy, A_unfused, A_fused);
     
+    Ag,O1,O2=try_ITEBD(D,chi,W,CTM,U_L,U_R,unitcell_size);
+
+    if save_mat_tensors
+        ES_filenm="Ag_mpo_tensors_D"*string(D)*"_chi"*string(chi)*"_W"*string(W)*".mat";
+        matwrite(ES_filenm, Dict(
+            "Ag" => convert(Array,Ag),
+            "O1" => convert(Array,O1),
+            "O2" => convert(Array,O2),
+            "C1" => convert(Array,CTM["Cset"][1]),
+            "C2" => convert(Array,CTM["Cset"][2]),
+            "C3" => convert(Array,CTM["Cset"][3]),
+            "C4" => convert(Array,CTM["Cset"][4]),
+            "T1" => convert(Array,CTM["Tset"][1]),
+            "T2" => convert(Array,CTM["Tset"][2]),
+            "T3" => convert(Array,CTM["Tset"][3]),
+            "T4" => convert(Array,CTM["Tset"][4])
+        ); compress = false)
+    end
     
-    Ag,O1,O2=try_ITEBD(D,chi,W,CTM,U_L,U_R);
     
-    
-    
-    
+
+
+
     space_AOA=fuse(space(Ag,1)'⊗space(O2,1)'⊗space(O1,1)⊗ space(Ag,1));
     space_AA=fuse(space(Ag,1)'⊗ space(Ag,1));
     

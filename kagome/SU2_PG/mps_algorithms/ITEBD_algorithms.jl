@@ -44,10 +44,58 @@ function left_eigenvector(A,mpo,type)
     if type=="A"
         HVfun1(x)=HV_L_tensor(x,A,[]);
         vl_init = permute(TensorMap(randn, space(A,1), space(A,1)), (1,2,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
-        eu,ev=eigsolve(HVfun1, vl_init, 1,:LM,Arnoldi());
+        eu,ev=eigsolve(HVfun1, vl_init, 2,:LM,Arnoldi());
+        eu_S0=eu;
         @assert maximum(abs.(eu)) == abs(eu[1])
         eu=eu[1];
         ev=ev[1];
+
+        eu_allspin=eu_S0;
+        allspin=eu_S0*0;
+        vl_init = permute(TensorMap(randn, SU₂Space(1/2=>1)⊗space(A,1), space(A,1)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        if norm(vl_init)>0
+            eu_S0d5,_=eigsolve(HVfun1, vl_init, 2,:LM,Arnoldi());
+            eu_allspin=vcat(eu_allspin,eu_S0d5)
+            allspin=vcat(allspin,0*eu_S0d5.+0.5)
+        end
+
+        vl_init = permute(TensorMap(randn, SU₂Space(1=>1)⊗space(A,1), space(A,1)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        if norm(vl_init)>0
+            eu_S1,_=eigsolve(HVfun1, vl_init, 2,:LM,Arnoldi());
+            eu_allspin=vcat(eu_allspin,eu_S1)
+            allspin=vcat(allspin,0*eu_S1.+1)
+        end
+
+        vl_init = permute(TensorMap(randn, SU₂Space(3/2=>1)⊗space(A,1), space(A,1)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        if norm(vl_init)>0
+            eu_S1d5,_=eigsolve(HVfun1, vl_init, 2,:LM,Arnoldi());
+            eu_allspin=vcat(eu_allspin,eu_S1d5)
+            allspin=vcat(allspin,0*eu_S1d5.+1.5)
+        end
+
+        vl_init = permute(TensorMap(randn, SU₂Space(2=>1)⊗space(A,1), space(A,1)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        if norm(vl_init)>0
+            eu_S2,_=eigsolve(HVfun1, vl_init, 2,:LM,Arnoldi());
+            eu_allspin=vcat(eu_allspin,eu_S2)
+            allspin=vcat(allspin,0*eu_S2.+2)
+        end
+
+        eu_allspin_abs=abs.(eu_allspin);
+        @assert maximum(eu_allspin_abs)==eu_allspin_abs[1]
+
+        eu_allspin_abs_sorted=sort(eu_allspin_abs,rev=true);
+        eu_allspin_abs_sorted=eu_allspin_abs_sorted/eu_allspin_abs_sorted[1];
+        allspin=allspin[sortperm(eu_allspin_abs,rev=true)]
+        # display(eu_allspin_abs_sorted[2]/eu_allspin_abs_sorted[1])
+        # display(eu_allspin_abs_sorted[1:4])
+        # display(allspin[1:4])
+        #@assert eu_allspin_abs_sorted[2]/eu_allspin_abs_sorted[1]<0.99
+        if eu_allspin_abs_sorted[2]/eu_allspin_abs_sorted[1]>0.99
+            display("Warn: dominant transfer matrix eigenvalue close to degenerate: "*string(eu_allspin_abs_sorted[2]/eu_allspin_abs_sorted[1]))
+        end
+        
+
+
         return ev,eu
     elseif type=="mpo_A"
         HVfun2(x)=HV_L_tensor(x,A,mpo);
@@ -142,7 +190,7 @@ function left_right_normalize(A)
 end
 
 
-function ITEBD_boundary_groundstate(O1,O2,W,A_init,method)
+function ITEBD_boundary_groundstate(O1,O2,W,A_init,method,unitcell_size=1)
     # ITEBD_boundary_groundstate(O1,O2,D,inv_tol):
         #use power method to obtain dominant boundary imps of nonhermitian MPO
         if method=="OO"
@@ -158,10 +206,11 @@ function ITEBD_boundary_groundstate(O1,O2,W,A_init,method)
         end
         AL=left_right_normalize(A_init);
         
-        for cp=1:30
+        for cp=1:40
             AL_old=AL;
             @time if method=="O_O"
-                A_trun_intermed=itebd_ite(O1,AL,3*W,"mpo_A");
+                #A_trun_intermed=itebd_ite(O1,AL,3*W,"mpo_A");
+                A_trun_intermed=itebd_ite(O1,AL,W,"mpo_A");
                 A_trun=itebd_ite(O2,A_trun_intermed,W,"mpo_A");
                 AL=left_right_normalize(A_trun);
             elseif method=="OO"
@@ -176,6 +225,7 @@ function ITEBD_boundary_groundstate(O1,O2,W,A_init,method)
             
             #dominant eigenvalue of transfer matrix
             E=left_eigenvalue(impo_imps(O2,impo_imps(O1,AL)),AL,1)[1]
+            E=E^(1/unitcell_size)
             ov=abs(left_eigenvalue(AL,AL_old,1)[1]);
             println("E="*string(E)*", "*"ov="*string(ov))
             if abs(ov-1)<1e-8

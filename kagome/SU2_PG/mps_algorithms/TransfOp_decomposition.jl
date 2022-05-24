@@ -282,7 +282,7 @@ function FLR_eig(A,O,n,full_space,sector_set)
         end
         evR_set[cc]=evR;
 
-        @assert (norm(abs.(euL)-abs.(euR))/norm(euL))<1e-8
+        #@assert (norm(abs.(euL)-abs.(euR))/norm(euL))<1e-8
     end
     return euL_set,evL_set,euR_set,evR_set,SPIN_set     
 end
@@ -317,7 +317,7 @@ function GLR_eig(A,n,full_space,sector_set)
         catch e
             println("Number of eigenvalues obtained are not enough, use smaller tol")
             eul,evl,info=eigsolve(GLR_eig_L, vl_init, minimum([n_eff,dim(full_space,sec)]),:LM,Arnoldi(krylovdim=minimum([n_eff,dim(full_space,sec)])*4, tol=1e-14));
-            if minimum(abs.(eul))/maximum(abs.eu(l))<1e-7
+            if minimum(abs.(eul))/maximum(abs.(eul))<1e-7
                 println("minimal singular value in this sector is quite small, skip checking number of converged values");flush(stdout);
             else
                 if  info.converged >= minimum([n_eff,dim(full_space,sec)])
@@ -365,7 +365,7 @@ function GLR_eig(A,n,full_space,sector_set)
         end
         evr_set[cc]=evr;
 
-        @assert (norm(abs.(eul)-abs.(eur))/norm(eul))<1e-8
+        #@assert (norm(abs.(eul)-abs.(eur))/norm(eul))<1e-8
 
     end
     return eul_set,evl_set,eur_set,evr_set,spin_set   

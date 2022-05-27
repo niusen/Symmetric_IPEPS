@@ -88,7 +88,7 @@ function fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U)
 end
 
 
-function CTMRG(A,chi,conv_check,tol,init)
+function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums)
 
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     #initial corner transfer matrix
@@ -108,7 +108,7 @@ function CTMRG(A,chi,conv_check,tol,init)
     rho_old=Matrix(I,d^3,d^3);
 
     #Iteration
-    CTM_ite_nums=50;
+    
     display("start CTM iterations:")
     for ci=1:CTM_ite_nums
         direction_order=[1,2,3,4];

@@ -51,8 +51,8 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
     Ag,O1,O2=try_ITEBD(D,chi,W,CTM,U_L,U_R,unitcell_size);
 
     if save_mat_tensors
-        ES_filenm="Ag_mpo_tensors_D"*string(D)*"_chi"*string(chi)*"_W"*string(W)*".mat";
-        matwrite(ES_filenm, Dict(
+        Tensors_filenm="Ag_mpo_tensors_D"*string(D)*"_chi"*string(chi)*"_W"*string(W)*".mat";
+        matwrite(Tensors_filenm, Dict(
             "Ag" => convert(Array,Ag),
             "O1" => convert(Array,O1),
             "O2" => convert(Array,O2),
@@ -66,7 +66,8 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
             "T4" => convert(Array,CTM["Tset"][4])
         ); compress = false)
     end
-    
+    println("space of Ag:")
+    println(space(Ag))
     
 
 
@@ -178,7 +179,7 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
         kset,Eset=solve_ITEBD_excitation_TrunTransOp_iterative(Ag,O1,O2,OO,EH_n,N,kset,ES_sectors,pow,U_set_grouped,S_set_grouped,Vh_set_grouped,SPIN_svd_set_grouped,DTrun_FLR_svd,mpo_type,multi_threads)
     end
     
-    ES_filenm="ES_"*Dtrun_method*"_D"*string(D)*"_chi"*string(chi)*"_W"*string(W)*"_N"*string(N)*"_kset"*string(kset[1])*"to"*string(kset[end])*".mat";
+    ES_filenm="ES_"*Dtrun_method*"_D"*string(D)*"_chi"*string(chi)*"_W"*string(W)*"_N"*string(N)*"_DTrun"*string(DTrun)*"_kset"*string(kset[1])*"to"*string(kset[end])*".mat";
     matwrite(ES_filenm, Dict(
         "kset" => convert(Vector,kset),
         "ES_sectors" => ES_sectors,

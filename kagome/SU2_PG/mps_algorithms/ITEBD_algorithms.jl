@@ -144,7 +144,9 @@ function left_eigenvalue(A1,A2,n)
     vl_init = permute(TensorMap(randn, space(A1,1), space(A2,1)), (1,2,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
     eu,ev=eigsolve(HVA1A2fun, vl_init, 1,:LM,Arnoldi());
     @assert maximum(abs.(eu)) == abs(eu[1])
-    eu=eu[1:n];
+    if length(eu)>n
+        eu=eu[1:n];
+    end
     return eu
 end
 

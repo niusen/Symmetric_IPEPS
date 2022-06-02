@@ -133,7 +133,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
 
     #Iteration
 
-    print_corner=true;
+    print_corner=false;
     if print_corner
         println("corner 4:")
         C4_spec=svdvals(convert(Array,Cset[4]));
@@ -165,7 +165,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
             Cset,Tset=CTM_ite(Cset, Tset, AA_fused, chi, direction,CTM_trun_tol);
         end
 
-        print_corner=true;
+        print_corner=false;
         if print_corner
             println("corner 4:")
             C4_spec=svdvals(convert(Array,Cset[4]));
@@ -183,8 +183,9 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
             C2_spec=svdvals(convert(Array,Cset[2]));
             C2_spec=C2_spec/C2_spec[1];
             println(C2_spec);
+            println("next iteration:")
         end
-        println("next iteration:")
+        
 
 
         if conv_check=="singular_value" #check convergence of singular value
@@ -265,9 +266,9 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol)
     sM_inv=pinv(sM);
     sM_dense=convert(Array,sM)
 
-    println("svd:")
-    sm_=sort(diag(sM_dense),rev=true)
-    println(sm_/sm_[1])
+    # println("svd:")
+    # sm_=sort(diag(sM_dense),rev=true)
+    # println(sm_/sm_[1])
 
     # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
     # sm_=sort(diag(convert(Array,sM_test)),rev=true)

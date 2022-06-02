@@ -187,7 +187,7 @@ function solve_correl_length(n_values,AA_fused,CTM,direction)
 end
 
 
-function cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+function cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
     A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
 
@@ -212,7 +212,7 @@ function cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
 
     init=Dict([("CTM", []), ("init_type", "PBC")]);
     conv_check="singular_value";
-    @time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums);
+    @time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol);
 
 
 

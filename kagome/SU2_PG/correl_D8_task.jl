@@ -31,7 +31,8 @@ distance=100;
 
 chi=20;
 CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+CTM_trun_tol=1e-12;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=40;
 CTM_ite_nums=200;

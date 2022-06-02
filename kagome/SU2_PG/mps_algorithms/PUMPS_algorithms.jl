@@ -1,4 +1,4 @@
-function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method,unitcell_size=1,save_mat_tensors=false)
+function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_tol,Dtrun_method,unitcell_size=1,save_mat_tensors=false)
     # D=8;
     # chi=20;
     # W=20;
@@ -21,7 +21,9 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
     println("number of threads: "*string(Threads.nthreads()));flush(stdout);
     
     CTM_conv_tol=1e-6;
-    trun_tol=1e-8;
+    
+    CTM_ite_nums=50;
+    CTM_trun_tol=1e-12;
     group_size=Int(round((10^8)/(chi*chi*W*W*D)));
     
     mpo_type="OO";#"O_O" or "OO", in my test "OO" is faster for large bond dimension
@@ -46,7 +48,7 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
     
     
     
-    CTM,U_L,U_D,U_R,U_U=try_CTM(D,chi,parameters, CTM_conv_tol, U_phy, A_unfused, A_fused);
+    CTM,U_L,U_D,U_R,U_U=try_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,U_phy, A_unfused, A_fused);
     
     Ag,O1,O2=try_ITEBD(D,chi,W,CTM,U_L,U_R,unitcell_size);
 
@@ -95,16 +97,16 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_method
     
     
     
-    euR_set,evL_set,evR_set,SPIN_eig_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,trun_tol,"eigenvalue_FLR");
+    euR_set,evL_set,evR_set,SPIN_eig_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"eigenvalue_FLR");
     # println(euR_set)
     
-    eur_set,evl_set,evr_set,spin_eig_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,trun_tol,"eigenvalue_GLR");
+    eur_set,evl_set,evr_set,spin_eig_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"eigenvalue_GLR");
     # println(eur_set)
     
-    S_set,U_set,Vh_set,SPIN_svd_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,trun_tol,"svd_FLR");
+    S_set,U_set,Vh_set,SPIN_svd_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"svd_FLR");
     # println(S_set)
     
-    s_set,u_set,vh_set,spin_svd_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,trun_tol,"svd_GLR");
+    s_set,u_set,vh_set,spin_svd_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"svd_GLR");
     # println(s_set)
     
     

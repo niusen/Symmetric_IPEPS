@@ -22,7 +22,7 @@ function build_double_layer(A,operator)
     U=unitary(fuse(V' ⊗ V), V' ⊗ V);
     @tensor double_LD[:]:=uM'[-1,-2,1]*U'[1,-3,-4];
     @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
-    
+
     vM=permute(vM,(1,2,3,4,),());
     if operator==[]
         @tensor double_RU[:]:=U[-1,-2,1]*vM[1,-3,-4,-5];
@@ -46,7 +46,7 @@ function build_double_layer(A,operator)
     double_LD=permute(double_LD,(1,2,),(3,));
     double_RU=permute(double_RU,(1,),(2,3,));
     AA_fused=double_LD*double_RU;
-    
+
     return AA_fused, U_L,U_D,U_R,U_U
 end
 
@@ -87,8 +87,29 @@ function fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U)
     return CTM
 end
 
+function spectrum_conv_check(ss_old,C_new)
+    _,ss_new,_=svd(permute(C_new,(1,),(2,)));
+    ss_new=convert(Array,ss_new);
+    ss_new=sort(diag(ss_new), rev=true);
+    ss_old=ss_old/ss_old[1];
+    ss_new=ss_new/ss_new[1];
+    #display(ss_new)
+    if length(ss_old)>length(ss_new)
+        dss=copy(ss_old);
+        siz=length(ss_new)
+    elseif length(ss_old)<=length(ss_new)
+        dss=copy(ss_new);
+        siz=length(ss_old)
+    end
+    dss[1:siz]=ss_old[1:siz]-ss_new[1:siz]
+    # println("spectra diff:")
+    # println(ss_old);
+    # println(ss_new)
+    er=norm(dss);
+    return er,ss_new
+end
 
-function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums)
+function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
 
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     #initial corner transfer matrix
@@ -98,46 +119,91 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums)
     else
         CTM=init;
     end
-    
+
     Cset=CTM["Cset"];
     Tset=CTM["Tset"];
     conv_check="singular_value"
 
-    ss_old=ones(chi)*2;
+    ss_old1=ones(chi)*2;
+    ss_old2=ones(chi)*2;
+    ss_old3=ones(chi)*2;
+    ss_old4=ones(chi)*2;
     d=2;
     rho_old=Matrix(I,d^3,d^3);
 
     #Iteration
-    
+
+    print_corner=true;
+    if print_corner
+        println("corner 4:")
+        C4_spec=svdvals(convert(Array,Cset[4]));
+        C4_spec=C4_spec/C4_spec[1];
+        println(C4_spec);
+        println("corner 1:")
+        C1_spec=svdvals(convert(Array,Cset[1]));
+        C1_spec=C1_spec/C1_spec[1];
+        println(C1_spec);
+        println("corner 3:")
+        C3_spec=svdvals(convert(Array,Cset[3]));
+        C3_spec=C3_spec/C3_spec[1];
+        println(C3_spec);
+        println("corner 2:")
+        C2_spec=svdvals(convert(Array,Cset[2]));
+        C2_spec=C2_spec/C2_spec[1];
+        println(C2_spec);
+    end
+    println("CTM init finished")
+
+
+
     display("start CTM iterations:")
     for ci=1:CTM_ite_nums
-        direction_order=[1,2,3,4];
+        #direction_order=[1,2,3,4];
+        #direction_order=[4,1,2,3];
+        direction_order=[3,4,1,2];
         for direction in direction_order
-            Cset,Tset=CTM_ite(Cset, Tset, AA_fused, chi, direction);
+            Cset,Tset=CTM_ite(Cset, Tset, AA_fused, chi, direction,CTM_trun_tol);
         end
+
+        print_corner=true;
+        if print_corner
+            println("corner 4:")
+            C4_spec=svdvals(convert(Array,Cset[4]));
+            C4_spec=C4_spec/C4_spec[1];
+            println(C4_spec);
+            println("corner 1:")
+            C1_spec=svdvals(convert(Array,Cset[1]));
+            C1_spec=C1_spec/C1_spec[1];
+            println(C1_spec);
+            println("corner 3:")
+            C3_spec=svdvals(convert(Array,Cset[3]));
+            C3_spec=C3_spec/C3_spec[1];
+            println(C3_spec);
+            println("corner 2:")
+            C2_spec=svdvals(convert(Array,Cset[2]));
+            C2_spec=C2_spec/C2_spec[1];
+            println(C2_spec);
+        end
+        println("next iteration:")
+
+
         if conv_check=="singular_value" #check convergence of singular value
-            _,ss_new,_=svd(permute(Cset[1],(1,),(2,)));
-            ss_new=convert(Array,ss_new);
-            ss_new=sort(diag(ss_new), rev=true);
-            ss_old=ss_old/ss_old[1];
-            ss_new=ss_new/ss_new[1];
-            #display(ss_new)
-            if length(ss_old)>length(ss_new)
-                dss=copy(ss_old);
-                siz=length(ss_new)
-            elseif length(ss_old)<=length(ss_new)
-                dss=copy(ss_new);
-                siz=length(ss_old)
-            end
-            dss[1:siz]=ss_old[1:siz]-ss_new[1:siz]
-            er=norm(dss);
+            er1,ss_new1=spectrum_conv_check(ss_old1,Cset[1]);
+            er2,ss_new2=spectrum_conv_check(ss_old2,Cset[2]);
+            er3,ss_new3=spectrum_conv_check(ss_old3,Cset[3]);
+            er4,ss_new4=spectrum_conv_check(ss_old4,Cset[4]);
+
+            er=maximum([er1,er2,er3,er4]);
             println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
             if er<tol
                 break;
             end
-            ss_old=ss_new;
+            ss_old1=ss_new1;
+            ss_old2=ss_new2;
+            ss_old3=ss_new3;
+            ss_old4=ss_new4;
         elseif conv_check=="density_matrix" #check reduced density matrix
-            
+
             # ob_opts.SiteNumber=1;
             # CTM_tem.Cset=Cset;
             # CTM_tem.Tset=Tset;
@@ -149,7 +215,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums)
             # end
             # rho_old=rho_new;
         end
-        
+
         # if ci==CTM_ite_nums
         #     display(er)
         #     warn("CTMRG does not converge: " * string(er));
@@ -162,17 +228,17 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums)
 
 end
 
-function CTM_ite(Cset, Tset, AA_fused, chi, direction)
+function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol)
 
     AA=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
-                
-    @tensor MMup[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-3]*Tset[mod1(direction-1,4)][-1,4,1]*AA[4,-2,-4,3]; 
-    @tensor MMlow[:]:=Tset[mod1(direction-1,4)][1,3,-1]*AA[3,4,-4,-2]*Cset[mod1(direction-1,4)][2,1]*Tset[mod1(direction-2,4)][-3,4,2]; 
+
+    @tensor MMup[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-3]*Tset[mod1(direction-1,4)][-1,4,1]*AA[4,-2,-4,3];
+    @tensor MMlow[:]:=Tset[mod1(direction-1,4)][1,3,-1]*AA[3,4,-4,-2]*Cset[mod1(direction-1,4)][2,1]*Tset[mod1(direction-2,4)][-3,4,2];
 
     @tensor MMup_reflect[:]:=Tset[mod1(direction,4)][-1,3,1]* Cset[mod1(direction+1,4)][1,2]* AA[-2,-4,4,3]* Tset[mod1(direction+1,4)][2,4,-3];
-    #@tensor MMlow_reflect[:]:=AA[-2,4,3,-4]*Tset[mod1(direction+1,4)][-3,3,1]*Tset[mod1(direction-2,4)][2,4,-1]*Cset[mod1(direction-2,4)][1,2]; #this is slow compared to other coners, I don't know why            
-    @tensor MMlow_reflect[:]:=Tset[mod1(direction+1,4)][-4,-3,2]*Tset[mod1(direction-2,4)][1,-2,-1]*Cset[mod1(direction-2,4)][2,1]; 
-    @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4]; 
+    #@tensor MMlow_reflect[:]:=AA[-2,4,3,-4]*Tset[mod1(direction+1,4)][-3,3,1]*Tset[mod1(direction-2,4)][2,4,-1]*Cset[mod1(direction-2,4)][1,2]; #this is slow compared to other coners, I don't know why
+    @tensor MMlow_reflect[:]:=Tset[mod1(direction+1,4)][-4,-3,2]*Tset[mod1(direction-2,4)][1,-2,-1]*Cset[mod1(direction-2,4)][2,1];
+    @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
 
     MMup=permute(MMup,(1,2,),(3,4,))
 
@@ -182,24 +248,31 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction)
     MMlow=permute(MMlow,(1,2,),(3,4,))
     MMup_reflect=permute(MMup_reflect,(1,2,),(3,4,))
     MMlow_reflect=permute(MMlow_reflect,(1,2,),(3,4,))
-    _, RMup=leftorth(permute(MMup*MMup_reflect,(3,4,),(1,2,)));
-    _, RMlow=leftorth(permute(MMlow*MMlow_reflect,(3,4,),(1,2,))); 
 
+    
 
-    RMlow=permute(RMlow,(2,3,),(1,));
+    RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
+    RMlow=MMlow*MMlow_reflect;
+
     M=RMup*RMlow;
 
+    uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
 
+    sM=truncate_multiplet(sM,chi,1e-5,trun_tol);
+    
 
-    uM,sM,vM = tsvd(M; trunc=truncdim(chi));
-    #uM,sM,vM = tsvd(M; trunc=trunbelow(1e-34)); #this looks to truncate absolute value, not relative value
-    #display(convert(Array,sM))
-    #display(convert(Array,inv(sM)))
     sM=sM/norm(sM)
-    sM_inv=inv(sM);
+    sM_inv=pinv(sM);
     sM_dense=convert(Array,sM)
-    #display(sM_dense)
-    trun_tol=1e-12
+
+    println("svd:")
+    sm_=sort(diag(sM_dense),rev=true)
+    println(sm_/sm_[1])
+
+    # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
+    # sm_=sort(diag(convert(Array,sM_test)),rev=true)
+    # println(sm_/sm_[1])
+
     for c1=1:size(sM_dense,1)
         if sM_dense[c1,c1]<trun_tol
             sM_dense[c1,c1]=0;
@@ -210,18 +283,19 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction)
 
     #display(sM_inv)
     #display(convert(Array,sM_inv))
-    sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
+    #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
     #display(space(sM_inv))
     #display(sM_inv_sqrt)
     sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
 
-    PM_inv=RMlow*vM'*sM_inv_sqrt; 
-    PM=sM_inv_sqrt*uM'*RMup; 
+    PM_inv=RMlow*vM'*sM_inv_sqrt;
+    PM=sM_inv_sqrt*uM'*RMup;
     PM=permute(PM,(2,3,),(1,));
 
     @tensor M5tem[:]:=Tset[mod1(direction-1,4)][4,3,1]*AA[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
     @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-2]*PM_inv[1,3,-1];
     @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,1]* PM[2,3,-2];
+
 
     Cset[mod1(direction,4)]=M1tem/norm(M1tem);
     Tset[mod1(direction-1,4)]=M5tem/norm(M5tem);
@@ -240,17 +314,17 @@ function init_CTM(chi,A,type)
     Tset=Vector(undef,4);
     #space(A,1)
     @time if type=="PBC"
-        for direction=1:4    
+        for direction=1:4
             inds=(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5);
             A_rotate=permute(A,inds);
             Ap_rotate=A_rotate';
-    
+
             @tensor M[:]:=Ap_rotate[1,-1,-3,2,3]*A_rotate[1,-2,-4,2,3];
             Cset[direction]=M;
             @tensor M[:]:=Ap_rotate[-1,-3,-5,1,2]*A_rotate[-2,-4,-6,1,2];
             Tset[direction]=M;
         end
-    
+
         #fuse legs
         ul_set=Vector(undef,4);
         ur_set=Vector(undef,4);
@@ -269,16 +343,16 @@ function init_CTM(chi,A,type)
             ulp=permute(ul',(3,),(1,2,));
             urp=permute(ur',(3,),(1,2,));
             #@tensor Cnew[(-1);(-2)]:=ulp[-1,1,2]*C[1,2,3,4]*ur[-2,3,4]
-            @tensor Cnew[:]:=ulp[-1,1,2]*C[1,2,3,4]*ur[-2,3,4];#put all indices in tone side so that its adjoint has the same index order 
+            @tensor Cnew[:]:=ulp[-1,1,2]*C[1,2,3,4]*ur[-2,3,4];#put all indices in tone side so that its adjoint has the same index order
             Cset[direction]=Cnew;
-    
+
             T=Tset[direction];
             ul=ul_set[direction];
             ur=ur_set[direction];
             ulp=permute(ul',(3,),(1,2,));
             urp=permute(ur',(3,),(1,2,));
             #@tensor Tnew[(-1);(-2,-3,-4)]:=ulp[-1,1,2]*T[1,2,-2,-3,3,4]*ur[-4,3,4]
-            @tensor Tnew[:]:=ulp[-1,1,2]*T[1,2,-2,-3,3,4]*ur[-4,3,4];#put all indices in tone side so that its adjoint has the same index order 
+            @tensor Tnew[:]:=ulp[-1,1,2]*T[1,2,-2,-3,3,4]*ur[-4,3,4];#put all indices in tone side so that its adjoint has the same index order
             Tset[direction]=Tnew;
         end
     elseif type=="random"
@@ -305,3 +379,41 @@ function init_CTM(chi,A,type)
     # ); compress = false)
 
     end;
+
+
+
+
+function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
+    #the multiplet is not due to su(2) symmetry
+    s_dense=sort(diag(convert(Array,s)),rev=true);
+
+    # println(s_dense/s_dense[1])
+
+    if length(s_dense)>chi
+        value_trun=s_dense[chi+1];
+    else
+        value_trun=0;
+    end
+    value_max=maximum(s_dense);
+
+    s_Dict=convert(Dict,s);
+    
+    space_full=space(s,1);
+    for sp in sectors(space_full)
+
+        diag_elem=diag(s_Dict[:data][string(sp)]);
+        for cd=1:length(diag_elem)
+            if ((diag_elem[cd]/value_max)<trun_tol) | (diag_elem[cd]<=value_trun) |(abs((diag_elem[cd]-value_trun)/value_trun)<multiplet_tol)
+                diag_elem[cd]=0;
+            end
+        end
+        s_Dict[:data][string(sp)]=diagm(diag_elem);
+    end
+    s=convert(TensorMap,s_Dict);
+
+    # s_=sort(diag(convert(Array,s)),rev=true);
+    # s_=s_/s_[1];
+    # print(s_)
+    # @assert 1+1==3
+    return s
+end

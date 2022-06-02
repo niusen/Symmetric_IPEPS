@@ -2,7 +2,7 @@ using LinearAlgebra
 using TensorKit
 
 
-function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, method)
+function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, method,E_up_method="2x2")
 
     norm_1site=ob_1site_closed(CTM,AA_fused);
     H_triangle, H_bond, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
@@ -12,9 +12,15 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
     AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
 
     if method=="E_triangle" #calculate up and down triangle energy
-        AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
-        E_up=ob_1site_closed(CTM,AA_H)/norm_1site;
-        E_up=E_up[1];
+        if E_up_method=="1x1"
+            AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
+            E_up=ob_1site_closed(CTM,AA_H)/norm_1site;
+            E_up=E_up[1];
+        elseif E_up_method=="2x2"
+            AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
+            E_up=ob_RD(CTM,AA_H,AA_fused)/ob_RD(CTM,AA_fused,AA_fused);
+            E_up=blocks(E_up)[Irrep[SU₂](0)][1];
+        end
 
         rho_LU_RU_LD=ob_LU_RU_LD(CTM,AA_fused,AA2,AA1,AA3);
         rho_LU_RU_LD=permute(rho_LU_RU_LD,(1,3,2,),());#anti-clock-wise order
@@ -238,6 +244,47 @@ function ob_2sites_y(CTM,AA1,AA2)
     return rho;
 end
 
+function ob_LU(CTM,AA_LU,AA_fused)
+    Cset=CTM["Cset"];
+    Tset=CTM["Tset"];
+
+    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_LU[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+
+    @tensor MM_LD[:]:=Tset[4][1,3,-2]*AA_fused[3,4,-5,-3]*Cset[4][2,1]*Tset[3][-4,4,2]; 
+    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
+
+    MM_LU=permute(MM_LU,(1,2,),(3,4,));
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
+    @tensor rho[:]:=up[1,2,3,4,]*down[1,2,3,4];
+end
+
+function ob_RD(CTM,AA_RD,AA_fused)
+    Cset=CTM["Cset"];
+    Tset=CTM["Tset"];
+
+    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+
+    @tensor MM_LD[:]:=Tset[4][1,3,-2]*AA_fused[3,4,-5,-3]*Cset[4][2,1]*Tset[3][-4,4,2]; 
+    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4]; 
+
+    MM_LU=permute(MM_LU,(1,2,),(3,4,));
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
+    @tensor rho[:]:=up[1,2,3,4,]*down[1,2,3,4];
+end
 
 function ob_LD_RU(CTM,AA_fused,AA_LD,AA_RU)
     Cset=CTM["Cset"];

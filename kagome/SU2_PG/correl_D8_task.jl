@@ -36,34 +36,50 @@ cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=40;
 CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=80;
 CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=100;
 CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=120;
 CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=140;
-CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+CTM_ite_nums=300;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=160;
-CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+CTM_ite_nums=300;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=180;
-CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+CTM_ite_nums=400;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 chi=200;
-CTM_ite_nums=200;
-cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,distance)
+CTM_ite_nums=400;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
+
+chi=240;
+CTM_ite_nums=400;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
+
+chi=300;
+CTM_ite_nums=400;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
+
+chi=360;
+CTM_ite_nums=500;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
+
+chi=420;
+CTM_ite_nums=500;
+cal_correl(D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
 
 

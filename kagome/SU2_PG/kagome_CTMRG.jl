@@ -109,13 +109,13 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
+function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true)
 
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     #initial corner transfer matrix
         #initial corner transfer matrix
     if isempty(init["CTM"])
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"]);
+        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
     else
         CTM=init;
     end
@@ -151,18 +151,20 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
         C2_spec=svdvals(convert(Array,Cset[2]));
         C2_spec=C2_spec/C2_spec[1];
         println(C2_spec);
+        println("CTM init finished")
     end
-    println("CTM init finished")
+    
 
 
-
-    display("start CTM iterations:")
+    if CTM_ite_info
+        println("start CTM iterations:")
+    end
     for ci=1:CTM_ite_nums
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
         for direction in direction_order
-            Cset,Tset=CTM_ite(Cset, Tset, AA_fused, chi, direction,CTM_trun_tol);
+            Cset,Tset=CTM_ite(Cset, Tset, AA_fused, chi, direction,CTM_trun_tol,CTM_ite_info);
         end
 
         print_corner=false;
@@ -195,7 +197,9 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
             er4,ss_new4=spectrum_conv_check(ss_old4,Cset[4]);
 
             er=maximum([er1,er2,er3,er4]);
-            println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
+            if CTM_ite_info
+                println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
+            end
             if er<tol
                 break;
             end
@@ -229,7 +233,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol)
 
 end
 
-function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol)
+function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
 
     AA=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
 
@@ -267,7 +271,7 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol)
     uM=uM_new;
     sM=sM_new;
     vM=vM_new;
-    println(diag(convert(Array,sM)))
+    #println(diag(convert(Array,sM)))
 
 
     sM=sM/norm(sM)
@@ -312,9 +316,10 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol)
     return Cset,Tset
 end
 
-function init_CTM(chi,A,type)
-
-    display("initialize CTM")
+function init_CTM(chi,A,type,CTM_ite_info)
+    if CTM_ite_info
+        display("initialize CTM")
+    end
     #numind(A)
     #numin(A)
     #numout(A)
@@ -322,7 +327,7 @@ function init_CTM(chi,A,type)
     Cset=Vector(undef,4);
     Tset=Vector(undef,4);
     #space(A,1)
-    @time if type=="PBC"
+    if type=="PBC"
         for direction=1:4
             inds=(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5);
             A_rotate=permute(A,inds);

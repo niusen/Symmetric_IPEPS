@@ -27,7 +27,9 @@ function construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,
     Triangle_A2_coe=read_string(json_dict["coes"]["Triangle_A2_coe"]["entries"]);
     if Bond_irrep=="A"
         Bond_A_coe=read_string(json_dict["coes"]["Bond_A_coe"]["entries"]);
+        Bond_B_coe=[];
     elseif Bond_irrep=="B"
+        Bond_A_coe=[];
         Bond_B_coe=read_string(json_dict["coes"]["Bond_B_coe"]["entries"]);
     elseif Bond_irrep=="A+iB"
         Bond_A_coe=read_string(json_dict["coes"]["Bond_A_coe"]["entries"]);
@@ -64,4 +66,25 @@ function construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,
         triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct];
     end
     return bond_tensor,triangle_tensor
+end
+
+
+
+
+function get_tensor_coes(json_dict)
+    Bond_irrep=json_dict["Bond_irrep"]
+    Triangle_A1_coe=read_string(json_dict["coes"]["Triangle_A1_coe"]["entries"]);
+    Triangle_A2_coe=read_string(json_dict["coes"]["Triangle_A2_coe"]["entries"]);
+    if Bond_irrep=="A"
+        Bond_A_coe=read_string(json_dict["coes"]["Bond_A_coe"]["entries"]);
+        Bond_B_coe=[];
+    elseif Bond_irrep=="B"
+        Bond_A_coe=[];
+        Bond_B_coe=read_string(json_dict["coes"]["Bond_B_coe"]["entries"]);
+    elseif Bond_irrep=="A+iB"
+        Bond_A_coe=read_string(json_dict["coes"]["Bond_A_coe"]["entries"]);
+        Bond_B_coe=read_string(json_dict["coes"]["Bond_B_coe"]["entries"]);
+    end
+
+    return Bond_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
 end

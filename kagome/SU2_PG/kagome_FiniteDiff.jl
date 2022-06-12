@@ -33,7 +33,7 @@ function create_coe_dict(coe)
     return coe_dict
 end
 
-function initial_state(Bond_irrep,D,init_statenm=nothing)
+function initial_state(Bond_irrep,D,init_statenm=nothing,init_noise=0)
     if init_statenm==nothing 
         println("Random initial state");flush(stdout);
         A_set,B_set,A1_set,A2_set, _,_,_,_, _, _, _, _, _=construct_tensor(D);
@@ -56,6 +56,23 @@ function initial_state(Bond_irrep,D,init_statenm=nothing)
         json_state_dict=read_json_state(init_statenm);
         Bond_irrep_, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(json_state_dict)
         @assert Bond_irrep_==Bond_irrep
+
+        #add initial noise
+        if Bond_irrep=="A"
+            Bond_A_coe=Bond_A_coe+(rand(Float64, length(Bond_A_coe)).-0.5)*init_noise;
+            Bond_B_coe=[];
+        elseif Bond_irrep=="B"
+            Bond_A_coe=[];
+            Bond_B_coe=Bond_B_coe+(rand(Float64, length(Bond_B_coe)).-0.5)*init_noise;
+        elseif Bond_irrep=="A+iB"
+            Bond_A_coe=Bond_A_coe+(rand(Float64, length(Bond_A_coe)).-0.5)*init_noise;
+            Bond_B_coe=Bond_B_coe+(rand(Float64, length(Bond_B_coe)).-0.5)*init_noise;
+        end
+        Triangle_A1_coe=Triangle_A1_coe+(rand(Float64, length(Triangle_A1_coe)).-0.5)*init_noise;
+        Triangle_A2_coe=Triangle_A2_coe+(rand(Float64, length(Triangle_A2_coe)).-0.5)*init_noise;
+
+        #wrap the changed state due to initial noise 
+        json_state_dict=wrap_json_state(Bond_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe);
     end
     return json_state_dict, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
 
@@ -369,7 +386,7 @@ end
 
 
 
-function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_irrep,init_statenm)
+function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_irrep,init_statenm,init_noise)
     
     multi_threads=true;if Threads.nthreads()==1; multi_threads=false; end
     println("number of threads: "*string(Threads.nthreads()));flush(stdout);
@@ -380,7 +397,7 @@ function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
    
     #init_statenm="LS_D_"*string(D)*"_chi_40.json"
     #init_statenm=nothing
-    state, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=initial_state(Bond_irrep,D,init_statenm)
+    state, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=initial_state(Bond_irrep,D,init_statenm,init_noise)
 
     println("optimization start");flush(stdout);
     #E0,_,_=Grad_FiniteDiff(state, cfg.ctm_args, args.chi)

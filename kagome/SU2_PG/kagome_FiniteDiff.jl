@@ -348,7 +348,7 @@ function grad_line_search(state, D, chi, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     if improved
         state=set_vector(state, vec_tem)
         E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state));
-        open("filenm","w") do f
+        open(filenm,"w") do f
             JSON.print(f, state)
         end
     else
@@ -368,7 +368,7 @@ function grad_line_search(state, D, chi, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
         if improved
             state=set_vector(state, vec_tem)
             E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state));
-            open("filenm","w") do f
+            open(filenm,"w") do f
                 JSON.print(f, state)
             end
         else
@@ -378,7 +378,7 @@ function grad_line_search(state, D, chi, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     end
     improvement=E-E0
     
-    open("filenm","w") do f
+    open(filenm,"w") do f
         JSON.print(f, state)
     end
     return E,state,grad,direction,improvement

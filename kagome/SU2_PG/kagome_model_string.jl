@@ -101,34 +101,20 @@ function build_double_layer_string(A,operator,stringp_posit,string_posit)
 end
 
 
-function evaluate_energy(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, method,stringx,stringy)
-
-    H_triangle, H_bond, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
-    
-    AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
-    AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
-    AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
-
-
-
-    AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
-    E_up=ob_RD(CTM,AA_H,AA_fused,stringx,stringy)/ob_RD(CTM,AA_fused,AA_fused,stringx,stringy);
-    E_up=blocks(E_up)[Irrep[SU₂](0)][1];
-
-
-    rho_LU_RU_LD=ob_LU_RU_LD(CTM,AA_fused,AA2,AA1,AA3,stringx,stringy);
-    rho_LU_RU_LD=permute(rho_LU_RU_LD,(1,3,2,),());#anti-clock-wise order
-    @tensor rho_LU_RU_LD[:]:=U_ss[-1,-4,1]*U_ss[-2,-5,2]*U_ss[-3,-6,3]*rho_LU_RU_LD[1,2,3];
-    @tensor rho_LU_RU_LD[:]:=U_phy'[4,5,6,-1]*rho_LU_RU_LD[4,5,6,1,2,3]*U_phy[-2,1,2,3];
-    #@tensor e[:]:=rho_LU_RU_LD[1,2]*H_triangle[2,1];
-    rho_LU_RU_LD=convert(Array,rho_LU_RU_LD);
-    @tensor norm_LU_RU_LD[:]:=rho_LU_RU_LD[1,1];
-    H_triangle=convert(Array,H_triangle);
-    @tensor E_down[:]:=rho_LU_RU_LD[1,2]*H_triangle[2,1];
-    E_down=E_down[1]/norm_LU_RU_LD[1];
-    return E_up, E_down
-
-
+function fuse_CTM_legs_string(Ttensor,posit,U_L,U_D,U_R,U_U)
+    #fuse CTM legs
+    if posit=="T1"
+        T1=permute(Ttensor,(2,3,),(1,4,));
+        T1=U_D*T1;
+        T1=permute(T1,(2,1,3,),());
+        #display(space(T1))
+        return T1
+    elseif posit=="T3"
+        T3=permute(Ttensor,(1,4,),(2,3,));
+        T3=T3*U_U;
+        T3=permute(T3,(1,3,2,),());
+        return T3
+    end
 end
 
 
@@ -136,54 +122,329 @@ end
 
 
 
+function CTMRG_string(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true)
+
+    #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
+    #initial corner transfer matrix
+
+    CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
+    T1__=init_CTM_string_T1(A,false,false,U_L,U_D,U_R,U_U);
+    T1Z_=init_CTM_string_T1(A,true,false,U_L,U_D,U_R,U_U);
+    T1_Z=init_CTM_string_T1(A,false,true,U_L,U_D,U_R,U_U);
+    T1ZZ=init_CTM_string_T1(A,true,true,U_L,U_D,U_R,U_U);
+    T3__=init_CTM_string_T3(A,false,false,U_L,U_D,U_R,U_U);
+    T3Z_=init_CTM_string_T3(A,true,false,U_L,U_D,U_R,U_U);
+    T3_Z=init_CTM_string_T3(A,false,true,U_L,U_D,U_R,U_U);
+    T3ZZ=init_CTM_string_T3(A,true,true,U_L,U_D,U_R,U_U);
+
+    @assert norm(T3__-CTM["Tset"][3])/norm(CTM["Tset"][3])<1e-14;
+    @assert norm(T1__-CTM["Tset"][1])/norm(CTM["Tset"][1])<1e-14;
+
+    AAR__=build_double_layer_string(A_fused,[],nothing,nothing);
+    AARZ_=build_double_layer_string(A_fused,[],"R",nothing);
+    AAR_Z=build_double_layer_string(A_fused,[],nothing,"R");
+    AARZZ=build_double_layer_string(A_fused,[],"R","R");
+
+    @assert norm(AAR__-AA_fused)/norm(AA_fused)<1e-14;
+
+    Cset=CTM["Cset"];
+    Tset=CTM["Tset"];
+    conv_check="singular_value"
+
+    ss_old1=ones(chi)*2;
+    ss_old2=ones(chi)*2;
+    ss_old3=ones(chi)*2;
+    ss_old4=ones(chi)*2;
+    d=2;
+    rho_old=Matrix(I,d^3,d^3);
+
+    #Iteration
+
+    print_corner=false;
+    if print_corner
+        println("corner 4:")
+        C4_spec=svdvals(convert(Array,Cset[4]));
+        C4_spec=C4_spec/C4_spec[1];
+        println(C4_spec);
+        println("corner 1:")
+        C1_spec=svdvals(convert(Array,Cset[1]));
+        C1_spec=C1_spec/C1_spec[1];
+        println(C1_spec);
+        println("corner 3:")
+        C3_spec=svdvals(convert(Array,Cset[3]));
+        C3_spec=C3_spec/C3_spec[1];
+        println(C3_spec);
+        println("corner 2:")
+        C2_spec=svdvals(convert(Array,Cset[2]));
+        C2_spec=C2_spec/C2_spec[1];
+        println(C2_spec);
+        println("CTM init finished")
+    end
+    
+
+
+    if CTM_ite_info
+        println("start CTM iterations:")
+    end
+    for ci=1:CTM_ite_nums
+        #direction_order=[1,2,3,4];
+        #direction_order=[4,1,2,3];
+        direction_order=[3,4,1,2];
+        for direction in direction_order
+            Cset,Tset,T1__,T1Z_,T1_Z,T1ZZ,T3__,T3Z_,T3_Z,T3ZZ=CTM_ite_string(Cset, Tset, AA_fused, AAR__,AARZ_,AAR_Z,AARZZ, chi, direction,CTM_trun_tol,CTM_ite_info,T1__,T1Z_,T1_Z,T1ZZ,T3__,T3Z_,T3_Z,T3ZZ);
+        end
+
+        print_corner=false;
+        if print_corner
+            println("corner 4:")
+            C4_spec=svdvals(convert(Array,Cset[4]));
+            C4_spec=C4_spec/C4_spec[1];
+            println(C4_spec);
+            println("corner 1:")
+            C1_spec=svdvals(convert(Array,Cset[1]));
+            C1_spec=C1_spec/C1_spec[1];
+            println(C1_spec);
+            println("corner 3:")
+            C3_spec=svdvals(convert(Array,Cset[3]));
+            C3_spec=C3_spec/C3_spec[1];
+            println(C3_spec);
+            println("corner 2:")
+            C2_spec=svdvals(convert(Array,Cset[2]));
+            C2_spec=C2_spec/C2_spec[1];
+            println(C2_spec);
+            println("next iteration:")
+        end
+        
+
+
+        if conv_check=="singular_value" #check convergence of singular value
+            er1,ss_new1=spectrum_conv_check(ss_old1,Cset[1]);
+            er2,ss_new2=spectrum_conv_check(ss_old2,Cset[2]);
+            er3,ss_new3=spectrum_conv_check(ss_old3,Cset[3]);
+            er4,ss_new4=spectrum_conv_check(ss_old4,Cset[4]);
+
+            er=maximum([er1,er2,er3,er4]);
+            if CTM_ite_info
+                println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
+            end
+            if er<tol
+                break;
+            end
+            ss_old1=ss_new1;
+            ss_old2=ss_new2;
+            ss_old3=ss_new3;
+            ss_old4=ss_new4;
+        elseif conv_check=="density_matrix" #check reduced density matrix
+
+            # ob_opts.SiteNumber=1;
+            # CTM_tem.Cset=Cset;
+            # CTM_tem.Tset=Tset;
+            # rho_new=ob_CTMRG(CTM_tem,A,ob_opts).A;
+            # er=sum(sum((abs(rho_old-rho_new))));
+            # disp(['CTMRG iteration: ',num2str(ci),' CTMRG err: ',num2str(er)]);
+            # if er<tol
+            #     break;
+            # end
+            # rho_old=rho_new;
+        end
+
+        # if ci==CTM_ite_nums
+        #     display(er)
+        #     warn("CTMRG does not converge: " * string(er));
+        # end
+    end
+
+    CTM["Cset"]=Cset;
+    CTM["Tset"]=Tset;
+    return CTM, AA_fused, U_L,U_D,U_R,U_U,AAR__,AARZ_,AAR_Z,AARZZ,T1__,T1Z_,T1_Z,T1ZZ,T3__,T3Z_,T3_Z,T3ZZ
+
+end
+
+function CTM_ite_string(Cset, Tset, AA_fused, AAR__,AARZ_,AAR_Z,AARZZ, chi, direction, trun_tol,CTM_ite_info,T1__,T1Z_,T1_Z,T1ZZ,T3__,T3Z_,T3_Z,T3ZZ)
+
+    AA=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+
+    AAR__=permute(AAR__, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+    AARZ_=permute(AARZ_, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+    AAR_Z=permute(AAR_Z, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+    AARZZ=permute(AARZZ, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+    
+
+    @tensor MMup[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-3]*Tset[mod1(direction-1,4)][-1,4,1]*AA[4,-2,-4,3];
+    @tensor MMlow[:]:=Tset[mod1(direction-1,4)][1,3,-1]*AA[3,4,-4,-2]*Cset[mod1(direction-1,4)][2,1]*Tset[mod1(direction-2,4)][-3,4,2];
+
+    @tensor MMup_reflect[:]:=Tset[mod1(direction,4)][-1,3,1]* Cset[mod1(direction+1,4)][1,2]* AA[-2,-4,4,3]* Tset[mod1(direction+1,4)][2,4,-3];
+    #@tensor MMlow_reflect[:]:=AA[-2,4,3,-4]*Tset[mod1(direction+1,4)][-3,3,1]*Tset[mod1(direction-2,4)][2,4,-1]*Cset[mod1(direction-2,4)][1,2]; #this is slow compared to other coners, I don't know why
+    @tensor MMlow_reflect[:]:=Tset[mod1(direction+1,4)][-4,-3,2]*Tset[mod1(direction-2,4)][1,-2,-1]*Cset[mod1(direction-2,4)][2,1];
+    @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
+
+    MMup=permute(MMup,(1,2,),(3,4,))
+
+    # _,ss,_=tsvd(MMup)
+    # display(convert(Array,ss))
+
+    MMlow=permute(MMlow,(1,2,),(3,4,))
+    MMup_reflect=permute(MMup_reflect,(1,2,),(3,4,))
+    MMlow_reflect=permute(MMlow_reflect,(1,2,),(3,4,))
+
+    
+
+    RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
+    RMlow=MMlow*MMlow_reflect;
+
+    M=RMup*RMlow;
+
+    uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
+    #println(diag(convert(Array,sM)))
+
+    sM=truncate_multiplet(sM,chi,1e-5,trun_tol);
+    
+    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
+    uM=uM_new;
+    sM=sM_new;
+    vM=vM_new;
+    #println(diag(convert(Array,sM)))
+
+
+    sM=sM/norm(sM)
+    sM_inv=pinv(sM);
+    sM_dense=convert(Array,sM)
+
+    # println("svd:")
+    # sm_=sort(diag(sM_dense),rev=true)
+    # println(sm_/sm_[1])
+
+    # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
+    # sm_=sort(diag(convert(Array,sM_test)),rev=true)
+    # println(sm_/sm_[1])
+
+    for c1=1:size(sM_dense,1)
+        if sM_dense[c1,c1]<trun_tol
+            sM_dense[c1,c1]=0;
+        end
+    end
+    #display(sM_dense)
+    #display(pinv.(sM_dense))
+
+    #display(sM_inv)
+    #display(convert(Array,sM_inv))
+    #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
+    #display(space(sM_inv))
+    #display(sM_inv_sqrt)
+    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
+
+    PM_inv=RMlow*vM'*sM_inv_sqrt;
+    PM=sM_inv_sqrt*uM'*RMup;
+    PM=permute(PM,(2,3,),(1,));
+
+    @tensor M5tem[:]:=Tset[mod1(direction-1,4)][4,3,1]*AA[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+    @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-2]*PM_inv[1,3,-1];
+    @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,1]* PM[2,3,-2];
+
+
+    if direction==2 #update T1
+
+        @tensor T1__[:]:=T1__[4,3,1]*AAR__[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T1__=T1__/norm(M5tem);
+        @tensor T1Z_[:]:=T1Z_[4,3,1]*AARZ_[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T1Z_=T1Z_/norm(M5tem);
+        @tensor T1_Z[:]:=T1_Z[4,3,1]*AAR_Z[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T1_Z=T1_Z/norm(M5tem);
+        @tensor T1ZZ[:]:=T1ZZ[4,3,1]*AARZZ[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T1ZZ=T1ZZ/norm(M5tem);
+    end
+    if direction==4 #update T3
+
+        @tensor T3__[:]:=T3__[4,3,1]*AAR__[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T3__=T3__/norm(M5tem);
+        @tensor T3Z_[:]:=T3Z_[4,3,1]*AARZ_[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T3Z_=T3Z_/norm(M5tem);
+        @tensor T3_Z[:]:=T3_Z[4,3,1]*AAR_Z[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T3_Z=T3_Z/norm(M5tem);
+        @tensor T3ZZ[:]:=T3ZZ[4,3,1]*AARZZ[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        T3ZZ=T3ZZ/norm(M5tem);
+    end
 
 
 
+    Cset[mod1(direction,4)]=M1tem/norm(M1tem);
+    Tset[mod1(direction-1,4)]=M5tem/norm(M5tem);
+    Cset[mod1(direction-1,4)]=M7tem/norm(M7tem);
+    return Cset,Tset, T1__,T1Z_,T1_Z,T1ZZ,T3__,T3Z_,T3_Z,T3ZZ
+end
 
-# function ob_RD_string(CTM,AA_RD,AA_fused,stringx,stringy)
-#     Cset=deepcopy(CTM["Cset"]);
-#     Tset=deepcopy(CTM["Tset"]);
-#     gauge_operator
+function init_CTM_string_T1(A,Zp,Z,U_L,U_D,U_R,U_U)
+ 
+    direction=1;
+    inds=(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5);
+    A_rotate=permute(A,inds);
+    Ap_rotate=A_rotate';
 
-#     @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-#     @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+    
+    if Zp
+        Zg=gauge_operator(space(Ap_rotate,3));
+        @tensor Ap_rotate[:]=Zg[-3,1]*Ap_rotate[-1,-2,1,-4,-5];
+    end
+    if Z
+        Zg=gauge_operator(space(A_rotate,3));
+        @tensor A_rotate[:]=Zg[-3,1]*A_rotate[-1,-2,1,-4,-5];
+    end
 
-#     @tensor MM_LD[:]:=Tset[4][1,3,-2]*AA_fused[3,4,-5,-3]*Cset[4][2,1]*Tset[3][-4,4,2]; 
-#     @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
-#     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4]; 
-
-#     MM_LU=permute(MM_LU,(1,2,),(3,4,));
-#     MM_RU=permute(MM_RU,(1,2,),(3,4,));
-#     MM_LD=permute(MM_LD,(1,2,),(3,4,));
-#     MM_RD=permute(MM_RD,(1,2,),(3,4,));
-
-#     up=MM_LU*MM_RU;
-#     down=MM_LD*MM_RD;
-#     @tensor rho[:]:=up[1,2,3,4,]*down[1,2,3,4];
-# end
+    @tensor T1[:]:=Ap_rotate[-1,-3,-5,1,2]*A_rotate[-2,-4,-6,1,2];
+    @tensor C1[:]:=Ap_rotate[1,-1,-3,2,3]*A_rotate[1,-2,-4,2,3];
 
 
+    #fuse legs
+    direction=1;
+    ul=unitary(fuse(space(C1, 3) ⊗ space(C1, 4)), space(C1, 3) ⊗ space(C1, 4));
+    ur=unitary(fuse(space(T1, 5) ⊗ space(T1, 6)), space(T1, 5) ⊗ space(T1, 6));
 
 
+    direction=1;
+    ulp=permute(ul',(3,),(1,2,));
+    urp=permute(ur',(3,),(1,2,));
 
-# function ob_LU_RU_LD_string(CTM,AA_fused,AA_LU,AA_RU,AA_LD,stringx,stringy)
-#     Cset=deepcopy(CTM["Cset"]);
-#     Tset=deepcopy(CTM["Tset"]);
+    @tensor T1[:]:=ulp[-1,1,2]*T1[1,2,-2,-3,3,4]*ur[-4,3,4];#put all indices in tone side so that its adjoint has the same index order
 
-#     @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-4]*Tset[4][-2,4,1]*AA_LU[4,-3,-5,3,-1]; 
-#     @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    T1=fuse_CTM_legs_string(T1,"T1",U_L,U_D,U_R,U_U);
+    return T1
+end
 
-#     @tensor MM_LD[:]:=Tset[4][1,3,-2]*AA_LD[3,4,-5,-3,-1]*Cset[4][2,1]*Tset[3][-4,4,2]; 
-#     @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
-#     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
-#     MM_LU=permute(MM_LU,(1,2,3,),(4,5,));
-#     MM_RU=permute(MM_RU,(1,2,),(3,4,5,));
-#     MM_LD=permute(MM_LD,(1,2,3,),(4,5,));
-#     MM_RD=permute(MM_RD,(1,2,),(3,4,));
+function init_CTM_string_T3(A,Zp,Z,U_L,U_D,U_R,U_U)
+ 
+    direction=3;
+    inds=(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5);
+    A_rotate=permute(A,inds);
+    Ap_rotate=A_rotate';
 
-#     up=MM_LU*MM_RU;
-#     down=MM_LD*MM_RD;
-#     @tensor rho[:]:=up[-1,1,2,3,4,-2]*down[-3,1,2,3,4];
-# end
+    
+    if Zp
+        Zg=gauge_operator(space(Ap_rotate,1));
+        @tensor Ap_rotate[:]=Zg[-1,1]*Ap_rotate[1,-2,-3,-4,-5];
+    end
+    if Z
+        Zg=gauge_operator(space(A_rotate,1));
+        @tensor A_rotate[:]=Zg[-1,1]*A_rotate[1,-2,-3,-4,-5];
+    end
 
+    @tensor T3[:]:=Ap_rotate[-1,-3,-5,1,2]*A_rotate[-2,-4,-6,1,2];
+    @tensor C3[:]:=Ap_rotate[1,-1,-3,2,3]*A_rotate[1,-2,-4,2,3];
+
+
+    #fuse legs
+    direction=3;
+    ul=unitary(fuse(space(C3, 3) ⊗ space(C3, 4))', space(C3, 3) ⊗ space(C3, 4));
+    ur=unitary(fuse(space(T3, 5) ⊗ space(T3, 6))', space(T3, 5) ⊗ space(T3, 6));
+
+    direction=3;
+    ulp=permute(ul',(3,),(1,2,));
+    urp=permute(ur',(3,),(1,2,));
+
+    @tensor T3[:]:=ulp[-1,1,2]*T3[1,2,-2,-3,3,4]*ur[-4,3,4];#put all indices in tone side so that its adjoint has the same index order
+    T3=fuse_CTM_legs_string(T3,"T3",U_L,U_D,U_R,U_U);
+
+    return T3
+    
+end

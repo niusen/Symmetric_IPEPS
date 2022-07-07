@@ -1,4 +1,4 @@
-function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_tol,Dtrun_method,unitcell_size=1,save_mat_tensors=false)
+function cal_ES(filenm,parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_tol,Dtrun_method,unitcell_size=1,save_mat_tensors=false)
     # D=8;
     # chi=20;
     # W=20;
@@ -34,7 +34,7 @@ function cal_ES(parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_tol,Dt
     
     A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
     
-    filenm="LS_D_"*string(D)*"_chi_40.json"
+    #filenm="LS_D_"*string(D)*"_chi_40.json"
     json_dict=read_json_state(filenm);
     
     bond_tensor,triangle_tensor=construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb);

@@ -1,3 +1,99 @@
+function ES_CTMRG_ED(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol)
+    
+    println("D="*string(D));
+    println("chi="*string(chi));
+    println("N="*string(N));flush(stdout);
+    
+    
+    
+    multi_threads=true;if Threads.nthreads()==1; multi_threads=false; end
+    println("number of threads: "*string(Threads.nthreads()));flush(stdout);
+    
+
+    mpo_type="OO";#"O_O" or "OO", in my test "OO" is faster for large bond dimension
+    
+    
+    A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+    
+    #filenm="LS_D_"*string(D)*"_chi_40.json"
+    json_dict=read_json_state(filenm);
+    
+    bond_tensor,triangle_tensor=construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb);
+    
+    PEPS_tensor=bond_tensor;
+    @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
+    A_unfused=PEPS_tensor;
+    
+    U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+    @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+    
+    
+    CTM,U_L,U_D,U_R,U_U=try_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,U_phy, A_unfused, A_fused);
+    
+
+    Tleft=CTM["Tset"][4];
+    Tright=CTM["Tset"][2];
+    @tensor O1[:]:=Tleft[-3,1,-1]*U_L[1,-2,-4];
+    @tensor O2[:]:=Tright[-1,1,-3]*U_R[-4,-2,1];
+    
+    @tensor OO[:]:=O1[-2,-3,-5,1]*O2[-1,1,-4,-6];
+    U_fuse_chichi=unitary(fuse(space(OO,1)⊗ space(OO,2)),space(OO,1)⊗ space(OO,2));
+    @tensor OO[:]:=U_fuse_chichi[-1,1,2]*OO[1,2,-2,3,4,-4]*U_fuse_chichi'[3,4,-3];
+    
+    
+
+    println("calculate ES for N="*string(N));
+    sectors=[0,1/2,1,3/2,2,5/2];
+    eu_set=Vector(undef,length(sectors));
+    ks_set=Vector(undef,length(sectors));
+    for sps=1:length(sectors)
+        if N==4
+            v_init=TensorMap(randn, space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)',SU₂Space(sectors[sps]=>1));
+            v_init=permute(v_init,(1,2,3,4,5,),());
+        end
+        contraction_fun(x)=CTM_T_action(OO,x,N);
+        eu,ev=eigsolve(contraction_fun, v_init, EH_n,:LM,Arnoldi(krylovdim=EH_n*2+5));
+        eu_set[sps]=eu;
+
+        ks=calculate_k(ev,N)
+        ks_set[sps]=ks;
+        println(sps)
+        println(eu)
+        println(ks)
+    end
+    
+    ES_filenm="ES_"*"_D"*string(D)*"_chi"*string(chi)*"_N"*string(N)*".mat";
+    matwrite(ES_filenm, Dict(
+        "eu_set" => eu_set,
+        "sectors" => sectors,
+        "ks_set" => ks_set
+    ); compress = false)
+    
+    
+end
+
+function calculate_k(ev,N)
+    ks=Array{ComplexF64,1}(undef, length(ev));
+    if N==4
+        for cc=1:length(ev)
+            v=ev[cc];
+            vp=permute(v,(2,3,4,1,5),());
+            phase=dot(vp,v)/dot(v,v);
+            #println(phase)
+            
+            ks[cc]=(log(phase)/2/pi)/im;
+        end
+    end
+    return ks
+end
+
+function CTM_T_action(OO,v0,N)
+    if N==4
+        @tensor v_new[:]:=OO[8,1,2,-1]*OO[2,3,4,-2]*OO[4,5,6,-3]*OO[6,7,8,-4]*v0[1,3,5,7,-5];
+    end
+    return v_new
+end
+
 function cal_ES(filenm,parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun_tol,Dtrun_method,unitcell_size=1,save_mat_tensors=false)
     # D=8;
     # chi=20;
@@ -95,19 +191,17 @@ function cal_ES(filenm,parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun
     
     
     
-    
-    
-    euR_set,evL_set,evR_set,SPIN_eig_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"eigenvalue_FLR");
-    # println(euR_set)
-    
-    eur_set,evl_set,evr_set,spin_eig_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"eigenvalue_GLR");
-    # println(eur_set)
-    
-    S_set,U_set,Vh_set,SPIN_svd_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"svd_FLR");
-    # println(S_set)
-    
-    s_set,u_set,vh_set,spin_svd_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"svd_GLR");
-    # println(s_set)
+    if Dtrun_method=="eigs"
+        euR_set,evL_set,evR_set,SPIN_eig_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"eigenvalue_FLR");
+        # println(euR_set)
+        eur_set,evl_set,evr_set,spin_eig_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"eigenvalue_GLR");
+        # println(eur_set)
+    elseif Dtrun_method=="svds"
+        S_set,U_set,Vh_set,SPIN_svd_set=TransfOp_decom(Ag,OO,space_AOA,AOA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"svd_FLR");
+        # println(S_set)
+        s_set,u_set,vh_set,spin_svd_set=TransfOp_decom(Ag,OO,space_AA,AA_sec,pow,Dtrun_init,Dtrun_max,Dtrun_tol,"svd_GLR");
+        # println(s_set)
+    end
     
     
     check_truncated_decomp_error=false;
@@ -118,26 +212,28 @@ function cal_ES(filenm,parameters,D,chi,W,N,kset,EH_n,Dtrun_init,Dtrun_max,Dtrun
         OO_transform=false;
     end
     
-    euR_set_combined,evL_set_combined,evR_set_combined,SPIN_eig_set_combined=combine_singlespin_sector(euR_set,evL_set,evR_set,SPIN_eig_set,true);
-    euR_set_grouped,evL_set_grouped,evR_set_grouped,SPIN_eig_set_grouped,DTrun_FLR_eig=group_singlespin_sector(group_size,euR_set_combined,evL_set_combined,evR_set_combined,SPIN_eig_set_combined,OO_transform,U_fuse_chichi)
-    println("group information:");flush(stdout);
-    println(DTrun_FLR_eig);flush(stdout);
+    if Dtrun_method=="eigs"
+        euR_set_combined,evL_set_combined,evR_set_combined,SPIN_eig_set_combined=combine_singlespin_sector(euR_set,evL_set,evR_set,SPIN_eig_set,true);
+        euR_set_grouped,evL_set_grouped,evR_set_grouped,SPIN_eig_set_grouped,DTrun_FLR_eig=group_singlespin_sector(group_size,euR_set_combined,evL_set_combined,evR_set_combined,SPIN_eig_set_combined,OO_transform,U_fuse_chichi)
+        println("group information:");flush(stdout);
+        println(DTrun_FLR_eig);flush(stdout);
+        
+        eur_set_combined,evl_set_combined,evr_set_combined,spin_eig_set_combined=combine_singlespin_sector(eur_set,evl_set,evr_set,spin_eig_set,true)
+        eur_set_grouped,evl_set_grouped,evr_set_grouped,spin_eig_set_grouped,Dtrun_GLR_eig=group_singlespin_sector(group_size,eur_set_combined,evl_set_combined,evr_set_combined,spin_eig_set_combined,false,[])
+        println("group information:");flush(stdout);
+        println(Dtrun_GLR_eig);flush(stdout);
     
-    eur_set_combined,evl_set_combined,evr_set_combined,spin_eig_set_combined=combine_singlespin_sector(eur_set,evl_set,evr_set,spin_eig_set,true)
-    eur_set_grouped,evl_set_grouped,evr_set_grouped,spin_eig_set_grouped,Dtrun_GLR_eig=group_singlespin_sector(group_size,eur_set_combined,evl_set_combined,evr_set_combined,spin_eig_set_combined,false,[])
-    println("group information:");flush(stdout);
-    println(Dtrun_GLR_eig);flush(stdout);
-    
-    
-    S_set_combined,Vh_set_combined,U_set_combined,SPIN_svd_set_combined=combine_singlespin_sector(S_set,Vh_set,U_set,SPIN_svd_set,false)
-    S_set_grouped,Vh_set_grouped,U_set_grouped,SPIN_svd_set_grouped,DTrun_FLR_svd=group_singlespin_sector(group_size,S_set_combined,Vh_set_combined,U_set_combined,SPIN_svd_set_combined,OO_transform,U_fuse_chichi)
-    println("group information:");flush(stdout);
-    println(DTrun_FLR_svd);flush(stdout);
-    
-    s_set_combined,vh_set_combined,u_set_combined,spin_svd_set_combined=combine_singlespin_sector(s_set,vh_set,u_set,spin_svd_set,false)
-    s_set_grouped,vh_set_grouped,u_set_grouped,spin_svd_set_grouped,Dtrun_GLR_svd=group_singlespin_sector(group_size,s_set_combined,vh_set_combined,u_set_combined,spin_svd_set_combined,false,[])
-    println("group information:");flush(stdout);
-    println(Dtrun_GLR_svd);flush(stdout);
+    elseif Dtrun_method=="svds"
+        S_set_combined,Vh_set_combined,U_set_combined,SPIN_svd_set_combined=combine_singlespin_sector(S_set,Vh_set,U_set,SPIN_svd_set,false)
+        S_set_grouped,Vh_set_grouped,U_set_grouped,SPIN_svd_set_grouped,DTrun_FLR_svd=group_singlespin_sector(group_size,S_set_combined,Vh_set_combined,U_set_combined,SPIN_svd_set_combined,OO_transform,U_fuse_chichi)
+        println("group information:");flush(stdout);
+        println(DTrun_FLR_svd);flush(stdout);
+        
+        s_set_combined,vh_set_combined,u_set_combined,spin_svd_set_combined=combine_singlespin_sector(s_set,vh_set,u_set,spin_svd_set,false)
+        s_set_grouped,vh_set_grouped,u_set_grouped,spin_svd_set_grouped,Dtrun_GLR_svd=group_singlespin_sector(group_size,s_set_combined,vh_set_combined,u_set_combined,spin_svd_set_combined,false,[])
+        println("group information:");flush(stdout);
+        println(Dtrun_GLR_svd);flush(stdout);
+    end
     
     
     

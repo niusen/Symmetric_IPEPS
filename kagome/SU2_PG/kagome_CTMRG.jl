@@ -109,7 +109,7 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true)
+function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true,CTM_conv_info=false)
 
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     #initial corner transfer matrix
@@ -159,7 +159,10 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
     if CTM_ite_info
         println("start CTM iterations:")
     end
+    ite_num=0;
+    ite_err=1;
     for ci=1:CTM_ite_nums
+        ite_num=ci;
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
@@ -197,6 +200,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
             er4,ss_new4=spectrum_conv_check(ss_old4,Cset[4]);
 
             er=maximum([er1,er2,er3,er4]);
+            ite_err=er;
             if CTM_ite_info
                 println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
             end
@@ -229,7 +233,11 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
 
     CTM["Cset"]=Cset;
     CTM["Tset"]=Tset;
-    return CTM, AA_fused, U_L,U_D,U_R,U_U
+    if CTM_conv_info
+        return CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err
+    else
+        return CTM, AA_fused, U_L,U_D,U_R,U_U
+    end
 
 end
 

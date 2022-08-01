@@ -35,5 +35,6 @@
             ]
         }
     },
-    "Bond_irrep": "A"
+    "Bond_irrep": "A",
+    "Triangle_irrep":"A1+iA2"
 }

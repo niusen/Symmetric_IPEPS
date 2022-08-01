@@ -117,7 +117,7 @@ function initial_state(Bond_irrep,Triangle_irrep,D,init_statenm=nothing,init_noi
 end
 
 
-function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_dict)
+function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_dict,cal_chiral_order=false)
 
     A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
     
@@ -140,14 +140,21 @@ function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,sta
     init=Dict([("CTM", []), ("init_type", "PBC")]);
     conv_check="singular_value";
     CTM_ite_info=false;
-    CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info);
+    CTM_conv_info=true;
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
     
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
     #E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
     energy=(E_up+E_down)/3;
 
     #return energy,CTM,U_L,U_D,U_R,U_U
-    return energy
+    if cal_chiral_order
+        chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jtrip", 1)]);
+        chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
+        return energy,chiral_order_up, chiral_order_down,ite_num,ite_err
+    else
+        return energy,ite_num,ite_err
+    end
 end
 
 
@@ -337,7 +344,8 @@ function Grad_FiniteDiff(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CT
     #print(E0);flush(stdout);
 
     if E0==nothing
-        E0=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state));
+        E0,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+        E0=real(E0);
     end
     Bond_irrep, Triangle_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state);
 
@@ -357,7 +365,8 @@ function Grad_FiniteDiff(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CT
             Bond_A_coe_tem[ct]=Bond_A_coe_tem[ct]+dt;
             state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, Bond_A_coe_tem, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe);
             #println(state_tem["coes"])
-            E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem));
+            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            E=real(E);
             Bond_A_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
             #println("energy is "*string(E));flush(stdout);
@@ -375,7 +384,8 @@ function Grad_FiniteDiff(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CT
             Bond_B_coe_tem[ct]=Bond_B_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, Bond_A_coe, Bond_B_coe_tem, Triangle_A1_coe, Triangle_A2_coe);
             #println(state_tem["coes"])
-            E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem));
+            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            E=real(E);
             Bond_B_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
             #println("energy is "*string(E));flush(stdout);
@@ -393,7 +403,8 @@ function Grad_FiniteDiff(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CT
             Triangle_A1_coe_tem[ct]=Triangle_A1_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe_tem, Triangle_A2_coe);
             #println(state_tem["coes"])
-            E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem));
+            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            E=real(E);
             Triangle_A1_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
             #println("energy is "*string(E));flush(stdout);
@@ -411,7 +422,8 @@ function Grad_FiniteDiff(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CT
             Triangle_A2_coe_tem[ct]=Triangle_A2_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe_tem);
             #println(state_tem["coes"])
-            E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem));
+            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            E=real(E);
             Triangle_A2_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
             #println("energy is "*string(E));flush(stdout);
@@ -442,7 +454,7 @@ function grad_line_search(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,C
         filenm="julia_LS_A1odd_D_"*string(D)*"_chi_"*string(chi)*".json"
     end
 
-    println("line search");flush(stdout);
+    
     state=normalize_IPESS_SU2_PG(state)
 
     _,_,grad=Grad_FiniteDiff(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt, E0)
@@ -450,7 +462,8 @@ function grad_line_search(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,C
     println("state: "*string(get_vector(state)));flush(stdout);
     println("grad: "*string(grad));flush(stdout);
 
-    E0=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state));
+    E0,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+    E0=real(E0);
     Bond_irrep, Triangle_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state)
 
     println("E0= "*string(E0));flush(stdout);
@@ -472,13 +485,16 @@ function grad_line_search(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,C
     #line search
     improved=false
     alpha=alpha0
+    println("line search");flush(stdout);
+    println("E,chiral_order_up, chiral_order_down,ite_num,ite_err")
     println("conjugate gradient opt");flush(stdout);
     for ls_step=0:ls_max-1
         vec_tem=vec0+direction*alpha*(ls_ratio^ls_step);
         state_tem=set_vector(state, vec_tem)
 
-        E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem));
-        println("E= "*string(E));flush(stdout);
+        E,chiral_order_up, chiral_order_down,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
+        E=real(E);
+        println(string(E)*", "*string(real(chiral_order_up))*", "*string(real(chiral_order_down))*", "*string(ite_num)*", "*string(ite_err));flush(stdout);
         if E<E0
             improved=true
             break
@@ -486,7 +502,8 @@ function grad_line_search(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,C
     end
     if improved
         state=set_vector(state, vec_tem)
-        E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state));
+        E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+        E=real(E);
         open(filenm,"w") do f
             JSON.print(f, state)
         end
@@ -495,8 +512,9 @@ function grad_line_search(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,C
         for ls_step = 0:ls_max-1
             vec_tem=vec0-grad*alpha*(ls_ratio^ls_step)
             state_tem=set_vector(state, vec_tem)
-            E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem));
-            println("E= "*string(E));;flush(stdout);
+            E,chiral_order_up, chiral_order_down,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
+            E=real(E);
+            println(string(E)*", "*string(real(chiral_order_up))*", "*string(real(chiral_order_down))*", "*string(ite_num)*", "*string(ite_err));flush(stdout);
             if E<E0
                 improved=true
                 break
@@ -506,7 +524,8 @@ function grad_line_search(state, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,C
             
         if improved
             state=set_vector(state, vec_tem)
-            E=real(energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state));
+            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+            E=real(E);
             open(filenm,"w") do f
                 JSON.print(f, state)
             end
@@ -529,7 +548,8 @@ function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     
     multi_threads=true;if Threads.nthreads()==1; multi_threads=false; end
     println("number of threads: "*string(Threads.nthreads()));flush(stdout);
-    
+    println("D="*string(D));flush(stdout);
+    println("chi="*string(chi));flush(stdout);
     # CTM_conv_tol=1e-6;
     # CTM_ite_nums=50;
     # CTM_trun_tol=1e-12;

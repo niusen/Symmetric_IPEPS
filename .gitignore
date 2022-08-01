@@ -24,3 +24,15 @@ kagome/SU2_PG/LS_U1_D_12_chi_60.json
 kagome/SU2_PG/LS_D_6_chi_40.json
 kagome/SU2_PG/LS_D_6_chi_40.json
 *.json
+*.sh
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_a.jl
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_b.jl
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_c.jl
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_d.jl
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_e.jl
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_f.jl
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_g.jl
+kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_h.jl
+kagome/SU2_PG/mps_algorithms/PUMPS_algorithms_test.jl
+kagome/SU2_PG/test.jl
+kagome/SU2_PG/test.jl

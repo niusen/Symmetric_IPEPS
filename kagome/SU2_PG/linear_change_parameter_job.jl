@@ -9,7 +9,7 @@ include("kagome_load_tensor.jl")
 include("kagome_CTMRG.jl")
 include("kagome_model.jl")
 include("kagome_IPESS.jl")
-include("kagome_FiniteDiff.jl")
+include("linear_change_parameter.jl")
 
 
 
@@ -20,7 +20,7 @@ D=6;
 chi=20;
 
 
-theta=0.0*pi;
+theta=0.2*pi;
 J1=cos(theta);
 J2=0;
 J3=0;
@@ -32,19 +32,18 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 
 #state_dict=read_json_state("LS_D_8_chi_40.json")
-#init_statenm=nothing;
-#init_statenm="julia_LS_D_6_chi_40.json"
-init_statenm=nothing
-init_noise=0;
+
+init_statenmL="julia_LS_D_6_chi_40.json"
+init_statenmR="julia_LS_A1even_D_6_chi_20.json"
+
+Np=15;
 CTM_conv_tol=1e-6;
 CTM_ite_nums=100;
 CTM_trun_tol=1e-12;
 Bond_irrep="A";
 Triangle_irrep="A1+iA2";
-nonchiral="A1_even";
-#nonchiral="No"
-run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_irrep,Triangle_irrep,nonchiral,init_statenm,init_noise)
-
+nonchiral="No";
+run_parameter_change(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_irrep,Triangle_irrep,nonchiral,init_statenmL,init_statenmR,Np)
 
 
 

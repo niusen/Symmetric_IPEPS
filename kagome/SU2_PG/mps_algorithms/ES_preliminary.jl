@@ -1,3 +1,34 @@
+function do_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,U_phy, A_unfused, A_fused)
+    CTM=[];
+    U_L=[];
+    U_D=[];
+    U_R=[];
+    U_U=[];
+
+
+
+
+    init=Dict([("CTM", []), ("init_type", "PBC")]);
+    conv_check="singular_value";
+
+    @time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol);
+    
+    @time E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
+    @time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
+    println((E_up+E_down)/3);flush(stdout);
+
+    
+    CTM_dict=deepcopy(CTM)
+    for cc=1:4
+        CTM_dict["Tset"][cc]=convert(Dict,CTM_dict["Tset"][cc]);
+        CTM_dict["Cset"][cc]=convert(Dict,CTM_dict["Cset"][cc]);
+    end
+
+
+    
+    return CTM,U_L,U_D,U_R,U_U
+end
+
 function try_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,U_phy, A_unfused, A_fused)
     CTM=[];
     U_L=[];

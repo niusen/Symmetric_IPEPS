@@ -318,296 +318,59 @@ function set_vector(json_dict, vec)
 end
 
 
+function parameter_linear_change(stateL, stateR, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Np)
+    state=deepcopy(stateL);
+    vecL=deepcopy(get_vector(stateL));
+    vecR=deepcopy(get_vector(stateR));
 
 
-function normalize_IPESS_SU2_PG(state_dict)
-    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state_dict)
-    if Bond_irrep=="A"
-        Bond_norm=norm(Bond_A_coe)
-        Bond_A_coe=Bond_A_coe/Bond_norm
-    elseif Bond_irrep=="B"
-        Bond_norm=norm(Bond_B_coe)
-        Bond_B_coe=Bond_B_coe/Bond_norm
-    elseif Bond_irrep=="A+iB"
-        Bond_norm=sqrt(norm(Bond_A_coe)^2+norm(Bond_B_coe)^2)
-        Bond_A_coe=Bond_A_coe/Bond_norm
-        Bond_B_coe=Bond_B_coe/Bond_norm
-    end
+    states=Matrix(undef,Np+1,length(vecL));
+    Es=Vector(undef,Np+1);
+    chiral_orders=Vector(undef,Np+1);
+    println("linear change parameter");
+    for ls_step=0:Np
+        C1=ls_step/Np;
+        C2=1-C1;
+        state_tem=set_vector(state, vecL*C1+vecR*C2);
+        println("state: "*string(get_vector(state_tem)));flush(stdout);
+        
+        println("E,chiral_order_up, chiral_order_down,ite_num,ite_err")
 
-    if Triangle_irrep=="A1"
-        Triangle_norm=norm(Triangle_A1_coe)
-        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
-    elseif Triangle_irrep=="A2"
-        Triangle_norm=norm(Triangle_A2_coe)
-        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
-    elseif Triangle_irrep=="A1+iA2"
-        Triangle_norm=sqrt(norm(Triangle_A1_coe)^2+norm(Triangle_A2_coe)^2)
-        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
-        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
-    end
-
-    state_dict=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe)
-    return state_dict
-end
-
-
-
-
-function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt=0.001, E0=nothing)
-
-    state=normalize_IPESS_SU2_PG(state);
-    #print(E0);flush(stdout);
-
-    if E0==nothing
-        E0,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-        E0=real(E0);
-    end
-    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state);
-
-    println("energy E0 is "*string(E0));flush(stdout);
-
-    Grad_FD=Dict([("Bond_A_coe", zeros(Float64, length(Bond_A_coe))), ("Bond_B_coe", zeros(Float64, length(Bond_B_coe))), ("Triangle_A1_coe", zeros(Float64, length(Triangle_A1_coe))),("Triangle_A2_coe", zeros(Float64, length(Triangle_A2_coe)))]);
-    dE_data=[]
-    Grad_FD_data=[]
-
-    #println(state["coes"])
-
-    #Bond A tensor diff
-    if Bond_irrep in ["A","A+iB"]
-        Bond_A_grad=zeros(Float64, length(Bond_A_coe))
-        for ct =1:length(Bond_A_coe)
-            Bond_A_coe_tem=deepcopy(Bond_A_coe);
-            Bond_A_coe_tem[ct]=Bond_A_coe_tem[ct]+dt;
-            state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe_tem, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe);
-            #println(state_tem["coes"])
-            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
-            E=real(E);
-            Bond_A_grad[ct]=(E-E0)/dt;
-            dE_data=vcat(dE_data, E-E0);
-            #println("energy is "*string(E));flush(stdout);
-        end
-        #print(Bond_A_grad);flush(stdout);
-        Grad_FD["Bond_A_grad"]=Bond_A_grad;
-        Grad_FD_data=vcat(Grad_FD_data, Bond_A_grad);
-    end
-
-    #Bond B tensor diff
-    if Bond_irrep in ["B","A+iB"]
-        Bond_B_grad=zeros(Float64, length(Bond_B_coe))
-        for ct=1:length(Bond_B_coe)
-            Bond_B_coe_tem=deepcopy(Bond_B_coe);
-            Bond_B_coe_tem[ct]=Bond_B_coe_tem[ct]+dt
-            state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe_tem, Triangle_A1_coe, Triangle_A2_coe);
-            #println(state_tem["coes"])
-            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
-            E=real(E);
-            Bond_B_grad[ct]=(E-E0)/dt;
-            dE_data=vcat(dE_data, E-E0);
-            #println("energy is "*string(E));flush(stdout);
-        end
-        #print(Bond_B_grad);flush(stdout);
-        Grad_FD["Bond_B_grad"]=Bond_B_grad;
-        Grad_FD_data=vcat(Grad_FD_data, Bond_B_grad);
-    end
-
-    #triangle A1 tensor diff
-    if Triangle_irrep in ["A1","A1+iA2"]
-        Triangle_A1_grad=zeros(Float64, length(Triangle_A1_coe))
-        for ct=1:length(Triangle_A1_coe)
-            if (nonchiral=="No") | ((nonchiral=="A1_even")&(A1_has_odd[ct]==0)) | ((nonchiral=="A1_odd")&(A1_has_odd[ct]==1))
-                Triangle_A1_coe_tem=deepcopy(Triangle_A1_coe);
-                Triangle_A1_coe_tem[ct]=Triangle_A1_coe_tem[ct]+dt
-                state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe_tem, Triangle_A2_coe);
-                #println(state_tem["coes"])
-                E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
-                E=real(E);
-                Triangle_A1_grad[ct]=(E-E0)/dt;
-                dE_data=vcat(dE_data, E-E0);
-                #println("energy is "*string(E));flush(stdout);
-            elseif ((nonchiral=="A1_even")&(A1_has_odd[ct]==1)) | ((nonchiral=="A1_odd")&(A1_has_odd[ct]==0))
-                Triangle_A1_grad[ct]=0;
-                dE_data=vcat(dE_data, 0);
-            else
-                error("incorrect type 'nonchiral'")
-            end
-        end
-        #print(Triangle_A1_grad);flush(stdout);
-        Grad_FD["Triangle_A1_grad"]=Triangle_A1_grad;
-        Grad_FD_data=vcat(Grad_FD_data, Triangle_A1_grad);
-    end
-
-    #triangle A2 tensor diff
-    if Triangle_irrep in ["A2","A1+iA2"]
-        Triangle_A2_grad=zeros(Float64, length(Triangle_A2_coe))
-        for ct=1:length(Triangle_A2_coe)
-            if (nonchiral=="No") | ((nonchiral=="A1_even")&(A2_has_odd[ct]==1)) | ((nonchiral=="A1_odd")&(A2_has_odd[ct]==0))
-                Triangle_A2_coe_tem=deepcopy(Triangle_A2_coe);
-                Triangle_A2_coe_tem[ct]=Triangle_A2_coe_tem[ct]+dt
-                state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe_tem);
-                #println(state_tem["coes"])
-                E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
-                E=real(E);
-                Triangle_A2_grad[ct]=(E-E0)/dt;
-                dE_data=vcat(dE_data, E-E0);
-                #println("energy is "*string(E));flush(stdout);
-            elseif ((nonchiral=="A1_even")&(A2_has_odd[ct]==0)) | ((nonchiral=="A1_odd")&(A2_has_odd[ct]==1))
-                Triangle_A2_grad[ct]=0;
-                dE_data=vcat(dE_data, 0);
-            else
-                error("incorrect type 'nonchiral'")
-            end
-        end
-        #print(Triangle_A2_grad)
-        Grad_FD["Triangle_A2_grad"]=Triangle_A2_grad;
-        Grad_FD_data=vcat(Grad_FD_data, Triangle_A2_grad);
-    end
-
-    # print("Energy difference is:");flush(stdout);
-    # print(dE_data);flush(stdout);
-    # print("Grad is:");flush(stdout);
-    # print(Grad_FD_data);flush(stdout);
-    # print("Normalized grad is:");flush(stdout);
-    # print(Grad_FD_data/max(abs(Grad_FD_data)));flush(stdout);
-
-    return E0,Grad_FD,Grad_FD_data
-end
-
-
-
-function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt, E0, grad0=None, direction0=None, alpha0=1, ls_ratio=1/3, ls_max=10)
-    
-    if nonchiral=="No"
-        filenm="julia_LS_D_"*string(D)*"_chi_"*string(chi)*".json"
-    elseif nonchiral=="A1_even"
-        filenm="julia_LS_A1even_D_"*string(D)*"_chi_"*string(chi)*".json"
-    elseif nonchiral=="A1_odd"
-        filenm="julia_LS_A1odd_D_"*string(D)*"_chi_"*string(chi)*".json"
-    end
-    
-    state=normalize_IPESS_SU2_PG(state)
-    
-    _,_,grad=Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt, E0)
-    
-    println("state: "*string(get_vector(state)));flush(stdout);
-    println("grad: "*string(grad));flush(stdout);
-
-    E0,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-    E0=real(E0);
-    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state)
-
-    println("E0= "*string(E0));flush(stdout);
-
-    direction=-grad
-    #print(grad0);flush(stdout);
-    #print(grad);flush(stdout);
-    if grad0==nothing
-        direction=-grad;
-    else
-        norm_grad=norm(grad)
-        norm_grad0=norm(grad0)
-        beta=(norm_grad^2)/(norm_grad0^2)
-        direction=-grad+beta*direction0;
-    end
-    vec0=deepcopy(get_vector(state));
-    vec_tem=[];
-
-    #line search
-    improved=false
-    alpha=alpha0
-    println("line search");flush(stdout);
-    println("E,chiral_order_up, chiral_order_down,ite_num,ite_err")
-    println("conjugate gradient opt");flush(stdout);
-    for ls_step=0:ls_max-1
-        vec_tem=vec0+direction*alpha*(ls_ratio^ls_step);
-        state_tem=set_vector(state, vec_tem)
+        
 
         E,chiral_order_up, chiral_order_down,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
-        E=real(E);
+        
         println(string(E)*", "*string(real(chiral_order_up))*", "*string(real(chiral_order_down))*", "*string(ite_num)*", "*string(ite_err));flush(stdout);
-        if E<E0
-            improved=true
-            break
-        end
+        Es[ls_step+1]=real(E);
+        chiral_orders[ls_step+1]=chiral_order_up;
+        states[ls_step+1,1:length(vecL)]=vecL*C1+vecR*C2;
+
     end
-    if improved
-        state=set_vector(state, vec_tem)
-        E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-        E=real(E);
-        open(filenm,"w") do f
-            JSON.print(f, state)
-        end
-    else
-        println("gradient opt");flush(stdout);
-        for ls_step = 0:ls_max-1
-            vec_tem=vec0-grad*alpha*(ls_ratio^ls_step)
-            state_tem=set_vector(state, vec_tem)
-            E,chiral_order_up, chiral_order_down,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
-            E=real(E);
-            println(string(E)*", "*string(real(chiral_order_up))*", "*string(real(chiral_order_down))*", "*string(ite_num)*", "*string(ite_err));flush(stdout);
-            if E<E0
-                improved=true
-                break
-            end
-        end
-    
-            
-        if improved
-            state=set_vector(state, vec_tem)
-            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-            E=real(E);
-            open(filenm,"w") do f
-                JSON.print(f, state)
-            end
-        else
-            state=set_vector(state, vec0)
-            E=E0
-        end
-    end
-    improvement=E-E0
-    
-    open(filenm,"w") do f
-        JSON.print(f, state)
-    end
-    return E,state,grad,direction,improvement
+
+
+    filenm="linear_parameter_change"*"_D"*string(D)*"_chi"*string(chi)*".mat";
+    matwrite(filenm, Dict(
+        "Es" => Es,
+        "chiral_orders" => chiral_orders,
+        "states" => states
+    ); compress = false)
 end
 
 
 
-function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_irrep,Triangle_irrep,nonchiral,init_statenm,init_noise)
-    
+function run_parameter_change(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_irrep,Triangle_irrep,nonchiral,init_statenmL,init_statenmR,Np)
+    stateL, _,_, _,_,_,_=initial_state(Bond_irrep, Triangle_irrep, nonchiral, D,init_statenmL,0);
+    stateR, _,_, _,_,_,_=initial_state(Bond_irrep, Triangle_irrep, nonchiral, D,init_statenmR,0);
+
     multi_threads=true;if Threads.nthreads()==1; multi_threads=false; end
     println("number of threads: "*string(Threads.nthreads()));flush(stdout);
     println("D="*string(D));flush(stdout);
     println("chi="*string(chi));flush(stdout);
     println("Bond_irrep: "*Bond_irrep);flush(stdout);
     println("nonchiral: "*nonchiral);flush(stdout);
-    # CTM_conv_tol=1e-6;
-    # CTM_ite_nums=50;
-    # CTM_trun_tol=1e-12;
-   
-    #init_statenm="LS_D_"*string(D)*"_chi_40.json"
-    #init_statenm=nothing
-    state, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, A1_has_odd, A2_has_odd=initial_state(Bond_irrep, Triangle_irrep, nonchiral, D,init_statenm,init_noise)
 
 
-    println("optimization start");flush(stdout);
-    #E0,_,_=Grad_FiniteDiff(state, cfg.ctm_args, args.chi)
-    dt=0.001;
-    grad0=nothing;
-    direction0=nothing;
-    alpha0=3;
-    ls_ratio=1/3;
-    ls_max=5;
-    E0=nothing;
-    nonchiral=nonchiral;
-    for ite=1:100
-        
-        @time E0,state,grad,direction,improvement=grad_line_search(state, nonchiral,A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt, E0, grad0, direction0, alpha0, ls_ratio, ls_max)
-        println("grad norm: "*string(norm(grad)));flush(stdout)
-        if -improvement<1e-7
-            break
-        end
-    end
+    parameter_linear_change(stateL, stateR, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Np)
 
 end
 

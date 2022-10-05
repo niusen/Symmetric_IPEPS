@@ -117,7 +117,8 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
     if isempty(init["CTM"])
         CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
     else
-        CTM=init;
+        _, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
+        CTM=deepcopy(init["CTM"]);
     end
 
     Cset=CTM["Cset"];
@@ -202,7 +203,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
             er=maximum([er1,er2,er3,er4]);
             ite_err=er;
             if CTM_ite_info
-                println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));
+                println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));flush(stdout);
             end
             if er<tol
                 break;
@@ -248,6 +249,7 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
     @tensor MMup[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-3]*Tset[mod1(direction-1,4)][-1,4,1]*AA[4,-2,-4,3];
     @tensor MMlow[:]:=Tset[mod1(direction-1,4)][1,3,-1]*AA[3,4,-4,-2]*Cset[mod1(direction-1,4)][2,1]*Tset[mod1(direction-2,4)][-3,4,2];
 
+
     @tensor MMup_reflect[:]:=Tset[mod1(direction,4)][-1,3,1]* Cset[mod1(direction+1,4)][1,2]* AA[-2,-4,4,3]* Tset[mod1(direction+1,4)][2,4,-3];
     #@tensor MMlow_reflect[:]:=AA[-2,4,3,-4]*Tset[mod1(direction+1,4)][-3,3,1]*Tset[mod1(direction-2,4)][2,4,-1]*Cset[mod1(direction-2,4)][1,2]; #this is slow compared to other coners, I don't know why
     @tensor MMlow_reflect[:]:=Tset[mod1(direction+1,4)][-4,-3,2]*Tset[mod1(direction-2,4)][1,-2,-1]*Cset[mod1(direction-2,4)][2,1];
@@ -266,6 +268,9 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
 
     RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
     RMlow=MMlow*MMlow_reflect;
+
+
+    #println(norm(MMlow))
 
     M=RMup*RMlow;
 
@@ -317,6 +322,9 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
     @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-2]*PM_inv[1,3,-1];
     @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,1]* PM[2,3,-2];
 
+    # println(norm(M5tem))
+    # println(norm(M1tem))
+    # println(norm(M7tem))
 
     Cset[mod1(direction,4)]=M1tem/norm(M1tem);
     Tset[mod1(direction-1,4)]=M5tem/norm(M5tem);

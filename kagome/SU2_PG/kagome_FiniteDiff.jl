@@ -166,12 +166,52 @@ function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,sta
     if cal_chiral_order
         chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jtrip", 1)]);
         chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
-        return energy,chiral_order_up, chiral_order_down,ite_num,ite_err
+        return energy,chiral_order_up, chiral_order_down,ite_num,ite_err,CTM
     else
-        return energy,ite_num,ite_err
+        return energy,ite_num,ite_err,CTM
     end
 end
 
+
+function energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_init,state_dict,cal_chiral_order=false)
+    #provide initial CTM tensors 
+    A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+    
+    bond_tensor,triangle_tensor=construct_su2_PG_IPESS(state_dict,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb);
+
+
+    PEPS_tensor=bond_tensor;
+    @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
+    A_unfused=PEPS_tensor;
+    
+    U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+    @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+
+    CTM=[];
+    U_L=[];
+    U_D=[];
+    U_R=[];
+    U_U=[];
+
+    init=Dict([("CTM", CTM_init), ("init_type", "PBC")]);
+    conv_check="singular_value";
+    CTM_ite_info=false;
+    CTM_conv_info=true;
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+    
+    E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
+    #E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
+    energy=(E_up+E_down)/3;
+
+    #return energy,CTM,U_L,U_D,U_R,U_U
+    if cal_chiral_order
+        chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jtrip", 1)]);
+        chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
+        return energy,chiral_order_up, chiral_order_down,ite_num,ite_err,CTM
+    else
+        return energy,ite_num,ite_err,CTM
+    end
+end
 
 
 function get_vector(json_dict)
@@ -353,15 +393,15 @@ end
 
 
 
-function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt=0.001, E0=nothing)
+function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method, dt=0.001, E0=nothing)
 
     state=normalize_IPESS_SU2_PG(state);
     #print(E0);flush(stdout);
 
-    if E0==nothing
-        E0,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-        E0=real(E0);
-    end
+    
+    E0,ite_num,ite_err,CTM=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+    E0=real(E0);
+    
     Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state);
 
     println("energy E0 is "*string(E0));flush(stdout);
@@ -380,7 +420,12 @@ function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, param
             Bond_A_coe_tem[ct]=Bond_A_coe_tem[ct]+dt;
             state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe_tem, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe);
             #println(state_tem["coes"])
-            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            if grad_CTM_method=="restart"
+                E,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            elseif grad_CTM_method=="from_converged_CTM"
+                E,ite_num,ite_err,_=energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,deepcopy(CTM),state_tem,false);
+            end
+            println("Number of iterations for grad: "*string(ite_num));
             E=real(E);
             Bond_A_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
@@ -399,7 +444,12 @@ function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, param
             Bond_B_coe_tem[ct]=Bond_B_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe_tem, Triangle_A1_coe, Triangle_A2_coe);
             #println(state_tem["coes"])
-            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            if grad_CTM_method=="restart"
+                E,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+            elseif grad_CTM_method=="from_converged_CTM"
+                E,ite_num,ite_err,_=energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,deepcopy(CTM),state_tem,false);
+            end
+            println("Number of iterations for grad: "*string(ite_num));
             E=real(E);
             Bond_B_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
@@ -419,7 +469,12 @@ function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, param
                 Triangle_A1_coe_tem[ct]=Triangle_A1_coe_tem[ct]+dt
                 state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe_tem, Triangle_A2_coe);
                 #println(state_tem["coes"])
-                E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+                if grad_CTM_method=="restart"
+                    E,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+                elseif grad_CTM_method=="from_converged_CTM"
+                    E,ite_num,ite_err,_=energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,deepcopy(CTM),state_tem,false);
+                end
+                println("Number of iterations for grad: "*string(ite_num));
                 E=real(E);
                 Triangle_A1_grad[ct]=(E-E0)/dt;
                 dE_data=vcat(dE_data, E-E0);
@@ -445,7 +500,12 @@ function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, param
                 Triangle_A2_coe_tem[ct]=Triangle_A2_coe_tem[ct]+dt
                 state_tem=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe_tem);
                 #println(state_tem["coes"])
-                E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+                if grad_CTM_method=="restart"
+                    E,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,false);
+                elseif grad_CTM_method=="from_converged_CTM"
+                    E,ite_num,ite_err,_=energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,deepcopy(CTM),state_tem,false);
+                end
+                println("Number of iterations for grad: "*string(ite_num));
                 E=real(E);
                 Triangle_A2_grad[ct]=(E-E0)/dt;
                 dE_data=vcat(dE_data, E-E0);
@@ -469,12 +529,12 @@ function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, param
     # print("Normalized grad is:");flush(stdout);
     # print(Grad_FD_data/max(abs(Grad_FD_data)));flush(stdout);
 
-    return E0,Grad_FD,Grad_FD_data
+    return E0,Grad_FD,Grad_FD_data,CTM
 end
 
 
 
-function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt, E0, grad0=None, direction0=None, alpha0=1, ls_ratio=1/3, ls_max=10)
+function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, grad_CTM_method,linesearch_CTM_method, dt, E0, grad0=None, direction0=None, alpha0=1, ls_ratio=1/3, ls_max=10)
     
     if nonchiral=="No"
         filenm="julia_LS_D_"*string(D)*"_chi_"*string(chi)*".json"
@@ -486,13 +546,14 @@ function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, para
     
     state=normalize_IPESS_SU2_PG(state)
     
-    _,_,grad=Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt, E0)
+    E0,_,grad,CTM=Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method, dt, E0)
     
     println("state: "*string(get_vector(state)));flush(stdout);
     println("grad: "*string(grad));flush(stdout);
 
-    E0,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-    E0=real(E0);
+    #E0,ite_num,ite_err,CTM=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+    #E0=real(E0);
+    E=E0;
     Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state)
 
     println("E0= "*string(E0));flush(stdout);
@@ -520,8 +581,13 @@ function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, para
     for ls_step=0:ls_max-1
         vec_tem=vec0+direction*alpha*(ls_ratio^ls_step);
         state_tem=set_vector(state, vec_tem)
-
-        E,chiral_order_up, chiral_order_down,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
+        if linesearch_CTM_method=="restart"
+            E,chiral_order_up, chiral_order_down,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
+        elseif linesearch_CTM_method=="from_converged_CTM"
+            E,chiral_order_up, chiral_order_down,ite_num,ite_err,_=energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,deepcopy(CTM),state_tem,true);
+        end
+        println("Number of iterations for linesearch: "*string(ite_num));
+        
         E=real(E);
         println(string(E)*", "*string(real(chiral_order_up))*", "*string(real(chiral_order_down))*", "*string(ite_num)*", "*string(ite_err));flush(stdout);
         if E<E0
@@ -531,8 +597,8 @@ function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, para
     end
     if improved
         state=set_vector(state, vec_tem)
-        E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-        E=real(E);
+        # E,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+        # E=real(E);
         open(filenm,"w") do f
             JSON.print(f, state)
         end
@@ -541,7 +607,12 @@ function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, para
         for ls_step = 0:ls_max-1
             vec_tem=vec0-grad*alpha*(ls_ratio^ls_step)
             state_tem=set_vector(state, vec_tem)
-            E,chiral_order_up, chiral_order_down,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
+            if linesearch_CTM_method=="restart"
+                E,chiral_order_up, chiral_order_down,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_tem,true);
+            elseif linesearch_CTM_method=="from_converged_CTM"
+                E,chiral_order_up, chiral_order_down,ite_num,ite_err,_=energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,deepcopy(CTM),state_tem,true);
+            end
+            println("Number of iterations for linesearch: "*string(ite_num));
             E=real(E);
             println(string(E)*", "*string(real(chiral_order_up))*", "*string(real(chiral_order_down))*", "*string(ite_num)*", "*string(ite_err));flush(stdout);
             if E<E0
@@ -553,8 +624,8 @@ function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, para
             
         if improved
             state=set_vector(state, vec_tem)
-            E,ite_num,ite_err=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
-            E=real(E);
+            # E,ite_num,ite_err,_=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state,false);
+            # E=real(E);
             open(filenm,"w") do f
                 JSON.print(f, state)
             end
@@ -573,7 +644,7 @@ end
 
 
 
-function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_irrep,Triangle_irrep,nonchiral,init_statenm,init_noise)
+function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method,linesearch_CTM_method,Bond_irrep,Triangle_irrep,nonchiral,init_statenm,init_noise)
     
     multi_threads=true;if Threads.nthreads()==1; multi_threads=false; end
     println("number of threads: "*string(Threads.nthreads()));flush(stdout);
@@ -593,6 +664,7 @@ function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     println("optimization start");flush(stdout);
     #E0,_,_=Grad_FiniteDiff(state, cfg.ctm_args, args.chi)
     dt=0.001;
+    dt=0.0001;
     grad0=nothing;
     direction0=nothing;
     alpha0=3;
@@ -602,7 +674,7 @@ function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     nonchiral=nonchiral;
     for ite=1:100
         
-        @time E0,state,grad,direction,improvement=grad_line_search(state, nonchiral,A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, dt, E0, grad0, direction0, alpha0, ls_ratio, ls_max)
+        @time E0,state,grad,direction,improvement=grad_line_search(state, nonchiral,A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, grad_CTM_method,linesearch_CTM_method, dt, E0, grad0, direction0, alpha0, ls_ratio, ls_max)
         println("grad norm: "*string(norm(grad)));flush(stdout)
         if -improvement<1e-7
             break

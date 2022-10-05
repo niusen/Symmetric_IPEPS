@@ -36,3 +36,6 @@ kagome/SU2_PG/jobs/ES_trunTO_chi20_W20_N8_job2_h.jl
 kagome/SU2_PG/mps_algorithms/PUMPS_algorithms_test.jl
 kagome/SU2_PG/test.jl
 kagome/SU2_PG/test.jl
+kagome/SU2_PG/parameter_interpolation_job.jl
+kagome/SU2_PG/FiniteDiff_D8_job.jl
+kagome/SU2_PG/FiniteDiff_D8_job.jl

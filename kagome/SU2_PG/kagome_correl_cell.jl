@@ -319,7 +319,7 @@ function cal_correl(filenm,D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_t
 
 
 
-    mat_filenm="correl_julia_D"*string(D)*"_chi"*string(chi)*".mat";
+    mat_filenm="correl_SingleLayer_julia_D"*string(D)*"_chi"*string(chi)*".mat";
     matwrite(mat_filenm, Dict(
         "SS12_ob" => SS12_ob,
         "SS23_ob" => SS23_ob,

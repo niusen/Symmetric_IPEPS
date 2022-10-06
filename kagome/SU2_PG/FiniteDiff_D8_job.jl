@@ -17,14 +17,14 @@ include("kagome_FiniteDiff.jl")
 Random.seed!(1234)
 
 
-D=6;
-chi=20;
+D=3;
+chi=40;
 
 
-theta=0.2*pi;
+theta=0*pi;
 J1=cos(theta);
-J2=0;
-J3=0;
+J2=0.5;
+J3=0.3;
 Jchi=0;
 Jtrip=sin(theta);
 

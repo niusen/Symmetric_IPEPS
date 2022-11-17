@@ -75,7 +75,7 @@ U_M=U_W;
 
 # 2X2X2 cluster
 @tensor layer_2D[u1,u2,u3,u4,d1,d2,d3,d4]:=double_PEPS[2,5,1,6,u1,d1]*double_PEPS[1,7,2,8,u2,d2]*double_PEPS[4,6,3,5,u3,d3]*double_PEPS[3,8,4,7,u4,d4];
-
+println(varinfo(r"layer_2D"))
 @tensor Norm_3D[:]:=layer_2D[5,6,7,8,1,2,3,4]*layer_2D[1,2,3,4,5,6,7,8];
 
 

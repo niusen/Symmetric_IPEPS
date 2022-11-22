@@ -127,8 +127,11 @@ end
 
 function evol_J3_term1_up(Td1,Tu2,Td3,Bc1,Ba2,Bb3,Bc4,lambda_c_up1,lambda_b_dn2,lambda_c_up3,lambda_a_dn4,lambda_c_up5,lambda_c_dn6,lambda_a_dn7,lambda_a_up8,lambda_b_up9,lambda_b_dn10,lambda_c_dn11)
     #absorb lambda
-    @tensor Bc1
-    @tensor Bc4
+    @tensor Bc1[:]:=Bc1[-1,1,-3]*lambda_c_dn6[-2,1];
+    @tensor Bc4[:]:=Bc4[-1,1,-3]*lambda_c_up5[-2,1];
+
+    U_Bc1=unitary(fuse(space(B_c1,2)⊗space(B_c1,3)),space(B_c1,2)⊗space(B_c1,3))
+    @tensor Bc1[:]:=Bc1[-1,1,2]*U_Bc1[-2,1,2];
 
 end
 

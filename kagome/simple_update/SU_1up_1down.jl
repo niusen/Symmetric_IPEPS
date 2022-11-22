@@ -17,13 +17,13 @@ include("funs_1up_1down.jl")
 
 Random.seed!(1234)
 
-D_max=25;
-symmetric_hosvd=true;
+D_max=8;
+symmetric_hosvd=false;
 trun_tol=1e-6;
 D=3;
 
 
-theta=0*pi;
+theta=0.2*pi;
 J1=cos(theta);
 J2=0;
 J3=0;

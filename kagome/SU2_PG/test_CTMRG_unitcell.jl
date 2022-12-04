@@ -81,99 +81,95 @@ chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jt
 chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
 
 
-# Lx=2;Ly=2;
-# A_cell=Matrix(undef,Lx,Ly);
-# A_cell[1,1]=A_fused;
-# A_cell[1,2]=A_fused;
-# A_cell[2,1]=A_fused;
-# A_cell[2,2]=A_fused;
-
-# init=Dict([("CTM", []), ("init_type", "PBC")]);
-# conv_check="singular_value";
-# CTM_ite_info=true
-# CTM_conv_info=true;
-# CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
 
 
-id_L=unitary(space(A_fused,1),space(A_fused,1));
-id_D=unitary(space(A_fused,2),space(A_fused,2));
-id_phy=unitary(space(A_fused,5),space(A_fused,5));
+###################################
+Lx=2;Ly=2;
+A_cell=Matrix(undef,Lx,Ly);
+A_cell[1,1]=A_fused;
+A_cell[2,1]=A_fused;
+A_cell[1,2]=A_fused;
+A_cell[2,2]=A_fused;
 
 
-@tensor A_LD[:]:=id_L[-1,-3]*id_D[-4,-2];
-@tensor A_RU[:]:=id_L[-5,-1]*id_D[-3,-6]*id_phy[-2,-4];
-U_L_phy=unitary(fuse(space(A_RU,1)⊗ space(A_RU,2)), space(A_RU,1)⊗ space(A_RU,2));
-U_D_phy=unitary(fuse(space(A_fused,4)⊗ space(A_fused,5)), space(A_fused,4)⊗ space(A_fused,5));
-@tensor A_LU[:]:=A_fused'[-1,-2,1,-4,2]*U_L_phy'[1,2,-3];
-@tensor A_RD[:]:=A_fused[-1,-2,-3,1,2]*U_D_phy[-4,1,2];
-@tensor A_RU[:]:=A_RU[1,2,3,4,-3,-4]*U_D_phy'[3,4,-2]*U_L_phy[-1,1,2];
+CTM_ite_nums=100;
+init=Dict([("CTM", []), ("init_type", "PBC")]);
+conv_check="singular_value";
+CTM_ite_info=true
+CTM_conv_info=true;
+chi=20;
+@time CTM, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
-# @tensor tt[:]:=A_RU[-1,1,-2,-3]*A_RD[-4,-5,-6,1];
-# @tensor tt[:]:=A_LU[-1,-2,1,-3]*A_RU[1,-4,-5,-6];
+
+
+method1="E_triangle";
+method2="full_cell";
+ox=1;oy=1;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
+energy=E_up*2/3;
+println(energy)
+ox=1;oy=2;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
+energy=E_up*2/3;
+println(energy)
+ox=2;oy=1;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
+energy=E_up*2/3;
+println(energy)
+ox=2;oy=2;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
+energy=E_up*2/3;
+println(energy)
+
+
+###############################
+
+
 
 Lx=2;Ly=2;
 A_cell=Matrix(undef,Lx,Ly);
+
+U1=TensorMap(randn, space(A_fused,2) ← space(A_fused,2));
+U2=TensorMap(randn, space(A_fused,3) ← space(A_fused,3));
+U3=TensorMap(randn, space(A_fused,4) ← space(A_fused,4));
+U4=TensorMap(randn, space(A_fused,1) ← space(A_fused,1));
+
+@tensor A_LU[:]:=A_fused[-1,1,2,-4,-5]*U1[-2,1]*pinv(U4)[2,-3];
+@tensor A_LD[:]:=A_fused[-1,-2,1,2,-5]*U2[-3,1]*pinv(U1)[2,-4];
+@tensor A_RD[:]:=A_fused[1,-2,-3,2,-5]*pinv(U2)[1,-1]*U3[-4,2];
+@tensor A_RU[:]:=A_fused[1,2,-3,-4,-5]*U4[-1,1]*pinv(U3)[2,-2];
+
 A_cell[1,1]=A_LU;
 A_cell[2,1]=A_RU;
 A_cell[1,2]=A_LD;
 A_cell[2,2]=A_RD;
 
-#########################
-
 CTM_ite_nums=100;
-init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
+init=Dict([("CTM", []), ("init_type", "PBC")]);
 conv_check="singular_value";
 CTM_ite_info=true
 CTM_conv_info=true;
 chi=20;
-@time CTM_chi_20, _, _,_,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
-
-
-#######################
-
-CTM_ite_nums=200;
-init=Dict([("CTM", CTM_chi_20), ("init_type", "single_layer_random")]);
-conv_check="singular_value";
-CTM_ite_info=true
-CTM_conv_info=true;
-chi=80;
-@time CTM, _, _,_,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
-
-
-method1="E_triangle";
-method2="full_cell";
-E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
-energy=E_up*2/3;
-println(energy)
-
-method1="E_triangle";
-method2="reduced_cell";
-E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
-energy=E_up*2/3;
-println(energy)
-
-###########################
-
-CTM_ite_nums=200;
-CTM_conv_tol=1e-8;
-init=Dict([("CTM", CTM_chi_20), ("init_type", "single_layer_random")]);
-conv_check="singular_value";
-CTM_ite_info=true
-CTM_conv_info=true;
-chi=100;
-@time CTM, _, _,_,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+@time CTM, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
 
 
 method1="E_triangle";
 method2="full_cell";
-E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
+ox=1;oy=1;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
 energy=E_up*2/3;
 println(energy)
-
-method1="E_triangle";
-method2="reduced_cell";
-E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
+ox=1;oy=2;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
+energy=E_up*2/3;
+println(energy)
+ox=2;oy=1;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
+energy=E_up*2/3;
+println(energy)
+ox=2;oy=2;
+E_up=evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2);
 energy=E_up*2/3;
 println(energy)

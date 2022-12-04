@@ -304,9 +304,9 @@ function CTMRG_cell(A_cell,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CT
     CTM["Cset"]=Cset;
     CTM["Tset"]=Tset;
     if CTM_conv_info
-        return CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err
+        return CTM, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
     else
-        return CTM, AA_fused, U_L,U_D,U_R,U_U
+        return CTM, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
     end
 
 end
@@ -594,7 +594,7 @@ function init_CTM_cell(chi,A_cell,type,CTM_ite_info)
         end
         CTM=fuse_CTM_legs_cell(CTM,U_L_cell,U_D_cell,U_R_cell,U_U_cell);
 
-        return CTM, AA_fused_cell, U_L,U_D,U_R,U_U
+        return CTM, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
     elseif type=="random"
     elseif type=="single_layer_random"
         #For single layer CTMRG algorithm.

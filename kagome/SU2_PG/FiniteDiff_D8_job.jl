@@ -17,7 +17,7 @@ include("kagome_FiniteDiff.jl")
 Random.seed!(1234)
 
 
-D=3;
+D=6;
 chi=40;
 
 

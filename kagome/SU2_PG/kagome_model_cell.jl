@@ -43,7 +43,23 @@ function evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell,
     end
 end
 
+function evaluate_ob_UpTriangle_cell(ox,oy,parameters, U_phy, A_cell,AA_cell, CTM, method1, method2)
+    @assert (size(A_cell,1)==2);
+    @assert (size(A_cell,2)==2);
+    H_triangle, H_bond, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
+        
+    #method1=="E_triangle" #calculate up triangle energy
+    AA_H, _,_,_,_=build_double_layer(A_cell[ox,oy],H_triangle);
+    norm_1cell=ob_1cell_closed(CTM,AA_cell,method2);#1 set of unitcell
+    AA_op_cell=deepcopy(AA_cell);
+    AA_op_cell[ox,oy]=AA_H;
+    
 
+
+    E_up=ob_1cell_closed(CTM,AA_op_cell,method2)/norm_1cell;
+
+    return E_up
+end
 
 
 

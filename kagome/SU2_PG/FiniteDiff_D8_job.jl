@@ -18,13 +18,13 @@ Random.seed!(1234)
 
 
 D=6;
-chi=40;
+chi=20;
 
 
 theta=0*pi;
 J1=cos(theta);
-J2=0.5;
-J3=0.3;
+J2=0;
+J3=0;
 Jchi=0;
 Jtrip=sin(theta);
 

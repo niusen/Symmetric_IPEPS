@@ -21,7 +21,7 @@ D=6;
 chi=20;
 
 
-theta=0*pi;
+theta=0.2*pi;
 J1=cos(theta);
 J2=0;
 J3=0;

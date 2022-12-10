@@ -1,0 +1,44 @@
+"initialize CTM"
+"initialize CTM"
+"start CTM iterations:"
+421.148808 seconds (3.15 G allocations: 362.232 GiB, 18.45% gc time, 0.19% compilation time)
+426.778970 seconds (3.16 G allocations: 359.829 GiB, 18.39% gc time, 0.00% compilation time)
+402.408839 seconds (3.10 G allocations: 353.331 GiB, 18.00% gc time, 0.00% compilation time)
+395.798713 seconds (3.04 G allocations: 350.846 GiB, 18.01% gc time, 0.00% compilation time)
+
+"CTMRG iteration: 1, CTMRG err: 2.3818433883126677"
+ 68.090412 seconds (546.12 M allocations: 64.079 GiB, 18.50% gc time, 0.03% compilation time)
+ 68.672809 seconds (546.20 M allocations: 64.102 GiB, 18.85% gc time, 0.00% compilation time)
+ 68.589408 seconds (546.49 M allocations: 64.080 GiB, 18.93% gc time, 0.01% compilation time)
+ 68.308096 seconds (546.55 M allocations: 64.058 GiB, 17.86% gc time)
+
+"CTMRG iteration: 2, CTMRG err: 0.1675888721070264"
+ 71.713167 seconds (546.23 M allocations: 64.101 GiB, 17.80% gc time, 0.00% compilation time)
+ 69.253880 seconds (545.78 M allocations: 64.041 GiB, 17.09% gc time)
+ 70.975828 seconds (546.63 M allocations: 64.084 GiB, 18.31% gc time, 0.00% compilation time)
+ 70.419281 seconds (546.48 M allocations: 64.083 GiB, 17.70% gc time)
+
+"CTMRG iteration: 3, CTMRG err: 0.015960277426271843"
+ 70.104521 seconds (545.97 M allocations: 64.030 GiB, 17.02% gc time)
+ 71.020356 seconds (546.11 M allocations: 64.072 GiB, 18.09% gc time)
+ 70.637783 seconds (546.32 M allocations: 64.041 GiB, 17.98% gc time)
+ 70.296136 seconds (546.57 M allocations: 64.058 GiB, 17.26% gc time)
+
+"CTMRG iteration: 4, CTMRG err: 0.005665817296958195"
+ 70.259042 seconds (545.97 M allocations: 64.072 GiB, 17.98% gc time)
+ 69.339041 seconds (545.90 M allocations: 64.021 GiB, 18.23% gc time)
+ 67.408505 seconds (546.63 M allocations: 64.078 GiB, 18.05% gc time)
+ 69.137173 seconds (546.37 M allocations: 64.050 GiB, 18.26% gc time)
+
+"CTMRG iteration: 5, CTMRG err: 0.0016753918020704008"
+ 69.702389 seconds (546.04 M allocations: 64.049 GiB, 18.16% gc time)
+ 70.061305 seconds (546.16 M allocations: 64.085 GiB, 17.39% gc time)
+ 69.446129 seconds (546.25 M allocations: 64.023 GiB, 18.19% gc time)
+ 68.266526 seconds (546.61 M allocations: 64.069 GiB, 18.59% gc time)
+
+"CTMRG iteration: 6, CTMRG err: 0.0006074576485716717"
+24635.617791 seconds (545.89 M allocations: 64.050 GiB, 0.06% gc time, 0.00% compilation time)
+ 75.136835 seconds (545.96 M allocations: 64.038 GiB, 18.68% gc time)
+ 72.492186 seconds (546.70 M allocations: 64.091 GiB, 18.54% gc time)^C
+
+ 

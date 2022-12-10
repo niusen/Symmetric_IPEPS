@@ -17,7 +17,7 @@ include("funs_1up_1down.jl")
 
 Random.seed!(1234)
 
-D_max=8;
+D_max=15;
 symmetric_hosvd=false;
 trun_tol=1e-6;
 D=3;

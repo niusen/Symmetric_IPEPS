@@ -701,8 +701,8 @@ function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     #E0,_,_=Grad_FiniteDiff(state, cfg.ctm_args, args.chi)
     dt=0.001;
     dt=0.0001;
-    grad0=nothing;
-    direction0=nothing;
+    grad=nothing;
+    direction=nothing;
     alpha0=3;
     ls_ratio=1/3;
     ls_max=5;
@@ -710,7 +710,7 @@ function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     nonchiral=nonchiral;
     for ite=1:100
         
-        @time E0,state,grad,direction,improvement=grad_line_search(state, nonchiral,A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, grad_CTM_method,linesearch_CTM_method, dt, E0, grad0, direction0, alpha0, ls_ratio, ls_max)
+        @time E0,state,grad,direction,improvement=grad_line_search(state, nonchiral,A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, grad_CTM_method,linesearch_CTM_method, dt, E0, grad, direction, alpha0, ls_ratio, ls_max)
         println("grad norm: "*string(norm(grad)));flush(stdout)
         if -improvement<1e-7
             break

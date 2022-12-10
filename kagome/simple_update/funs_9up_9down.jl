@@ -53,7 +53,7 @@ end
 
 function trotter_gate(H,dt)
         eu,ev=eigh(H);
-        @assert norm(ev*eu*ev'-H)/norm(H)<1e-14 
+        #@assert norm(ev*eu*ev'-H)/norm(H)<1e-14 
         gate=ev*exp(-dt*eu)*ev';
         gate_half=ev*exp(-dt*eu/2)*ev';
     return gate, gate_half
@@ -86,17 +86,23 @@ function Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate,t
     lambda_u_b_inv=pinv(lambda_u_b)
     lambda_u_a_inv=pinv(lambda_u_a)
 
-    B_c=permute(B_c,(3,1,2,),())
-    B_b=permute(B_b,(3,1,2,),())
-    B_a=permute(B_a,(3,1,2,),())
+    B_c=permute(B_c,(),(3,1,2,))
+    B_b=permute(B_b,(),(3,1,2,))
+    B_a=permute(B_a,(),(3,1,2,))
 
     @tensor B_c[:]:=B_c[-1,1,-3]*lambda_u_c_inv[-2,1]
     @tensor B_b[:]:=B_b[-1,1,-3]*lambda_u_b_inv[-2,1]
     @tensor B_a[:]:=B_a[-1,1,-3]*lambda_u_a_inv[-2,1]
-    return B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, S_trun
+
+    B_c=permute(B_c,(1,2,),(3,))
+    B_b=permute(B_b,(1,2,),(3,))
+    B_a=permute(B_a,(1,2,),(3,))
+    S_trun=permute(S_trun,(),(1,2,3,));
+    return S_trun, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c
 end
 
 function Tri_T_up(T_u, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, gate, trun_tol,bond_dim)
+
     @tensor B_c_new[:]:=B_c[1,-2,-3]*lambda_d_c[-1,1]
     @tensor B_b_new[:]:=B_b[1,-2,-3]*lambda_d_b[-1,1]
     @tensor B_a_new[:]:=B_a[1,-2,-3]*lambda_d_a[-1,1]
@@ -128,11 +134,242 @@ function Tri_T_up(T_u, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, gate, 
     @tensor B_b[:]:=B_b[1,-2,-3]*lambda_d_b_inv[-1,1]
     @tensor B_a[:]:=B_a[1,-2,-3]*lambda_d_a_inv[-1,1]
 
-    return B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, S_trun
+    B_c=permute(B_c,(1,2,),(3,))
+    B_b=permute(B_b,(1,2,),(3,))
+    B_a=permute(B_a,(1,2,),(3,))
+    S_trun=permute(S_trun,(),(1,2,3,));
+    return S_trun, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c
 end
 
+function triangle_update(T_d_envs, T_u_envs, bond_dim,trun_tol,gate,Cell_ind, T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set)
+    for cc=1:9
+        Cell=Cell_ind[cc];
+        #be careful: input lambda and output lambda are different
+        T_d_tem, B_a_tem, B_b_tem, B_c_tem, lambda_a_d_tem, lambda_b_d_tem, lambda_c_d_tem=Tri_T_dn(T_d_set[Cell[1]], B_a_set[Cell[1]], B_b_set[Cell[1]], B_c_set[Cell[1]], lambda_a_u_set[T_d_envs[Cell[1]][1]], lambda_b_u_set[T_d_envs[Cell[1]][2]], lambda_c_u_set[T_d_envs[Cell[1]][3]], gate,trun_tol,bond_dim);
+
+        T_d_set[Cell[1]]=T_d_tem;
+        B_a_set[Cell[1]]=B_a_tem;
+        B_b_set[Cell[1]]=B_b_tem;
+        B_c_set[Cell[1]]=B_c_tem;
+        lambda_a_d_set[Cell[1]]=lambda_a_d_tem;
+        lambda_b_d_set[Cell[1]]=lambda_b_d_tem;
+        lambda_c_d_set[Cell[1]]=lambda_c_d_tem;
+    end
+
+    for cc=1:9
+        Cell=Cell_ind[cc];
+        #be careful: input lambda and output lambda are different
+        T_u_tem, B_a_tem, B_b_tem, B_c_tem, lambda_a_u_tem, lambda_b_u_tem, lambda_c_u_tem=Tri_T_up(T_u_set[Cell[2]], B_a_set[T_u_envs[Cell[2]][1]], B_b_set[T_u_envs[Cell[2]][2]], B_c_set[T_u_envs[Cell[2]][3]], lambda_a_d_set[T_u_envs[Cell[2]][1]], lambda_b_d_set[T_u_envs[Cell[2]][2]], lambda_c_d_set[T_u_envs[Cell[2]][3]], gate,trun_tol,bond_dim);
+
+        T_u_set[Cell[2]]=T_u_tem;
+        B_a_set[T_u_envs[Cell[2]][1]]=B_a_tem;
+        B_b_set[T_u_envs[Cell[2]][2]]=B_b_tem;
+        B_c_set[T_u_envs[Cell[2]][3]]=B_c_tem;
+        lambda_a_u_set[Cell[2]]=lambda_a_u_tem;
+        lambda_b_u_set[Cell[2]]=lambda_b_u_tem;
+        lambda_c_u_set[Cell[2]]=lambda_c_u_tem;
+    end
+end
+
+function evol_J2_term1(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10)
+
+    @assert space(lambda_a_dn2,1)'==space(Td1,1);
+    @assert space(lambda_c_up3,1)'==space(Tu2,3);
+
+    @assert space(lambda_c_dn6,1)'==space(Td1,3);
+    @assert space(lambda_b_dn7,1)'==space(Td1,2);
+    @assert space(lambda_b_up8,1)'==space(Tu2,2);
+    @assert space(lambda_a_up9,1)'==space(Tu2,1);
+
+    
+    
+    
+    #absorb lambda
+    @tensor Bc1[:]:=Bc1[-1,1,-3]*lambda_c_up1[-2,1];
+    # println(space(Ba3))
+    # println(space(lambda_a_dn10))
+    @tensor Ba3[:]:=Ba3[1,-2,-3]*lambda_a_dn10[-1,1];
+
+
+    #fuse legs
+    U_Bc1=unitary(fuse(space(Bc1,2)⊗space(Bc1,3)),space(Bc1,2)⊗space(Bc1,3))
+    U_Ba3=unitary(fuse(space(Ba3,1)⊗space(Ba3,3)),space(Ba3,1)⊗space(Ba3,3))
+    @tensor Bc1Ba3[:]:=Bc1[-3,-1,1]*Ba3[-4,-6,2]*gate[1,2,-2,-5];
+    @tensor Bc1Ba3[:]:=Bc1Ba3[1,2,-2,3,4,-4]*U_Bc1[-1,1,2]*U_Ba3[-3,3,4];
+
+    @tensor T_top[:]:=Td1[-2,1,-1]*Bb2[1,2,-3]*Tu2[-5,2,-4];
+    U_top=unitary(fuse(space(T_top,2)⊗space(T_top,3)⊗space(T_top,4)),space(T_top,2)⊗space(T_top,3)⊗space(T_top,4));
+    @tensor T_top[:]:=T_top[-1,1,2,3,-3]*U_top[-2,1,2,3];
+
+    #contract the whole tensor
+    @tensor T[:]:=T_top[1,-2,2]*Bc1Ba3[-1,1,-3,2];
+
+    #decompose
+    uM,sM,vM = tsvd(T, (1,),(2,3,); trunc=truncdim(bond_dim));
+    sM=sM/norm(sM);
+    uM,sM,vM=Truncations(uM,sM,vM,bond_dim,trun_tol);
+    uM,sM,vM=change_space(uM,sM,vM);
+    lambda_c_dn6=permute(sM,(2,),(1,));
+    @tensor Bc1[:]:=uM[1,-1]*U_Bc1'[-2,-3,1];
+    @tensor Bc1[:]:=Bc1[-1,1,-3]*pinv(lambda_c_up1)[-2,1];
+    Bc1=permute(Bc1,(1,2,),(3,))
+
+    T=sM*vM;
+    uM,sM,vM = tsvd(T, (1,2,),(3,); trunc=truncdim(bond_dim));
+    sM=sM/norm(sM);
+    uM,sM,vM=Truncations(uM,sM,vM,bond_dim,trun_tol);
+    @tensor Ba3[:]:=vM[-2,1]*U_Ba3'[-1,-3,1];
+    @tensor Ba3[:]:=Ba3[1,-2,-3]*pinv(lambda_a_dn10)[-1,1];
+    Ba3=permute(Ba3,(1,2,),(3,))
+    lambda_a_up9=sM;
+    
+    T=uM*sM;
+    @tensor T[:]:=T[-1,1,-5]*U_top'[-2,-3,-4,1];
+    uM,sM,vM = tsvd(T, (1,2,),(3,4,5,); trunc=truncdim(bond_dim));
+    sM=sM/norm(sM);
+    uM,sM,vM=Truncations(uM,sM,vM,bond_dim,trun_tol);
+    Td1=permute(uM*sM,(),(2,3,1,));
+    lambda_b_dn7=sM;
+
+    
+
+    T=sM*vM;
+    uM,sM,vM = tsvd(T, (1,2,),(3,4,); trunc=truncdim(bond_dim));
+    sM=sM/norm(sM);
+    uM,sM,vM=Truncations(uM,sM,vM,bond_dim,trun_tol);
+    uM,sM,vM=change_space(uM,sM,vM);
+    Tu2=permute(sM*vM,(),(3,1,2,));
+    lambda_b_up8=permute(sM,(2,),(1,));
+
+
+    @tensor Bb2[:]:=uM[1,-3,-2]*pinv(lambda_b_dn7)[-1,1];
+    Bb2=permute(Bb2,(1,2,),(3,));
+
+
+    return Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10
+
+end
+
+function evol_J2_term2(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10)
+
+    #permute index to accomadate
+    Td1=permute(Td1,(),(3,1,2,));
+    Tu2=permute(Tu2,(),(3,1,2,));
+
+    Bc1=permute(Bc1,(2,1,),(3,));
+    Bb2=permute(Bb2,(2,1,),(3,));
+    Ba3=permute(Ba3,(2,1,),(3,));
+    
+
+    Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+    evol_J2_term1(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10);
+
+    #permute index back
+    Td1=permute(Td1,(),(2,3,1,));
+    Tu2=permute(Tu2,(),(2,3,1,));
+
+    Bc1=permute(Bc1,(2,1,),(3,));
+    Bb2=permute(Bb2,(2,1,),(3,));
+    Ba3=permute(Ba3,(2,1,),(3,));
+
+    return Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10
+
+end
+
+function evol_J2_term3(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10)
+
+    #permute index to accomadate
+    Td1=permute(Td1,(),(2,3,1,));
+    Tu2=permute(Tu2,(),(2,3,1,));
+
+    Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+    evol_J2_term1(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10);
+    
+    #permute index back
+    Td1=permute(Td1,(),(3,1,2,));
+    Tu2=permute(Tu2,(),(3,1,2,));
+
+    return Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10
+
+end
+
+function evol_J2_term4(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10)
+
+    #permute index to accomadate
+    Bc1=permute(Bc1,(2,1,),(3,));
+    Bb2=permute(Bb2,(2,1,),(3,));
+    Ba3=permute(Ba3,(2,1,),(3,));
+
+    Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+    evol_J2_term1(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10);
+    
+    #permute index back
+    Bc1=permute(Bc1,(2,1,),(3,));
+    Bb2=permute(Bb2,(2,1,),(3,));
+    Ba3=permute(Ba3,(2,1,),(3,));
+
+    return Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10
+
+end
+
+function evol_J2_term5(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10)
+
+    #permute index to accomadate
+    Td1=permute(Td1,(),(3,1,2,));
+    Tu2=permute(Tu2,(),(3,1,2,));
+
+    Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+    evol_J2_term1(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10);
+    
+    #permute index back
+    Td1=permute(Td1,(),(2,3,1,));
+    Tu2=permute(Tu2,(),(2,3,1,));
+
+    return Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10
+
+end
+
+function evol_J2_term6(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10)
+
+    #permute index to accomadate
+    Td1=permute(Td1,(),(2,3,1,));
+    Tu2=permute(Tu2,(),(2,3,1,));
+
+    Bc1=permute(Bc1,(2,1,),(3,));
+    Bb2=permute(Bb2,(2,1,),(3,));
+    Ba3=permute(Ba3,(2,1,),(3,));
+
+
+    Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+    evol_J2_term1(bond_dim,trun_tol,gate,Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10);
+    
+    #permute index back
+    Td1=permute(Td1,(),(3,1,2,));
+    Tu2=permute(Tu2,(),(3,1,2,));
+
+    Bc1=permute(Bc1,(2,1,),(3,));
+    Bb2=permute(Bb2,(2,1,),(3,));
+    Ba3=permute(Ba3,(2,1,),(3,));
+
+    return Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10
+
+end
 
 function evol_J3_term1_α(bond_dim,trun_tol,gate,Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11)
+
+    @assert space(lambda_a_dn2,1)'==space(Td1,1);
+    @assert space(lambda_c_up3,1)'==space(Tu2,3);
+    @assert space(lambda_b_dn4,1)'==space(Td3,2);
+
+    @assert space(lambda_c_dn6,1)'==space(Td1,3);
+    @assert space(lambda_b_dn7,1)'==space(Td1,2);
+    @assert space(lambda_b_up8,1)'==space(Tu2,2);
+    @assert space(lambda_a_up9,1)'==space(Tu2,1);
+    @assert space(lambda_a_dn10,1)'==space(Td3,1);
+    @assert space(lambda_c_dn11,1)'==space(Td3,3);
+    
+    
+    
     #absorb lambda
     @tensor Bc1[:]:=Bc1[-1,1,-3]*lambda_c_up1[-2,1];
     @tensor Bc4[:]:=Bc4[-1,1,-3]*lambda_c_up5[-2,1];
@@ -149,10 +386,6 @@ function evol_J3_term1_α(bond_dim,trun_tol,gate,Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lam
     @tensor T_top[:]:=T_top[-1,1,2,3,-3]*U_top[-2,1,2,3];
 
     #contract the whole tensor
-    # println(space(T_top))
-    # println(space(Td1))
-    # println(space(Td3))
-    # println(space(Bc1Bc4))
     @tensor T[:]:=T_top[2,-3,3]*Td1[-2,2,1]*Td3[3,-4,4]*Bc1Bc4[-1,1,-5,4];
 
     #decompose
@@ -250,6 +483,8 @@ function evol_J3_term1_β(bond_dim,trun_tol,gate,Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lam
     Bb2=permute(Bb2,(2,1,),(3,));
     Ba3=permute(Ba3,(2,1,),(3,));
     Bc4=permute(Bc4,(2,1,),(3,));
+
+
     
     return Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11
 end
@@ -270,7 +505,7 @@ function evol_J3_term2_α(bond_dim,trun_tol,gate,Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lam
     Tu2=permute(Tu2,(),(2,3,1,));
     Td3=permute(Td3,(),(2,3,1,));
 
-    
+
     return Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11
 end
 
@@ -353,23 +588,291 @@ function evol_J3_term3_β(bond_dim,trun_tol,gate,Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lam
     
     return Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11
 end
+function J2_update(bond_dim,trun_tol,gate,Cell_ind, T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set)
 
-function itebd_step(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, trun_tol, gate, posit, bond_dim)
-    
-    if posit=="dn"
-        B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, T_d=Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate, trun_tol, bond_dim)
-    
-    elseif posit=="up"
-        B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, T_u=Tri_T_up(T_u, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, gate, trun_tol, bond_dim)
+    for cc=1:9
+        Cell=Cell_ind[cc];
+        
+
+        Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+        evol_J2_term1(bond_dim,trun_tol,gate,T_d_set[Cell[1]],T_u_set[Cell[2]],B_c_set[Cell[1]], B_b_set[Cell[1]], B_a_set[Cell[3]],lambda_c_u_set[Cell[6]], lambda_a_d_set[Cell[1]], lambda_c_u_set[Cell[2]],lambda_c_d_set[Cell[1]], lambda_b_d_set[Cell[1]], lambda_b_u_set[Cell[2]], lambda_a_u_set[Cell[2]], lambda_a_d_set[Cell[3]]);
+
+        T_d_set[Cell[1]]=Td1;
+        T_u_set[Cell[2]]=Tu2;
+        B_c_set[Cell[1]]=Bc1;
+        B_b_set[Cell[1]]=Bb2;
+        B_a_set[Cell[3]]=Ba3;
+        lambda_c_u_set[Cell[6]]=lambda_c_up1;
+        lambda_a_d_set[Cell[1]]=lambda_a_dn2;
+        lambda_c_u_set[Cell[2]]=lambda_c_up3;
+        lambda_c_d_set[Cell[1]]=lambda_c_dn6;
+        lambda_b_d_set[Cell[1]]=lambda_b_dn7;
+        lambda_b_u_set[Cell[2]]=lambda_b_up8;
+        lambda_a_u_set[Cell[2]]=lambda_a_up9;
+        lambda_a_d_set[Cell[3]]=lambda_a_dn10;
+
+        Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+        evol_J2_term2(bond_dim,trun_tol,gate,T_u_set[Cell[2]],T_d_set[Cell[3]],B_b_set[Cell[1]], B_a_set[Cell[3]], B_c_set[Cell[3]],lambda_b_d_set[Cell[1]], lambda_c_u_set[Cell[2]], lambda_b_d_set[Cell[3]],lambda_b_u_set[Cell[2]], lambda_a_u_set[Cell[2]], lambda_a_d_set[Cell[3]], lambda_c_d_set[Cell[3]], lambda_c_u_set[Cell[4]]);
+        
+        T_u_set[Cell[2]]=Td1;
+        T_d_set[Cell[3]]=Tu2;
+        B_b_set[Cell[1]]=Bc1;
+        B_a_set[Cell[3]]=Bb2;
+        B_c_set[Cell[3]]=Ba3;
+        lambda_b_d_set[Cell[1]]=lambda_c_up1;
+        lambda_c_u_set[Cell[2]]=lambda_a_dn2;
+        lambda_b_d_set[Cell[3]]=lambda_c_up3;
+        lambda_b_u_set[Cell[2]]=lambda_c_dn6;
+        lambda_a_u_set[Cell[2]]=lambda_b_dn7;
+        lambda_a_d_set[Cell[3]]=lambda_b_up8;
+        lambda_c_d_set[Cell[3]]=lambda_a_up9;
+        lambda_c_u_set[Cell[4]]=lambda_a_dn10;
+
+        Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+        evol_J2_term3(bond_dim,trun_tol,gate,T_d_set[Cell[3]],T_u_set[Cell[4]],B_a_set[Cell[3]], B_c_set[Cell[3]], B_b_set[Cell[5]],lambda_a_u_set[Cell[2]], lambda_b_d_set[Cell[3]], lambda_a_u_set[Cell[4]],lambda_a_d_set[Cell[3]], lambda_c_d_set[Cell[3]], lambda_c_u_set[Cell[4]], lambda_b_u_set[Cell[4]], lambda_b_d_set[Cell[5]]);
+        
+        T_d_set[Cell[3]]=Td1;
+        T_u_set[Cell[4]]=Tu2;
+        B_a_set[Cell[3]]=Bc1;
+        B_c_set[Cell[3]]=Bb2;
+        B_b_set[Cell[5]]=Ba3;
+        lambda_a_u_set[Cell[2]]=lambda_c_up1;
+        lambda_b_d_set[Cell[3]]=lambda_a_dn2;
+        lambda_a_u_set[Cell[4]]=lambda_c_up3;
+        lambda_a_d_set[Cell[3]]=lambda_c_dn6;
+        lambda_c_d_set[Cell[3]]=lambda_b_dn7;
+        lambda_c_u_set[Cell[4]]=lambda_b_up8;
+        lambda_b_u_set[Cell[4]]=lambda_a_up9;
+        lambda_b_d_set[Cell[5]]=lambda_a_dn10;
+
+
+        Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+        evol_J2_term4(bond_dim,trun_tol,gate,T_u_set[Cell[4]],T_d_set[Cell[5]],B_c_set[Cell[3]], B_b_set[Cell[5]], B_a_set[Cell[5]],lambda_c_d_set[Cell[3]], lambda_a_u_set[Cell[4]], lambda_c_d_set[Cell[5]],lambda_c_u_set[Cell[4]], lambda_b_u_set[Cell[4]], lambda_b_d_set[Cell[5]], lambda_a_d_set[Cell[5]], lambda_a_u_set[Cell[6]]);
+        
+        T_u_set[Cell[4]]=Td1;
+        T_d_set[Cell[5]]=Tu2;
+        B_c_set[Cell[3]]=Bc1;
+        B_b_set[Cell[5]]=Bb2;
+        B_a_set[Cell[5]]=Ba3;
+        lambda_c_d_set[Cell[3]]=lambda_c_up1;
+        lambda_a_u_set[Cell[4]]=lambda_a_dn2;
+        lambda_c_d_set[Cell[5]]=lambda_c_up3;
+        lambda_c_u_set[Cell[4]]=lambda_c_dn6;
+        lambda_b_u_set[Cell[4]]=lambda_b_dn7;
+        lambda_b_d_set[Cell[5]]=lambda_b_up8;
+        lambda_a_d_set[Cell[5]]=lambda_a_up9;
+        lambda_a_u_set[Cell[6]]=lambda_a_dn10;
+
+        Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+        evol_J2_term5(bond_dim,trun_tol,gate,T_d_set[Cell[5]],T_u_set[Cell[6]],B_b_set[Cell[5]], B_a_set[Cell[5]], B_c_set[Cell[1]],lambda_b_u_set[Cell[4]], lambda_c_d_set[Cell[5]], lambda_b_u_set[Cell[6]],lambda_b_d_set[Cell[5]], lambda_a_d_set[Cell[5]], lambda_a_u_set[Cell[6]], lambda_c_u_set[Cell[6]], lambda_c_d_set[Cell[1]]);
+        
+        T_d_set[Cell[5]]=Td1;
+        T_u_set[Cell[6]]=Tu2;
+        B_b_set[Cell[5]]=Bc1;
+        B_a_set[Cell[5]]=Bb2;
+        B_c_set[Cell[1]]=Ba3;
+        lambda_b_u_set[Cell[4]]=lambda_c_up1;
+        lambda_c_d_set[Cell[5]]=lambda_a_dn2;
+        lambda_b_u_set[Cell[6]]=lambda_c_up3;
+        lambda_b_d_set[Cell[5]]=lambda_c_dn6;
+        lambda_a_d_set[Cell[5]]=lambda_b_dn7;
+        lambda_a_u_set[Cell[6]]=lambda_b_up8;
+        lambda_c_u_set[Cell[6]]=lambda_a_up9;
+        lambda_c_d_set[Cell[1]]=lambda_a_dn10;
+
+        Td1,Tu2,Bc1,Bb2,Ba3,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10=
+        evol_J2_term6(bond_dim,trun_tol,gate,T_u_set[Cell[6]],T_d_set[Cell[1]],B_a_set[Cell[5]], B_c_set[Cell[1]], B_b_set[Cell[1]],lambda_a_d_set[Cell[5]], lambda_b_u_set[Cell[6]], lambda_a_d_set[Cell[1]],lambda_a_u_set[Cell[6]], lambda_c_u_set[Cell[6]], lambda_c_d_set[Cell[1]], lambda_b_d_set[Cell[1]], lambda_b_u_set[Cell[2]]);
+        
+        T_u_set[Cell[6]]=Td1;
+        T_d_set[Cell[1]]=Tu2;
+        B_a_set[Cell[5]]=Bc1;
+        B_c_set[Cell[1]]=Bb2;
+        B_b_set[Cell[1]]=Ba3;
+        lambda_a_d_set[Cell[5]]=lambda_c_up1;
+        lambda_b_u_set[Cell[6]]=lambda_a_dn2;
+        lambda_a_d_set[Cell[1]]=lambda_c_up3;
+        lambda_a_u_set[Cell[6]]=lambda_c_dn6;
+        lambda_c_u_set[Cell[6]]=lambda_b_dn7;
+        lambda_c_d_set[Cell[1]]=lambda_b_up8;
+        lambda_b_d_set[Cell[1]]=lambda_a_up9;
+        lambda_b_u_set[Cell[2]]=lambda_a_dn10;
     end
-    return T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c
+end
+function J3_update(bond_dim,trun_tol,gate,Cell_ind, T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set)
+
+    for cc=1:9
+        Cell=Cell_ind[cc];
+        
+        Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11=
+        evol_J3_term1_α(bond_dim,trun_tol,gate, T_d_set[Cell[1]], T_u_set[Cell[2]], T_d_set[Cell[3]], B_c_set[Cell[1]], B_b_set[Cell[1]], B_a_set[Cell[3]], B_c_set[Cell[3]], lambda_c_u_set[Cell[6]], lambda_a_d_set[Cell[1]], lambda_c_u_set[Cell[2]], lambda_b_d_set[Cell[3]], lambda_c_u_set[Cell[4]], lambda_c_d_set[Cell[1]], lambda_b_d_set[Cell[1]], lambda_b_u_set[Cell[2]], lambda_a_u_set[Cell[2]], lambda_a_d_set[Cell[3]], lambda_c_d_set[Cell[3]]);
+
+        T_d_set[Cell[1]]=Td1;
+        T_u_set[Cell[2]]=Tu2;
+        T_d_set[Cell[3]]=Td3;
+        B_c_set[Cell[1]]=Bc1;
+        B_b_set[Cell[1]]=Bb2;
+        B_a_set[Cell[3]]=Ba3;
+        B_c_set[Cell[3]]=Bc4;
+        lambda_c_u_set[Cell[6]]=lambda_c_up1;
+        lambda_a_d_set[Cell[1]]=lambda_a_dn2;
+        lambda_c_u_set[Cell[2]]=lambda_c_up3;
+        lambda_b_d_set[Cell[3]]=lambda_b_dn4;
+        lambda_c_u_set[Cell[4]]=lambda_c_up5;
+        lambda_c_d_set[Cell[1]]=lambda_c_dn6;
+        lambda_b_d_set[Cell[1]]=lambda_b_dn7;
+        lambda_b_u_set[Cell[2]]=lambda_b_up8;
+        lambda_a_u_set[Cell[2]]=lambda_a_up9;
+        lambda_a_d_set[Cell[3]]=lambda_a_dn10;
+        lambda_c_d_set[Cell[3]]=lambda_c_dn11;
+
+
+        #################
+
+
+
+        Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11=
+        evol_J3_term1_β(bond_dim,trun_tol,gate, T_u_set[Cell[4]], T_d_set[Cell[5]], T_u_set[Cell[6]], B_c_set[Cell[3]], B_b_set[Cell[5]], B_a_set[Cell[5]], B_c_set[Cell[1]], lambda_c_d_set[Cell[3]], lambda_a_u_set[Cell[4]], lambda_c_d_set[Cell[5]], lambda_b_u_set[Cell[6]], lambda_c_d_set[Cell[1]], lambda_c_u_set[Cell[4]], lambda_b_u_set[Cell[4]], lambda_b_d_set[Cell[5]], lambda_a_d_set[Cell[5]], lambda_a_u_set[Cell[6]], lambda_c_u_set[Cell[6]]);
+
+        T_u_set[Cell[4]]=Td1;
+        T_d_set[Cell[5]]=Tu2;
+        T_u_set[Cell[6]]=Td3;
+        B_c_set[Cell[3]]=Bc1;
+        B_b_set[Cell[5]]=Bb2;
+        B_a_set[Cell[5]]=Ba3;
+        B_c_set[Cell[1]]=Bc4;
+        lambda_c_d_set[Cell[3]]=lambda_c_up1;
+        lambda_a_u_set[Cell[4]]=lambda_a_dn2;
+        lambda_c_d_set[Cell[5]]=lambda_c_up3;
+        lambda_b_u_set[Cell[6]]=lambda_b_dn4;
+        lambda_c_d_set[Cell[1]]=lambda_c_up5;
+        lambda_c_u_set[Cell[4]]=lambda_c_dn6;
+        lambda_b_u_set[Cell[4]]=lambda_b_dn7;
+        lambda_b_d_set[Cell[5]]=lambda_b_up8;
+        lambda_a_d_set[Cell[5]]=lambda_a_up9;
+        lambda_a_u_set[Cell[6]]=lambda_a_dn10;
+        lambda_c_u_set[Cell[6]]=lambda_c_dn11;
+
+
+        #################
+
+        Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11=
+        evol_J3_term2_α(bond_dim,trun_tol,gate, T_d_set[Cell[5]], T_u_set[Cell[6]], T_d_set[Cell[1]], B_b_set[Cell[5]], B_a_set[Cell[5]], B_c_set[Cell[1]], B_b_set[Cell[1]], lambda_b_u_set[Cell[4]], lambda_c_d_set[Cell[5]], lambda_b_u_set[Cell[6]], lambda_a_d_set[Cell[1]], lambda_b_u_set[Cell[2]], lambda_b_d_set[Cell[5]], lambda_a_d_set[Cell[5]], lambda_a_u_set[Cell[6]], lambda_c_u_set[Cell[6]], lambda_c_d_set[Cell[1]], lambda_b_d_set[Cell[1]]);
+
+        T_d_set[Cell[5]]=Td1;
+        T_u_set[Cell[6]]=Tu2;
+        T_d_set[Cell[1]]=Td3;
+        B_b_set[Cell[5]]=Bc1;
+        B_a_set[Cell[5]]=Bb2;
+        B_c_set[Cell[1]]=Ba3;
+        B_b_set[Cell[1]]=Bc4;
+        lambda_b_u_set[Cell[4]]=lambda_c_up1;
+        lambda_c_d_set[Cell[5]]=lambda_a_dn2;
+        lambda_b_u_set[Cell[6]]=lambda_c_up3;
+        lambda_a_d_set[Cell[1]]=lambda_b_dn4;
+        lambda_b_u_set[Cell[2]]=lambda_c_up5;
+        lambda_b_d_set[Cell[5]]=lambda_c_dn6;
+        lambda_a_d_set[Cell[5]]=lambda_b_dn7;
+        lambda_a_u_set[Cell[6]]=lambda_b_up8;
+        lambda_c_u_set[Cell[6]]=lambda_a_up9;
+        lambda_c_d_set[Cell[1]]=lambda_a_dn10;
+        lambda_b_d_set[Cell[1]]=lambda_c_dn11;
+
+
+        #################
+        Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11=
+        evol_J3_term2_β(bond_dim,trun_tol,gate, T_u_set[Cell[2]], T_d_set[Cell[3]], T_u_set[Cell[4]], B_b_set[Cell[1]], B_a_set[Cell[3]], B_c_set[Cell[3]], B_b_set[Cell[5]], lambda_b_d_set[Cell[1]], lambda_c_u_set[Cell[2]], lambda_b_d_set[Cell[3]], lambda_a_u_set[Cell[4]], lambda_b_d_set[Cell[5]], lambda_b_u_set[Cell[2]], lambda_a_u_set[Cell[2]], lambda_a_d_set[Cell[3]], lambda_c_d_set[Cell[3]], lambda_c_u_set[Cell[4]], lambda_b_u_set[Cell[4]]);
+
+        T_u_set[Cell[2]]=Td1;
+        T_d_set[Cell[3]]=Tu2;
+        T_u_set[Cell[4]]=Td3;
+        B_b_set[Cell[1]]=Bc1;
+        B_a_set[Cell[3]]=Bb2;
+        B_c_set[Cell[3]]=Ba3;
+        B_b_set[Cell[5]]=Bc4;
+        lambda_b_d_set[Cell[1]]=lambda_c_up1;
+        lambda_c_u_set[Cell[2]]=lambda_a_dn2;
+        lambda_b_d_set[Cell[3]]=lambda_c_up3;
+        lambda_a_u_set[Cell[4]]=lambda_b_dn4;
+        lambda_b_d_set[Cell[5]]=lambda_c_up5;
+        lambda_b_u_set[Cell[2]]=lambda_c_dn6;
+        lambda_a_u_set[Cell[2]]=lambda_b_dn7;
+        lambda_a_d_set[Cell[3]]=lambda_b_up8;
+        lambda_c_d_set[Cell[3]]=lambda_a_up9;
+        lambda_c_u_set[Cell[4]]=lambda_a_dn10;
+        lambda_b_u_set[Cell[4]]=lambda_c_dn11;
+
+
+
+        #################
+        Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11=
+        evol_J3_term3_α(bond_dim,trun_tol,gate, T_d_set[Cell[3]], T_u_set[Cell[4]], T_d_set[Cell[5]], B_a_set[Cell[3]], B_c_set[Cell[3]], B_b_set[Cell[5]], B_a_set[Cell[5]], lambda_a_u_set[Cell[2]], lambda_b_d_set[Cell[3]], lambda_a_u_set[Cell[4]], lambda_c_d_set[Cell[5]], lambda_a_u_set[Cell[6]], lambda_a_d_set[Cell[3]], lambda_c_d_set[Cell[3]], lambda_c_u_set[Cell[4]], lambda_b_u_set[Cell[4]], lambda_b_d_set[Cell[5]], lambda_a_d_set[Cell[5]]);
+
+        T_d_set[Cell[3]]=Td1;
+        T_u_set[Cell[4]]=Tu2;
+        T_d_set[Cell[5]]=Td3;
+        B_a_set[Cell[3]]=Bc1;
+        B_c_set[Cell[3]]=Bb2;
+        B_b_set[Cell[5]]=Ba3;
+        B_a_set[Cell[5]]=Bc4;
+        lambda_a_u_set[Cell[2]]=lambda_c_up1;
+        lambda_b_d_set[Cell[3]]=lambda_a_dn2;
+        lambda_a_u_set[Cell[4]]=lambda_c_up3;
+        lambda_c_d_set[Cell[5]]=lambda_b_dn4;
+        lambda_a_u_set[Cell[6]]=lambda_c_up5;
+        lambda_a_d_set[Cell[3]]=lambda_c_dn6;
+        lambda_c_d_set[Cell[3]]=lambda_b_dn7;
+        lambda_c_u_set[Cell[4]]=lambda_b_up8;
+        lambda_b_u_set[Cell[4]]=lambda_a_up9;
+        lambda_b_d_set[Cell[5]]=lambda_a_dn10;
+        lambda_a_d_set[Cell[5]]=lambda_c_dn11;
+
+
+
+        #################
+        Td1,Tu2,Td3,Bc1,Bb2,Ba3,Bc4,lambda_c_up1,lambda_a_dn2,lambda_c_up3,lambda_b_dn4,lambda_c_up5,lambda_c_dn6,lambda_b_dn7,lambda_b_up8,lambda_a_up9,lambda_a_dn10,lambda_c_dn11=
+        evol_J3_term3_β(bond_dim,trun_tol,gate, T_u_set[Cell[6]], T_d_set[Cell[1]], T_u_set[Cell[2]], B_a_set[Cell[5]], B_c_set[Cell[1]], B_b_set[Cell[1]], B_a_set[Cell[3]], lambda_a_d_set[Cell[5]], lambda_b_u_set[Cell[6]], lambda_a_d_set[Cell[1]], lambda_c_u_set[Cell[2]], lambda_a_d_set[Cell[3]], lambda_a_u_set[Cell[6]], lambda_c_u_set[Cell[6]], lambda_c_d_set[Cell[1]], lambda_b_d_set[Cell[1]], lambda_b_u_set[Cell[2]], lambda_a_u_set[Cell[2]]);
+
+        T_u_set[Cell[6]]=Td1;
+        T_d_set[Cell[1]]=Tu2;
+        T_u_set[Cell[2]]=Td3;
+        B_a_set[Cell[5]]=Bc1;
+        B_c_set[Cell[1]]=Bb2;
+        B_b_set[Cell[1]]=Ba3;
+        B_a_set[Cell[3]]=Bc4;
+        lambda_a_d_set[Cell[5]]=lambda_c_up1;
+        lambda_b_u_set[Cell[6]]=lambda_a_dn2;
+        lambda_a_d_set[Cell[1]]=lambda_c_up3;
+        lambda_c_u_set[Cell[2]]=lambda_b_dn4;
+        lambda_a_d_set[Cell[3]]=lambda_c_up5;
+        lambda_a_u_set[Cell[6]]=lambda_c_dn6;
+        lambda_c_u_set[Cell[6]]=lambda_b_dn7;
+        lambda_c_d_set[Cell[1]]=lambda_b_up8;
+        lambda_b_d_set[Cell[1]]=lambda_a_up9;
+        lambda_b_u_set[Cell[2]]=lambda_a_dn10;
+        lambda_a_u_set[Cell[2]]=lambda_c_dn11;
+
+
+    end
+
 end
 
-function itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H, trun_tol, tau, dt, bond_dim)
-    gate, gate_half=trotter_gate(H, dt)
+
+function itebd_step(T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set, gate_triangle, gate_Heisenberg_J2, gate_half_Heisenberg_J3, Cell_ind, T_d_envs, T_u_envs, trun_tol, bond_dim)
+    triangle_update(T_d_envs, T_u_envs, bond_dim,trun_tol,gate_triangle,Cell_ind, T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set)
+
+    J2_update(bond_dim,trun_tol,gate_Heisenberg_J2,Cell_ind, T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set)
+    J3_update(bond_dim,trun_tol,gate_half_Heisenberg_J3,Cell_ind, T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set)
+    
+    return T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set
+end
+
+function itebd(T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set, H_triangle, H_Heisenberg, J2, J3, trun_tol, tau, dt, bond_dim, Cell_ind, T_d_envs,T_u_envs)
+    gate_triangle, gate_half_triangle=trotter_gate(H_triangle,dt);
+    gate_Heisenberg_J2, gate_half_Heisenberg_J2=trotter_gate(H_Heisenberg*J2,dt);
+    gate_Heisenberg_J3, gate_half_Heisenberg_J3=trotter_gate(H_Heisenberg*J3,dt);
     for cs=1:Int(round(tau/dt))
-        T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd_step(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, trun_tol, gate, "up", bond_dim)
-        T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd_step(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, trun_tol, gate, "dn", bond_dim)
+        println("dt step: "*string(cs));flush(stdout);
+        T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set=itebd_step(T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set, gate_triangle, gate_Heisenberg_J2, gate_half_Heisenberg_J3, Cell_ind, T_d_envs, T_u_envs, trun_tol, bond_dim);
     end
-    return T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c
+    return T_u_set,T_d_set,B_a_set,B_b_set,B_c_set,lambda_a_u_set,lambda_b_u_set,lambda_c_u_set,lambda_a_d_set,lambda_b_d_set,lambda_c_d_set
 end

@@ -1,5 +1,8 @@
 using LinearAlgebra
 using TensorKit
+using TensorKitAD
+
+
 
 
 function build_double_layer(A,operator)
@@ -7,8 +10,10 @@ function build_double_layer(A,operator)
     A=permute(A,(1,2,),(3,4,5));
     U_L=unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
     U_D=unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-    U_R=inv(U_L);
-    U_U=inv(U_D);
+
+
+    U_R=U_L';
+    U_U=U_D';
     # display(space(U_L))
     # display(space(U_D))
     # display(space(U_R))
@@ -51,9 +56,9 @@ function build_double_layer(A,operator)
 end
 
 
-function fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U)
+function fuse_CTM_legs(Tset,U_L,U_D,U_R,U_U)
     #fuse CTM legs
-    Tset=CTM["Tset"];
+
 
     #T4
     T4=permute(Tset[4],(1,4,),(2,3,));
@@ -83,8 +88,8 @@ function fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U)
     Tset[1]=T1
     #display(space(T1))
 
-    CTM["Tset"]=Tset;
-    return CTM
+
+    return Tset
 end
 
 function spectrum_conv_check(ss_old,C_new)
@@ -109,20 +114,11 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true,CTM_conv_info=false)
+function CTMRG(AA_fused,chi,conv_check,tol,Cset,Tset,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true,CTM_conv_info=false)
 
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
-    #initial corner transfer matrix
-        #initial corner transfer matrix
-    if isempty(init["CTM"])
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
-    else
-        _, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
-        CTM=deepcopy(init["CTM"]);
-    end
 
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+
     conv_check="singular_value"
 
     ss_old1=ones(chi)*2;
@@ -232,12 +228,11 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
         # end
     end
 
-    CTM["Cset"]=Cset;
-    CTM["Tset"]=Tset;
+
     if CTM_conv_info
-        return CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err
+        return Cset,Tset, AA_fused,ite_num,ite_err
     else
-        return CTM, AA_fused, U_L,U_D,U_R,U_U
+        return Cset,Tset, AA_fused
     end
 
 end
@@ -387,35 +382,25 @@ function init_CTM(chi,A,type,CTM_ite_info)
         end
     elseif type=="random"
     end
-    CTM=Dict([("Cset", Cset), ("Tset", Tset)]);
+    
 
     AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
-    CTM=fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U);
+    Tset=fuse_CTM_legs(Tset,U_L,U_D,U_R,U_U);
 
-    return CTM, AA_fused, U_L,U_D,U_R,U_U
+    return Cset,Tset, AA_fused, U_L,U_D,U_R,U_U
 
-
-    # #save initial CTM to compare with other codes
-    # @time CTM=init_CTM(10,PEPS_tensor,"PBC");
-    # matwrite("matfile.mat", Dict(
-    # 	"C1" => convert(Array,CTM["Cset"][1]),
-    # 	"C2" => convert(Array,CTM["Cset"][2]),
-    #     "C3" => convert(Array,CTM["Cset"][3]),
-    #     "C4" => convert(Array,CTM["Cset"][4]),
-    #     "T1" => convert(Array,CTM["Tset"][1]),
-    #     "T2" => convert(Array,CTM["Tset"][2]),
-    #     "T3" => convert(Array,CTM["Tset"][3]),
-    #     "T4" => convert(Array,CTM["Tset"][4])
-    # ); compress = false)
-
-    end;
+end
 
 
 
 
 function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
     #the multiplet is not due to su(2) symmetry
-    s_dense=sort(diag(convert(Array,s)),rev=true);
+    s_dense=convert(Array,s);
+    s_dense=diag(s_dense);
+    s_dense=sort(s_dense);
+    s_dense=s_dense[end:-1:1];
+    
 
     # println(s_dense/s_dense[1])
 

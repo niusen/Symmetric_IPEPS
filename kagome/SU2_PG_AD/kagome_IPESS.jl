@@ -1,4 +1,4 @@
-using TensorKit
+using TensorKitAD
 
 #load elementary tensor coefficients from json file
 function read_string(string)
@@ -89,6 +89,79 @@ function construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,
         Triangle_A2_coe=read_string(json_dict["coes"]["Triangle_A2_coe"]["entries"]);
 
         
+    end
+
+
+
+    #combine tensors with coefficients
+    bond_tensor=A_set[1]*0;
+    if Bond_irrep=="A"
+        bond_tensor=A_set[1]*0;
+        for ct=1:length(Bond_A_coe)
+            bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct];
+        end
+    elseif Bond_irrep=="B"
+        bond_tensor=B_set[1]*0;
+        for ct=1:length(Bond_B_coe)
+            bond_tensor=bond_tensor+im*B_set[ct]*Bond_B_coe[ct];
+        end
+    elseif Bond_irrep=="A+iB"
+        bond_tensor=A_set[1]*0;
+        for ct=1:length(Bond_A_coe)
+            bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct];
+        end
+        for ct=1:length(Bond_B_coe)
+            bond_tensor=bond_tensor+im*B_set[ct]*Bond_B_coe[ct];
+        end
+    end
+
+    triangle_tensor=A1_set[1]*0;
+    if Triangle_irrep=="A1"
+        triangle_tensor=A1_set[1]*0;
+        for ct=1:length(Triangle_A1_coe)
+            triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct];
+        end
+    elseif Triangle_irrep=="A2"
+        triangle_tensor=A2_set[1]*0;
+        for ct=1:length(Triangle_A2_coe)
+            triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct];
+        end
+    elseif Triangle_irrep=="A1+iA2"
+        triangle_tensor=A1_set[1]*0;
+        for ct=1:length(Triangle_A1_coe)
+            triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct];
+        end
+        for ct=1:length(Triangle_A2_coe)
+            triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct];
+        end
+    end
+
+
+
+    return bond_tensor,triangle_tensor
+end
+
+function construct_su2_PG_IPESS(Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,nonchiral,Bond_irrep,Triangle_irrep,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb)
+
+
+    if Bond_irrep=="A"
+
+        Bond_B_coe=[];
+    elseif Bond_irrep=="B"
+        Bond_A_coe=[];
+
+    elseif Bond_irrep=="A+iB"
+
+    end
+
+    if Triangle_irrep=="A1"
+
+        Triangle_A2_coe=[];
+    elseif Triangle_irrep=="A2"
+        Triangle_A1_coe=[];
+
+    elseif Triangle_irrep=="A1+iA2"
+
     end
 
 

@@ -1,5 +1,5 @@
 using MAT
-using TensorKit
+
 function construct_tensor(D)
     #D=3
     filenm="bond_tensors_D_"*string(D)*".mat"

@@ -1,10 +1,12 @@
 using LinearAlgebra
 using TensorKit
+using TensorKitAD
+using Zygote
 using KrylovKit
 using JSON
 using HDF5, JLD
 using Random
-cd("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
+cd("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG_AD")
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("kagome_load_tensor.jl")
 include("kagome_CTMRG.jl")
@@ -17,7 +19,7 @@ include("kagome_FiniteDiff.jl")
 Random.seed!(1234)
 
 
-D=6;
+D=3;
 chi=20;
 
 
@@ -34,7 +36,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 #state_dict=read_json_state("LS_D_8_chi_40.json")
 init_statenm=nothing;
-#init_statenm="julia_LS_D_8_chi_40.json"
+init_statenm="julia_LS_D_3_chi_20.json"
 init_noise=0;
 CTM_conv_tol=1e-6;
 CTM_ite_nums=100;

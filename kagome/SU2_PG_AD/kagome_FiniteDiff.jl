@@ -40,6 +40,38 @@ function wrap_json_state(Bond_irrep,Triangle_irrep,nonchiral,Bond_A_coe,Bond_B_c
     return json_state
 end
 
+function update_json_state(json_state,Bond_irrep,Triangle_irrep,nonchiral,Bond_A_coe,Bond_B_coe,Triangle_A1_coe,Triangle_A2_coe)
+    coes=deepcopy(json_dict_old["coes"]);
+    if Bond_irrep=="A"
+        if Triangle_irrep=="A1"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe))]);
+        elseif Triangle_irrep=="A2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        elseif Triangle_irrep=="A1+iA2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe)),("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        end
+    elseif Bond_irrep=="B"
+        if Triangle_irrep=="A1"
+            coes=Dict([("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe))]);
+        elseif Triangle_irrep=="A2"
+            coes=Dict([("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        elseif Triangle_irrep=="A1+iA2"
+            coes=Dict([("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe)),("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        end
+    elseif Bond_irrep=="A+iB"
+        if Triangle_irrep=="A1"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe))]);
+        elseif Triangle_irrep=="A2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        elseif Triangle_irrep=="A1+iA2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe)),("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        end
+    end
+    json_state["coes"]=coes;
+    
+    return json_state
+end
+
 
 function create_coe_dict(coe)
     #print(coe)
@@ -55,7 +87,11 @@ function create_coe_dict(coe)
 end
 
 function initial_state(Bond_irrep,Triangle_irrep,nonchiral,D,init_statenm=nothing,init_noise=0)
-    A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, _, _, virtual_particle, _, _=construct_tensor(D);
+    A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+    global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb;
+    global A1_set_occu
+    global A2_set_occu
+    global virtual_particle
     if init_statenm==nothing 
         println("Random initial state");flush(stdout);
         
@@ -133,6 +169,7 @@ end
 
 
 function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,state_dict,cal_chiral_order=false)
+    #use json state
 
     A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
     
@@ -188,6 +225,69 @@ function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,sta
         return energy,ite_num,ite_err,CTM
     end
 end
+
+function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,Bond_irrep, Triangle_irrep, cal_chiral_order=false)
+    #only use Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe
+
+    global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb;
+    
+    bond_tensor,triangle_tensor=construct_su2_PG_IPESS(Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,nonchiral,Bond_irrep,Triangle_irrep,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb);
+
+
+    PEPS_tensor=bond_tensor;
+    @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
+    A_unfused=PEPS_tensor;
+    
+    U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+    @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+
+    CTM=[];
+    U_L=[];
+    U_D=[];
+    U_R=[];
+    U_U=[];
+
+    
+    init_type="PBC";
+    conv_check="singular_value";
+    CTM_ite_info=false;
+    CTM_conv_info=true;
+    Cset,Tset, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,init_type,CTM_ite_info);
+    Cset,Tset, AA_fused,ite_num,ite_err=CTMRG(AA_fused,chi,conv_check,CTM_conv_tol, Cset,Tset, CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+    if (parameters["J2"]==0) & (parameters["J3"]==0)
+        E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
+        energy=(E_up+E_down)/3;
+    elseif parameters["Jtrip"]==0
+        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_bond");
+        E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
+        E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
+        E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
+        energy=(E_NN+E_NNN+E_NNNN)/3;
+        println(real([E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23]))
+        println(real([E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b]))
+        println(real([E_NNNN_11,E_NNNN_22,E_NNNN_33]))
+    else
+        E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
+        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
+        E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
+        E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
+        E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
+        energy=(E_up+E_down)/3+(E_NNN+E_NNNN)/3;
+    end
+
+
+    #return energy,CTM,U_L,U_D,U_R,U_U
+    if cal_chiral_order
+        chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jtrip", 1)]);
+        chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
+        return energy,chiral_order_up, chiral_order_down,ite_num,ite_err,CTM
+    else
+        return energy,ite_num,ite_err,CTM
+    end
+end
+
+
+
 
 
 function energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_init,state_dict,cal_chiral_order=false)
@@ -249,9 +349,138 @@ function energy_CTM_initCTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun
     end
 end
 
+function vec_2_coeset(vec,json_dict,nonchiral,Bond_irrep, Triangle_irrep)
+    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coes0, Bond_B_coes0, Triangle_A1_coes0, Triangle_A2_coes0=get_tensor_coes(json_dict);
+    global A1_set_occu
+    global A2_set_occu
+    global virtual_particle
+
+    if Bond_irrep=="A"
+        if Triangle_irrep=="A1"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(Triangle_A1_coes0)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+        Bond_B_coe=nothing;
+    elseif Bond_irrep=="B"
+        if Triangle_irrep=="A1"
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(Triangle_A1_coes0)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+        Bond_A_coe=nothing;
+    elseif Bond_irrep=="A+iB"
+        if Triangle_irrep=="A1"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(Triangle_A1_coes0)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+    end
+
+    if nonchiral==nothing
+    else
+        Triangle_A1_coe,Triangle_A2_coe, A1_has_odd, A2_has_odd=nonchiral_projection(nonchiral,Triangle_A1_coe,Triangle_A2_coe,A1_set_occu,A2_set_occu,virtual_particle);
+    end
+
+
+
+    return Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe
+
+end
 
 function get_vector(json_dict)
     Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(json_dict);
+    global A1_set_occu
+    global A2_set_occu
+    global virtual_particle
+    if nonchiral==nothing
+    else
+        Triangle_A1_coe,Triangle_A2_coe, A1_has_odd, A2_has_odd=nonchiral_projection(nonchiral,Triangle_A1_coe,Triangle_A2_coe,A1_set_occu,A2_set_occu,virtual_particle);
+    end
     if Bond_irrep=="A"
         if Triangle_irrep=="A1"
             vec=vcat(Bond_A_coe,Triangle_A1_coe);
@@ -279,6 +508,7 @@ function get_vector(json_dict)
     end
     return vec
 end
+
 
 
 function set_vector(json_dict, vec)
@@ -388,6 +618,12 @@ function set_vector(json_dict, vec)
         end
 
     end
+
+    if nonchiral==nothing
+    else
+        Triangle_A1_coe,Triangle_A2_coe, A1_has_odd, A2_has_odd=nonchiral_projection(nonchiral,Triangle_A1_coe,Triangle_A2_coe,A1_set_occu,A2_set_occu,virtual_particle);
+    end
+
     json_dict_new=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe)
     #return Bond_irrep, Triangle_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
     return json_dict_new
@@ -568,7 +804,26 @@ function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, param
     return E0,Grad_FD,Grad_FD_data,CTM
 end
 
+function cost_fun(state_vec,state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method)
 
+    Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe=vec_2_coeset(state_vec,state,nonchiral,Bond_irrep, Triangle_irrep);
+    E0,ite_num,ite_err,CTM=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,Bond_irrep, Triangle_irrep,false);
+    return real(E0)
+
+end
+
+function Grad_AD(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method, dt=0.001, E0=nothing)
+
+    state=normalize_IPESS_SU2_PG(state);
+    state_vec=get_vector(state);
+    costfun(state_vec)=cost_fun(state_vec, state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method);
+    E=costfun(state_vec);
+    Grad_AD=costfun'(state_vec);
+
+    
+
+    return E,Grad_AD
+end
 
 function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, grad_CTM_method,linesearch_CTM_method, dt, E0, grad0=None, direction0=None, alpha0=1, ls_ratio=1/3, ls_max=10)
     
@@ -582,8 +837,10 @@ function grad_line_search(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, para
     
     state=normalize_IPESS_SU2_PG(state)
     
-    E0,_,grad,CTM=Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method, dt, E0)
-    
+    #E0,_,grad,CTM=Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method, dt, E0)
+    E0,_,grad,CTM=Grad_AD(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method, dt, E0)
+
+
     println("state: "*string(get_vector(state)));flush(stdout);
     println("grad: "*string(grad));flush(stdout);
 

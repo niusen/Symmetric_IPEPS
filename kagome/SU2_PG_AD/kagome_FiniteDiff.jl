@@ -226,7 +226,7 @@ function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,sta
     end
 end
 
-function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,Bond_irrep, Triangle_irrep, cal_chiral_order=false)
+function energy_CTM(D,chi, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,Bond_irrep, Triangle_irrep, cal_chiral_order=false)
     #only use Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe
 
     global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb;
@@ -255,10 +255,10 @@ function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Bo
     Cset,Tset, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,init_type,CTM_ite_info);
     Cset,Tset, AA_fused,ite_num,ite_err=CTMRG(AA_fused,chi,conv_check,CTM_conv_tol, Cset,Tset, CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
     if (parameters["J2"]==0) & (parameters["J3"]==0)
-        E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
+        E_up, E_down=evaluate_ob(H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
         energy=(E_up+E_down)/3;
     elseif parameters["Jtrip"]==0
-        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_bond");
+        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_bond");
         E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
         E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
         E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
@@ -267,8 +267,8 @@ function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Bo
         println(real([E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b]))
         println(real([E_NNNN_11,E_NNNN_22,E_NNNN_33]))
     else
-        E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
-        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
+        E_up, E_down=evaluate_ob(H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
+        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
         E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
         E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
         E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
@@ -278,8 +278,7 @@ function energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol, Bo
 
     #return energy,CTM,U_L,U_D,U_R,U_U
     if cal_chiral_order
-        chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jtrip", 1)]);
-        chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
+        chiral_order_up, chiral_order_down=evaluate_ob(chiral_triangle, nothing, nothing, nothing, nothing, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, "E_triangle");
         return energy,chiral_order_up, chiral_order_down,ite_num,ite_err,CTM
     else
         return energy,ite_num,ite_err,CTM
@@ -804,10 +803,10 @@ function Grad_FiniteDiff(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, param
     return E0,Grad_FD,Grad_FD_data,CTM
 end
 
-function cost_fun(state_vec,state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method)
+function cost_fun(state_vec,state, nonchiral, A1_has_odd, A2_has_odd, D, chi, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method)
 
     Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe=vec_2_coeset(state_vec,state,nonchiral,Bond_irrep, Triangle_irrep);
-    E0,ite_num,ite_err,CTM=energy_CTM(D,chi,parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,Bond_irrep, Triangle_irrep,false);
+    E0,ite_num,ite_err,CTM=energy_CTM(D,chi, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,Bond_A_coe, Bond_B_coe,  Triangle_A1_coe, Triangle_A2_coe,Bond_irrep, Triangle_irrep,false);
     return real(E0)
 
 end
@@ -816,7 +815,7 @@ function Grad_AD(state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, C
 
     state=normalize_IPESS_SU2_PG(state);
     state_vec=get_vector(state);
-    costfun(state_vec)=cost_fun(state_vec, state, nonchiral, A1_has_odd, A2_has_odd, D, chi, parameters, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method);
+    costfun(state_vec)=cost_fun(state_vec, state, nonchiral, A1_has_odd, A2_has_odd, D, chi, CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method);
     E=costfun(state_vec);
     Grad_AD=costfun'(state_vec);
 
@@ -953,6 +952,22 @@ function run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,
     #init_statenm=nothing
     state, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, A1_has_odd, A2_has_odd=initial_state(Bond_irrep, Triangle_irrep, nonchiral, D,init_statenm,init_noise)
 
+    A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+    
+    bond_tensor,triangle_tensor=construct_su2_PG_IPESS(state,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb);
+    PEPS_tensor=bond_tensor;
+    @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
+    A_unfused=PEPS_tensor;
+    
+    U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+    @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+    global U_phy
+
+
+
+    H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
+    chiral_triangle, _, _,_,_=Hamiltonians(U_phy,0,0,0,0,1);
+    global H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit, chiral_triangle
 
     println("optimization start");flush(stdout);
     #E0,_,_=Grad_FiniteDiff(state, cfg.ctm_args, args.chi)

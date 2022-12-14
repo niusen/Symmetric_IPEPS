@@ -95,7 +95,8 @@ end
 function spectrum_conv_check(ss_old,C_new)
     _,ss_new,_=svd(permute(C_new,(1,),(2,)));
     ss_new=convert(Array,ss_new);
-    ss_new=sort(diag(ss_new), rev=true);
+    ss_new=sort(diag(ss_new));
+    ss_new=ss_new[end:-1:1];
     ss_old=ss_old/ss_old[1];
     ss_new=ss_new/ss_new[1];
     #display(ss_new)
@@ -283,7 +284,11 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
 
 
     sM=sM/norm(sM)
-    sM_inv=pinv(sM);
+    # println(space(sM))
+    
+    # sM_inv=pinv(sM);
+    # println(space(sM_inv))
+
     sM_dense=convert(Array,sM)
 
     # println("svd:")
@@ -307,7 +312,7 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
     #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
     #display(space(sM_inv))
     #display(sM_inv_sqrt)
-    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
+    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM)←domain(sM))
 
     PM_inv=RMlow*vM'*sM_inv_sqrt;
     PM=sM_inv_sqrt*uM'*RMup;
@@ -392,7 +397,41 @@ function init_CTM(chi,A,type,CTM_ite_info)
 end
 
 
+# function my_pinv(s,trun_tol)
+#     #the multiplet is not due to su(2) symmetry
+#     s_dense=convert(Array,s);
+#     s_dense=diag(s_dense);
+#     s_dense=sort(s_dense);
+#     s_dense=s_dense[end:-1:1];
 
+#     chi=length(s_dense);
+    
+
+#     value_trun=0;
+
+#     value_max=maximum(s_dense);
+
+#     s_Dict=convert(Dict,s);
+    
+#     space_full=space(s,1);
+#     for sp in sectors(space_full)
+
+#         diag_elem=diag(s_Dict[:data][string(sp)]);
+#         for cd=1:length(diag_elem)
+#             if ((diag_elem[cd]/value_max)<trun_tol) | (diag_elem[cd]<=value_trun)
+#                 diag_elem[cd]=0;
+#             end
+#         end
+#         s_Dict[:data][string(sp)]=diagm(diag_elem);
+#     end
+#     s=convert(TensorMap,s_Dict);
+
+#     # s_=sort(diag(convert(Array,s)),rev=true);
+#     # s_=s_/s_[1];
+#     # print(s_)
+#     # @assert 1+1==3
+#     return s
+# end
 
 function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
     #the multiplet is not due to su(2) symmetry

@@ -2,10 +2,10 @@ using LinearAlgebra
 
 
 
-function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, method,E_up_method="2x2")
+function evaluate_ob(H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, Cset,Tset, method,E_up_method="2x2")
+
 
     norm_1site=ob_1site_closed(Cset,Tset,AA_fused);
-    H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
     
     AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
     AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
@@ -19,8 +19,12 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
             E_up=E_up[1];
         elseif E_up_method=="2x2"
             AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
-            E_up=ob_RD(Cset,Tset,AA_H,AA_fused)/ob_RD(Cset,Tset,AA_fused,AA_fused);
+            E_up=ob_RD(Cset,Tset,AA_H,AA_fused);
             E_up=blocks(E_up)[Irrep[SU₂](0)][1];
+            E_up_norm=ob_RD(Cset,Tset,AA_fused,AA_fused);
+            E_up_norm=blocks(E_up_norm)[Irrep[SU₂](0)][1];
+            E_up=E_up/E_up_norm;
+            
         end
         # down triangle
         rho_LU_RU_LD=ob_LU_RU_LD(Cset,Tset,AA_fused,AA2,AA1,AA3);
@@ -28,11 +32,12 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
         @tensor rho_LU_RU_LD[:]:=U_ss[-1,-4,1]*U_ss[-2,-5,2]*U_ss[-3,-6,3]*rho_LU_RU_LD[1,2,3];
         @tensor rho_LU_RU_LD[:]:=U_phy'[4,5,6,-1]*rho_LU_RU_LD[4,5,6,1,2,3]*U_phy[-2,1,2,3];
         #@tensor e[:]:=rho_LU_RU_LD[1,2]*H_triangle[2,1];
-        rho_LU_RU_LD=convert(Array,rho_LU_RU_LD);
+
         @tensor norm_LU_RU_LD[:]:=rho_LU_RU_LD[1,1];
-        H_triangle=convert(Array,H_triangle);
+        norm_LU_RU_LD=blocks(norm_LU_RU_LD)[Irrep[SU₂](0)][1];
         @tensor E_down[:]:=rho_LU_RU_LD[1,2]*H_triangle[2,1];
-        E_down=E_down[1]/norm_LU_RU_LD[1];     
+        E_down=blocks(E_down)[Irrep[SU₂](0)][1];
+        E_down=E_down/norm_LU_RU_LD;     
         return E_up, E_down   
     elseif method=="E_bond"
         #calculate single unit-cell observable (up triangle)

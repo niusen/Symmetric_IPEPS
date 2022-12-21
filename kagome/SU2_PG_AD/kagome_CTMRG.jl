@@ -56,6 +56,42 @@ function build_double_layer(A,operator)
 end
 
 
+# function fuse_CTM_legs(Tset,U_L,U_D,U_R,U_U)
+#     #fuse CTM legs
+
+
+#     #T4
+#     T4=permute(Tset[4],(1,4,),(2,3,));
+#     T4=T4*U_R;
+#     T4=permute(T4,(1,3,2,),());
+#     Tset[4]=T4
+#     #display(space(T4))
+
+#     #T3
+#     T3=permute(Tset[3],(1,4,),(2,3,));
+#     T3=T3*U_U;
+#     T3=permute(T3,(1,3,2,),());
+#     Tset[3]=T3
+#     #display(space(T3))
+
+#     #T2
+#     T2=permute(Tset[2],(2,3,),(1,4,));
+#     T2=U_L*T2;
+#     T2=permute(T2,(2,1,3,),());
+#     Tset[2]=T2
+#     #display(space(T2))
+
+#     #T1
+#     T1=permute(Tset[1],(2,3,),(1,4,));
+#     T1=U_D*T1;
+#     T1=permute(T1,(2,1,3,),());
+#     Tset[1]=T1
+#     #display(space(T1))
+
+
+#     return Tset
+# end
+
 function fuse_CTM_legs(Tset,U_L,U_D,U_R,U_U)
     #fuse CTM legs
 
@@ -64,32 +100,33 @@ function fuse_CTM_legs(Tset,U_L,U_D,U_R,U_U)
     T4=permute(Tset[4],(1,4,),(2,3,));
     T4=T4*U_R;
     T4=permute(T4,(1,3,2,),());
-    Tset[4]=T4
+    #Tset[4]=T4
     #display(space(T4))
 
     #T3
     T3=permute(Tset[3],(1,4,),(2,3,));
     T3=T3*U_U;
     T3=permute(T3,(1,3,2,),());
-    Tset[3]=T3
+    #Tset[3]=T3
     #display(space(T3))
 
     #T2
     T2=permute(Tset[2],(2,3,),(1,4,));
     T2=U_L*T2;
     T2=permute(T2,(2,1,3,),());
-    Tset[2]=T2
+    #Tset[2]=T2
     #display(space(T2))
 
     #T1
     T1=permute(Tset[1],(2,3,),(1,4,));
     T1=U_D*T1;
     T1=permute(T1,(2,1,3,),());
-    Tset[1]=T1
+    #Tset[1]=T1
     #display(space(T1))
 
+    
 
-    return Tset
+    return [T1,T2,T3,T4]
 end
 
 function spectrum_conv_check(ss_old,C_new)

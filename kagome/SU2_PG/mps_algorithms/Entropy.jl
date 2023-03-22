@@ -197,7 +197,7 @@ function Topo_entropy_Renyi2(filenm,parameters,D,chi,N_eu,CTM_conv_tol,CTM_ite_n
 
     println("D="*string(D));
     println("chi="*string(chi));
-    println("N="*string(N));flush(stdout);
+
 
 
 
@@ -248,20 +248,21 @@ function Topo_entropy_Renyi2(filenm,parameters,D,chi,N_eu,CTM_conv_tol,CTM_ite_n
     P_odd[1,:,1,:]=Id;
     P_odd[2,:,2,:]=-gate_dense;
 
-    P_even=TensorMap(P_even, Rep[SU₂](0=>2)⊗Rep[SU₂](0=>1, 1/2=>1), Rep[SU₂](0=>2)⊗Rep[SU₂](0=>1, 1/2=>1));
-    P_odd=TensorMap(P_odd, Rep[SU₂](0=>2)⊗Rep[SU₂](0=>1, 1/2=>1), Rep[SU₂](0=>2)⊗Rep[SU₂](0=>1, 1/2=>1));
+    P_even=TensorMap(P_even, Rep[SU₂](0=>2)⊗space(gate,1), Rep[SU₂](0=>2)⊗space(gate,1));
+    P_odd=TensorMap(P_odd, Rep[SU₂](0=>2)⊗space(gate,1), Rep[SU₂](0=>2)⊗space(gate,1));
 
 
-    println("calculate entropy for N="*string(N));
+    
 
     ###########################################
+    println("calculate topo entropy for even sector");
     Projector=P_even;
 
     Renyi2=trace_boundary_H(N_eu,OO,Projector,"OO_OO_P")/2;
     Norm=trace_boundary_H(N_eu,OO,Projector,"OO_P")/2;
     Renyi2_even=-log(Renyi2/Norm^2);
 
-
+    println("calculate topo entropy for odd sector");
     Projector=P_odd;
 
     Renyi2=trace_boundary_H(N_eu,OO,Projector,"OO_OO_P")/2;
@@ -279,7 +280,11 @@ end
   
 
 function trace_boundary_H(N_eu,OO,Projector,type)
-
+    if type=="OO_OO_P"
+        println("Trace H^2")
+    elseif type=="OO_P"
+        println("Trace H")
+    end
     Sectors=[0,1/2,1,3/2,2,5/2];
     euL_set=Vector(undef,length(Sectors));
     evL_set=Vector(undef,length(Sectors));

@@ -64,7 +64,7 @@ function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_
 
 
     println("calculate ES for N="*string(N));
-    Sectors=[0,1/2,1,3/2,2,5/2];
+    Sectors=[0,1/2,1,3/2,2,5/2,3,7/2];
     Ks=collect(0:N-1)
     eu_set=Matrix(undef,length(Ks),length(Sectors));
     for kk=1:length(Ks)
@@ -94,7 +94,6 @@ function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_
                 eu_set[kk,sps]=[];
                 continue;
             end
-
             ev=[];
             if group_index
                 contraction_group_fun(x)=CTM_T_group_action(U_fuse_DD,O1_O1,O2_O2,U_fuse_DD_D,O1_O1_O1,O2_O2_O2,a_bcd_To_abc_d,x,N,Ks[kk]);
@@ -121,6 +120,10 @@ function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_
     end
 
     ES_filenm="ES_Kprojector"*"_D"*string(D)*"_chi"*string(chi)*"_N"*string(N)*".mat";
+    println(ES_filenm)
+    println(eu_set)
+    println(Sectors)
+    println(Ks)
     matwrite(ES_filenm, Dict(
         "eu_set" => eu_set,
         "Sectors" => Sectors,

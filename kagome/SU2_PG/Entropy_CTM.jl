@@ -11,7 +11,7 @@ include("kagome_model.jl")
 include("kagome_IPESS.jl")
 include("mps_algorithms\\ITEBD_algorithms.jl")
 include("mps_algorithms\\TransfOp_decomposition.jl")
-include("mps_algorithms\\PUMPS_algorithms.jl")
+include("mps_algorithms\\Entropy.jl")
 include("mps_algorithms\\ES_preliminary.jl")
 
 
@@ -19,17 +19,16 @@ include("mps_algorithms\\ES_preliminary.jl")
 
 D=3;
 
-N=8;
-EH_n=20;#number of entanglement spectrum
-filenm="julia_LS_D_8_chi_60_theta0.json"
-filenm="julia_LS_D_3_chi_40.json";
+N=4;
+N_eu=3;#number of eigenvalues for each sector, in order to detect degeneracy
 
+filenm="julia_LS_D_3_chi_20.json"
 
-J1=0.80902;
+J1=1;
 J2=0;
 J3=0;
 Jchi=0;
-Jtrip=0.5878;
+Jtrip=0;
 parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", Jtrip)]);
 
 CTM_conv_tol=1e-6;
@@ -39,4 +38,7 @@ group_index=true;
 
 
 chi=10;
-ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,group_index)
+
+#Entropy_finite_size(filenm,parameters,D,chi,N,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol);
+
+Topo_entropy_Renyi2(filenm,parameters,D,chi,N_eu,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol)

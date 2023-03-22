@@ -269,7 +269,7 @@ function Topo_entropy_Renyi2(filenm,parameters,D,chi,N_eu,CTM_conv_tol,CTM_ite_n
     Norm=trace_boundary_H(N_eu,OO,Projector,"OO_P")/2;
     Renyi2_odd=-log(Renyi2/Norm^2);
 
-    ES_filenm="Topo_entropy_Renyi2_"*"_D"*string(D)*"_chi"*string(chi)*".mat";
+    ES_filenm="Topo_entropy_Renyi2"*"_D"*string(D)*"_chi"*string(chi)*".mat";
     matwrite(ES_filenm, Dict(
         "Renyi2_odd" => Renyi2_odd,
         "Renyi2_even" => Renyi2_even

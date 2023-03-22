@@ -17,12 +17,13 @@ include("mps_algorithms\\ES_preliminary.jl")
 
 
 
-D=3;
-
+D=8;
+chi=20;
 N=4;
 N_eu=3;#number of eigenvalues for each sector, in order to detect degeneracy
 
 filenm="julia_LS_D_3_chi_20.json"
+#filenm="julia_LS_D_8_chi_20.json";
 
 J1=1;
 J2=0;
@@ -35,9 +36,9 @@ CTM_conv_tol=1e-6;
 CTM_ite_nums=200;
 CTM_trun_tol=1e-12;
 group_index=true;
+nonchiral="No";
 
 
-chi=10;
 
 #Entropy_finite_size(filenm,parameters,D,chi,N,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol);
 

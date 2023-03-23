@@ -159,6 +159,7 @@ function Entropy_finite_size(filenm,parameters,D,chi,N,CTM_conv_tol,CTM_ite_nums
 
     ###########################################
     Projector=P_odd;
+    println("Alert: the odd sector acquires extra gate which has not been implemented")
 
     @tensor OO_P[:]:=OO[-1,1,-3,2]*Projector[-2,2,-4,1];
 
@@ -236,7 +237,7 @@ function Topo_entropy_Renyi2(filenm,parameters,D,chi,N_eu,CTM_conv_tol,CTM_ite_n
     @tensor OO[:]:=U_fuse_chichi[-1,1,2]*OO[1,2,-2,3,4,-4]*U_fuse_chichi'[3,4,-3];
 
 
-
+    println("Alert: the odd sector acquires extra gate which has not been implemented")
 
     gate=parity_gate(O1,2);
     gate_dense=convert(Array,gate);

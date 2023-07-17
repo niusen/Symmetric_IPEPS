@@ -4,11 +4,10 @@ using KrylovKit
 using JSON
 using HDF5, JLD
 using Random
-cd("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\pytochlore")
+cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("pyrochlore_load_tensor.jl")
 include("pyrochlore_IPESS.jl")
-include("pyrochlore_FiniteDiff.jl")
 
 
 

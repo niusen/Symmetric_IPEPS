@@ -17,12 +17,12 @@ include("mps_algorithms\\ES_preliminary.jl")
 
 
 
-D=3;
+D=8;
 
 N=6;
 EH_n=20;#number of entanglement spectrum
-filenm="julia_LS_D_8_chi_60_theta0.json"
-filenm="julia_LS_D_3_chi_40.json";
+filenm="julia_LS_D_8_chi_40.json"
+
 
 
 J1=0.80902;
@@ -38,5 +38,7 @@ CTM_trun_tol=1e-12;
 group_index=true;
 
 
-chi=10;
-ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,group_index)
+chi=40;
+
+vison=true;
+ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,group_index,vison)

@@ -1,4 +1,4 @@
-function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,group_index)
+function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,group_index,vison)
 
     println("D="*string(D));
     println("chi="*string(chi));
@@ -97,11 +97,11 @@ function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_
 
             ev=[];
             if group_index
-                contraction_group_fun(x)=CTM_T_group_action(U_fuse_DD,O1_O1,O2_O2,U_fuse_DD_D,O1_O1_O1,O2_O2_O2,a_bcd_To_abc_d,x,N,Ks[kk]);
+                contraction_group_fun(x)=CTM_T_group_action(U_fuse_DD,O1_O1,O2_O2,U_fuse_DD_D,O1_O1_O1,O2_O2_O2,a_bcd_To_abc_d,x,N,Ks[kk],vison);
                 @time eu,ev=eigsolve(contraction_group_fun, v_init, EH_n,:LM,Arnoldi(krylovdim=EH_n*2+5));
                 eu_set[kk,sps]=eu;
             else
-                contraction_fun(x)=CTM_T_action(OO,x,N);
+                contraction_fun(x)=CTM_T_action(OO,x,N,vison);
                 @time eu,ev=eigsolve(contraction_group_fun, v_init, EH_n,:LM,Arnoldi(krylovdim=EH_n*2+5));
                 eu_set[kk,sps]=eu;
             end
@@ -120,7 +120,11 @@ function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_
         end
     end
 
-    ES_filenm="ES_Kprojector"*"_D"*string(D)*"_chi"*string(chi)*"_N"*string(N)*".mat";
+    if vison
+        ES_filenm="ES_Kprojector_vison"*"_D"*string(D)*"_chi"*string(chi)*"_N"*string(N)*".mat";
+    else
+        ES_filenm="ES_Kprojector"*"_D"*string(D)*"_chi"*string(chi)*"_N"*string(N)*".mat";
+    end
     matwrite(ES_filenm, Dict(
         "eu_set" => eu_set,
         "Sectors" => Sectors,
@@ -130,26 +134,59 @@ function ES_CTMRG_ED_Kprojector(filenm,parameters,D,chi,N,EH_n,CTM_conv_tol,CTM_
 
 end
 
-function CTM_T_group_action(U_fuse_DD,O1_O1,O2_O2,U_fuse_DD_D,O1_O1_O1,O2_O2_O2,a_bcd_To_abc_d,v0,N,kn)
+function vison_op(V)
+    op=unitary(V,V);
+    Keys=op.data.keys;
+    for cc=1:length(Keys)
+        if mod(Keys[cc].j,1)==1/2
+            op.data.values[cc]=op.data.values[cc]*(-1);
+        end
+    end
+    return op
+
+end
+
+function CTM_T_group_action(U_fuse_DD,O1_O1,O2_O2,U_fuse_DD_D,O1_O1_O1,O2_O2_O2,a_bcd_To_abc_d,v0,N,kn,vison)
     if N==4
-        @tensor v_new[:]:=O1_O1[4,1,2,-1]*O1_O1[2,3,4,-2]*v0[1,3,-3];
-        @tensor v_new[:]:=O2_O2[4,1,2,-1]*O2_O2[2,3,4,-2]*v_new[1,3,-3];
+        if vison
+            op=vison_op(space(O1_O1,3));
+            @tensor v_new[:]:=O1_O1[5,1,2,-1]*O1_O1[2,3,4,-2]*op[5,4]*v0[1,3,-3];
+            op=vison_op(space(O2_O2,3));
+            @tensor v_new[:]:=O2_O2[5,1,2,-1]*O2_O2[2,3,4,-2]*op[5,4]*v_new[1,3,-3];
+        else
+            @tensor v_new[:]:=O1_O1[4,1,2,-1]*O1_O1[2,3,4,-2]*v0[1,3,-3];
+            @tensor v_new[:]:=O2_O2[4,1,2,-1]*O2_O2[2,3,4,-2]*v_new[1,3,-3];
+        end 
 
         #momentum projector
         @tensor v_new[:]:=v_new[1,2,-5]*U_fuse_DD'[-1,-2,1]*U_fuse_DD'[-3,-4,2];
         v_new=k_projection(v_new,N,kn,U_fuse_DD,a_bcd_To_abc_d);
         @tensor v_new[:]:=v_new[1,2,3,4,-3]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4];
     elseif N==6
-        @tensor v_new[:]:=O1_O1[6,1,2,-1]*O1_O1[2,3,4,-2]*O1_O1[4,5,6,-3]*v0[1,3,5,-4];
-        @tensor v_new[:]:=O2_O2[6,1,2,-1]*O2_O2[2,3,4,-2]*O2_O2[4,5,6,-3]*v_new[1,3,5,-4];
+        if vison
+            op=vison_op(space(O1_O1,3));
+            @tensor v_new[:]:=O1_O1[7,1,2,-1]*O1_O1[2,3,4,-2]*O1_O1[4,5,6,-3]*op[7,6]*v0[1,3,5,-4];
+            op=vison_op(space(O2_O2,3));
+            @tensor v_new[:]:=O2_O2[7,1,2,-1]*O2_O2[2,3,4,-2]*O2_O2[4,5,6,-3]*op[7,6]*v_new[1,3,5,-4];
+        else
+            @tensor v_new[:]:=O1_O1[4,1,2,-1]*O1_O1[2,3,4,-2]*v0[1,3,-3];
+            @tensor v_new[:]:=O2_O2[4,1,2,-1]*O2_O2[2,3,4,-2]*v_new[1,3,-3];
+        end
 
         #momentum projector
         @tensor v_new[:]:=v_new[1,2,3,-7]*U_fuse_DD'[-1,-2,1]*U_fuse_DD'[-3,-4,2]*U_fuse_DD'[-5,-6,3];
         v_new=k_projection(v_new,N,kn,U_fuse_DD,a_bcd_To_abc_d);
         @tensor v_new[:]:=v_new[1,2,3,4,5,6,-4]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4]*U_fuse_DD[-3,5,6];
     elseif N==8
-        @tensor v_new[:]:=O1_O1_O1[6,1,2,-1]*O1_O1_O1[2,3,4,-2]*O1_O1[4,5,6,-3]*v0[1,3,5,-4];
-        @tensor v_new[:]:=O2_O2_O2[6,1,2,-1]*O2_O2_O2[2,3,4,-2]*O2_O2[4,5,6,-3]*v_new[1,3,5,-4];
+        if vison
+            op=vison_op(space(O1_O1,3));
+            @tensor v_new[:]:=O1_O1_O1[7,1,2,-1]*O1_O1_O1[2,3,4,-2]*O1_O1[4,5,6,-3]*op[7,6]*v0[1,3,5,-4];
+            op=vison_op(space(O2_O2,3));
+            @tensor v_new[:]:=O2_O2_O2[7,1,2,-1]*O2_O2_O2[2,3,4,-2]*O2_O2[4,5,6,-3]*op[7,6]*v_new[1,3,5,-4];
+        else
+            @tensor v_new[:]:=O1_O1_O1[6,1,2,-1]*O1_O1_O1[2,3,4,-2]*O1_O1[4,5,6,-3]*v0[1,3,5,-4];
+            @tensor v_new[:]:=O2_O2_O2[6,1,2,-1]*O2_O2_O2[2,3,4,-2]*O2_O2[4,5,6,-3]*v_new[1,3,5,-4];
+        end
 
         #momentum projector
         v_new=k_projection(v_new,N,kn,U_fuse_DD,a_bcd_To_abc_d);
@@ -280,9 +317,14 @@ function calculate_k(ev,N)
 end
 
 
-function CTM_T_action(OO,v0,N)
+function CTM_T_action(OO,v0,N,vison)
     if N==4
-        @tensor v_new[:]:=OO[8,1,2,-1]*OO[2,3,4,-2]*OO[4,5,6,-3]*OO[6,7,8,-4]*v0[1,3,5,7,-5];
+        if vison
+            op=vison_op(space(OO,3));
+            @tensor v_new[:]:=OO[9,1,2,-1]*OO[2,3,4,-2]*OO[4,5,6,-3]*OO[6,7,8,-4]*op[9,8]*v0[1,3,5,7,-5];
+        else
+            @tensor v_new[:]:=OO[8,1,2,-1]*OO[2,3,4,-2]*OO[4,5,6,-3]*OO[6,7,8,-4]*v0[1,3,5,7,-5];
+        end
     end
     return v_new
 end

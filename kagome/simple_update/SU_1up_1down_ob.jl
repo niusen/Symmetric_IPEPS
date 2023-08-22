@@ -26,6 +26,8 @@ symmetric_hosvd=false;
 trun_tol=1e-6;
 D=3;
 
+println("D_max= "*string(D_max))
+
 chis=[40,60];
 #chis=[40,80,120,160];
 CTM_conv_tol=1e-6;
@@ -115,6 +117,7 @@ CTM_conv_info=true;
 
 for cchi=1:length(chis)
     chi=chis[cchi];
+    println("chi= "*string(chi));flush(stdout);
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");

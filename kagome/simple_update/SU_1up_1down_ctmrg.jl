@@ -21,7 +21,7 @@ include("funs_1up_1down.jl")
 Random.seed!(1234)
 
 
-D_max=8;
+D_max=6;
 symmetric_hosvd=false;
 trun_tol=1e-6;
 D=3;
@@ -31,7 +31,7 @@ CTM_conv_tol=1e-6;
 CTM_ite_nums=200;
 CTM_trun_tol=1e-12;
 
-theta=0.2*pi;
+theta=0*pi;
 J1=cos(theta);
 J2=0;
 J3=0;
@@ -94,7 +94,7 @@ println(space(T_u))
 println(space(T_d))
 
 
-@tensor PEPS_tensor[:] := B_a[-1,1,-5]*B_b[4,2,-6]*B_c[-4,3,-7]*T_u[1,2,3]*T_d[-3,4,-2];
+@tensor PEPS_tensor[:] := B_a[-1,1,-5]*B_b[4,3,-6]*B_c[-4,2,-7]*T_u[1,3,2]*T_d[-3,4,-2];
 A_unfused=PEPS_tensor;
 
 U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));

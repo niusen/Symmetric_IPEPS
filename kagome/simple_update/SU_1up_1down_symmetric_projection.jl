@@ -4,23 +4,27 @@ using KrylovKit
 using JSON
 using HDF5, JLD
 using Random
+using Plots
 cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_correl.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG.jl")
 
 include("funs_1up_1down.jl")
+include("cluster_state.jl")
 
 
 Random.seed!(1234)
 
-D_max=29;
+
+D_max=8;
 symmetric_hosvd=false;
 trun_tol=1e-6;
 D=3;
+
 
 
 theta=0*pi;
@@ -71,15 +75,53 @@ H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
 
 tau=5;
 dt=0.02;
-
 T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
+tau=2;
+dt=0.01;
+T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+
+tau=1;
+dt=0.005;
+T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
 
 println(space(T_u))
 println(space(T_d))
 
 
+@tensor PEPS_tensor[:] := B_a[-1,1,-5]*B_b[4,3,-6]*B_c[-4,2,-7]*T_u[1,3,2]*T_d[-3,4,-2];
+A_unfused=PEPS_tensor;
 
+U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+@tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+
+
+
+
+Size="2x4"
+psi=built_cluster(A_fused,Size);
+
+
+
+
+
+
+
+
+###############################
+
+
+
+D=D_max
+#init_statenm="LS_A1even_U1_D_6_chi_60.json"
+init_statenm=nothing
+init_noise=0;
+Bond_irrep="A";
+Triangle_irrep="A1+iA2";
+nonchiral="A1_even";
+#nonchiral="No"
+
+run_FiniteDiff(psi, D,Bond_irrep,Triangle_irrep,nonchiral,init_statenm,init_noise)
 
 

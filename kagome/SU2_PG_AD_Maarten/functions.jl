@@ -89,6 +89,7 @@ function cost_fun(state_vec,B1a,B1b,B2)
     AA_fused, U_L,U_D,U_R,U_U=build_double_layer(PEPS_tensor,[]);
     
     ov = @tensor AA_fused[1,2,1,2];
+    #@tensor ov[:]:= AA_fused[1,2,1,2];
     #ov=blocks(ov)[Irrep[SU₂](0)][1];
     
     return real(ov)

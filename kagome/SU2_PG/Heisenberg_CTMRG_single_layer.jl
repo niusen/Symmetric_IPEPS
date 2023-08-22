@@ -16,7 +16,7 @@ include("kagome_FiniteDiff.jl")
 
 Random.seed!(1234)
 
-D=3;
+D=8;
 
 theta=0*pi;
 J1=cos(theta);
@@ -29,7 +29,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 #state_dict=read_json_state("LS_D_8_chi_40.json")
 #init_statenm=nothing;
-init_statenm="julia_LS_D_3_chi_40.json"
+init_statenm="LS_A1even_U1_D_8_chi_60.json"
 #init_statenm=nothing
 init_noise=0;
 CTM_conv_tol=1e-6;
@@ -121,23 +121,23 @@ A_cell[2,2]=A_RD;
 
 #########################
 
-CTM_ite_nums=100;
+CTM_ite_nums=200;
 init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
 conv_check="singular_value";
 CTM_ite_info=true
 CTM_conv_info=true;
-chi=20;
-@time CTM_chi_20, _, _,_,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+chi=80;
+@time CTM_chi_20, AA_fused_cell,U_L_cell,U_D_cell,U_R_cell,U_U_cell=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
 
 #######################
 
 CTM_ite_nums=200;
-init=Dict([("CTM", CTM_chi_20), ("init_type", "single_layer_random")]);
+init=Dict([("CTM", CTM_chi_20), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
 conv_check="singular_value";
 CTM_ite_info=true
 CTM_conv_info=true;
-chi=80;
+chi=120;
 @time CTM, _, _,_,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
 
@@ -155,25 +155,4 @@ println(energy)
 
 ###########################
 
-CTM_ite_nums=200;
-CTM_conv_tol=1e-8;
-init=Dict([("CTM", CTM_chi_20), ("init_type", "single_layer_random")]);
-conv_check="singular_value";
-CTM_ite_info=true
-CTM_conv_info=true;
-chi=100;
-@time CTM, _, _,_,_,_=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
-
-
-method1="E_triangle";
-method2="full_cell";
-E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
-energy=E_up*2/3;
-println(energy)
-
-method1="E_triangle";
-method2="reduced_cell";
-E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
-energy=E_up*2/3;
-println(energy)

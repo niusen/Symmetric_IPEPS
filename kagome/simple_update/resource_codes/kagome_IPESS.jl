@@ -93,6 +93,9 @@ function construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,
 
 
 
+    @assert length(Bond_A_coe)==length(A_set)
+
+
     #combine tensors with coefficients
     bond_tensor=A_set[1]*0;
     if Bond_irrep=="A"

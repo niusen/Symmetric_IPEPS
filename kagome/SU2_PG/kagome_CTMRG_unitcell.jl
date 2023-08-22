@@ -137,6 +137,11 @@ function CTMRG_cell(A_cell,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CT
     else
         #println("22222")
         CTM=deepcopy(init["CTM"]);
+        AA_fused_cell=init["AA_fused_cell"];
+        U_L_cell=init["U_L_cell"];
+        U_R_cell=init["U_R_cell"];
+        U_U_cell=init["U_U_cell"];
+        U_D_cell=init["U_D_cell"];
     end
     Lx=size(A_cell,1);
     Ly=size(A_cell,2);

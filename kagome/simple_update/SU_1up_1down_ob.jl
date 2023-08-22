@@ -26,7 +26,8 @@ symmetric_hosvd=false;
 trun_tol=1e-6;
 D=3;
 
-chi=60;
+chis=[40,60];
+#chis=[40,80,120,160];
 CTM_conv_tol=1e-6;
 CTM_ite_nums=200;
 CTM_trun_tol=1e-12;
@@ -110,78 +111,31 @@ init=Dict([("CTM", []), ("init_type", "PBC")]);
 conv_check="singular_value";
 CTM_ite_info=true;
 CTM_conv_info=true;
-CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
-if (parameters["J2"]==0) & (parameters["J3"]==0)
+
+
+for cchi=1:length(chis)
+    chi=chis[cchi];
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
     energy=(E_up+E_down)/3;
-elseif parameters["Jtrip"]==0
-    E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
-    E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
-    E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
-    E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
-    energy=(E_NN+E_NNN+E_NNNN)/3;
-    println(real([E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23]))
-    println(real([E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b]))
-    println(real([E_NNNN_11,E_NNNN_22,E_NNNN_33]))
-else
-    E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
-    E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
-    E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
-    E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
-    E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
-    energy=(E_up+E_down)/3+(E_NNN+E_NNNN)/3;
+    println(energy)
+
+    eu_allspin_x,allspin_x=solve_correl_length(5,AA_fused/norm(AA_fused),CTM,"x");
+    eu_allspin_y,allspin_y=solve_correl_length(5,AA_fused/norm(AA_fused),CTM,"y");
+
+    init=Dict([("CTM", CTM), ("init_type", "PBC")]);
+
+    matwrite("SimpleUpdate_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
+        "energy" => energy,
+        "eu_allspin_x"=>eu_allspin_x,
+        "allspin_x"=>allspin_x,
+        "eu_allspin_y"=>eu_allspin_y,
+        "allspin_y"=>allspin_y,
+        "space_T_u"=>string(space(T_u)),
+        "space_T_d"=>string(space(T_d))
+    ); compress = false)
 end
 
 
 
-chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jtrip", 1)]);
-chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
-
-println(energy)
-
-
-
-distance=30;
-
-_, _, SS12, SS31, SS23=Hamiltonians(U_phy,1,0,0,0,0);
-S1L,S1R=single_spin_operator(U_phy,1,1);
-S2L,S2R=single_spin_operator(U_phy,2,2);
-S3L,S3R=single_spin_operator(U_phy,3,3);
-AA_S1L,_,_,_,_=build_double_layer_extra_leg(A_fused,S1L);
-AA_S1R,_,_,_,_=build_double_layer_extra_leg(A_fused,S1R);
-AA_S2L,_,_,_,_=build_double_layer_extra_leg(A_fused,S2L);
-AA_S2R,_,_,_,_=build_double_layer_extra_leg(A_fused,S2R);
-AA_S3L,_,_,_,_=build_double_layer_extra_leg(A_fused,S3L);
-AA_S3R,_,_,_,_=build_double_layer_extra_leg(A_fused,S3R);
-
-AA_SS12, _,_,_,_=build_double_layer(A_fused,SS12);
-AA_SS31, _,_,_,_=build_double_layer(A_fused,SS31);
-AA_SS23, _,_,_,_=build_double_layer(A_fused,SS23);
-
-
-
-norms=evaluate_correl_spinspin("x", AA_fused, AA_fused, AA_fused, CTM, "dimerdimer", 10);
-norm_coe=norms[5]/norms[4] #get a rough normalization coefficient to avoid that the number becomes two small
-norms=evaluate_correl_spinspin("x", AA_fused/norm_coe, AA_fused, AA_fused, CTM, "dimerdimer", distance);
-SS12_ob=evaluate_correl_spinspin("x", AA_fused/norm_coe, AA_SS12, AA_SS12, CTM, "dimerdimer", distance);
-SS23_ob=evaluate_correl_spinspin("x", AA_fused/norm_coe, AA_SS23, AA_SS23, CTM, "dimerdimer", distance);
-SS31_ob=evaluate_correl_spinspin("x", AA_fused/norm_coe, AA_SS12, AA_SS31, CTM, "dimerdimer", distance);
-S1_ob=evaluate_correl_spinspin("x", AA_fused/norm_coe, AA_S1L, AA_S1R, CTM, "spinspin", distance);
-S2_ob=evaluate_correl_spinspin("x", AA_fused/norm_coe, AA_S2L, AA_S2R, CTM, "spinspin", distance);
-S3_ob=evaluate_correl_spinspin("x", AA_fused/norm_coe, AA_S3L, AA_S3R, CTM, "spinspin", distance);
-
-
-SS12_ob=SS12_ob./norms;
-SS23_ob=SS23_ob./norms;
-SS31_ob=SS31_ob./norms;
-S1_ob=S1_ob./norms;
-S2_ob=S2_ob./norms;
-S3_ob=S3_ob./norms;
-
-
-eu_allspin_x,allspin_x=solve_correl_length(5,AA_fused/norm_coe,CTM,"x");
-eu_allspin_y,allspin_y=solve_correl_length(5,AA_fused/norm_coe,CTM,"y");
-
-
-S1_ob=real(S1_ob);
-plot(range(1,distance),log.(abs.(S1_ob))/log(10))

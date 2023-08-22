@@ -4,7 +4,7 @@ using KrylovKit
 using JSON
 using HDF5, JLD2
 using Random
-using Plots
+
 cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
@@ -114,8 +114,11 @@ conv_check="singular_value";
 CTM_ite_info=true;
 CTM_conv_info=true;
 
+global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
 
 for cchi=1:length(chis)
+    global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
+    
     chi=chis[cchi];
     println("chi= "*string(chi));flush(stdout);
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);

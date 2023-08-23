@@ -20,7 +20,7 @@ include("cluster_state.jl")
 Random.seed!(1234)
 
 
-D_max=8;
+D_max=28;
 symmetric_hosvd=false;
 trun_tol=1e-6;
 D=3;

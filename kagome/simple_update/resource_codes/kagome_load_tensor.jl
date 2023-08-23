@@ -33,7 +33,7 @@ function construct_tensor(D)
         t1 = TensorMap(T, V1 ⊗ V2 ← V3)
 
         #T[1,2,1]=T[1,2,1]+1e-10
-        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
         Vb=SU2Space(1/2=>1)
         t2 = TensorMap(T, Va ⊗ Va ← Vb);
         #print(convert(Array, t2))
@@ -51,7 +51,7 @@ function construct_tensor(D)
         V3=ℂ^(size(B_set[cm]["tensor"])[3])
         t1 = TensorMap(T, V1 ⊗ V2 ← V3)
 
-        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
         Vb=SU2Space(1/2=>1)
         t2 = TensorMap(T, Va ⊗ Va ← Vb);
 
@@ -68,7 +68,7 @@ function construct_tensor(D)
         V3=ℂ^(size(A1_set[cm]["tensor"])[3])
         t1 = TensorMap(T, V1 ←  V2 ⊗ V3)
 
-        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
         Vb=SU2Space(1/2=>1)
         t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va);
         # t2 = TensorMap(T, Va' ← Va ⊗ Va);
@@ -87,7 +87,7 @@ function construct_tensor(D)
         V3=ℂ^(size(A2_set[cm]["tensor"])[3])
         t1 = TensorMap(T, V1 ←  V2 ⊗ V3)
         T=reshape(T,(size(T)[1],size(T)[2],size(T)[3]))
-        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+        Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
         Vb=SU2Space(1/2=>1)
         t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va);
         # t2 = TensorMap(T, Va' ← Va ⊗ Va);

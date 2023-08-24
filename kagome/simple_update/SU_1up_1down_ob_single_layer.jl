@@ -8,11 +8,11 @@ using Random
 cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_unitcell.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model_cell.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_correl.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_correl_cell.jl")
 
 
 include("funs_1up_1down.jl")
@@ -103,36 +103,89 @@ A_unfused=PEPS_tensor;
 U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
 @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
+
+
+
+#########################
+
+id_L=unitary(space(A_fused,1),space(A_fused,1));
+id_D=unitary(space(A_fused,2),space(A_fused,2));
+id_phy=unitary(space(A_fused,5),space(A_fused,5));
+
+
+@tensor A_LD[:]:=id_L[-1,-3]*id_D[-4,-2];
+@tensor A_RU[:]:=id_L[-5,-1]*id_D[-3,-6]*id_phy[-2,-4];
+U_L_phy=unitary(fuse(space(A_RU,1)⊗ space(A_RU,2)), space(A_RU,1)⊗ space(A_RU,2));
+U_D_phy=unitary(fuse(space(A_fused,4)⊗ space(A_fused,5)), space(A_fused,4)⊗ space(A_fused,5));
+@tensor A_LU[:]:=A_fused'[-1,-2,1,-4,2]*U_L_phy'[1,2,-3];
+@tensor A_RD[:]:=A_fused[-1,-2,-3,1,2]*U_D_phy[-4,1,2];
+@tensor A_RU[:]:=A_RU[1,2,3,4,-3,-4]*U_D_phy'[3,4,-2]*U_L_phy[-1,1,2];
+
+# @tensor tt[:]:=A_RU[-1,1,-2,-3]*A_RD[-4,-5,-6,1];
+# @tensor tt[:]:=A_LU[-1,-2,1,-3]*A_RU[1,-4,-5,-6];
+
+Lx=2;Ly=2;
+A_cell=Matrix(undef,Lx,Ly);
+A_cell[1,1]=A_LU;
+A_cell[2,1]=A_RU;
+A_cell[1,2]=A_LD;
+A_cell[2,2]=A_RD;
+
+#########################
+
+
+
+
+
+
+
+
+
+
+
+
 CTM=[];
 U_L=[];
 U_D=[];
 U_R=[];
 U_U=[];
 
-init=Dict([("CTM", []), ("init_type", "PBC")]);
+init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
 conv_check="singular_value";
 CTM_ite_info=true;
 CTM_conv_info=true;
 
-global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
+global chis,D_max,init,A_cell,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
 
 for cchi=1:length(chis)
-    global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
+    global chis,D_max,init,A_cell,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
     
     chi=chis[cchi];
     println("chi= "*string(chi));flush(stdout);
-    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+    CTM, AA_fused_cell,U_L_cell,U_D_cell,U_R_cell,U_U_cell=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
-    E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
-    energy=(E_up+E_down)/3;
+    # method1="E_triangle";
+    # method2="full_cell";
+    # E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
+    # energy=E_up*2/3;
+    # println("Up triangle energy: "*string(energy))
+
+    method1="E_triangle";
+    method2="reduced_cell";
+    E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
+    energy=E_up*2/3;
     println("Up triangle energy: "*string(energy))
 
-    eu_allspin_x,allspin_x=solve_correl_length(5,AA_fused/norm(AA_fused),CTM,"x");
-    eu_allspin_y,allspin_y=solve_correl_length(5,AA_fused/norm(AA_fused),CTM,"y");
+    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"x");
+    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"y");
 
-    init=Dict([("CTM", CTM), ("init_type", "PBC")]);
 
-    matwrite("SimpleUpdate_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
+
+
+    init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
+
+
+    matwrite("SimpleUpdate_SingleLayer_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
         "energy" => energy,
         "eu_allspin_x"=>eu_allspin_x,
         "allspin_x"=>allspin_x,
@@ -141,6 +194,10 @@ for cchi=1:length(chis)
         "space_T_u"=>string(space(T_u)),
         "space_T_d"=>string(space(T_d))
     ); compress = false)
+
+
+    JLDnm="CTM_SingleLayer_D"*string(D_max)*"_chi"*string(chi)*".jld2";
+    save(JLDnm, "init",init);
 end
 
 

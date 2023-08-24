@@ -37,10 +37,19 @@ BABA
 ABAB
 BABA
 "
-coe1=[1,0];
-coe2=[0,1];
-PEPS_tensor_A,A_fused_A,U_phy=build_PEPS(D,coe1);
-PEPS_tensor_B,A_fused_B,_=build_PEPS(D,coe2);
+
+virtual_type="square";#"tetrahedral",  "square"
+
+if virtual_type=="tetrahedral"
+    coe1=[1,0];
+    coe2=[1,0];
+    PEPS_tensor_A,A_fused_A,U_phy=build_PEPS(D,coe1,virtual_type);
+    PEPS_tensor_B,A_fused_B,_=build_PEPS(D,coe2,virtual_type);
+elseif virtual_type=="square"
+
+    PEPS_tensor_A,A_fused_A,U_phy=build_PEPS(D,[],virtual_type);
+    PEPS_tensor_B,A_fused_B,_=build_PEPS(D,[],virtual_type);
+end
 
 
 
@@ -83,7 +92,7 @@ AKLT=plaquatte_AKLT(Sigma);
 
 ####################
 ca=1;
-cb=1;
+cb=1; #type 1 plaquatte
 rho11=build_density_op_cell(U_phy, A_unfused_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell, CTM, ca,cb,Lx,Ly);#L',U',R',D',  L,U,R,D
 Ea=plaquatte_ob(rho11,AKLT)
 Eb=plaquatte_ob(rho11,Sigma)
@@ -91,7 +100,7 @@ println(Ea)
 println(Eb)
 ####################
 ca=1;
-cb=2;
+cb=2; #type 2 plaquatte
 rho12=build_density_op_cell(U_phy, A_unfused_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell, CTM, ca,cb,Lx,Ly);#L',U',R',D',  L,U,R,D
 Ea=plaquatte_ob(rho12,AKLT)
 Eb=plaquatte_ob(rho12,Sigma)

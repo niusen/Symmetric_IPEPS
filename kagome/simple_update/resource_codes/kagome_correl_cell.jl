@@ -121,10 +121,14 @@ function evaluate_correl_spinspin(direction, AA_fused, AA_op1, AA_op2, CTM, meth
 end
 
 
-function correl_TransOp(vl,Tup,Tdown,AAfused)
-    if AAfused==[]
+function correl_TransOp(vl,Tup_cell,Tdown_cell,AAfused_cell,direction)
+    if AAfused_cell==[]
+        if direction=="x"
         
-        @tensor vl[:]:=vl[-1,1,3]*Tup[1,2,-2]*Tdown[-3,2,3];
+            @tensor vl[:]:=vl[-1,1,3]*Tup_cell[1,2][1,2,4]*Tup_cell[2,2][4,6,-2]*Tdown_cell[1,1][5,2,3]*Tdown_cell[2,1][-3,6,5];
+        elseif direction=="y"
+            @tensor vl[:]:=vl[-1,1,3]*Tup_cell[1,1][1,2,4]*Tup_cell[1,2][4,6,-2]*Tdown_cell[2,1][5,2,3]*Tdown_cell[2,2][-3,6,5];
+        end
         
     else
         
@@ -133,41 +137,41 @@ function correl_TransOp(vl,Tup,Tdown,AAfused)
     end
     return vl
 end
-function solve_correl_length(n_values,AA_fused,CTM,direction)
+function solve_correl_length_single_layer(n_values,AA_fused,CTM,direction)
     T1=CTM["Tset"][1];
     T2=CTM["Tset"][2];
     T3=CTM["Tset"][3];
     T4=CTM["Tset"][4];
     if direction=="x"
-        correl_TransOp_fx(x)=correl_TransOp(x,T1,T3,AA_fused)
-        vl_init = permute(TensorMap(randn, SU₂Space(0=>1)⊗space(T1,1)'⊗space(AA_fused,1)', space(T3,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        correl_TransOp_fx(x)=correl_TransOp(x,T1,T3,[],direction)
+        vl_init = permute(TensorMap(randn, SU₂Space(0=>1)⊗space(T1[1,2],1)', space(T3[1,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         eu,ev=eigsolve(correl_TransOp_fx, vl_init, n_values,:LM,Arnoldi());
         eu_S0=eu;
 
         eu_allspin=eu_S0;
         allspin=eu_S0*0;
-        vl_init = permute(TensorMap(randn, SU₂Space(1/2=>1)⊗space(T1,1)'⊗space(AA_fused,1)', space(T3,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(1/2=>1)⊗space(T1[1,2],1)', space(T3[1,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S0d5,_=eigsolve(correl_TransOp_fx, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S0d5)
             allspin=vcat(allspin,0*eu_S0d5.+0.5)
         end
 
-        vl_init = permute(TensorMap(randn, SU₂Space(1=>1)⊗space(T1,1)'⊗space(AA_fused,1)', space(T3,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(1=>1)⊗space(T1[1,2],1)', space(T3[1,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S1,_=eigsolve(correl_TransOp_fx, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S1)
             allspin=vcat(allspin,0*eu_S1.+1)
         end
 
-        vl_init = permute(TensorMap(randn, SU₂Space(3/2=>1)⊗space(T1,1)'⊗space(AA_fused,1)', space(T3,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(3/2=>1)⊗space(T1[1,2],1)', space(T3[1,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S1d5,_=eigsolve(correl_TransOp_fx, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S1d5)
             allspin=vcat(allspin,0*eu_S1d5.+1.5)
         end
 
-        vl_init = permute(TensorMap(randn, SU₂Space(2=>1)⊗space(T1,1)'⊗space(AA_fused,1)', space(T3,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(2=>1)⊗space(T1[1,2],1)', space(T3[1,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S2,_=eigsolve(correl_TransOp_fx, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S2)
@@ -184,36 +188,36 @@ function solve_correl_length(n_values,AA_fused,CTM,direction)
         
         return eu_allspin_abs_sorted,allspin
     elseif direction=="y"
-        AA_fused_rotate=permute(AA_fused,(4,1,2,3),());
-        correl_TransOp_fy(x)=correl_TransOp(x,T2,T4,AA_fused_rotate)
-        vl_init = permute(TensorMap(randn, SU₂Space(0=>1)⊗space(T2,1)'⊗space(AA_fused_rotate,1)', space(T4,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+
+        correl_TransOp_fy(x)=correl_TransOp(x,T2,T4,[],direction)
+        vl_init = permute(TensorMap(randn, SU₂Space(0=>1)⊗space(T2[1,1],1)', space(T4[2,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         eu,ev=eigsolve(correl_TransOp_fy, vl_init, n_values,:LM,Arnoldi());
         eu_S0=eu;
         
         eu_allspin=eu_S0;
         allspin=eu_S0*0;
-        vl_init = permute(TensorMap(randn, SU₂Space(1/2=>1)⊗space(T2,1)'⊗space(AA_fused_rotate,1)', space(T4,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(1/2=>1)⊗space(T2[1,1],1)', space(T4[2,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S0d5,_=eigsolve(correl_TransOp_fy, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S0d5)
             allspin=vcat(allspin,0*eu_S0d5.+0.5)
         end
         
-        vl_init = permute(TensorMap(randn, SU₂Space(1=>1)⊗space(T2,1)'⊗space(AA_fused_rotate,1)', space(T4,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(1=>1)⊗space(T2[1,1],1)', space(T4[2,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S1,_=eigsolve(correl_TransOp_fy, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S1)
             allspin=vcat(allspin,0*eu_S1.+1)
         end
         
-        vl_init = permute(TensorMap(randn, SU₂Space(3/2=>1)⊗space(T2,1)'⊗space(AA_fused_rotate,1)', space(T4,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(3/2=>1)⊗space(T2[1,1],1)', space(T4[2,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S1d5,_=eigsolve(correl_TransOp_fy, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S1d5)
             allspin=vcat(allspin,0*eu_S1d5.+1.5)
         end
         
-        vl_init = permute(TensorMap(randn, SU₂Space(2=>1)⊗space(T2,1)'⊗space(AA_fused_rotate,1)', space(T4,3)), (1,2,3,4,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
+        vl_init = permute(TensorMap(randn, SU₂Space(2=>1)⊗space(T2[1,1],1)', space(T4[2,1],3)), (1,2,3,),());# assume that the dominant eigenvector has total spin zero. If not, it will have three indeces and it's not Hermiitan.
         if norm(vl_init)>0
             eu_S2,_=eigsolve(correl_TransOp_fy, vl_init, n_values,:LM,Arnoldi());
             eu_allspin=vcat(eu_allspin,eu_S2)

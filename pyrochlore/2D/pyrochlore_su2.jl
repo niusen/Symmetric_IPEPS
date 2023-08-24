@@ -19,7 +19,8 @@ Random.seed!(1234)
 D=2;
 
 coe=[1,0];
-PEPS_tensor,A_fused,U_phy=build_PEPS(D,coe1);
+virtual_type="tetrahedral";
+PEPS_tensor,A_fused,U_phy=build_PEPS(D,coe1,virtual_type);
 
 
 

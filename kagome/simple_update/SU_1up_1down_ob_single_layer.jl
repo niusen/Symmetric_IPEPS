@@ -28,7 +28,7 @@ D=3;
 
 println("D_max= "*string(D_max))
 
-chis=[40,60];
+chis=[40];
 #chis=[40,80,120,160];
 CTM_conv_tol=1e-6;
 CTM_ite_nums=200;
@@ -176,8 +176,8 @@ for cchi=1:length(chis)
     energy=E_up*2/3;
     println("Up triangle energy: "*string(energy))
 
-    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"x");
-    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"y");
+    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,[],CTM,"x");
+    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,[],CTM,"y");
 
 
     init=Dict([("CTM", []), ("init_type", "single_layer_random")]);

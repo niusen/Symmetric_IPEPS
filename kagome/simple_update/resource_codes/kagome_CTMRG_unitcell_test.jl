@@ -642,31 +642,90 @@ function init_CTM_cell(chi,A_cell,type,CTM_ite_info)
         Ly=size(A_cell,2);
         @assert Lx==2
         @assert Ly==2
-        
+
         CTM=[];
         Cset=Vector(undef,4);
         Tset=Vector(undef,4);
 
-        for direction=1:4
-            C_cell=Matrix(undef,Lx,Ly);
-            T_cell=Matrix(undef,Lx,Ly);
-            for cx=1:Lx
-                for cy=1:Ly
-                    #T tensor
-                    A=A_cell[convert_cell_posit(Lx,Ly,cx,cy,0,1,direction)];
-                    inds=(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4));
-                    A_rotate=permute(A,(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),));
-                    T=TensorMap(randn, V_init,space(A_rotate,4)⊗ V_init);
-                    T_cell[cx,cy]=permute(T,(1,2,3,))
-                    C=TensorMap(randn, V_init, V_init);
-                    C_cell[cx,cy]=permute(C,(1,2,));
 
-                end
-            end
-            Tset[direction]=T_cell;
-            Cset[direction]=C_cell;
-            CTM=Dict([("Cset", Cset), ("Tset", Tset)]);
-        end
+        cx=1;cy=1;
+
+        ###########
+        direction=1;
+        C_cell=Matrix(undef,Lx,Ly);
+        T_cell=Matrix(undef,Lx,Ly);
+        #T tensor
+        A=A_cell[cx,cy];
+        B=A_cell[mod1(cx+1,Lx),cy];
+        U1=unitary(fuse(space(A,3)*space(A,4)),space(A,3)*space(A,4))
+        @tensor T[:]:=A[-1,-2,1,2]*U1[-3,1,2];
+        T_cell[cx,cy]=T;
+        @tensor T[:]:=B[1,-2,-4,2]*U1'[1,2,-1];
+        T_cell[mod1(cx+1,Lx),cy]=T;
+        #C tensor
+        U2=unitary(fuse(space(A,1)*space(A,2)),space(A,1)*space(A,2))
+        @tensor C[:]:=A[1,2,3,4]*U1[-2,3,4]*U2[-1,1,2];
+        C_cell[cx,cy]=C;    
+        Tset[direction]=T_cell;
+        Cset[direction]=C_cell;
+
+        ###########
+        direction=2;
+        C_cell=Matrix(undef,Lx,Ly);
+        T_cell=Matrix(undef,Lx,Ly);
+        #T tensor
+        A=A_cell[mod1(cx+1,Lx),cy];
+        B=A_cell[mod1(cx+1,Lx),mod1(cy-1,Ly)];
+        U3=unitary(fuse(space(A,3)*space(A,2)) ,space(A,3)*space(A,2))
+        @tensor T[:]:=A[-2,2,1,-1]*U3[-3,1,2];
+        T_cell[mod1(cx+1,Lx),cy]=T;
+        @tensor T[:]:=B[-2,-3,1,2]*U3'[1,2,-1];
+        T_cell[mod1(cx+1,Lx),mod1(cy-1,Ly)]=T;
+        #C tensor
+        @tensor C[:]:=A[1,4,3,2]*U1'[1,2,-1]*U3[-2,3,4];
+        C_cell[mod1(cx+1,Lx),cy]=C;    
+        Tset[direction]=T_cell;
+        Cset[direction]=C_cell;
+
+        ###########
+        direction=3;
+        C_cell=Matrix(undef,Lx,Ly);
+        T_cell=Matrix(undef,Lx,Ly);
+        #T tensor
+        A=A_cell[mod1(cx+1,Lx),mod1(cy-1,Ly)];
+        B=A_cell[cx,mod1(cy-1,Ly)];
+        U4=unitary(fuse(space(A,1)*space(A,2)) ,space(A,1)*space(A,2))
+        @tensor T[:]:=A[1,2,-1,-2]*U4[-3,1,2];
+        T_cell[mod1(cx+1,Lx),mod1(cy-1,Ly)]=T;
+        @tensor T[:]:=B[-3,2,1,-2]*U4'[1,2,-1];
+        T_cell[cx,mod1(cy-1,Ly)]=T;
+        #C tensor
+        @tensor C[:]:=A[1,2,3,4]*U4[-1,1,2]*U3'[3,4,-2];
+        C_cell[mod1(cx+1,Lx),mod1(cy-1,Ly)]=C;    
+        Tset[direction]=T_cell;
+        Cset[direction]=C_cell;
+
+        ###########
+        direction=4;
+        C_cell=Matrix(undef,Lx,Ly);
+        T_cell=Matrix(undef,Lx,Ly);
+        #T tensor
+        A=A_cell[cx,mod1(cy-1,Ly)];
+        B=A_cell[cx,cy];
+        @tensor T[:]:=A[1,-1,-2,2]*U2'[1,2,-3];
+        T_cell[cx,mod1(cy-1,Ly)]=T;
+        @tensor T[:]:=B[1,2,-2,-3]*U2[-1,1,2];
+        T_cell[cx,cy]=T;
+        #C tensor
+        @tensor C[:]:=A[3,2,1,4]*U4'[1,2,-1]*U2'[3,4,-2];
+        C_cell[cx,mod1(cy-1,Ly)]=C;    
+        Tset[direction]=T_cell;
+        Cset[direction]=C_cell;
+
+
+
+        CTM=Dict([("Cset", Cset), ("Tset", Tset)]);
+        
 
         return CTM, nothing,nothing,nothing,nothing,nothing
     end

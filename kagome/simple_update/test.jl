@@ -162,7 +162,7 @@ for cchi=1:length(chis)
     
     chi=chis[cchi];
     println("chi= "*string(chi));flush(stdout);
-    CTM, _,_,_,_,_,ite_num,ite_err=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+    CTM, AA_fused_cell,U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
     # method1="E_triangle";
     # method2="full_cell";
@@ -180,8 +180,9 @@ for cchi=1:length(chis)
     eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"y");
 
 
-    init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
-    #init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
+
+    println(AA_fused_cell)
+    init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
 
 
     matwrite("SimpleUpdate_SingleLayer_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
@@ -196,10 +197,8 @@ for cchi=1:length(chis)
 
 
     JLDnm="CTM_SingleLayer_D"*string(D_max)*"_chi"*string(chi)*".jld2";
-    init___=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("A_cell",A_cell)]);
-    if ite_err<1e-5
-        save(JLDnm, "init",init___);
-    end
+    init___=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
+    save(JLDnm, "init",init___);
 end
 
 

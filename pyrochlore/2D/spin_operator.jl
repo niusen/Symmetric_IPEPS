@@ -18,7 +18,7 @@ function spin1_op()
 end
 
 
-function plaquatte_Heisenberg()
+function plaquatte_Heisenberg(J1,J2)
     SS_op12=spin1_op();
     SS_op13=permute(SS_op12,(1,3,2,4,),(5,7,6,8,));
     SS_op14=permute(SS_op12,(1,4,3,2,),(5,8,7,6,));
@@ -32,7 +32,7 @@ function plaquatte_Heisenberg()
     check_hermitian(SS_op24);
     check_hermitian(SS_op34);
 
-    Sigma=SS_op12+SS_op13+SS_op14+SS_op23+SS_op24+SS_op34;
+    Sigma=J1*SS_op12+J2*SS_op13+J1*SS_op14+J1*SS_op23+J2*SS_op24+J1*SS_op34;
     return Sigma
 
 end

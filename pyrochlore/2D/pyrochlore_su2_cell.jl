@@ -16,7 +16,8 @@ include("build_tensor.jl")
 
 Random.seed!(1234)
 
-
+J1=1;
+J2=1;
 D=2;
 chi=40;
 
@@ -87,7 +88,7 @@ CTM_trun_tol=1e-12;
 @time CTM, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,_,_=CTMRG_cell(A_fused_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
 
-Sigma=plaquatte_Heisenberg();
+Sigma=plaquatte_Heisenberg(J1,J2);
 AKLT=plaquatte_AKLT(Sigma);
 
 ####################

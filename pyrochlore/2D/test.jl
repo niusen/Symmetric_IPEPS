@@ -20,7 +20,7 @@ Random.seed!(1234)
 
 J1=1;
 J2=1;
-D_max=2;
+D_max=4;
 symmetric_hosvd=false;
 trun_tol=1e-6;
 D=2;
@@ -91,16 +91,8 @@ H_plaquatte=plaquatte_Heisenberg(J1,J2);
 #@tensor H_plaquatte[:]:=U_phy_2'[1,2,-1]*U_phy_2'[3,4,-2]*H_plaquatte[1,2,3,4,5,6,7,8]*U_phy_2[-3,5,6]*U_phy_2[-4,7,8];
 #H_plaquatte=permute(H_plaquatte,(1,2,),(3,4,));
 
-tau=5;
-dt=0.1;
-T_u,T_d,B_a,B_b,B_c,B_d,lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d,lambda_d_a,lambda_d_b,lambda_d_c,lambda_d_d=itebd(T_u,T_d,B_a,B_b,B_c,B_d,lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d,lambda_d_a,lambda_d_b,lambda_d_c,lambda_d_d, H_plaquatte,U_phy_2, trun_tol, tau, dt, D_max,symmetric_hosvd);
-
-tau=2;
-dt=0.05;
-T_u,T_d,B_a,B_b,B_c,B_d,lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d,lambda_d_a,lambda_d_b,lambda_d_c,lambda_d_d=itebd(T_u,T_d,B_a,B_b,B_c,B_d,lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d,lambda_d_a,lambda_d_b,lambda_d_c,lambda_d_d, H_plaquatte,U_phy_2, trun_tol, tau, dt, D_max,symmetric_hosvd);
-
 tau=0.2;
-dt=0.01;
+dt=0.1;
 T_u,T_d,B_a,B_b,B_c,B_d,lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d,lambda_d_a,lambda_d_b,lambda_d_c,lambda_d_d=itebd(T_u,T_d,B_a,B_b,B_c,B_d,lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d,lambda_d_a,lambda_d_b,lambda_d_c,lambda_d_d, H_plaquatte,U_phy_2, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
 

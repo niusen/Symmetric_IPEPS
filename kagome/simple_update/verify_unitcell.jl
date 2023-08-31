@@ -8,7 +8,7 @@ using Random
 cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_single_layer_fail.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_unitcell.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model_cell.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
@@ -18,7 +18,7 @@ include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\k
 include("funs_1up_1down.jl")
 
 
-Random.seed!(1234)
+Random.seed!(123456)
 
 
 D_max=6;
@@ -80,17 +80,17 @@ H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonia
 H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
 H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
 
-tau=5;
-dt=0.02;
-T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+# tau=5;
+# dt=0.02;
+# T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
-tau=2;
-dt=0.01;
-T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+# tau=2;
+# dt=0.01;
+# T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
-tau=1;
-dt=0.005;
-T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+# tau=1;
+# dt=0.005;
+# T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
 
 println(space(T_u))
@@ -123,6 +123,9 @@ U_D_phy=unitary(fuse(space(A_fused,4)⊗ space(A_fused,5)), space(A_fused,4)⊗ 
 
 # @tensor tt[:]:=A_RU[-1,1,-2,-3]*A_RD[-4,-5,-6,1];
 # @tensor tt[:]:=A_LU[-1,-2,1,-3]*A_RU[1,-4,-5,-6];
+# AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A_fused,[]);
+# @tensor AA_fused_[:]:=A_LU[2,1,7,8]*A_LD[3,11,10,1]*U_L[-1,2,3]*A_RU[7,4,5,9]*A_RD[10,12,6,4]*U_R[5,6,-3]*U_U[8,9,-4]*U_D[-2,11,12];
+# @assert norm(AA_fused-permute(AA_fused_,(1,2,),(3,4,)))/norm(AA_fused)<1e-14
 
 Lx=2;Ly=2;
 A_cell=Matrix(undef,Lx,Ly);
@@ -134,6 +137,104 @@ A_cell[2,2]=A_RD;
 #########################
 
 
+function change_virtual(A_cell)
+    A_cell=deepcopy(A_cell);
+    #change virtual space to check the ctmrg code
+    A11=A_cell[1,1];
+    A12=A_cell[1,2];
+    A21=A_cell[2,1];
+    A22=A_cell[2,2];
+
+    V1=space(A12,4);
+    V2=space(A22,4);
+    V3=space(A21,4);
+    V4=space(A21,1);
+    V5=space(A12,1);
+    V6=space(A22,1);
+
+    V7=space(A11,4);
+    V8=space(A11,1);
+
+    U1=TensorMap(randn,V1,V1);
+    U1,_,_=tsvd(U1);
+    U1p=pinv(U1);
+
+    U2=TensorMap(randn,V2,V2);
+    #U2=TensorMap(randn,Rep[SU₂](0=>3, 1/2=>2, 1=>3, 3/2=>1, 2=>1),V2);
+    U2,_,_=tsvd(U2);
+    U2p=pinv(U2);
+
+    U3=TensorMap(randn,V3,V3);
+    U3,_,_=tsvd(U3);
+    U3p=pinv(U3);
+
+    U4=TensorMap(randn,V4,V4);
+    U4,_,_=tsvd(U4);
+    U4p=pinv(U4);
+
+    U5=TensorMap(randn,V5,V5);
+    U5,_,_=tsvd(U5);
+    U5p=pinv(U5);
+
+    U6=TensorMap(randn,V6,V6);
+    U6,_,_=tsvd(U6);
+    U6p=pinv(U6);
+
+    U7=TensorMap(randn,V7,V7);
+    U7,_,_=tsvd(U7);
+    U7p=pinv(U7);
+
+    U8=TensorMap(randn,V8,V8);
+    U8,_,_=tsvd(U8);
+    U8p=pinv(U8);
+
+    println(U2*U2p)
+
+
+
+    # @tensor A12[:]:=A12[-1,-2,-3,1]*U1[-4,1];
+    # @tensor A11[:]:=A11[-1,1,-3,-4]*U1p[1,-2];
+
+    @tensor A22[:]:=A22[-1,-2,-3,1]*U2[-4,1];
+    @tensor A21[:]:=A21[-1,1,-3,-4]*U2p[1,-2];
+
+    # @tensor A21[:]:=A21[-1,-2,-3,1]*U3[-4,1];
+    # @tensor A22[:]:=A22[-1,1,-3,-4]*U3p[1,-2];
+
+    # @tensor A11[:]:=A11[-1,-2,1,-4]*U4p[1,-3];
+    # @tensor A21[:]:=A21[1,-2,-3,-4]*U4[-1,1];
+
+    # @tensor A12[:]:=A12[1,-2,-3,-4]*U5[-1,1];
+    # @tensor A22[:]:=A22[-1,-2,1,-4]*U5p[1,-3];
+
+    # @tensor A12[:]:=A12[-1,-2,1,-4]*U6p[1,-3];
+    # @tensor A22[:]:=A22[1,-2,-3,-4]*U6[-1,1];
+
+    # @tensor A11[:]:=A11[-1,-2,-3,1]*U7[-4,1];
+    # @tensor A12[:]:=A12[-1,1,-3,-4]*U7p[1,-2];
+
+    # @tensor A11[:]:=A11[1,-2,-3,-4]*U8[-1,1];
+    # @tensor A21[:]:=A21[-1,-2,1,-4]*U8p[1,-3];
+    
+
+
+    A_cell[1,1]=A11;
+    A_cell[1,2]=A12;
+    A_cell[2,1]=A21;
+    A_cell[2,2]=A22;
+    return A_cell,U1,U2,U3,U4,U5,U6,U7,U8
+end
+
+
+
+#change virtual space to check the ctmrg code
+A_cell,U1,U2,U3,U4,U5,U6,U7,U8=change_virtual(A_cell);
+U2p=pinv(U2);
+
+AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A_fused,[]);
+@tensor AA_fused_[:]:=A_cell[1,1][2,1,7,8]*A_cell[1,2][3,11,10,1]*U_L[-1,2,3]*A_cell[2,1][7,4,5,9]*A_cell[2,2][10,12,6,4]*U_R[5,6,-3]*U_U[8,9,-4]*U_D[-2,11,12];
+@assert norm(AA_fused-permute(AA_fused_,(1,2,),(3,4,)))/norm(AA_fused)<1e-14
+########################
 
 
 
@@ -142,23 +243,26 @@ A_cell[2,2]=A_RD;
 
 
 
-
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_unitcell_test.jl")
 CTM=[];
 U_L=[];
 U_D=[];
 U_R=[];
 U_U=[];
 
-init=Dict([("CTM", []), ("init_type", "single_layer_PBC")]);
-conv_check="singular_value_single_layer";
+
+conv_check="singular_value";
 CTM_ite_info=true;
 CTM_conv_info=true;
 
 
-    chi=40;
-    println("chi= "*string(chi));flush(stdout);
-    CTM, _,_,_,_,_,ite_num,ite_err=CTMRG_cell_single_layer(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+chi=chis[1];
+println("chi= "*string(chi));flush(stdout);
+Random.seed!(123456)
+
+CTM_init, _,_,_,_,_=init_CTM_cell(chi,A_cell,"single_layer_random",CTM_ite_info)
+init=Dict([("CTM", deepcopy(CTM_init)), ("init_type", "single_layer_random")]);
+
+    CTM, _,_,_,_,_,ite_num,ite_err=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
     # method1="E_triangle";
     # method2="full_cell";
@@ -168,16 +272,22 @@ CTM_conv_info=true;
 
     method1="E_triangle";
     method2="reduced_cell";
-    E_up=evaluate_ob_UpTriangle_single_layer(parameters, U_phy, U_D_phy, A_cell, CTM, method1, method2);
+
+    H_triangle, H_bond, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
+        
+
+    norm_1cell=ob_1cell_closed(CTM,A_cell,method2);#1 set of unitcell
+
+    A_op_cell=deepcopy(A_cell);
+    A=A_cell[2,2];
+    @tensor A[:]:=A[-1,-2,-3,1]*U2p[2,1]*U_D_phy'[4,3,2]*H_triangle[3,5]*U_D_phy[6,4,5]*U2[-4,6];
+    A_op_cell[2,2]=A;
+    E_up=ob_1cell_closed(CTM,A_op_cell,method2)/norm_1cell;
+
     energy=E_up*2/3;
     println("Up triangle energy: "*string(energy))
 
-    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"x");
-    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"y");
 
-
-    init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
-    #init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
 
 
 

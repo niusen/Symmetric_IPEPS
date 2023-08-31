@@ -1,5 +1,6 @@
 using LinearAlgebra
 using TensorKit
+using Statistics
 
 function convert_cell_posit(Lx,Ly,cx,cy,dx,dy,direction)
     
@@ -222,6 +223,7 @@ function CTMRG_cell(A_cell,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CT
     end
     ite_num=0;
     ite_err=1;
+    err_set=1;
     for ci=1:CTM_ite_nums
         ite_num=ci;
         #direction_order=[1,2,3,4];
@@ -231,7 +233,7 @@ function CTMRG_cell(A_cell,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CT
             if init["init_type"]=="PBC"
                 Cset,Tset=CTM_ite_cell(Cset, Tset, AA_fused_cell, chi, direction,CTM_trun_tol,CTM_ite_info);
             elseif init["init_type"]=="single_layer_random"
-                Cset,Tset=CTM_ite_cell(Cset, Tset, A_cell, chi, direction,CTM_trun_tol,CTM_ite_info);
+                Cset,Tset=CTM_ite_cell_correct_order(Cset, Tset, A_cell, chi, direction,CTM_trun_tol,CTM_ite_info);
             end
         end
 
@@ -271,6 +273,13 @@ function CTMRG_cell(A_cell,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CT
                     er3,ss_new3=spectrum_conv_check(ss_old3_cell[cx,cy],Cset[3][cx,cy]);
                     er4,ss_new4=spectrum_conv_check(ss_old4_cell[cx,cy],Cset[4][cx,cy]);
 
+                    # println([cx,cy])
+                    # println(ss_new1)
+                    # println(ss_new2)
+                    # println(ss_new3)
+                    # println(ss_new4)
+                    
+
                     er1_cell[cx,cy]=er1;
                     er2_cell[cx,cy]=er2;
                     er3_cell[cx,cy]=er3;
@@ -284,6 +293,8 @@ function CTMRG_cell(A_cell,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CT
             end
 
             er=maximum([maximum(er1_cell[:]),maximum(er2_cell[:]),maximum(er3_cell[:]),maximum(er4_cell[:])]);
+            err_set=vcat(err_set,er);
+
             ite_err=er;
             if CTM_ite_info
                 println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));flush(stdout);
@@ -291,6 +302,16 @@ function CTMRG_cell(A_cell,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CT
             if er<tol
                 break;
             end
+
+            if ci>30
+                err_recent=err_set[end-10:end];
+                Std=std(err_recent)/mean(err_recent);
+                if (Std<0.001)&(er>1e-4)
+                    break;
+                end
+
+            end
+
             ss_old1_cell=ss_new1_cell;
             ss_old2_cell=ss_new2_cell;
             ss_old3_cell=ss_new3_cell;
@@ -493,6 +514,205 @@ function CTM_ite_cell(Cset, Tset, AA_fused_cell, chi, direction, trun_tol,CTM_it
             Cset[mod1(direction,4)][cx,cy]=M1tem_cell[cx,cy];
             Tset[mod1(direction-1,4)][cx,cy]=M5tem_cell[cx,cy];
             Cset[mod1(direction-1,4)][cx,cy]=M7tem_cell[cx,cy];
+        end
+    end
+    return Cset,Tset
+end
+
+
+function CTM_ite_cell_correct_order(Cset, Tset, AA_fused_cell, chi, direction, trun_tol,CTM_ite_info)
+
+    #println(direction)
+    Lx=size(AA_fused_cell,1);
+    Ly=size(AA_fused_cell,2);
+
+    
+    #coordinate of C1 tensor: (cx,cy)
+    AA_rotated_cell=Matrix(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            AA=permute(AA_fused_cell[cx,cy], (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+            AA_rotated_cell[cx,cy]=AA;
+        end
+    end
+    for cx=1:Lx
+
+        PM_cell=Matrix(undef,Lx,Ly);
+        PM_inv_cell=Matrix(undef,Lx,Ly);
+        M1tem_cell=Matrix(undef,Lx,Ly);
+        M5tem_cell=Matrix(undef,Lx,Ly);
+        M7tem_cell=Matrix(undef,Lx,Ly);
+
+        for cy=1:Ly
+            if direction in [1,3]
+                coord=[cx,cy];
+            elseif direction in [2,4]
+                coord=[cy,cx];
+            end
+
+            AA=AA_rotated_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,1,direction)];
+            C1=Cset[mod1(direction,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],0,0,direction)];
+            T2=Tset[mod1(direction,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],1,0,direction)];
+            T4=Tset[mod1(direction-1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],0,1,direction)];
+            @tensor MMup[:]:=C1[1,2]*T2[2,3,-3]*T4[-1,4,1]*AA[4,-2,-4,3];
+
+            AA=AA_rotated_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,2,direction)];
+            T4=Tset[mod1(direction-1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],0,2,direction)];
+            C4=Cset[mod1(direction-1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],0,3,direction)];
+            T3=Tset[mod1(direction-2,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],1,3,direction)];
+            # println(norm(C4))
+            # println(norm(T3))
+            @tensor MMlow[:]:=T4[1,3,-1]*AA[3,4,-4,-2]*C4[2,1]*T3[-3,4,2];
+
+
+            
+
+
+            AA=AA_rotated_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],2,1,direction)];
+            T1=Tset[mod1(direction,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],2,0,direction)];
+            C2=Cset[mod1(direction+1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],3,0,direction)];
+            T2=Tset[mod1(direction+1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],3,1,direction)];
+            @tensor MMup_reflect[:]:=T1[-1,3,1]* C2[1,2]* AA[-2,-4,4,3]* T2[2,4,-3];
+
+            AA=AA_rotated_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],2,2,direction)];
+            T2=Tset[mod1(direction+1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],3,2,direction)];
+            T3=Tset[mod1(direction-2,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],2,3,direction)];
+            C3=Cset[mod1(direction-2,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],3,3,direction)];
+            @tensor MMlow_reflect[:]:=T2[-4,-3,2]*T3[1,-2,-1]*C3[2,1];
+            @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
+
+            MMup=permute(MMup,(1,2,),(3,4,))
+
+            # _,ss,_=tsvd(MMup)
+            # display(convert(Array,ss))
+
+            MMlow=permute(MMlow,(1,2,),(3,4,))
+            MMup_reflect=permute(MMup_reflect,(1,2,),(3,4,))
+            MMlow_reflect=permute(MMlow_reflect,(1,2,),(3,4,))
+
+            
+
+            RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
+            RMlow=MMlow*MMlow_reflect;
+
+
+
+            M=RMup*RMlow;
+
+            uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
+            #println(diag(convert(Array,sM)))
+
+            # _,sM0,_ = tsvd(M);
+            # println("111111")
+            # aa=sort(diag(convert(Array,sM0)),rev=true);
+            # println(aa/aa[1])
+
+            sM=truncate_multiplet(sM,chi,1e-5,trun_tol);
+            
+            uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+            # println(norm(M))
+            # println(norm(uM_new*sM_new*vM_new-uM*sM*vM))
+            # println(norm(uM*sM*vM))
+            @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
+            uM=uM_new;
+            sM=sM_new;
+            vM=vM_new;
+            #println(diag(convert(Array,sM)))
+
+
+            sM=sM/norm(sM)
+            sM_inv=pinv(sM);
+            sM_dense=convert(Array,sM)
+
+            # println("svd:")
+            # sm_=sort(diag(sM_dense),rev=true)
+            # println(sm_/sm_[1])
+
+            # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
+            # sm_=sort(diag(convert(Array,sM_test)),rev=true)
+            # println(sm_/sm_[1])
+
+            for c1=1:size(sM_dense,1)
+                if sM_dense[c1,c1]<trun_tol
+                    sM_dense[c1,c1]=0;
+                end
+            end
+
+            # if (direction==1)&(cx==1)&(cy==1)
+            #     aa=sort(diag(sM_dense),rev=true);
+            #     println(aa/aa[1])
+            #     #display(pinv.(sM_dense))
+            # end
+
+            #display(sM_inv)
+            #display(convert(Array,sM_inv))
+            #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
+            #display(space(sM_inv))
+            #display(sM_inv_sqrt)
+            sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
+
+            PM_inv=RMlow*vM'*sM_inv_sqrt;
+            PM=sM_inv_sqrt*uM'*RMup;
+            PM=permute(PM,(2,3,),(1,));
+
+            PM_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,2,direction)]=PM;
+            PM_inv_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,1,direction)]=PM_inv;
+
+
+        end
+
+        for cy=1:Ly
+
+            if direction in [1,3]
+                coord=[cx,cy];
+            elseif direction in [2,4]
+                coord=[cy,cx];
+            end
+
+            #println(coord)
+            AA=AA_rotated_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,2,direction)];
+            T4=Tset[mod1(direction-1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],0,2,direction)];
+            T1=Tset[mod1(direction,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],1,0,direction)];
+            T3=Tset[mod1(direction-2,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],1,3,direction)];
+            C1=Cset[mod1(direction,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],0,0,direction)];
+            C4=Cset[mod1(direction-1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],0,3,direction)];
+            # println(space(AA))
+            # println(space(T4))
+            # println(space(PM_inv_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,2,direction)]))
+            # println(space(PM_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,2,direction)]))
+
+            @tensor M5tem[:]:=T4[4,3,1]*AA[3,5,-2,2]* PM_inv_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,2,direction)][4,5,-1]* PM_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,2,direction)][1,2,-3];
+            @tensor M1tem[:]:=C1[1,2]*T1[2,3,-2]*PM_inv_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,0,direction)][1,3,-1];
+            @tensor M7tem[:]:=C4[1,2]*T3[-1,3,1]* PM_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],0,3,direction)][2,3,-2];
+
+            M5tem=M5tem/norm(M5tem);
+            M1tem=M1tem/norm(M1tem);
+            M7tem=M7tem/norm(M7tem);
+
+            M5tem_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,2,direction)]=M5tem;
+            M1tem_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,0,direction)]=M1tem;
+            M7tem_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,3,direction)]=M7tem;
+
+                # println(norm(M5tem))
+                # println(norm(M1tem))
+                # println(norm(M7tem))
+
+        end
+
+
+
+
+        for cy=1:Ly
+
+            if direction in [1,3]
+                coord=[cx,cy];
+            elseif direction in [2,4]
+                coord=[cy,cx];
+            end
+
+            Cset[mod1(direction,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],1,0,direction)]=M1tem_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,0,direction)];
+            Tset[mod1(direction-1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],1,2,direction)]=M5tem_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,2,direction)];
+            Cset[mod1(direction-1,4)][convert_cell_posit(Lx,Ly,coord[1],coord[2],1,3,direction)]=M7tem_cell[convert_cell_posit(Lx,Ly,coord[1],coord[2],1,3,direction)];
         end
     end
     return Cset,Tset

@@ -8,13 +8,13 @@ using Random
 cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_single_layer_fail.jl")
+
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model_cell.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_correl_cell.jl")
 
-
+include("kagome_CTMRG_unitcell_new.jl")
 include("funs_1up_1down.jl")
 
 
@@ -28,7 +28,7 @@ D=3;
 
 println("D_max= "*string(D_max))
 
-chis=[40];
+chis=[40,80,160];
 #chis=[40,80,120,160];
 CTM_conv_tol=1e-6;
 CTM_ite_nums=200;
@@ -143,22 +143,26 @@ A_cell[2,2]=A_RD;
 
 
 
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_unitcell_test.jl")
+include("kagome_CTMRG_unitcell_new.jl")
 CTM=[];
 U_L=[];
 U_D=[];
 U_R=[];
 U_U=[];
 
-init=Dict([("CTM", []), ("init_type", "single_layer_PBC")]);
-conv_check="singular_value_single_layer";
+init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
+conv_check="singular_value";
 CTM_ite_info=true;
 CTM_conv_info=true;
 
+global chis,D_max,init,A_cell,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
 
-    chi=40;
+for cchi=1:length(chis)
+    global chis,D_max,init,A_cell,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
+    
+    chi=chis[cchi];
     println("chi= "*string(chi));flush(stdout);
-    CTM, _,_,_,_,_,ite_num,ite_err=CTMRG_cell_single_layer(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+    CTM, _,_,_,_,_,ite_num,ite_err=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
     # method1="E_triangle";
     # method2="full_cell";
@@ -172,15 +176,31 @@ CTM_conv_info=true;
     energy=E_up*2/3;
     println("Up triangle energy: "*string(energy))
 
-    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"x");
-    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"y");
+    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,[],CTM,"x");
+    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,[],CTM,"y");
 
 
     init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
     #init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
 
 
+    matwrite("SimpleUpdate_SingleLayer_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
+        "energy" => energy,
+        "eu_allspin_x"=>eu_allspin_x,
+        "allspin_x"=>allspin_x,
+        "eu_allspin_y"=>eu_allspin_y,
+        "allspin_y"=>allspin_y,
+        "space_T_u"=>string(space(T_u)),
+        "space_T_d"=>string(space(T_d))
+    ); compress = false)
 
+
+    JLDnm="CTM_SingleLayer_D"*string(D_max)*"_chi"*string(chi)*".jld2";
+    init___=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("A_cell",A_cell)]);
+    if ite_err<1e-5
+        save(JLDnm, "init",init___);
+    end
+end
 
 
 

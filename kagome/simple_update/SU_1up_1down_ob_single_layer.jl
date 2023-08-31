@@ -28,7 +28,7 @@ D=3;
 
 println("D_max= "*string(D_max))
 
-chis=[40];
+chis=[40,80,160];
 #chis=[40,80,120,160];
 CTM_conv_tol=1e-6;
 CTM_ite_nums=200;
@@ -180,9 +180,8 @@ for cchi=1:length(chis)
     eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,[],CTM,"y");
 
 
-    init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
-    #init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
-
+    #init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
+    init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("A_cell",A_cell)]);
 
     matwrite("SimpleUpdate_SingleLayer_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
         "energy" => energy,

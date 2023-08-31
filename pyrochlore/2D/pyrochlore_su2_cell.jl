@@ -39,11 +39,11 @@ ABAB
 BABA
 "
 
-virtual_type="square";#"tetrahedral",  "square"
+virtual_type="tetrahedral";#"tetrahedral",  "square"
 
 if virtual_type=="tetrahedral"
     coe1=[1,0];
-    coe2=[1,0];
+    coe2=[0,1];
     PEPS_tensor_A,A_fused_A,U_phy=build_PEPS(D,coe1,virtual_type);
     PEPS_tensor_B,A_fused_B,_=build_PEPS(D,coe2,virtual_type);
 elseif virtual_type=="square"

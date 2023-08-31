@@ -8,7 +8,7 @@ using Random
 cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_single_layer_fail.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_unitcell.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model_cell.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
@@ -18,7 +18,7 @@ include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\k
 include("funs_1up_1down.jl")
 
 
-Random.seed!(1234)
+Random.seed!(12345)
 
 
 D_max=6;
@@ -80,17 +80,17 @@ H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonia
 H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
 H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
 
-tau=5;
-dt=0.02;
-T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+# tau=5;
+# dt=0.02;
+# T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
-tau=2;
-dt=0.01;
-T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+# tau=2;
+# dt=0.01;
+# T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
-tau=1;
-dt=0.005;
-T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+# tau=1;
+# dt=0.005;
+# T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
 
 println(space(T_u))
@@ -123,6 +123,9 @@ U_D_phy=unitary(fuse(space(A_fused,4)⊗ space(A_fused,5)), space(A_fused,4)⊗ 
 
 # @tensor tt[:]:=A_RU[-1,1,-2,-3]*A_RD[-4,-5,-6,1];
 # @tensor tt[:]:=A_LU[-1,-2,1,-3]*A_RU[1,-4,-5,-6];
+# AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A_fused,[]);
+# @tensor AA_fused_[:]:=A_LU[2,1,7,8]*A_LD[3,11,10,1]*U_L[-1,2,3]*A_RU[7,4,5,9]*A_RD[10,12,6,4]*U_R[5,6,-3]*U_U[8,9,-4]*U_D[-2,11,12];
+# @assert norm(AA_fused-permute(AA_fused_,(1,2,),(3,4,)))/norm(AA_fused)<1e-14
 
 Lx=2;Ly=2;
 A_cell=Matrix(undef,Lx,Ly);
@@ -138,27 +141,39 @@ A_cell[2,2]=A_RD;
 
 
 
+AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A_fused,[]);
+@tensor AA_fused_[:]:=A_LU[2,1,7,8]*A_LD[3,11,10,1]*U_L[-1,2,3]*A_RU[7,4,5,9]*A_RD[10,12,6,4]*U_R[5,6,-3]*U_U[8,9,-4]*U_D[-2,11,12];
+@assert norm(AA_fused-permute(AA_fused_,(1,2,),(3,4,)))/norm(AA_fused)<1e-14
+########################
 
 
 
 
 
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG_unitcell_test.jl")
+
+
+
 CTM=[];
 U_L=[];
 U_D=[];
 U_R=[];
 U_U=[];
 
-init=Dict([("CTM", []), ("init_type", "single_layer_PBC")]);
-conv_check="singular_value_single_layer";
+chi=chis[1];
+println("chi= "*string(chi));flush(stdout);
+
+conv_check="singular_value";
 CTM_ite_info=true;
 CTM_conv_info=true;
 
+Random.seed!(123456)
+CTM_init, _,_,_,_,_=init_CTM_cell(chi,A_cell,"single_layer_random",CTM_ite_info)
+init=Dict([("CTM", deepcopy(CTM_init)), ("init_type", "single_layer_random")]);
 
-    chi=40;
-    println("chi= "*string(chi));flush(stdout);
-    CTM, _,_,_,_,_,ite_num,ite_err=CTMRG_cell_single_layer(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+
+
+
+    CTM, _,_,_,_,_,ite_num,ite_err=CTMRG_cell(A_cell,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
 
     # method1="E_triangle";
     # method2="full_cell";
@@ -172,15 +187,11 @@ CTM_conv_info=true;
     energy=E_up*2/3;
     println("Up triangle energy: "*string(energy))
 
-    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"x");
-    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,AA_fused_cell,CTM,"y");
+    eu_allspin_x,allspin_x=solve_correl_length_single_layer(5,[],CTM,"x");
+    eu_allspin_y,allspin_y=solve_correl_length_single_layer(5,[],CTM,"y");
 
 
-    init=Dict([("CTM", []), ("init_type", "single_layer_random")]);
-    #init=Dict([("CTM", CTM), ("init_type", "single_layer_random"),("AA_fused_cell",AA_fused_cell),("U_L_cell",U_L_cell),("U_R_cell",U_R_cell),("U_U_cell",U_U_cell),("U_D_cell",U_D_cell)]);
-
-
-
+  
 
 
 

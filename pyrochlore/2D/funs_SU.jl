@@ -189,9 +189,9 @@ function Tri_T_up(T_u, B_a, B_b, B_c, B_d, lambda_d_a, lambda_d_b, lambda_d_c, l
 end
 
 function itebd_step(T_u,T_d,B_a,B_b,B_c,B_d,lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d,lambda_d_a,lambda_d_b,lambda_d_c,lambda_d_d, trun_tol, gate,U_phy_2, posit, bond_dim,symmetric_hosvd)
-    println("one step")
-    println(space(T_u))
-    println(space(T_d))
+    # println("one step")
+    # println(space(T_u))
+    # println(space(T_d))
     if posit=="dn"
         B_a, B_b, B_c, B_d, lambda_d_a, lambda_d_b, lambda_d_c, lambda_d_d, T_d=Tri_T_dn(T_d, B_a, B_b, B_c, B_d, lambda_u_a, lambda_u_b, lambda_u_c, lambda_u_d, gate,U_phy_2, trun_tol, bond_dim,symmetric_hosvd)
     

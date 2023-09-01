@@ -1,5 +1,6 @@
 using LinearAlgebra
 using TensorKit
+# using Suppressor
 using KrylovKit
 using JSON
 using HDF5, JLD2
@@ -28,11 +29,17 @@ D=3;
 
 println("D_max= "*string(D_max))
 
-chis=[40,60];
+chis=[60];
 #chis=[40,80,120,160];
 CTM_conv_tol=1e-6;
-CTM_ite_nums=200;
-CTM_trun_tol=1e-12;
+CTM_ite_nums=20;
+CTM_trun_tol=1e-8;
+svd_lanczos_tol=1e-8;
+projector_strategy="4x2";#"4x4" or "4x2"
+conv_check="singular_value";
+CTM_ite_info=true;
+CTM_conv_info=true;
+CTM_trun_svd=false;
 
 theta=0*pi;
 J1=cos(theta);
@@ -80,9 +87,9 @@ H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonia
 H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
 H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
 
-# tau=5;
-# dt=0.02;
-# T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
+tau=5;
+dt=0.02;
+T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, trun_tol, tau, dt, D_max,symmetric_hosvd);
 
 # tau=2;
 # dt=0.01;
@@ -110,19 +117,17 @@ U_R=[];
 U_U=[];
 
 init=Dict([("CTM", []), ("init_type", "PBC")]);
-conv_check="singular_value";
-CTM_ite_info=true;
-CTM_conv_info=true;
 
 
-global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
+
+global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info,CTM_trun_svd
 
 for cchi=1:length(chis)
     global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
     
     chi=chis[cchi];
     println("chi= "*string(chi));flush(stdout);
-    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info);
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol);
 
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
     energy=(E_up+E_down)/3;

@@ -108,9 +108,10 @@ function group_svd_components(U_set,S_set,V_set,spins)
     end
 
 
-    @tensor TT_[:]:=Um[-1,-2,1]*Sm[1,2]*Vm'[2,-3,-4];
+    
     return Um,Sm,Vm
 end
 
 Um,Sm,Vm=group_svd_components(U_set,S_set,V_set,spins);
+@tensor TT_[:]:=Um[-1,-2,1]*Sm[1,2]*Vm'[2,-3,-4];
 @assert norm(TT-TT_)/norm(TT)<1e-12

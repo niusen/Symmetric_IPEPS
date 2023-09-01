@@ -308,9 +308,43 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
 
     #println(diag(convert(Array,sM)))
 
-    multiplet_tol=1e-5;
-    uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
+    sM=truncate_multiplet(sM,chi,1e-5,trun_tol);
+    
+    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+    
+    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
+    uM=uM_new;
+    sM=sM_new;
+    vM=vM_new;
+    #println(diag(convert(Array,sM)))
 
+
+    sM=sM/norm(sM)
+    sM_inv=pinv(sM);
+    sM_dense=convert(Array,sM)
+
+    # println("svd:")
+    # sm_=sort(diag(sM_dense),rev=true)
+    # println(sm_/sm_[1])
+
+    # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
+    # sm_=sort(diag(convert(Array,sM_test)),rev=true)
+    # println(sm_/sm_[1])
+
+    for c1=1:size(sM_dense,1)
+        if sM_dense[c1,c1]<trun_tol
+            sM_dense[c1,c1]=0;
+        end
+    end
+    #display(sM_dense)
+    #display(pinv.(sM_dense))
+
+    #display(sM_inv)
+    #display(convert(Array,sM_inv))
+    #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
+    #display(space(sM_inv))
+    #display(sM_inv_sqrt)
+    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
 
     PM_inv=RMlow*vM'*sM_inv_sqrt;
     PM=sM_inv_sqrt*uM'*RMup;
@@ -830,47 +864,4 @@ function delet_zero_block(U,Σ,V)
     Σ_dict[:codomain]=sec_str
 
     return convert(TensorMap, U_dict), convert(TensorMap, Σ_dict), convert(TensorMap, V_dict)
-end
-
-
-function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
-    sM=truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
-    
-    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
-    
-    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
-    uM=uM_new;
-    sM=sM_new;
-    vM=vM_new;
-    #println(diag(convert(Array,sM)))
-
-
-    sM=sM/norm(sM)
-    sM_inv=pinv(sM);
-    sM_dense=convert(Array,sM)
-
-    # println("svd:")
-    # sm_=sort(diag(sM_dense),rev=true)
-    # println(sm_/sm_[1])
-
-    # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
-    # sm_=sort(diag(convert(Array,sM_test)),rev=true)
-    # println(sm_/sm_[1])
-
-    for c1=1:size(sM_dense,1)
-        if sM_dense[c1,c1]<trun_tol
-            sM_dense[c1,c1]=0;
-        end
-    end
-    #display(sM_dense)
-    #display(pinv.(sM_dense))
-
-    #display(sM_inv)
-    #display(convert(Array,sM_inv))
-    #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
-    #display(space(sM_inv))
-    #display(sM_inv_sqrt)
-    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
-
-    return uM,sM,vM,sM_inv_sqrt
 end

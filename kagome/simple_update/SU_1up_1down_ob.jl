@@ -35,14 +35,14 @@ chis=[40];
 
 ctm_setting=CTMRG_settings();
 ctm_setting.CTM_conv_tol=1e-6;
-ctm_setting.CTM_ite_nums=20;
+ctm_setting.CTM_ite_nums=30;
 ctm_setting.CTM_trun_tol=1e-8;
 ctm_setting.svd_lanczos_tol=1e-8;
-ctm_setting.projector_strategy="4x2";#"4x4" or "4x2"
+ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
 ctm_setting.conv_check="singular_value";
 ctm_setting.CTM_ite_info=true;
 ctm_setting.CTM_conv_info=true;
-ctm_setting.CTM_trun_svd=true;
+ctm_setting.CTM_trun_svd=false;
 
 
 
@@ -128,10 +128,10 @@ init=Dict([("CTM", []), ("init_type", "PBC")]);
 
 
 
-global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info,CTM_trun_svd
+global chis,D_max,init,A_fused
 
 for cchi=1:length(chis)
-    global chis,D_max,init,A_fused,conv_check,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info
+    global chis,D_max,init,A_fused
     
     chi=chis[cchi];
     println("chi= "*string(chi));flush(stdout);

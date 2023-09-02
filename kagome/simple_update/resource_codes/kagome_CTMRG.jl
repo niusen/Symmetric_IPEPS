@@ -110,11 +110,20 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true,CTM_conv_info=false,projector_strategy="4x4",CTM_trun_svd=false,svd_lanczos_tol=1e-10)
+function CTMRG(A,chi,init,ctm_setting)
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
+    ########################
+    CTM_ite_info=ctm_setting.CTM_ite_info;
+    CTM_conv_info=ctm_setting.CTM_conv_info;
+    projector_strategy=ctm_setting.projector_strategy;
+    CTM_trun_svd=ctm_setting.CTM_trun_svd;
+    svd_lanczos_tol=ctm_setting.svd_lanczos_tol;
+    CTM_ite_nums=ctm_setting.CTM_ite_nums;
+    #######################
     if (CTM_trun_svd==true) & (projector_strategy=="4x4")
         println("Attention: truncated svd with 4x4 projector could give large error");
     end
+
 
     #initial corner transfer matrix
         #initial corner transfer matrix
@@ -129,7 +138,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
 
     Cset=CTM["Cset"];
     Tset=CTM["Tset"];
-    conv_check="singular_value"
+    ctm_setting.conv_check="singular_value"
 
     ss_old1=ones(chi)*2;
     ss_old2=ones(chi)*2;
@@ -175,7 +184,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
         for direction in direction_order
-            Cset,Tset=CTM_ite(Cset, Tset, AA_rotated[direction], chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol);
+            Cset,Tset=CTM_ite(Cset, Tset, AA_rotated[direction], chi, direction,ctm_setting.CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol);
         end
 
         print_corner=false;
@@ -201,7 +210,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
         
 
 
-        if conv_check=="singular_value" #check convergence of singular value
+        if ctm_setting.conv_check=="singular_value" #check convergence of singular value
             er1,ss_new1=spectrum_conv_check(ss_old1,Cset[1]);
             er2,ss_new2=spectrum_conv_check(ss_old2,Cset[2]);
             er3,ss_new3=spectrum_conv_check(ss_old3,Cset[3]);
@@ -212,14 +221,14 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
             if CTM_ite_info
                 println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));flush(stdout);
             end
-            if er<tol
+            if er<ctm_setting.CTM_conv_tol
                 break;
             end
             ss_old1=ss_new1;
             ss_old2=ss_new2;
             ss_old3=ss_new3;
             ss_old4=ss_new4;
-        elseif conv_check=="density_matrix" #check reduced density matrix
+        elseif ctm_setting.conv_check=="density_matrix" #check reduced density matrix
 
             # ob_opts.SiteNumber=1;
             # CTM_tem.Cset=Cset;
@@ -227,7 +236,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
             # rho_new=ob_CTMRG(CTM_tem,A,ob_opts).A;
             # er=sum(sum((abs(rho_old-rho_new))));
             # disp(['CTMRG iteration: ',num2str(ci),' CTMRG err: ',num2str(er)]);
-            # if er<tol
+            # if er<ctm_setting.CTM_conv_tol
             #     break;
             # end
             # rho_old=rho_new;

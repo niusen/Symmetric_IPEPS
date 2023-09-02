@@ -14,6 +14,7 @@ include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\k
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_correl.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\Settings.jl")
 
 
 include("funs_1up_1down.jl")
@@ -31,15 +32,22 @@ println("D_max= "*string(D_max))
 
 chis=[40];
 #chis=[40,80,120,160];
-CTM_conv_tol=1e-6;
-CTM_ite_nums=20;
-CTM_trun_tol=1e-8;
-svd_lanczos_tol=1e-8;
-projector_strategy="4x2";#"4x4" or "4x2"
-conv_check="singular_value";
-CTM_ite_info=true;
-CTM_conv_info=true;
-CTM_trun_svd=true;
+
+ctm_setting=CTMRG_settings();
+ctm_setting.CTM_conv_tol=1e-6;
+ctm_setting.CTM_ite_nums=20;
+ctm_setting.CTM_trun_tol=1e-8;
+ctm_setting.svd_lanczos_tol=1e-8;
+ctm_setting.projector_strategy="4x2";#"4x4" or "4x2"
+ctm_setting.conv_check="singular_value";
+ctm_setting.CTM_ite_info=true;
+ctm_setting.CTM_conv_info=true;
+ctm_setting.CTM_trun_svd=true;
+
+
+
+dump(ctm_setting);
+
 
 theta=0*pi;
 J1=cos(theta);
@@ -127,7 +135,7 @@ for cchi=1:length(chis)
     
     chi=chis[cchi];
     println("chi= "*string(chi));flush(stdout);
-    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol,CTM_ite_info,CTM_conv_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol);
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting);
 
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
     energy=(E_up+E_down)/3;

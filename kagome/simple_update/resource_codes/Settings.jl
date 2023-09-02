@@ -8,6 +8,7 @@ Base.@kwdef mutable struct CTMRG_settings
     CTM_ite_info :: Bool = true
     CTM_conv_info :: Bool = true
     CTM_trun_svd :: Bool = false
+    construct_double_layer :: Bool=true
 end
 
 

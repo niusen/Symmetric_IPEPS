@@ -2,16 +2,38 @@ using LinearAlgebra
 using TensorKit
 
 
-function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, method,E_up_method="2x2")
+function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, method,E_up_method="2x2",)
+    construct_double_layer=ctm_setting.construct_double_layer;
 
-    norm_1site=ob_1site_closed(CTM,AA_fused);
+    if construct_double_layer
+        norm_1site=ob_1site_closed(CTM,[],AA_fused,[],construct_double_layer);
+    else
+        norm_1site=ob_1site_closed(CTM,A_fused,[],[],construct_double_layer);
+    end
     H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
     
-    AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
-    AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
-    AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
 
-    if (method=="E_triangle") | (method=="J2J3") #calculate up and down triangle energy
+    if method=="E_single_triangle"
+        if construct_double_layer
+            AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
+            E_up=ob_1site_closed(CTM,[],AA_H,[],construct_double_layer)/norm_1site;
+        else
+            E_up=ob_1site_closed(CTM,A_fused,[],H_triangle,construct_double_layer)/norm_1site;
+        end
+        E_up=E_up[1];
+        
+        E_down=E_up;     
+        println("Only compute energy in a single triangle")
+        return E_up, E_down  
+
+    elseif (method=="E_triangle") | (method=="J2J3") #calculate up and down triangle energy
+        if construct_double_layer
+            AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
+            AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
+            AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
+        end
+
+
         # up triangle
         if E_up_method=="1x1"
             AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
@@ -35,6 +57,13 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
         E_down=E_down[1]/norm_LU_RU_LD[1];     
         return E_up, E_down   
     elseif method=="E_bond"
+        if construct_double_layer
+            AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
+            AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
+            AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
+        end
+
+
         #calculate single unit-cell observable (up triangle)
         # AA_12_fused, _,_,_,_=build_double_layer(A_fused,H12_tensorkit);
         # E_up_12=ob_1site_closed(CTM,AA_12_fused)/norm_1site;
@@ -327,13 +356,25 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
     end
 end
 
-function ob_1site_closed(CTM,AA_fused)
+function ob_1site_closed(CTM,A_fused,AA_fused,op,construct_double_layer)
     Cset=CTM["Cset"];
     Tset=CTM["Tset"];
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
-    @tensor Norm[:]:=envL[1,2,3]*envR[1,2,3];
+    if construct_double_layer
+        @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
+        @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
+        @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
+        @tensor Norm[:]:=envL[1,2,3]*envR[1,2,3];
+    else
+        if op==[]
+            Ap=A_fused';
+        else
+            @tensor Ap[:]:=A_fused'[-1,-2,-3,-4,1]*op[-5,1];
+        end
+        @tensor MLU[:]:=Cset[1][1,2]*Tset[1][2,6,4,-4]*Tset[4][-1,5,3,1]*A_fused[3,-3,-6,4,7]*Ap[5,-2,-5,6,7];
+
+        @tensor Norm[:]:=MLU[7,8,9,4,5,6]*Cset[2][4,3]*Tset[2][3,5,6,10]*Cset[3][10,2]*Tset[3][2,8,9,1]*Cset[4][1,7];
+    end
+
     Norm=blocks(Norm)[Irrep[SU₂](0)];
     return Norm;
 end

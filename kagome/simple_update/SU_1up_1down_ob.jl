@@ -11,6 +11,7 @@ cd(@__DIR__)
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model.jl")
+include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
 include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_correl.jl")
@@ -30,7 +31,7 @@ D=3;
 
 println("D_max= "*string(D_max))
 
-chis=[40];
+chis=[40,60];
 #chis=[40,80,120,160];
 
 ctm_setting=CTMRG_settings();
@@ -38,11 +39,12 @@ ctm_setting.CTM_conv_tol=1e-6;
 ctm_setting.CTM_ite_nums=30;
 ctm_setting.CTM_trun_tol=1e-8;
 ctm_setting.svd_lanczos_tol=1e-8;
-ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+ctm_setting.projector_strategy="4x2";#"4x4" or "4x2"
 ctm_setting.conv_check="singular_value";
 ctm_setting.CTM_ite_info=true;
 ctm_setting.CTM_conv_info=true;
 ctm_setting.CTM_trun_svd=false;
+ctm_setting.construct_double_layer=true;
 
 
 
@@ -137,14 +139,14 @@ for cchi=1:length(chis)
     println("chi= "*string(chi));flush(stdout);
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting);
 
-    E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
+    E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting,"E_single_triangle",[]);
     energy=(E_up+E_down)/3;
     println("Up triangle energy: "*string(energy))
 
-    eu_allspin_x,allspin_x=solve_correl_length(5,AA_fused/norm(AA_fused),CTM,"x");
-    eu_allspin_y,allspin_y=solve_correl_length(5,AA_fused/norm(AA_fused),CTM,"y");
+    eu_allspin_x,allspin_x=solve_correl_length(5,[],CTM,"x",ctm_setting);
+    eu_allspin_y,allspin_y=solve_correl_length(5,[],CTM,"y",ctm_setting);
 
-    init=Dict([("CTM", CTM), ("init_type", "PBC")]);
+    init=Dict([("CTM", CTM), ("init_type", "PBC"),("AA_fused",AA_fused),("U_L",U_L),("U_R",U_R),("U_U",U_U),("U_D",U_D)]);
 
     matwrite("SimpleUpdate_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
         "energy" => energy,

@@ -113,6 +113,7 @@ end
 function CTMRG(A,chi,init,ctm_setting)
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     ########################
+    CTM_trun_tol=ctm_setting.CTM_trun_tol;
     CTM_ite_info=ctm_setting.CTM_ite_info;
     CTM_conv_info=ctm_setting.CTM_conv_info;
     projector_strategy=ctm_setting.projector_strategy;
@@ -184,7 +185,7 @@ function CTMRG(A,chi,init,ctm_setting)
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
         for direction in direction_order
-            Cset,Tset=CTM_ite(Cset, Tset, AA_rotated[direction], chi, direction,ctm_setting.CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol);
+            Cset,Tset=CTM_ite(Cset, Tset, AA_rotated[direction], chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol);
         end
 
         print_corner=false;
@@ -313,7 +314,7 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     M=RMup*RMlow;
 
     if CTM_trun_svd
-        uM,sM,vM, M=truncated_svd_method(M,chi+20);
+        uM,sM,vM, M=truncated_svd_method(M,chi+20,svd_lanczos_tol);
 
         # TT_=uM*sM*vM;
         # uM0,sM0,vM0 = tsvd(M; trunc=truncdim(chi+20));
@@ -653,7 +654,7 @@ function normalize_AA(mm)
     return S_temp[1]
 end
 
-function truncated_svd_method(M,chi)
+function truncated_svd_method(M,chi,svd_lanczos_tol)
     # JLDnm="test.jld2";
     # init___=Dict([("M",M),("chi",chi),("trun_tol",trun_tol)]);
     # save(JLDnm, "init",init___);

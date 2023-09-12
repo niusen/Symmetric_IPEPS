@@ -70,7 +70,7 @@ function construct_tensor(D)
             V4=ℂ^(size(A1_set[cm]["tensor"])[4])
             t1 = TensorMap(T, V1 ←  V2 ⊗ V3 ⊗ V4)
 
-            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
             t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va ⊗ Va);
             
             norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));
@@ -87,7 +87,7 @@ function construct_tensor(D)
             V4=ℂ^(size(A2_set[cm]["tensor"])[4])
             t1 = TensorMap(T, V1 ←  V2 ⊗ V3 ⊗ V4)
 
-            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
             t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va ⊗ Va);
             
             norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));
@@ -105,7 +105,7 @@ function construct_tensor(D)
             V4=ℂ^(size(B1_set[cm]["tensor"])[4])
             t1 = TensorMap(T, V1 ←  V2 ⊗ V3 ⊗ V4)
 
-            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
             t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va ⊗ Va);
             
             norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));
@@ -122,7 +122,7 @@ function construct_tensor(D)
             V4=ℂ^(size(B2_set[cm]["tensor"])[4])
             t1 = TensorMap(T, V1 ←  V2 ⊗ V3 ⊗ V4)
 
-            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4,2=>length(findall(x->x==2, S_label))/5,5/2=>length(findall(x->x==5/2, S_label))/6)
             t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va ⊗ Va);
             
             norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));

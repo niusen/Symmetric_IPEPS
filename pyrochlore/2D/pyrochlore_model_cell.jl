@@ -2,10 +2,12 @@ using LinearAlgebra
 using TensorKit
 
 function plaquatte_ob(rho,op)
-    @tensor ob[:]:=rho[1,2,3,4,5,6,7,8]*op[5,6,7,8,1,2,3,4];
-    @tensor norm[:]:=rho[1,2,3,4,1,2,3,4];
-    ob=ob/norm;
-    ob=blocks(ob)[Irrep[SU₂](0)];
+    ob= @tensor rho[1,2,3,4,5,6,7,8]*op[5,6,7,8,1,2,3,4];
+    Norm= @tensor rho[1,2,3,4,1,2,3,4];
+    #Norm=blocks(Norm)[Irrep[SU₂](0)][1];
+    #ob=blocks(ob)[Irrep[SU₂](0)][1];
+    ob=ob/Norm;
+    
     return ob
 
 end

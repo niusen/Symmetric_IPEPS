@@ -7,8 +7,10 @@ function build_double_layer(A,operator)
     A=permute(A,(1,2,),(3,4,5));
     U_L=unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
     U_D=unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-    U_R=inv(U_L);
-    U_U=inv(U_D);
+    # U_R=inv(U_L);
+    # U_U=inv(U_D);
+    U_R=unitary(space(A, 3) ⊗ space(A, 3)', fuse(space(A, 3) ⊗ space(A, 3)'));
+    U_U=unitary(space(A, 4) ⊗ space(A, 4)', fuse(space(A, 4) ⊗ space(A, 4)'));
     # display(space(U_L))
     # display(space(U_D))
     # display(space(U_R))
@@ -47,6 +49,7 @@ function build_double_layer(A,operator)
     double_RU=permute(double_RU,(1,),(2,3,));
     AA_fused=double_LD*double_RU;
 
+    
     return AA_fused, U_L,U_D,U_R,U_U
 end
 
@@ -109,21 +112,48 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info=true,CTM_conv_info=false)
-
+function CTMRG(A,chi,init,ctm_setting)
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
+    ########################
+    CTM_trun_tol=ctm_setting.CTM_trun_tol;
+    CTM_ite_info=ctm_setting.CTM_ite_info;
+    CTM_conv_info=ctm_setting.CTM_conv_info;
+    projector_strategy=ctm_setting.projector_strategy;
+    CTM_trun_svd=ctm_setting.CTM_trun_svd;
+    svd_lanczos_tol=ctm_setting.svd_lanczos_tol;
+    CTM_ite_nums=ctm_setting.CTM_ite_nums;
+    construct_double_layer=ctm_setting.construct_double_layer;
+    #######################
+    if (CTM_trun_svd==true) & (projector_strategy=="4x4")
+        println("Attention: truncated svd with 4x4 projector could give large error");
+    end
+
+
     #initial corner transfer matrix
         #initial corner transfer matrix
     if isempty(init["CTM"])
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
+        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info,construct_double_layer);
+        AA_memory=Base.summarysize(AA_fused)/1024/1024;
+        if CTM_ite_info
+            println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.")
+        end
     else
-        _, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info);
-        CTM=deepcopy(init["CTM"]);
+        if "AA_fused" in keys(init)
+            AA_fused=init["AA_fused"];
+            U_L=init["U_L"];
+            U_D=init["U_D"];
+            U_R=init["U_R"];
+            U_U=init["U_U"];
+            CTM=deepcopy(init["CTM"]);
+        else
+            AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
+            CTM=deepcopy(init["CTM"]);
+        end
     end
 
     Cset=CTM["Cset"];
     Tset=CTM["Tset"];
-    conv_check="singular_value"
+    ctm_setting.conv_check="singular_value"
 
     ss_old1=ones(chi)*2;
     ss_old2=ones(chi)*2;
@@ -154,8 +184,12 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
         println(C2_spec);
         println("CTM init finished")
     end
-    
 
+    if construct_double_layer
+        AA_rotated=rotate_AA(AA_fused,construct_double_layer);
+    else
+        AA_rotated=rotate_AA(A_fused,construct_double_layer);
+    end
 
     if CTM_ite_info
         println("start CTM iterations:")
@@ -168,7 +202,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
         for direction in direction_order
-            Cset,Tset=CTM_ite(Cset, Tset, AA_fused, chi, direction,CTM_trun_tol,CTM_ite_info);
+            Cset,Tset=CTM_ite(Cset, Tset, AA_rotated[direction], chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
         end
 
         print_corner=false;
@@ -194,7 +228,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
         
 
 
-        if conv_check=="singular_value" #check convergence of singular value
+        if ctm_setting.conv_check=="singular_value" #check convergence of singular value
             er1,ss_new1=spectrum_conv_check(ss_old1,Cset[1]);
             er2,ss_new2=spectrum_conv_check(ss_old2,Cset[2]);
             er3,ss_new3=spectrum_conv_check(ss_old3,Cset[3]);
@@ -205,14 +239,14 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
             if CTM_ite_info
                 println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));flush(stdout);
             end
-            if er<tol
+            if er<ctm_setting.CTM_conv_tol
                 break;
             end
             ss_old1=ss_new1;
             ss_old2=ss_new2;
             ss_old3=ss_new3;
             ss_old4=ss_new4;
-        elseif conv_check=="density_matrix" #check reduced density matrix
+        elseif ctm_setting.conv_check=="density_matrix" #check reduced density matrix
 
             # ob_opts.SiteNumber=1;
             # CTM_tem.Cset=Cset;
@@ -220,7 +254,7 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
             # rho_new=ob_CTMRG(CTM_tem,A,ob_opts).A;
             # er=sum(sum((abs(rho_old-rho_new))));
             # disp(['CTMRG iteration: ',num2str(ci),' CTMRG err: ',num2str(er)]);
-            # if er<tol
+            # if er<ctm_setting.CTM_conv_tol
             #     break;
             # end
             # rho_old=rho_new;
@@ -241,90 +275,116 @@ function CTMRG(A,chi,conv_check,tol,init,CTM_ite_nums, CTM_trun_tol,CTM_ite_info
     end
 
 end
+function rotate_AA(AA_fused,construct_double_layer)
+    AA_rotated=Vector(undef,4);
+    for direction=1:4
+        if construct_double_layer
+            AA_rotated[direction]=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+        else
+            AA_rotated[direction]=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5,),());
+        end
+    end
+    return AA_rotated
+end
 
-function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
+function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
+    #if construct_double_layer==false, then AA is single layer tensor
+    
+    M1=Cset[mod1(direction,4)];
+    M2=Tset[mod1(direction,4)];
+    M3=Tset[mod1(direction-1,4)];
+    #M4=AA;
+    M5=M3;
+    #M6=M4;
+    M7=Cset[mod1(direction-1,4)];
+    M8=Tset[mod1(direction-2,4)];
 
-    AA=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+    if construct_double_layer
+        @tensor MMup[:]:=M1[1,2]*M2[2,3,-3]*M3[-1,4,1]*AA[4,-2,-4,3];
+        @tensor MMlow[:]:=M5[1,3,-1]*AA[3,4,-4,-2]*M7[2,1]*M8[-3,4,2];
+    else
+        @tensor MMup[:]:=M1[1,2]*M2[2,6,4,-4]*M3[-1,5,3,1]*AA[3,-3,-6,4,7]*AA'[5,-2,-5,6,7];
+        @tensor MMlow[:]:=M5[2,6,4,-1]*AA[4,3,-6,-3,7]*M7[1,2]*M8[-4,5,3,1]*AA'[6,5,-5,-2,7];
+    end
 
-    @tensor MMup[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-3]*Tset[mod1(direction-1,4)][-1,4,1]*AA[4,-2,-4,3];
-    @tensor MMlow[:]:=Tset[mod1(direction-1,4)][1,3,-1]*AA[3,4,-4,-2]*Cset[mod1(direction-1,4)][2,1]*Tset[mod1(direction-2,4)][-3,4,2];
+    #define permute index that is heavily used
+    permut_ind1=[];
+    permut_ind2=[];
+    if construct_double_layer
+        permut_ind1=(1,2,);
+        permut_ind2=(3,4,);
+    else
+        permut_ind1=(1,2,3,);
+        permut_ind2=(4,5,6,);
+    end
 
+    MMup=permute(MMup,permut_ind1,permut_ind2)
+    MMlow=permute(MMlow,permut_ind1,permut_ind2)
 
-    @tensor MMup_reflect[:]:=Tset[mod1(direction,4)][-1,3,1]* Cset[mod1(direction+1,4)][1,2]* AA[-2,-4,4,3]* Tset[mod1(direction+1,4)][2,4,-3];
-    #@tensor MMlow_reflect[:]:=AA[-2,4,3,-4]*Tset[mod1(direction+1,4)][-3,3,1]*Tset[mod1(direction-2,4)][2,4,-1]*Cset[mod1(direction-2,4)][1,2]; #this is slow compared to other coners, I don't know why
-    @tensor MMlow_reflect[:]:=Tset[mod1(direction+1,4)][-4,-3,2]*Tset[mod1(direction-2,4)][1,-2,-1]*Cset[mod1(direction-2,4)][2,1];
-    @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
+    if projector_strategy=="4x4"
+        M1_=Cset[mod1(direction+1,4)];
+        M2_=Tset[mod1(direction,4)];
+        M3_=Tset[mod1(direction+1,4)];
+        #M4_=M4;
+        M5_=M3_;
+        #M6_=M4_;
+        M7_=Cset[mod1(direction-2,4)];
+        M8_=Tset[mod1(direction-2,4)];
 
-    MMup=permute(MMup,(1,2,),(3,4,))
-
-    # _,ss,_=tsvd(MMup)
-    # display(convert(Array,ss))
-
-    MMlow=permute(MMlow,(1,2,),(3,4,))
-    MMup_reflect=permute(MMup_reflect,(1,2,),(3,4,))
-    MMlow_reflect=permute(MMlow_reflect,(1,2,),(3,4,))
+        if construct_double_layer
+            @tensor MMup_reflect[:]:=M2_[-1,3,1]* M1_[1,2]* AA[-2,-4,4,3]* M3_[2,4,-3];
+            @tensor MMlow_reflect[:]:=M5_[-4,-3,2]*M8_[1,-2,-1]*M7_[2,1];
+            @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
+        else
+            @tensor MMup_reflect[:]:=M2_[-1,5,3,1]* M1_[1,2]* AA[-3,-6,4,3,7]* M3_[2,6,4,-4]*AA'[-2,-5,6,5,7];
+            @tensor MMlow_reflect[:]:=M8_[2,6,4,-1]*AA[-3,4,3,-6,7]*M7_[1,2]*M5_[-4,5,3,1]*AA'[-2,6,5,-5,7];
+        end
+        MMup_reflect=permute(MMup_reflect,permut_ind1,permut_ind2)
+        MMlow_reflect=permute(MMlow_reflect,permut_ind1,permut_ind2)
+    end
 
     
-
-    RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
-    RMlow=MMlow*MMlow_reflect;
-
-
-    #println(norm(MMlow))
+    if projector_strategy=="4x4"
+        RMup=permute(MMup*MMup_reflect,permut_ind2,permut_ind1);
+        RMlow=MMlow*MMlow_reflect;
+    elseif projector_strategy=="4x2"
+        RMup=permute(MMup,permut_ind2,permut_ind1);
+        RMlow=MMlow;
+    end
 
     M=RMup*RMlow;
 
-    uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
-    #println(diag(convert(Array,sM)))
+    if CTM_trun_svd
+        uM,sM,vM, M=truncated_svd_method(M,chi+20,svd_lanczos_tol,construct_double_layer);
 
-    sM=truncate_multiplet(sM,chi,1e-5,trun_tol);
-    
-    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
-    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
-    uM=uM_new;
-    sM=sM_new;
-    vM=vM_new;
-    #println(diag(convert(Array,sM)))
-
-
-    sM=sM/norm(sM)
-    sM_inv=pinv(sM);
-    sM_dense=convert(Array,sM)
-
-    # println("svd:")
-    # sm_=sort(diag(sM_dense),rev=true)
-    # println(sm_/sm_[1])
-
-    # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
-    # sm_=sort(diag(convert(Array,sM_test)),rev=true)
-    # println(sm_/sm_[1])
-
-    for c1=1:size(sM_dense,1)
-        if sM_dense[c1,c1]<trun_tol
-            sM_dense[c1,c1]=0;
-        end
+        # TT_=uM*sM*vM;
+        # uM0,sM0,vM0 = tsvd(M; trunc=truncdim(chi+20));
+        # TT=uM0*sM0*vM0;
+        # println("error of truncated svd: "*string(norm(TT_-TT)/norm(TT)))
+    else
+        uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
     end
-    #display(sM_dense)
-    #display(pinv.(sM_dense))
+    
 
-    #display(sM_inv)
-    #display(convert(Array,sM_inv))
-    #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
-    #display(space(sM_inv))
-    #display(sM_inv_sqrt)
-    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
+    multiplet_tol=1e-5;
+    uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
+
 
     PM_inv=RMlow*vM'*sM_inv_sqrt;
     PM=sM_inv_sqrt*uM'*RMup;
-    PM=permute(PM,(2,3,),(1,));
+    PM=permute(PM,(permut_ind1.+1),(1,));
 
-    @tensor M5tem[:]:=Tset[mod1(direction-1,4)][4,3,1]*AA[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
-    @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-2]*PM_inv[1,3,-1];
-    @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,1]* PM[2,3,-2];
+    if construct_double_layer
+        @tensor M5tem[:]:=Tset[mod1(direction-1,4)][4,3,1]*AA[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-2]*PM_inv[1,3,-1];
+        @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,1]* PM[2,3,-2];
+    else
+        @tensor M5tem[:]:=Tset[mod1(direction-1,4)][1,5,3,7]*AA[3,2,-3,8,6]* PM_inv[1,4,2,-1]* PM[7,9,8,-4]*AA'[5,4,-2,9,6];
+        @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,4,-2]*PM_inv[1,3,4,-1];
+        @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,4,1]* PM[2,3,4,-2];
+    end
 
-    # println(norm(M5tem))
-    # println(norm(M1tem))
-    # println(norm(M7tem))
+
 
     Cset[mod1(direction,4)]=M1tem/norm(M1tem);
     Tset[mod1(direction-1,4)]=M5tem/norm(M5tem);
@@ -332,7 +392,14 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
     return Cset,Tset
 end
 
-function init_CTM(chi,A,type,CTM_ite_info)
+
+
+
+
+
+
+
+function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
     if CTM_ite_info
         display("initialize CTM")
     end
@@ -388,12 +455,18 @@ function init_CTM(chi,A,type,CTM_ite_info)
     elseif type=="random"
     end
     CTM=Dict([("Cset", Cset), ("Tset", Tset)]);
-
-    AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
-    CTM=fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U);
+    if construct_double_layer
+        AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
+        CTM=fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U);
+    else
+        U_L=unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
+        U_D=unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+        U_R=inv(U_L);
+        U_U=inv(U_D);
+        AA_fused=[];
+    end
 
     return CTM, AA_fused, U_L,U_D,U_R,U_U
-
 
     # #save initial CTM to compare with other codes
     # @time CTM=init_CTM(10,PEPS_tensor,"PBC");
@@ -408,14 +481,19 @@ function init_CTM(chi,A,type,CTM_ite_info)
     #     "T4" => convert(Array,CTM["Tset"][4])
     # ); compress = false)
 
-    end;
+end;
+
+
+
+
+
 
 
 
 
 function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
     #the multiplet is not due to su(2) symmetry
-    s_dense=sort(diag(convert(Array,s)),rev=true);
+    s_dense=sort(abs.(diag(convert(Array,s))),rev=true);
 
     # println(s_dense/s_dense[1])
 
@@ -431,7 +509,7 @@ function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
     space_full=space(s,1);
     for sp in sectors(space_full)
 
-        diag_elem=diag(s_Dict[:data][string(sp)]);
+        diag_elem=abs.(diag(s_Dict[:data][string(sp)]));
         for cd=1:length(diag_elem)
             if ((diag_elem[cd]/value_max)<trun_tol) | (diag_elem[cd]<=value_trun) |(abs((diag_elem[cd]-value_trun)/value_trun)<multiplet_tol)
                 diag_elem[cd]=0;
@@ -462,8 +540,8 @@ function delet_zero_block(U,Σ,V)
 
     for cc =1:length(secs)
         c=secs[cc];
-        if (size(diag(Σ_dict[:data][string(c)]),1)>0) & (sum(diag(Σ_dict[:data][string(c)]))>0)
-            inds=findall(x->(x>0), diag(Σ_dict[:data][string(c)]));
+        if (size(diag(Σ_dict[:data][string(c)]),1)>0) & (sum(abs.(diag(Σ_dict[:data][string(c)])))>0)
+            inds=findall(x->(abs.(x).>0), diag(Σ_dict[:data][string(c)]));
             U_dict[:data][string(c)]=U_dict[:data][string(c)][:,inds];
             Σ_dict[:data][string(c)]=Σ_dict[:data][string(c)][inds,inds];
             V_dict[:data][string(c)]=V_dict[:data][string(c)][inds,:];
@@ -490,4 +568,231 @@ function delet_zero_block(U,Σ,V)
     Σ_dict[:codomain]=sec_str
 
     return convert(TensorMap, U_dict), convert(TensorMap, Σ_dict), convert(TensorMap, V_dict)
+end
+
+
+function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
+    sM=truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
+    
+    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+    
+    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
+    uM=uM_new;
+    sM=sM_new;
+    vM=vM_new;
+    #println(diag(convert(Array,sM)))
+
+
+    sM=sM/norm(sM)
+    sM_inv=pinv(sM);
+    sM_dense=convert(Array,sM)
+
+    # println("svd:")
+    # sm_=sort(diag(sM_dense),rev=true)
+    # println(sm_/sm_[1])
+
+    # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
+    # sm_=sort(diag(convert(Array,sM_test)),rev=true)
+    # println(sm_/sm_[1])
+
+    for c1=1:size(sM_dense,1)
+        if sM_dense[c1,c1]<trun_tol
+            sM_dense[c1,c1]=0;
+        end
+    end
+    #display(sM_dense)
+    #display(pinv.(sM_dense))
+
+    #display(sM_inv)
+    #display(convert(Array,sM_inv))
+    #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
+    #display(space(sM_inv))
+    #display(sM_inv_sqrt)
+    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
+
+    return uM,sM,vM,sM_inv_sqrt
+end
+
+
+
+
+function group_svd_components(U_set,S_set,V_set,spins,VL,VR)
+    VL=fuse(VL);
+    VR=fuse(VR);
+    allspin=sort(unique(spins));
+    spin_dim=deepcopy(allspin);
+    spin_range=deepcopy(allspin);
+    for cs=1:length(allspin)
+        spin_range[cs]=findall(abs.(spins.-allspin[cs]).<1e-6)
+        spin_dim[cs]=length(spin_range[cs])
+    end
+
+
+    Vtotal=Rep[SU₂](allspin[1]=>spin_dim[1]);
+    for cs=2:length(allspin)
+        Vtotal=Vtotal⊕ Rep[SU₂](allspin[cs]=>spin_dim[cs]);
+    end
+
+    Um=TensorMap(randn,VL,Vtotal)*(0*im);
+    Vm=TensorMap(randn,Vtotal,VR)*(0*im);
+    Sm=TensorMap(randn,Vtotal,Vtotal)*(0*im);
+
+
+    for cs=1:length(allspin)
+        Range=spin_range[cs];
+        U_block=Um.data.values[cs]*0;
+        V_block=Vm.data.values[cs]*0;
+        S_block=Sm.data.values[cs]*0;
+        
+        for ccc=1:spin_dim[cs]
+            U=U_set[Range[ccc]];
+            
+            U_block[:,ccc]=U;
+
+            V=V_set[Range[ccc]];
+            V_block[ccc,:]=V';
+
+            S=S_set[Range[ccc]];
+            S_block[ccc,ccc]=S;
+        end
+        # Um.data.values[cs]=U_block*sqrt((2*allspin[cs]+1));
+        # Vm.data.values[cs]=V_block*sqrt((2*allspin[cs]+1));
+        Um.data.values[cs]=U_block;
+        Vm.data.values[cs]=V_block;
+        Sm.data.values[cs]=S_block;
+    end
+
+
+    
+    return Um,Sm,Vm
+end
+
+
+
+function truncated_svd_truncate(spins,S_set,chi)
+    S_set_dense=[];
+    for cc=1:length(S_set)
+        S_set_dense=vcat(S_set_dense,S_set[cc]*ones(Int(2*spins[cc]+1)));
+    end
+    sorted=sort(S_set_dense,rev=true);
+
+
+
+    if length(sorted)>chi
+        value_trun=sorted[chi+1];
+    else
+        value_trun=sorted[end];
+    end
+
+    for cd=1:length(sorted)
+        if  (sorted[cd]<=value_trun) 
+            sorted[cd]=0;
+        end
+    end
+
+
+    pos=findall(sorted.>0);
+    value_trun=sorted[pos[end]];
+    pos=findall(S_set.>value_trun)
+
+    return pos
+
+end
+
+
+function normalize_AA(mm)
+    S_temp,_,_,_=svdsolve(mm, 1,:LR, krylovdim=8);
+
+    return S_temp[1]
+end
+
+function truncated_svd_method(M,chi,svd_lanczos_tol,construct_double_layer)
+    # JLDnm="test.jld2";
+    # init___=Dict([("M",M),("chi",chi),("trun_tol",trun_tol)]);
+    # save(JLDnm, "init",init___);
+
+    spins=Vector(undef,0);
+    S_set=Vector(undef,0);
+    U_set=Vector(undef,0);
+    V_set=Vector(undef,0);
+
+    #######
+    S_max=normalize_AA(M.data.values[1]);
+    M=M/S_max;
+
+    #######
+
+    
+    for cs=1:length(M.data.keys)
+        spin=M.data.keys[cs].j;
+        #println(spin)
+        mm=M.data.values[cs];
+        Random.seed!(1234)
+        vr_init=randn(size(mm,2))+im*randn(size(mm,2));
+        n_keep=min(size(mm,1),size(mm,2),Int(round(chi/(2*spin+1))));
+    
+
+        vr_temp=deepcopy(vr_init);
+        ite_test=4;
+        for cccc=1:ite_test
+            vr_temp=mm*vr_temp;
+            vr_temp=mm'*vr_temp;
+        end
+        norm_coe=norm(vr_temp)/norm(vr_init);
+        norm_coe=norm_coe^(1/ite_test);
+        if norm_coe<1e-14
+            continue;
+        end
+    
+    #@suppress begin
+        S,U,V,info=svdsolve(mm, n_keep,:LR, krylovdim=n_keep*3,tol=svd_lanczos_tol);
+        S_set=vcat(S_set,S);U_set=vcat(U_set,U);V_set=vcat(V_set,V);
+        spins=vcat(spins,spin*ones(length(S)));
+        #@assert info.converged >= minimum([n_eff,dim(full_space,sec)])
+        
+        # if ((S[1]/S_set[1])<1e-16)
+        #     println("truncate at spin= "*string(spin))
+        #     break;
+        # end
+    #end
+        
+        
+
+    end
+    
+    # println(S_set)
+
+    pos=truncated_svd_truncate(spins,S_set,chi);
+
+    spins=spins[pos];
+    S_set=S_set[pos];
+    U_set=U_set[pos];
+    V_set=V_set[pos];
+
+    if construct_double_layer
+        VL=space(M,1)*space(M,2);
+        VR=space(M,3)*space(M,4);
+    else
+        VL=space(M,1)*space(M,2)*space(M,3);
+        VR=space(M,4)*space(M,5)*space(M,6);
+    end
+
+    Um,Sm,Vm=group_svd_components(U_set,S_set,V_set,spins,VL,VR);
+
+    if construct_double_layer
+        U1=unitary(space(M,1)*space(M,2),space(Um,1));
+        Um=U1*Um;
+        U2=unitary(space(Vm,2)',space(M,3)'*space(M,4)');
+        Vm=Vm*U2;
+    else
+        U1=unitary(space(M,1)*space(M,2)*space(M,3),space(Um,1));
+        Um=U1*Um;
+        U2=unitary(space(Vm,2)',space(M,4)'*space(M,5)'*space(M,6)');
+        Vm=Vm*U2;
+    end
+
+    
+    
+    return Um,Sm,Vm, M
+
 end

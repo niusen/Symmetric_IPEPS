@@ -15,12 +15,14 @@ include("build_tensor.jl")
 
 Random.seed!(1234)
 
-
+J1=1;
+J2=1;
 D=2;
 
-coe=[1,0];
-virtual_type="tetrahedral";
-PEPS_tensor,A_fused,U_phy=build_PEPS(D,coe1,virtual_type);
+coe=[0,1];
+virtual_type="square";#"square", "tetrahedral"
+Irrep="A1+iB1";#"A1", "A1+iB1"
+PEPS_tensor,A_fused,U_phy=build_PEPS(D,coe,virtual_type,Irrep);
 
 
 
@@ -47,7 +49,7 @@ chi=40;
 
 rho=build_density_op(U_phy, PEPS_tensor, AA_fused, U_L,U_D,U_R,U_U, CTM);#L',U',R',D',  L,U,R,D
 
-Sigma=plaquatte_Heisenberg();
+Sigma=plaquatte_Heisenberg(J1,J2);
 
 AKLT=plaquatte_AKLT(Sigma);
 

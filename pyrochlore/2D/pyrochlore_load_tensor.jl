@@ -1,6 +1,6 @@
 using MAT
 using TensorKit
-function construct_tensor(D,virtual_type)
+function construct_tensor(D)
     #D=3
     filenm="bond_tensors_D_"*string(D)*".mat"
     vars = matread(filenm)
@@ -11,10 +11,6 @@ function construct_tensor(D,virtual_type)
     virtual_particle=vars["virtual_particle"][1,:]
     #typeof(A_set[1]["tensor"])
 
-    filenm="tetrahedral_tensors_D_"*string(D)*".mat"
-    vars = matread(filenm)
-    E_set=vars["E_set"][1,:]
-    E_set_occu=Vector(undef,length(E_set))
 
     filenm="square_tensors_D_"*string(D)*".mat"
     vars = matread(filenm)
@@ -27,7 +23,14 @@ function construct_tensor(D,virtual_type)
     end
     A2_set_occu=Vector(undef,length(A2_set))
 
-
+    B1_set=vars["B1_set"]
+    B1_set=B1_set[1,:]
+    B1_set_occu=Vector(undef,length(B1_set))
+    B2_set=vars["B2_set"]
+    if length(B2_set)>0
+        B2_set=B2_set[1,:]
+    end
+    B2_set_occu=Vector(undef,length(B2_set))
 
     Va=[]
     Vb=[]
@@ -54,27 +57,9 @@ function construct_tensor(D,virtual_type)
     end
 
 
-    if virtual_type=="tetrahedral"
-        for cm=1:length(E_set)
-            E_set_occu[cm]=E_set[cm]["sectors"]
-            T=E_set[cm]["tensor"]
 
-            V1=ℂ^(size(E_set[cm]["tensor"])[1])
-            V2=ℂ^(size(E_set[cm]["tensor"])[2])
-            V3=ℂ^(size(E_set[cm]["tensor"])[3])
-            V4=ℂ^(size(E_set[cm]["tensor"])[4])
-            t1 = TensorMap(T, V1 ←  V2 ⊗ V3 ⊗ V4)
 
-            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
-            t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va ⊗ Va);
-            
-            norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));
-            E_set[cm]=t2;
-        end
 
-        return A_set,E_set, S_label, Sz_label, virtual_particle, Va, Vb;
-
-    elseif virtual_type=="square"
         for cm=1:length(A1_set)
             A1_set_occu[cm]=A1_set[cm]["sectors"]
             T=A1_set[cm]["tensor"]
@@ -108,9 +93,42 @@ function construct_tensor(D,virtual_type)
             norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));
             A2_set[cm]=t2;
         end
-        return A_set,A1_set,A2_set, S_label, Sz_label, virtual_particle, Va, Vb;
-    end
 
+        
+        for cm=1:length(B1_set)
+            B1_set_occu[cm]=B1_set[cm]["sectors"]
+            T=B1_set[cm]["tensor"]
+
+            V1=ℂ^(size(B1_set[cm]["tensor"])[1])
+            V2=ℂ^(size(B1_set[cm]["tensor"])[2])
+            V3=ℂ^(size(B1_set[cm]["tensor"])[3])
+            V4=ℂ^(size(B1_set[cm]["tensor"])[4])
+            t1 = TensorMap(T, V1 ←  V2 ⊗ V3 ⊗ V4)
+
+            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+            t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va ⊗ Va);
+            
+            norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));
+            B1_set[cm]=t2;
+        end
+
+        for cm=1:length(B2_set)
+            B2_set_occu[cm]=B2_set[cm]["sectors"]
+            T=B2_set[cm]["tensor"]
+
+            V1=ℂ^(size(B2_set[cm]["tensor"])[1])
+            V2=ℂ^(size(B2_set[cm]["tensor"])[2])
+            V3=ℂ^(size(B2_set[cm]["tensor"])[3])
+            V4=ℂ^(size(B2_set[cm]["tensor"])[4])
+            t1 = TensorMap(T, V1 ←  V2 ⊗ V3 ⊗ V4)
+
+            Va=SU2Space(0=>length(findall(x->x==0, S_label))/1, 1/2=>length(findall(x->x==1/2, S_label))/2,1=>length(findall(x->x==1, S_label))/3,3/2=>length(findall(x->x==3/2, S_label))/4)
+            t2 = TensorMap(T, ProductSpace{GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}, 0}() ← Va ⊗ Va ⊗ Va ⊗ Va);
+            
+            norm(convert(Array, t1)-convert(Array, t2))<1e-10  ? nothing : throw(AssertionError("Tensor converted incorrectly"));
+            B2_set[cm]=t2;
+        end
+        return A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb;
     
     
 end

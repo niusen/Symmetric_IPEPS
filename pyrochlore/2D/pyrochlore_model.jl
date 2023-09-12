@@ -1,11 +1,19 @@
 using LinearAlgebra
 using TensorKit
 
+function fuse_H(H,U_phy)
+    U_U_phy=unitary(fuse(space(U_phy,1)*space(U_phy,1)), space(U_phy,1)*space(U_phy,1));
+    @tensor H_fused[:]:=H[1,2,3,4,7,8,9,10]*U_phy[11,7,8]*U_phy[12,9,10]*U_phy'[1,2,5]*U_phy'[3,4,6]*U_U_phy[-1,11,12]*U_U_phy'[5,6,-2];
+    return H_fused
+end
+
 function plaquatte_ob(rho,op)
-    @tensor ob[:]:=rho[1,2,3,4,5,6,7,8]*op[5,6,7,8,1,2,3,4];
-    @tensor norm[:]:=rho[1,2,3,4,1,2,3,4];
-    ob=ob/norm;
-    ob=blocks(ob)[Irrep[SU₂](0)];
+    ob= @tensor rho[1,2,3,4,5,6,7,8]*op[5,6,7,8,1,2,3,4];
+    Norm= @tensor rho[1,2,3,4,1,2,3,4];
+    #Norm=blocks(Norm)[Irrep[SU₂](0)][1];
+    #ob=blocks(ob)[Irrep[SU₂](0)][1];
+    ob=ob/Norm;
+    
     return ob
 
 end
@@ -38,6 +46,55 @@ function build_density_op(U_phy, A_unfused, AA_fused, U_L,U_D,U_R,U_U, CTM)
     return rho
 
 end
+
+function ob_efficient(H_fused,U_phy, AA_fused, CTM, bond_tensor,square_tensor)
+    ob=build_density_op_efficient(H_fused,U_phy, AA_fused, CTM, bond_tensor,square_tensor);
+    Norm=build_density_op_efficient([],U_phy, AA_fused, CTM, bond_tensor,square_tensor);
+    ob=ob/Norm;
+    return ob
+end
+
+
+function build_density_op_efficient(H_fused,U_phy, AA_fused, CTM, bond_tensor,square_tensor)
+    U_U_phy=unitary(fuse(space(U_phy,1)*space(U_phy,1)), space(U_phy,1)*space(U_phy,1));
+    @tensor ALU[:]:=bond_tensor[-1,5,1]*bond_tensor[-4,6,2]*bond_tensor[8,-3,3]*bond_tensor[7,-2,4]*square_tensor[5,7,8,6]*U_phy[9,1,2]*U_phy[10,3,4]*U_U_phy[-5,9,10];
+    @tensor ALD[:]:=bond_tensor[-1,1,-5]*square_tensor[1,-2,-3,-4];
+    @tensor ARU[:]:=bond_tensor[-4,1,-5]*square_tensor[-1,-2,-3,1];
+
+    if H_fused==[]
+        AA_LU, U_L,U_D,U_R,U_U=build_double_layer(ALU,[]);
+    else
+        H_=permute(H_fused',(1,),(2,));
+        AA_LU, U_L,U_D,U_R,U_U=build_double_layer(ALU,H_);
+    end
+    
+    AA_LD, _,_,_,_=build_double_layer(ALD,[]);
+    AA_RU, _,_,_,_=build_double_layer(ARU,[]);
+
+
+    Cset=CTM["Cset"];
+    Tset=CTM["Tset"];
+
+    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_LU[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3]* Tset[2][2,4,-3];
+
+    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_LD[3,4,-4,-2]*Cset[4][2,1]*Tset[3][-3,4,2]; 
+    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
+
+    MM_LU=permute(MM_LU,(1,2,),(3,4,));
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
+    @tensor rho[:]:=up[1,2,3,4]*down[1,2,3,4];
+
+    return rho.data.values[1][1]
+
+end
+
 
 
 

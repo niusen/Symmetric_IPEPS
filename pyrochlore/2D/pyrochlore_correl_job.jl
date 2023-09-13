@@ -84,7 +84,7 @@ eu_allspin_x,allspin_x=solve_correl_length(5,[],CTM,"x",ctm_setting);
 eu_allspin_y,allspin_y=solve_correl_length(5,[],CTM,"y",ctm_setting);
 
 
-matwrite("D"*string(D)"_correl"*"_chi"*string(chi)*".mat", Dict(
+matwrite("D"*string(D)*"_correl"*"_chi"*string(chi)*".mat", Dict(
     "energy" => Eb,
     "eu_allspin_x"=>eu_allspin_x,
     "allspin_x"=>allspin_x,

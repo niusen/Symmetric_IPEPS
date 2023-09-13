@@ -6,10 +6,6 @@ function energy_CTM(H_plaquatte,D,chi,parameters,state_dict,ctm_setting,init)
     bond_tensor,square_tensor=construct_su2_PG_IPESS(state_dict,A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb);
 
     PEPS_tensor,A_fused,U_phy=build_PEPS(bond_tensor,square_tensor);
-
-    conv_check="singular_value";
-    CTM_ite_info=false;
-    CTM_conv_info=true;
     
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting);
 
@@ -45,7 +41,6 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
     grad_ctm_setting=deepcopy(ctm_setting);
     grad_ctm_setting.CTM_ite_info=false;
 
-
     Bond_irrep, Square_irrep, Bond_A_coe, Square_A1_coe, Square_A2_coe, Square_B1_coe, Square_B2_coe=get_tensor_coes(state);
 
     println("energy E0 is "*string(E0));flush(stdout);
@@ -56,6 +51,12 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
 
     #println(state["coes"])
 
+    if grad_CTM_method=="restart"
+        init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
+    elseif grad_CTM_method=="from_converged_CTM"
+        init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
+    end
+
     #Bond A tensor diff
     if Bond_irrep=="A"
         Bond_A_grad=zeros(Float64, length(Bond_A_coe))
@@ -64,12 +65,8 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
             Bond_A_coe_tem[ct]=Bond_A_coe_tem[ct]+dt;
             state_tem=wrap_json_state(Bond_irrep, Square_irrep, Bond_A_coe_tem, Square_A1_coe, Square_A2_coe, Square_B1_coe, Square_B2_coe);
             #println(state_tem["coes"])
-            if grad_CTM_method=="restart"
-                init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
-            elseif grad_CTM_method=="from_converged_CTM"
-                init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
-            end
-            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
+
+            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,deepcopy(init_CTM));
             println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Bond_A_grad[ct]=(E-E0)/dt;
@@ -90,12 +87,8 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
             Square_A1_coe_tem[ct]=Square_A1_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Square_irrep, Bond_A_coe, Square_A1_coe_tem, Square_A2_coe, Square_B1_coe, Square_B2_coe);
             #println(state_tem["coes"])
-            if grad_CTM_method=="restart"
-                init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
-            elseif grad_CTM_method=="from_converged_CTM"
-                init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
-            end
-            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
+
+            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting, deepcopy(init_CTM));
             println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_A1_grad[ct]=(E-E0)/dt;
@@ -112,12 +105,8 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
             Square_A2_coe_tem[ct]=Square_A2_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Square_irrep, Bond_A_coe, Square_A1_coe, Square_A2_coe_tem, Square_B1_coe, Square_B2_coe);
             #println(state_tem["coes"])
-            if grad_CTM_method=="restart"
-                init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
-            elseif grad_CTM_method=="from_converged_CTM"
-                init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
-            end
-            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
+
+            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,deepcopy(init_CTM));
             println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_A2_grad[ct]=(E-E0)/dt;
@@ -134,12 +123,8 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
             Square_B1_coe_tem[ct]=Square_B1_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Square_irrep, Bond_A_coe, Square_A1_coe, Square_A2_coe, Square_B1_coe_tem, Square_B2_coe);
             #println(state_tem["coes"])
-            if grad_CTM_method=="restart"
-                init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
-            elseif grad_CTM_method=="from_converged_CTM"
-                init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
-            end
-            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
+
+            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,deepcopy(init_CTM));
             println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_B1_grad[ct]=(E-E0)/dt;
@@ -155,12 +140,8 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
             Square_B2_coe_tem[ct]=Square_B2_coe_tem[ct]+dt
             state_tem=wrap_json_state(Bond_irrep, Square_irrep, Bond_A_coe, Square_A1_coe, Square_A2_coe, Square_B1_coe, Square_B2_coe_tem);
             #println(state_tem["coes"])
-            if grad_CTM_method=="restart"
-                init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
-            elseif grad_CTM_method=="from_converged_CTM"
-                init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
-            end
-            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
+
+            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting, deepcopy(init_CTM));
             println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_B2_grad[ct]=(E-E0)/dt;
@@ -190,6 +171,12 @@ function grad_line_search(H_plaquatte,state, D, chi, parameters, ctm_setting, gr
     
     println("state: "*string(get_vector(state)));flush(stdout);
     println("grad: "*string(grad));flush(stdout);
+
+    if linesearch_CTM_method=="restart"
+        init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
+    elseif linesearch_CTM_method=="from_converged_CTM"
+        init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
+    end
 
     LS_ctm_setting=deepcopy(ctm_setting);
     LS_ctm_setting.CTM_ite_info=false;
@@ -222,12 +209,8 @@ function grad_line_search(H_plaquatte,state, D, chi, parameters, ctm_setting, gr
     for ls_step=0:ls_max-1
         vec_tem=vec0+direction*alpha*(ls_ratio^ls_step);
         state_tem=set_vector(state, vec_tem)
-        if linesearch_CTM_method=="restart"
-            init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
-        elseif linesearch_CTM_method=="from_converged_CTM"
-            init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
-        end
-        E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,LS_ctm_setting,init_CTM);
+
+        E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,LS_ctm_setting,deepcopy(init_CTM));
         println("Number of iterations for linesearch: "*string(ite_num));flush(stdout);
         
         E=real(E);
@@ -247,12 +230,8 @@ function grad_line_search(H_plaquatte,state, D, chi, parameters, ctm_setting, gr
         for ls_step = 0:ls_max-1
             vec_tem=vec0-grad*alpha*(ls_ratio^ls_step)
             state_tem=set_vector(state, vec_tem)
-            if linesearch_CTM_method=="restart"
-                init_CTM=Dict([("CTM", []), ("init_type", "PBC")]);
-            elseif linesearch_CTM_method=="from_converged_CTM"
-                init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
-            end
-            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,LS_ctm_setting,init_CTM);
+
+            E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,LS_ctm_setting, deepcopy(init_CTM));
             println("Number of iterations for linesearch: "*string(ite_num));
             E=real(E);
             println(string(E)*", "*string(ite_num)*", "*string(ite_err));flush(stdout);

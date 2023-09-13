@@ -2,7 +2,7 @@ using LinearAlgebra
 using TensorKit
 
 
-function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, method,E_up_method="2x2",)
+function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2",)
     construct_double_layer=ctm_setting.construct_double_layer;
 
     if construct_double_layer
@@ -13,7 +13,7 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
     H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
     
 
-    if method=="E_single_triangle"
+    if kagome_method=="E_single_triangle"
         if construct_double_layer
             AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
             E_up=ob_1site_closed(CTM,[],AA_H,[],construct_double_layer)/norm_1site;
@@ -23,10 +23,10 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
         E_up=E_up[1];
         
         E_down=E_up;     
-        println("Only compute energy in a single triangle")
+        
         return E_up, E_down  
 
-    elseif (method=="E_triangle") | (method=="J2J3") #calculate up and down triangle energy
+    elseif (kagome_method=="E_triangle") | (kagome_method=="J2J3") #calculate up and down triangle energy
         if construct_double_layer
             AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
             AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
@@ -56,7 +56,7 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
         @tensor E_down[:]:=rho_LU_RU_LD[1,2]*H_triangle[2,1];
         E_down=E_down[1]/norm_LU_RU_LD[1];     
         return E_up, E_down   
-    elseif method=="E_bond"
+    elseif kagome_method=="E_bond"
         if construct_double_layer
             AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
             AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);

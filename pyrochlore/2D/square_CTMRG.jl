@@ -135,7 +135,7 @@ function CTMRG(A,chi,init,ctm_setting)
         CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info,construct_double_layer);
         AA_memory=Base.summarysize(AA_fused)/1024/1024;
         if CTM_ite_info
-            println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.")
+            println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
         end
     else
         if "AA_fused" in keys(init)

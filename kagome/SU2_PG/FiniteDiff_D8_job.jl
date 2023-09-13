@@ -4,24 +4,23 @@ using KrylovKit
 using JSON
 using HDF5, JLD
 using Random
-cd("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
-#push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
-include("kagome_load_tensor.jl")
-include("kagome_CTMRG.jl")
-include("kagome_model.jl")
-include("kagome_IPESS.jl")
-include("kagome_FiniteDiff.jl")
+cd(@__DIR__)
+include("..\\resource_codes\\kagome_load_tensor.jl")
+include("..\\resource_codes\\kagome_CTMRG.jl")
+include("..\\resource_codes\\kagome_model.jl")
+include("..\\resource_codes\\kagome_IPESS.jl")
+include("..\\resource_codes\\kagome_FiniteDiff.jl")
+include("..\\resource_codes\\Settings.jl")
 
 
-
-Random.seed!(1234)
-
-
-D=8;
-chi=20;
+Random.seed!(12345)
 
 
-theta=0.2*pi;
+D=6;
+chi=40;
+
+
+theta=0*pi;
 J1=cos(theta);
 J2=0;
 J3=0;
@@ -32,21 +31,47 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 
 
-#state_dict=read_json_state("LS_D_8_chi_40.json")
-init_statenm=nothing;
-#init_statenm="julia_LS_D_8_chi_40.json"
-init_noise=0;
-CTM_conv_tol=1e-6;
-CTM_ite_nums=100;
-CTM_trun_tol=1e-12;
-grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
-linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
+
+
 Bond_irrep="A";
 Triangle_irrep="A1+iA2";
-#nonchiral="A1_even";
-nonchiral="No"
-run_FiniteDiff(parameters,D,chi,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,grad_CTM_method,linesearch_CTM_method,Bond_irrep,Triangle_irrep,nonchiral,init_statenm,init_noise)
+nonchiral="A1_even";#"No", "A1_even"
 
+
+
+
+
+ctm_setting=CTMRG_settings();
+ctm_setting.CTM_conv_tol=1e-6;
+ctm_setting.CTM_ite_nums=50;
+ctm_setting.CTM_trun_tol=1e-8;
+ctm_setting.svd_lanczos_tol=1e-8;
+ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+ctm_setting.conv_check="singular_value";
+ctm_setting.CTM_ite_info=true;
+ctm_setting.CTM_conv_info=true;
+ctm_setting.CTM_trun_svd=false;
+ctm_setting.construct_double_layer=true;
+
+dump(ctm_setting);
+
+
+optim_setting=Optim_settings();
+optim_setting.init_statenm="nothing";#"LS_A1even_U1_D_6_chi_60.json";#"nothing";
+optim_setting.init_noise=0;
+optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
+optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
+
+dump(optim_setting);
+
+energy_setting=Energy_settings()
+energy_setting.kagome_method ="E_single_triangle";
+energy_setting.E_up_method = "1x1";
+energy_setting.cal_chiral_order = false;
+
+dump(energy_setting);
+
+run_FiniteDiff(parameters,D,chi,Bond_irrep,Triangle_irrep,nonchiral,ctm_setting,optim_setting,energy_setting);
 
 
 

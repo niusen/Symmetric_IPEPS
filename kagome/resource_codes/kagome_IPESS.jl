@@ -18,6 +18,8 @@ function read_json_state(filenm)
     return json_dict
 end
 
+
+
 function has_odd(occus,virtual_particle)
     #counts the occupation number of half inter spins in A1 and A2 triangle tensors
     posit=inds=findall(x->x==0.5, virtual_particle.%1);
@@ -180,4 +182,314 @@ function get_tensor_coes(json_dict)
 
 
     return Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
+end
+
+
+
+
+function wrap_json_state(Bond_irrep,Triangle_irrep,nonchiral,Bond_A_coe,Bond_B_coe,Triangle_A1_coe,Triangle_A2_coe)
+    if Bond_irrep=="A"
+        if Triangle_irrep=="A1"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe))]);
+        elseif Triangle_irrep=="A2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        elseif Triangle_irrep=="A1+iA2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe)),("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        end
+    elseif Bond_irrep=="B"
+        if Triangle_irrep=="A1"
+            coes=Dict([("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe))]);
+        elseif Triangle_irrep=="A2"
+            coes=Dict([("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        elseif Triangle_irrep=="A1+iA2"
+            coes=Dict([("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe)),("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        end
+    elseif Bond_irrep=="A+iB"
+        if Triangle_irrep=="A1"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe))]);
+        elseif Triangle_irrep=="A2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        elseif Triangle_irrep=="A1+iA2"
+            coes=Dict([("Bond_A_coe", create_coe_dict(Bond_A_coe)), ("Bond_B_coe", create_coe_dict(Bond_B_coe)), ("Triangle_A1_coe", create_coe_dict(Triangle_A1_coe)),("Triangle_A2_coe", create_coe_dict(Triangle_A2_coe))]);
+        end
+    end
+    json_state=Dict([("coes" , coes), ("Bond_irrep", Bond_irrep), ("Triangle_irrep", Triangle_irrep), ("nonchiral", nonchiral)]);
+    
+    return json_state
+end
+
+
+function create_coe_dict(coe)
+    #print(coe)
+    entries=Vector(undef,length(coe));
+    for cc=1:length(coe)
+        entries[cc]=string(cc-1)*" "*string(coe[cc]);
+    end
+    dims=Vector(undef,1);
+    dims[1]=length(coe);
+
+    coe_dict=Dict([("dtype", "float64"), ("numEntries", length(coe)),("entries", entries), ("dims", dims)]);
+    return coe_dict
+end
+
+
+
+
+
+function initial_state(Bond_irrep,Triangle_irrep,nonchiral,D,init_statenm=nothing,init_noise=0)
+    A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, _, _, virtual_particle, _, _=construct_tensor(D);
+    if init_statenm=="nothing" 
+        println("Random initial state");flush(stdout);
+        
+        if Bond_irrep=="A"
+            Bond_A_coe=randn(Float64, length(A_set));
+            Bond_B_coe=[];
+        elseif Bond_irrep=="B"
+            Bond_A_coe=[];
+            Bond_B_coe=randn(Float64, length(B_set));
+        elseif Bond_irrep=="A+iB"
+            Bond_A_coe=randn(Float64, length(A_set));
+            Bond_B_coe=randn(Float64, length(B_set));
+        end
+        if Triangle_irrep=="A1"
+            Triangle_A1_coe=randn(Float64, length(A1_set));
+            Triangle_A2_coe=[];
+        elseif Triangle_irrep=="A2"
+            Triangle_A1_coe=[];
+            Triangle_A2_coe=randn(Float64, length(A2_set));
+        elseif Triangle_irrep=="A1+iA2"
+            Triangle_A1_coe=randn(Float64, length(A1_set));
+            Triangle_A2_coe=randn(Float64, length(A2_set));
+        end
+        
+        #projection to ninchiral state if needed
+        Triangle_A1_coe,Triangle_A2_coe, A1_has_odd, A2_has_odd=nonchiral_projection(nonchiral,Triangle_A1_coe,Triangle_A2_coe,A1_set_occu,A2_set_occu,virtual_particle);
+
+        json_state_dict=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe)
+    else
+        
+        println("load state: "*init_statenm);flush(stdout);
+        json_state_dict=read_json_state(init_statenm);
+        Bond_irrep_, Triangle_irrep_, nonchiral_, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(json_state_dict);#projection to nonchiral is inside this function if needed 
+        @assert Bond_irrep_==Bond_irrep
+        @assert Triangle_irrep_==Triangle_irrep
+        if nonchiral_==nonchiral
+        else
+            if nonchiral!="No"
+                println("Initial state is not nonchiral. Now project it to nonchiral.");flush(stdout);
+            end
+        end
+
+        #add initial noise
+        if Bond_irrep=="A"
+            Bond_A_coe=Bond_A_coe+(rand(Float64, length(Bond_A_coe)).-0.5)*init_noise;
+            Bond_B_coe=[];
+        elseif Bond_irrep=="B"
+            Bond_A_coe=[];
+            Bond_B_coe=Bond_B_coe+(rand(Float64, length(Bond_B_coe)).-0.5)*init_noise;
+        elseif Bond_irrep=="A+iB"
+            Bond_A_coe=Bond_A_coe+(rand(Float64, length(Bond_A_coe)).-0.5)*init_noise;
+            Bond_B_coe=Bond_B_coe+(rand(Float64, length(Bond_B_coe)).-0.5)*init_noise;
+        end
+
+        if Triangle_irrep=="A1"
+            Triangle_A1_coe=Triangle_A1_coe+(rand(Float64, length(Triangle_A1_coe)).-0.5)*init_noise;
+            Triangle_A2_coe=[];
+        elseif Triangle_irrep=="A2"
+            Triangle_A1_coe=[];
+            Triangle_A2_coe=Triangle_A2_coe+(rand(Float64, length(Triangle_A2_coe)).-0.5)*init_noise;
+        elseif Triangle_irrep=="A1+iA2"
+            Triangle_A1_coe=Triangle_A1_coe+(rand(Float64, length(Triangle_A1_coe)).-0.5)*init_noise;
+            Triangle_A2_coe=Triangle_A2_coe+(rand(Float64, length(Triangle_A2_coe)).-0.5)*init_noise;
+        end
+
+        #projection to ninchiral state if needed
+        Triangle_A1_coe,Triangle_A2_coe, A1_has_odd, A2_has_odd=nonchiral_projection(nonchiral,Triangle_A1_coe,Triangle_A2_coe,A1_set_occu,A2_set_occu,virtual_particle);
+
+        #wrap the changed state due to initial noise 
+        json_state_dict=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe);
+    end
+    return json_state_dict, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, A1_has_odd, A2_has_odd
+
+end
+
+
+
+
+function set_vector(json_dict, vec)
+    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coes0, Bond_B_coes0, Triangle_A1_coes0, Triangle_A2_coes0=get_tensor_coes(json_dict);
+    if Bond_irrep=="A"
+        if Triangle_irrep=="A1"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(Triangle_A1_coes0)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+        Bond_B_coe=nothing;
+    elseif Bond_irrep=="B"
+        if Triangle_irrep=="A1"
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(Triangle_A1_coes0)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+        Bond_A_coe=nothing;
+    elseif Bond_irrep=="A+iB"
+        if Triangle_irrep=="A1"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(Triangle_A1_coes0)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(Bond_A_coes0)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Bond_B_coes0)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A1_coes0)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(Triangle_A2_coes0)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+    end
+    json_dict_new=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe)
+    #return Bond_irrep, Triangle_irrep, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
+    return json_dict_new
+end
+
+
+
+
+
+function normalize_IPESS_SU2_PG(state_dict)
+    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state_dict)
+    if Bond_irrep=="A"
+        Bond_norm=norm(Bond_A_coe)
+        Bond_A_coe=Bond_A_coe/Bond_norm
+    elseif Bond_irrep=="B"
+        Bond_norm=norm(Bond_B_coe)
+        Bond_B_coe=Bond_B_coe/Bond_norm
+    elseif Bond_irrep=="A+iB"
+        Bond_norm=sqrt(norm(Bond_A_coe)^2+norm(Bond_B_coe)^2)
+        Bond_A_coe=Bond_A_coe/Bond_norm
+        Bond_B_coe=Bond_B_coe/Bond_norm
+    end
+
+    if Triangle_irrep=="A1"
+        Triangle_norm=norm(Triangle_A1_coe)
+        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
+    elseif Triangle_irrep=="A2"
+        Triangle_norm=norm(Triangle_A2_coe)
+        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
+    elseif Triangle_irrep=="A1+iA2"
+        Triangle_norm=sqrt(norm(Triangle_A1_coe)^2+norm(Triangle_A2_coe)^2)
+        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
+        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
+    end
+
+    state_dict=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe)
+    return state_dict
+end
+
+
+
+function get_vector(json_dict)
+    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(json_dict);
+    if Bond_irrep=="A"
+        if Triangle_irrep=="A1"
+            vec=vcat(Bond_A_coe,Triangle_A1_coe);
+        elseif Triangle_irrep=="A2"
+            vec=vcat(Bond_A_coe,Triangle_A2_coe);
+        elseif Triangle_irrep=="A1+iA2"
+            vec=vcat(Bond_A_coe,Triangle_A1_coe,Triangle_A2_coe);
+        end
+    elseif Bond_irrep=="B"
+        if Triangle_irrep=="A1"
+            vec=vcat(Bond_B_coe,Triangle_A1_coe);
+        elseif Triangle_irrep=="A2"
+            vec=vcat(Bond_B_coe,Triangle_A2_coe);
+        elseif Triangle_irrep=="A1+iA2"
+            vec=vcat(Bond_B_coe,Triangle_A1_coe,Triangle_A2_coe);
+        end
+    elseif Bond_irrep=="A+iB"
+        if Triangle_irrep=="A1"
+            vec=vcat(Bond_A_coe,Bond_B_coe,Triangle_A1_coe);
+        elseif Triangle_irrep=="A2"
+            vec=vcat(Bond_A_coe,Bond_B_coe,Triangle_A2_coe);
+        elseif Triangle_irrep=="A1+iA2"
+            vec=vcat(Bond_A_coe,Bond_B_coe,Triangle_A1_coe,Triangle_A2_coe);
+        end
+    end
+    return vec
 end

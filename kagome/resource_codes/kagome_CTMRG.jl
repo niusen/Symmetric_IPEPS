@@ -132,14 +132,21 @@ function CTMRG(A,chi,init,ctm_setting)
     if isempty(init["CTM"])
         CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info,construct_double_layer);
         AA_memory=Base.summarysize(AA_fused)/1024/1024;
-        println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.")
+        if CTM_ite_info
+            println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
+        end
     else
-        AA_fused=init["AA_fused"];
-        U_L=init["U_L"];
-        U_D=init["U_D"];
-        U_R=init["U_R"];
-        U_U=init["U_U"];
-        CTM=deepcopy(init["CTM"]);
+        if "AA_fused" in keys(init)
+            AA_fused=init["AA_fused"];
+            U_L=init["U_L"];
+            U_D=init["U_D"];
+            U_R=init["U_R"];
+            U_U=init["U_U"];
+            CTM=deepcopy(init["CTM"]);
+        else
+            AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
+            CTM=deepcopy(init["CTM"]);
+        end
     end
 
     Cset=CTM["Cset"];
@@ -356,6 +363,9 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
         uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
     end
     
+    # println(sM.data.values)
+    sM=sM/norm(sM);
+    # println(sM.data.values)
 
     multiplet_tol=1e-5;
     uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
@@ -563,10 +573,11 @@ end
 
 
 function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
+
     sM=truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
-    
+
     uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
-    
+    #println(sM_new)
     @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
     uM=uM_new;
     sM=sM_new;

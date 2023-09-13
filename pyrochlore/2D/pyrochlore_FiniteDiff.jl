@@ -1,8 +1,7 @@
 
 function energy_CTM(H_plaquatte,D,chi,parameters,state_dict,ctm_setting,init)
 
-    A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
-    
+    global A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb
     bond_tensor,square_tensor=construct_su2_PG_IPESS(state_dict,A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb);
 
     PEPS_tensor,A_fused,U_phy=build_PEPS(bond_tensor,square_tensor);

@@ -19,7 +19,7 @@ Random.seed!(1234)
 
 J1=1;
 J2=1;
-D=6;
+D=12;
 
 
 Bond_irrep="A";
@@ -27,7 +27,7 @@ Square_irrep="A1";#"A1", "A1+iB1"
 init_statenm="nothing";
 init_noise=0;
 
-A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+@time A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
 json_state_dict, Bond_A_coe, Square_A1_coe, Square_A2_coe, Square_B1_coe, Square_B2_coe=initial_state(Bond_irrep,Square_irrep,D,init_statenm,init_noise);
 bond_tensor,square_tensor=construct_su2_PG_IPESS(json_state_dict,A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb);
 PEPS_tensor,A_fused,U_phy=build_PEPS(bond_tensor,square_tensor);
@@ -60,7 +60,7 @@ CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_settin
 
 
 
-@time rho=build_density_op(U_phy, PEPS_tensor, AA_fused, U_L,U_D,U_R,U_U, CTM);#L',U',R',D',  L,U,R,D
+#@time rho=build_density_op(U_phy, PEPS_tensor, AA_fused, U_L,U_D,U_R,U_U, CTM);#L',U',R',D',  L,U,R,D
 
 
 Sigma=plaquatte_Heisenberg(J1,J2);
@@ -73,8 +73,8 @@ AKLT=plaquatte_AKLT(Sigma);
 
 U_U_phy=unitary(fuse(space(U_phy,1)*space(U_phy,1)), space(U_phy,1)*space(U_phy,1));
 
-Ea=plaquatte_ob(rho,AKLT)
-@time Eb=plaquatte_ob(rho,Sigma)
+#Ea=plaquatte_ob(rho,AKLT)
+#@time Eb=plaquatte_ob(rho,Sigma)
 
 @time Eb1=ob_efficient(Sigma_fused, U_phy, AA_fused, CTM,bond_tensor,square_tensor);#L',U',R',D',  L,U,R,D
 
@@ -85,7 +85,7 @@ eu_allspin_y,allspin_y=solve_correl_length(5,[],CTM,"y",ctm_setting);
 
 
 matwrite("D"*string(D)*"_correl"*"_chi"*string(chi)*".mat", Dict(
-    "energy" => Eb,
+    "energy" => Eb1,
     "eu_allspin_x"=>eu_allspin_x,
     "allspin_x"=>allspin_x,
     "eu_allspin_y"=>eu_allspin_y,

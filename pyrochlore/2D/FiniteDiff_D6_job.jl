@@ -66,6 +66,8 @@ optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_c
 
 dump(optim_setting);
 
+A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+global A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb
 run_FiniteDiff(parameters,D,chi,Bond_irrep,Square_irrep,ctm_setting,optim_setting);
 
 

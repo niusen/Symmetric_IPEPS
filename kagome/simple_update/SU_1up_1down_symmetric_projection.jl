@@ -122,6 +122,8 @@ Triangle_irrep="A1+iA2";
 nonchiral="A1_even";
 #nonchiral="No"
 
+A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, _, _, virtual_particle, _, _=construct_tensor(D);
+global A_set,B_set,A1_set,A2_set,A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, virtual_particle
 run_FiniteDiff(psi, D,Bond_irrep,Triangle_irrep,nonchiral,init_statenm,init_noise)
 
 

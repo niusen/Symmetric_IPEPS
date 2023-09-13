@@ -145,6 +145,10 @@ function CTMRG(A,chi,init,ctm_setting)
             CTM=deepcopy(init["CTM"]);
         else
             AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
+            AA_memory=Base.summarysize(AA_fused)/1024/1024;
+            if CTM_ite_info
+                println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
+            end
             CTM=deepcopy(init["CTM"]);
         end
     end

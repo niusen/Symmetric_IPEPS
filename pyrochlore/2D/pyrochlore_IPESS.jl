@@ -137,7 +137,7 @@ end
 
 
 function initial_state(Bond_irrep,Square_irrep,D,init_statenm,init_noise)
-    A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+    global A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);
         

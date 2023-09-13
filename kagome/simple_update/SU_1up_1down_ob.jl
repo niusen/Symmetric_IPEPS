@@ -8,14 +8,14 @@ using Random
 
 cd(@__DIR__)
 #push!(LOAD_PATH, "D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\SU2_PG")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_load_tensor.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_CTMRG.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_model.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_IPESS.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_FiniteDiff.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\kagome_correl.jl")
-include("D:\\My Documents\\Code\\Julia_codes\\Tensor network\\IPEPS_TensorKit\\kagome\\simple_update\\resource_codes\\Settings.jl")
+include("..\\resource_codes\\kagome_load_tensor.jl")
+include("..\\resource_codes\\kagome_CTMRG.jl")
+include("..\\resource_codes\\kagome_model.jl")
+include("..\\resource_codes\\kagome_model.jl")
+include("..\\resource_codes\\kagome_IPESS.jl")
+include("..\\resource_codes\\kagome_FiniteDiff.jl")
+include("..\\resource_codes\\kagome_correl.jl")
+include("..\\resource_codes\\Settings.jl")
 
 
 include("funs_1up_1down.jl")

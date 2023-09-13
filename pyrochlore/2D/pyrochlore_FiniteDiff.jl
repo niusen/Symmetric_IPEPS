@@ -70,7 +70,7 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
                 init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
             end
             E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
-            println("Number of iterations for grad: "*string(ite_num));
+            println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Bond_A_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
@@ -96,7 +96,7 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
                 init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
             end
             E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
-            println("Number of iterations for grad: "*string(ite_num));
+            println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_A1_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
@@ -118,7 +118,7 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
                 init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
             end
             E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
-            println("Number of iterations for grad: "*string(ite_num));
+            println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_A2_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
@@ -140,7 +140,7 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
                 init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
             end
             E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
-            println("Number of iterations for grad: "*string(ite_num));
+            println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_B1_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
@@ -161,7 +161,7 @@ function Grad_FiniteDiff(H_plaquatte,state, D, chi, parameters,ctm_setting,grad_
                 init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
             end
             E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,grad_ctm_setting,init_CTM);
-            println("Number of iterations for grad: "*string(ite_num));
+            println("Number of iterations for grad: "*string(ite_num));flush(stdout);
             E=real(E);
             Square_B2_grad[ct]=(E-E0)/dt;
             dE_data=vcat(dE_data, E-E0);
@@ -228,7 +228,7 @@ function grad_line_search(H_plaquatte,state, D, chi, parameters, ctm_setting, gr
             init_CTM=Dict([("CTM", deepcopy(CTM)), ("init_type", "PBC")]);
         end
         E,ite_num,ite_err,_=energy_CTM(H_plaquatte,D,chi,parameters,state_tem,LS_ctm_setting,init_CTM);
-        println("Number of iterations for linesearch: "*string(ite_num));
+        println("Number of iterations for linesearch: "*string(ite_num));flush(stdout);
         
         E=real(E);
         println(string(E)*", "*string(ite_num)*", "*string(ite_err));flush(stdout);

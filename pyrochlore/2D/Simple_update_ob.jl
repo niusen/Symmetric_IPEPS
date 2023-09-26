@@ -17,11 +17,11 @@ include("funs_SU.jl")
 
 
 Random.seed!(1234)
-
+symmetric_initial=false;
 J1=1;
 J2=1;
-D_max=2;
-symmetric_hosvd=false;
+D_max=8;
+symmetric_hosvd=true;
 trun_tol=1e-6;
 D=2;
 
@@ -47,29 +47,32 @@ ABAB
 BABA
 "
 
+if symmetric_initial
 
-virtual_type="square";
-PEPS_tensor_A,A_fused_A,U_phy=build_PEPS(D,[],virtual_type);
-PEPS_tensor_B,A_fused_B,_=build_PEPS(D,[],virtual_type);
+Bond_irrep="A";
+Square_irrep="A1";#"A1", "A1+iB1"
+init_statenm="nothing";
+init_noise=0;
+
+@time A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
+json_state_dict, Bond_A_coe, Square_A1_coe, Square_A2_coe, Square_B1_coe, Square_B2_coe=initial_state(Bond_irrep,Square_irrep,D,init_statenm,init_noise);
+bond_tensor,square_tensor=construct_su2_PG_IPESS(json_state_dict,A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb);
+PEPS_tensor,A_fused,U_phy=build_PEPS(bond_tensor,square_tensor);
+else
+    Vp=Rep[SU₂](1=>1);
+    Vv=Rep[SU₂](1/2=>1,3/2=>1);
+    bond_tensor=TensorMap(randn,Vv*Vv,Vp);
+    square_tensor=permute(TensorMap(randn,Vv'*Vv',Vv*Vv),(1,2,3,4,));
+end
+
+
 ######################
 
-A_set,A1_set,A2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D,virtual_type);
-bond_tensor=A_set[1];
-tetrahedral=A1_set[1];
-
-@tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[-4,2,-6]*tetrahedral[1,-2,-3,2];
-
-U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6));
-@tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2]*U_phy[-5,1,2];
-
-
-######################
 
 
 
-
-T_u=deepcopy(tetrahedral);
-T_d=deepcopy(tetrahedral);
+T_u=deepcopy(square_tensor);
+T_d=deepcopy(square_tensor);
 B_a=deepcopy(bond_tensor);
 B_b=deepcopy(bond_tensor);
 B_c=deepcopy(bond_tensor);

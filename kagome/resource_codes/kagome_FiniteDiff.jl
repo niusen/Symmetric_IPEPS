@@ -12,6 +12,9 @@ function energy_CTM(D,chi,parameters,state_dict, ctm_setting, energy_setting, in
     @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting);
+
+    @assert ite_err<3*(1e-5)
+
     if (parameters["J2"]==0) & (parameters["J3"]==0)
         #kagome_method="E_single_triangle"
         E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);

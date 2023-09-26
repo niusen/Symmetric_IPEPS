@@ -16,7 +16,7 @@ include("..\\resource_codes\\Settings.jl")
 Random.seed!(12345)
 
 
-D=6;
+D=3;
 chi=40;
 
 

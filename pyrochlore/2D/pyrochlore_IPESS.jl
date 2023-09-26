@@ -40,13 +40,33 @@ function construct_su2_PG_IPESS(json_dict,A_set,A1_set,A2_set,B1_set,B2_set, S_l
 
     #combine tensors with coefficients
     bond_tensor=A_set[1]*0;
-    for ct=1:length(Bond_A_coe)
-        bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct];
+    if Bond_irrep=="A"
+        for ct=1:length(Bond_A_coe)
+            bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct];
+        end
+    elseif Bond_irrep=="B"
+        for ct=1:length(Bond_B_coe)
+            bond_tensor=bond_tensor+B_set[ct]*Bond_B_coe[ct];
+        end
     end
 
     Square_tensor=A1_set[1]*0;
-    for ct=1:length(Square_A1_coe)
-        Square_tensor=Square_tensor+A1_set[ct]*Square_A1_coe[ct];
+    if Square_irrep=="A1"
+        for ct=1:length(Square_A1_coe)
+            Square_tensor=Square_tensor+A1_set[ct]*Square_A1_coe[ct];
+        end
+    elseif Square_irrep=="B1"
+        for ct=1:length(Square_B1_coe)
+            Square_tensor=Square_tensor+B1_set[ct]*Square_B1_coe[ct];
+        end
+    elseif Square_irrep=="A2"
+        for ct=1:length(Square_A2_coe)
+            Square_tensor=Square_tensor+A2_set[ct]*Square_A2_coe[ct];
+        end
+    elseif Square_irrep=="B2"
+        for ct=1:length(Square_B2_coe)
+            Square_tensor=Square_tensor+B2_set[ct]*Square_B2_coe[ct];
+        end
     end
 
     return bond_tensor,Square_tensor

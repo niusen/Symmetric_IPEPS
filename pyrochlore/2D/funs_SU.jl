@@ -34,7 +34,8 @@ function hosvd(A,trun_tol,bond_dim)
     uMc,sMc,vMc=Truncations(uMc,sMc,vMc,bond_dim,trun_tol);
 
     uMd,sMd,vMd = tsvd(A, (7,8,),(1,2,3,4,5,6,); trunc=truncdim(bond_dim));
-    uMd,sMd,vMd=Truncations(uMc,sMc,vMc,bond_dim,trun_tol);
+    uMd,sMd,vMd=Truncations(uMd,sMd,vMd,bond_dim,trun_tol);
+
 
     @tensor S[:]:=A[1,2,3,4,5,6,7,8]*uMa'[-1,1,2]*uMb'[-2,3,4]*uMc'[-3,5,6]*uMd'[-4,7,8];
     S=S/norm(S);
@@ -103,7 +104,7 @@ function Tri_T_dn(T_d, B_a, B_b, B_c, B_d, lambda_u_a, lambda_u_b, lambda_u_c, l
         unitd=unitary(space(B_d,3)',space(B_d,3))
         @tensor B_d[:]:=B_d[-1,-2,1]*unitd[1,-3]
 
-        @tensor S_trun[:]:=S_trun[1,2,3,4]*unita'[-1,1]*unitb'[-2,2]*unitc'[-3,3]*unitc'[-4,4]
+        @tensor S_trun[:]:=S_trun[1,2,3,4]*unita'[-1,1]*unitb'[-2,2]*unitc'[-3,3]*unitd'[-4,4]
     end
 
     lambda_u_d_inv=pinv(lambda_u_d)
@@ -130,6 +131,11 @@ function Tri_T_up(T_u, B_a, B_b, B_c, B_d, lambda_d_a, lambda_d_b, lambda_d_c, l
     @tensor B_a_new[:]:=B_a[1,-2,-3]*lambda_d_a[-1,1]
 
     #@tensor A[:]:=T_u[5,6,7,8]*B_c_new[-1,5,1]*B_d_new[-2,6,2]*B_a_new[-3,7,3]*B_b_new[-4,8,4]*U_phy_2[-5,1,2]*U_phy_2[-6,3,4];
+    # println(space(T_u))
+    # println(space(B_c_new))
+    # println(space(B_d_new))
+    # println(space(B_a_new))
+    # println(space(B_b_new))
     @tensor A[:]:=T_u[5,6,7,8]*B_c_new[-1,5,-5]*B_d_new[-2,6,-6]*B_a_new[-3,7,-7]*B_b_new[-4,8,-8];
 
     #@tensor A[:]:=gate[1,2,-5,-6]*A[-1,-2,-3,-4,1,2]
@@ -152,7 +158,7 @@ function Tri_T_up(T_u, B_a, B_b, B_c, B_d, lambda_d_a, lambda_d_b, lambda_d_c, l
         lambda_u_b=deepcopy(lambda)
         lambda_u_a=deepcopy(lambda)
     else
-        S_trun, B_a,B_b,B_c,B_d, lambda_u_a,lambda_u_b,lambda_u_c,lambda_u_d=hosvd(A,trun_tol,bond_dim)
+        S_trun, B_c,B_d,B_a,B_b, lambda_u_c,lambda_u_d,lambda_u_a,lambda_u_b=hosvd(A,trun_tol,bond_dim)
     
         unita=unitary(space(B_a,3)',space(B_a,3))
         @tensor B_a[:]:=B_a[-1,-2,1]*unita[1,-3]
@@ -166,7 +172,7 @@ function Tri_T_up(T_u, B_a, B_b, B_c, B_d, lambda_d_a, lambda_d_b, lambda_d_c, l
         unitd=unitary(space(B_d,3)',space(B_d,3))
         @tensor B_d[:]:=B_d[-1,-2,1]*unitd[1,-3]
 
-        @tensor S_trun[:]:=S_trun[1,2,3,4]*unita'[-1,1]*unitb'[-2,2]*unitc'[-3,3]*unitc'[-4,4]
+        @tensor S_trun[:]:=S_trun[1,2,3,4]*unitc'[-1,1]*unitd'[-2,2]*unita'[-3,3]*unitb'[-4,4]
 
     end
     

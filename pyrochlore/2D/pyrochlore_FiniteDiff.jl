@@ -8,6 +8,8 @@ function energy_CTM(H_plaquatte,D,chi,parameters,state_dict,ctm_setting,init)
     
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting);
 
+    @assert ite_err<3*(1e-5)
+    
     #rho=build_density_op(U_phy, PEPS_tensor, AA_fused, U_L,U_D,U_R,U_U, CTM);#L',U',R',D',  L,U,R,D
     #energy=plaquatte_ob(rho,Sigma)
 

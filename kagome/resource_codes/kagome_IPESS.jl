@@ -236,7 +236,7 @@ end
 
 
 
-function initial_state(Bond_irrep,Triangle_irrep,nonchiral,D,init_statenm=nothing,init_noise=0)
+function initial_state(Bond_irrep,Triangle_irrep,nonchiral,D,init_statenm="nothing",init_noise=0)
     global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb  
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);

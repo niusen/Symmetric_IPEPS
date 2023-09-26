@@ -19,7 +19,7 @@ Random.seed!(1234)
 
 J1=1;
 J2=1;
-D=12;
+D=6;
 
 
 Bond_irrep="A";

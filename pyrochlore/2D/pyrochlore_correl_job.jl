@@ -19,7 +19,7 @@ Random.seed!(1234)
 
 J1=1;
 J2=1;
-D=6;
+D=2;
 
 
 Bond_irrep="A";
@@ -77,6 +77,22 @@ U_U_phy=unitary(fuse(space(U_phy,1)*space(U_phy,1)), space(U_phy,1)*space(U_phy,
 #@time Eb=plaquatte_ob(rho,Sigma)
 
 @time Eb1=ob_efficient(Sigma_fused, U_phy, AA_fused, CTM,bond_tensor,square_tensor);#L',U',R',D',  L,U,R,D
+
+SS_op12, SS_op13, SS_op14, SS_op23, SS_op24, SS_op34=plaquatte_coupling();
+SS_op12=fuse_H(SS_op12,U_phy);
+SS_op13=fuse_H(SS_op13,U_phy);
+SS_op14=fuse_H(SS_op14,U_phy);
+SS_op23=fuse_H(SS_op23,U_phy);
+SS_op24=fuse_H(SS_op24,U_phy);
+SS_op34=fuse_H(SS_op34,U_phy);
+E12=ob_efficient(SS_op12, U_phy, AA_fused, CTM,bond_tensor,square_tensor);
+E13=ob_efficient(SS_op13, U_phy, AA_fused, CTM,bond_tensor,square_tensor);
+E14=ob_efficient(SS_op14, U_phy, AA_fused, CTM,bond_tensor,square_tensor);
+E23=ob_efficient(SS_op23, U_phy, AA_fused, CTM,bond_tensor,square_tensor);
+E24=ob_efficient(SS_op24, U_phy, AA_fused, CTM,bond_tensor,square_tensor);
+E34=ob_efficient(SS_op34, U_phy, AA_fused, CTM,bond_tensor,square_tensor);
+
+
 
 
 

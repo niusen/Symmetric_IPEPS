@@ -205,11 +205,12 @@ function CTMRG(A,chi,init,ctm_setting)
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
+        direction_order=[1,2,3,4];
         for direction in direction_order
             Cset,Tset=CTM_ite(Cset, Tset, AA_rotated[direction], chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
         end
 
-        print_corner=false;
+        print_corner=true;
         if print_corner
             println("corner 4:")
             C4_spec=svdvals(convert(Array,Cset[4]));

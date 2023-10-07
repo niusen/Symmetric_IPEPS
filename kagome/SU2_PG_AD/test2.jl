@@ -10,11 +10,13 @@ using Zygote:@ignore_derivatives
 
 cd(@__DIR__)
 include("..\\resource_codes\\kagome_load_tensor.jl")
-include("..\\resource_codes\\kagome_CTMRG.jl")
+#include("..\\resource_codes\\kagome_CTMRG.jl")
+include("kagome_CTMRG.jl")
 include("..\\resource_codes\\kagome_model.jl")
 include("..\\resource_codes\\kagome_IPESS.jl")
 include("..\\resource_codes\\kagome_FiniteDiff.jl")
 include("..\\resource_codes\\Settings.jl")
+
 
 
 Random.seed!(12345)
@@ -139,186 +141,9 @@ end
 a,b=cfun(A_fused,CTM)
 
 
-function fuse_CTM_legs_test(CTM,U_L,U_D,U_R,U_U)
-    #Tset_new=Vector{TensorMap}(undef,4);
-    #fuse CTM legs
-    Tset=CTM.Tset;
-
-    #T4
-    T4=permute(Tset.T4,(1,4,),(2,3,));
-    T4=T4*U_R;
-    T4=permute(T4,(1,3,2,),());
-    #Tset_new[4]=T4
-    #display(space(T4))
-
-    #T3
-    T3=permute(Tset.T3,(1,4,),(2,3,));
-    T3=T3*U_U;
-    T3=permute(T3,(1,3,2,),());
-    #Tset_new[3]=T3
-    #display(space(T3))
-
-    #T2
-    T2=permute(Tset.T2,(2,3,),(1,4,));
-    T2=U_L*T2;
-    T2=permute(T2,(2,1,3,),());
-    #Tset_new[2]=T2
-    #display(space(T2))
-
-    #T1
-    T1=permute(Tset.T1,(2,3,),(1,4,));
-    T1=U_D*T1;
-    T1=permute(T1,(2,1,3,),());
-    #Tset_new[1]=T1
-    #display(space(T1))
-
-    CTM.Tset=Tset_struc(T1,T2,T3,T4);
-    return CTM
-end
-
-function init_CTM_test(chi,A,type,CTM_ite_info,construct_double_layer)
-    if CTM_ite_info
-        display("initialize CTM")
-    end
-    #numind(A)
-    #numin(A)
-    #numout(A)
-    CTM=[];
-    #Cset=Vector{TensorMap}(undef,4);
-    #Tset=Vector{TensorMap}(undef,4);
-    Cset=Cset_struc(A,A,A,A)
-    Tset=Tset_struc(A,A,A,A)
-    # Cset=(A,A,A,A)
-    # Tset=(A,A,A,A)
-    #space(A,1)
-    
-    if type=="PBC"
-        for direction=1:4
-            inds=(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5);
-            A_rotate=permute(A,inds);
-            Ap_rotate=A_rotate';
-
-            @tensor M[:]:=Ap_rotate[1,-1,-3,2,3]*A_rotate[1,-2,-4,2,3];
-            Cset=set_Cset(Cset,M,direction);
-            @tensor M[:]:=Ap_rotate[-1,-3,-5,1,2]*A_rotate[-2,-4,-6,1,2];
-            Tset=set_Tset(Tset,M,direction);
-        end
-        
-        #fuse legs
-        #ul_set=Vector{TensorMap}(undef,4);
-        #ur_set=Vector{TensorMap}(undef,4);
-        ul_set=Tset_struc(A,A,A,A)
-        ur_set=Tset_struc(A,A,A,A)
-        for direction=1:2
-            ul_set_tem=@ignore_derivatives unitary(fuse(space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4)), space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4));
-            ur_set_tem=@ignore_derivatives unitary(fuse(space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6)), space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6));
-            ul_set=set_Tset(ul_set,ul_set_tem,direction);
-            ur_set=set_Tset(ur_set,ur_set_tem,direction);
-        end
-        for direction=3:4
-            ul_set_tem=@ignore_derivatives unitary(fuse(space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4))', space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4));
-            ur_set_tem=@ignore_derivatives unitary(fuse(space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6))', space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6));
-            ul_set=set_Tset(ul_set,ul_set_tem,direction);
-            ur_set=set_Tset(ur_set,ur_set_tem,direction);
-        end
-        for direction=1:4
-            C=get_Cset(Cset,direction);
-            ul=get_Tset(ur_set,mod1(direction-1,4));
-            ur=get_Tset(ul_set,direction);
-            ulp=permute(ul',(3,),(1,2,));
-            urp=permute(ur',(3,),(1,2,));
-            #@tensor Cnew[(-1);(-2)]:=ulp[-1,1,2]*C[1,2,3,4]*ur[-2,3,4]
-            @tensor Cnew[:]:=ulp[-1,1,2]*C[1,2,3,4]*ur[-2,3,4];#put all indices in tone side so that its adjoint has the same index order
-            Cset=set_Cset(Cset,Cnew,direction);
-            
-
-            T=get_Tset(Tset,direction);
-            ul=get_Tset(ul_set,direction);
-            ur=get_Tset(ur_set,direction);
-            ulp=permute(ul',(3,),(1,2,));
-            urp=permute(ur',(3,),(1,2,));
-            #@tensor Tnew[(-1);(-2,-3,-4)]:=ulp[-1,1,2]*T[1,2,-2,-3,3,4]*ur[-4,3,4]
-            @tensor Tnew[:]:=ulp[-1,1,2]*T[1,2,-2,-3,3,4]*ur[-4,3,4];#put all indices in tone side so that its adjoint has the same index order
-            Tset=set_Tset(Tset,Tnew,direction);
-            
-        end
-
-    elseif type=="random"
-    end
-
-    CTM=CTM_struc(Cset, Tset);
-    
-    if construct_double_layer
-        AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
-        
-        CTM=fuse_CTM_legs_test(CTM,U_L,U_D,U_R,U_U);
-        
-    else
-        U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-        U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-        U_R=(U_L)';
-        U_U=(U_D)';
-        AA_fused=[];
-    end
-
-    return CTM, AA_fused, U_L,U_D,U_R,U_U
-
-
-end;
 
 
 
-function get_Cset(Cset,direction)
-    if direction==1
-        return Cset.C1
-    elseif direction==2
-        return Cset.C2
-    elseif direction==3
-        return Cset.C3
-    elseif direction==4
-        return Cset.C4
-    end
-
-end
-
-function get_Tset(Tset,direction)
-    if direction==1
-        return Tset.T1
-    elseif direction==2
-        return Tset.T2
-    elseif direction==3
-        return Tset.T3
-    elseif direction==4
-        return Tset.T4
-    end
-
-end
-
-function set_Cset(Cset,M,direction)
-    if direction==1 
-        Cset.C1=M;
-    elseif direction==2
-        Cset.C2=M; 
-    elseif direction==3
-        Cset.C3=M; 
-    elseif direction==4
-        Cset.C4=M; 
-    end
-    return Cset
-end
-
-function set_Tset(Tset,M,direction)
-    if direction==1 
-        Tset.T1=M;
-    elseif direction==2
-        Tset.T2=M; 
-    elseif direction==3
-        Tset.T3=M; 
-    elseif direction==4
-        Tset.T4=M; 
-    end
-    return Tset
-end
 
 
 

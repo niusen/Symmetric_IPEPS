@@ -27,3 +27,83 @@ Base.@kwdef mutable struct Energy_settings
 end
 
 
+
+
+
+mutable struct Cset_struc
+    C1::TensorMap
+    C2::TensorMap
+    C3::TensorMap
+    C4::TensorMap
+
+end
+
+mutable struct Tset_struc
+    T1::TensorMap
+    T2::TensorMap
+    T3::TensorMap
+    T4::TensorMap
+
+end
+
+mutable struct CTM_struc
+    Cset::Cset_struc
+    Tset::Tset_struc
+
+end
+
+
+
+
+function get_Cset(Cset,direction)
+    if direction==1
+        return Cset.C1
+    elseif direction==2
+        return Cset.C2
+    elseif direction==3
+        return Cset.C3
+    elseif direction==4
+        return Cset.C4
+    end
+
+end
+
+function get_Tset(Tset,direction)
+    if direction==1
+        return Tset.T1
+    elseif direction==2
+        return Tset.T2
+    elseif direction==3
+        return Tset.T3
+    elseif direction==4
+        return Tset.T4
+    end
+
+end
+
+function set_Cset(Cset,M,direction)
+    if direction==1 
+        Cset.C1=M;
+    elseif direction==2
+        Cset.C2=M; 
+    elseif direction==3
+        Cset.C3=M; 
+    elseif direction==4
+        Cset.C4=M; 
+    end
+    return Cset
+end
+
+function set_Tset(Tset,M,direction)
+    if direction==1 
+        Tset.T1=M;
+    elseif direction==2
+        Tset.T2=M; 
+    elseif direction==3
+        Tset.T3=M; 
+    elseif direction==4
+        Tset.T4=M; 
+    end
+    return Tset
+end
+

@@ -1,14 +1,14 @@
 using LinearAlgebra
 using TensorKit
-
+using Zygote:@ignore_derivatives
 
 function build_double_layer(A,operator)
     #display(space(A))
     A=permute(A,(1,2,),(3,4,5));
-    U_L=unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-    U_D=unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-    U_R=inv(U_L);
-    U_U=inv(U_D);
+    U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
+    U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+    U_R=(U_L)';
+    U_U=(U_D)';
     # display(space(U_L))
     # display(space(U_D))
     # display(space(U_R))
@@ -19,7 +19,7 @@ function build_double_layer(A,operator)
 
     uM=permute(uM,(1,2,3,),())
     V=space(vM,1);
-    U=unitary(fuse(V' ⊗ V), V' ⊗ V);
+    U=@ignore_derivatives unitary(fuse(V' ⊗ V), V' ⊗ V);
     @tensor double_LD[:]:=uM'[-1,-2,1]*U'[1,-3,-4];
     @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
 
@@ -431,12 +431,12 @@ function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
         ul_set=Vector(undef,4);
         ur_set=Vector(undef,4);
         for direction=1:2
-            ul_set[direction]=unitary(fuse(space(Cset[direction], 3) ⊗ space(Cset[direction], 4)), space(Cset[direction], 3) ⊗ space(Cset[direction], 4));
-            ur_set[direction]=unitary(fuse(space(Tset[direction], 5) ⊗ space(Tset[direction], 6)), space(Tset[direction], 5) ⊗ space(Tset[direction], 6));
+            ul_set[direction]=@ignore_derivatives unitary(fuse(space(Cset[direction], 3) ⊗ space(Cset[direction], 4)), space(Cset[direction], 3) ⊗ space(Cset[direction], 4));
+            ur_set[direction]=@ignore_derivatives unitary(fuse(space(Tset[direction], 5) ⊗ space(Tset[direction], 6)), space(Tset[direction], 5) ⊗ space(Tset[direction], 6));
         end
         for direction=3:4
-            ul_set[direction]=unitary(fuse(space(Cset[direction], 3) ⊗ space(Cset[direction], 4))', space(Cset[direction], 3) ⊗ space(Cset[direction], 4));
-            ur_set[direction]=unitary(fuse(space(Tset[direction], 5) ⊗ space(Tset[direction], 6))', space(Tset[direction], 5) ⊗ space(Tset[direction], 6));
+            ul_set[direction]=@ignore_derivatives unitary(fuse(space(Cset[direction], 3) ⊗ space(Cset[direction], 4))', space(Cset[direction], 3) ⊗ space(Cset[direction], 4));
+            ur_set[direction]=@ignore_derivatives unitary(fuse(space(Tset[direction], 5) ⊗ space(Tset[direction], 6))', space(Tset[direction], 5) ⊗ space(Tset[direction], 6));
         end
         for direction=1:4
             C=Cset[direction];
@@ -464,10 +464,10 @@ function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
         AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
         CTM=fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U);
     else
-        U_L=unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-        U_D=unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-        U_R=inv(U_L);
-        U_U=inv(U_D);
+        U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
+        U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+        U_R=(U_L)';
+        U_U=(U_D)';
         AA_fused=[];
     end
 
@@ -590,7 +590,7 @@ function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
 
 
     sM=sM/norm(sM)
-    sM_inv=pinv(sM);
+    sM_inv=mypinv(sM);
     sM_dense=convert(Array,sM)
 
     # println("svd:")
@@ -786,14 +786,14 @@ function truncated_svd_method(M,chi,svd_lanczos_tol,construct_double_layer)
     Um,Sm,Vm=group_svd_components(U_set,S_set,V_set,spins,VL,VR);
 
     if construct_double_layer
-        U1=unitary(space(M,1)*space(M,2),space(Um,1));
+        U1=@ignore_derivatives unitary(space(M,1)*space(M,2),space(Um,1));
         Um=U1*Um;
-        U2=unitary(space(Vm,2)',space(M,3)'*space(M,4)');
+        U2=@ignore_derivatives unitary(space(Vm,2)',space(M,3)'*space(M,4)');
         Vm=Vm*U2;
     else
-        U1=unitary(space(M,1)*space(M,2)*space(M,3),space(Um,1));
+        U1=@ignore_derivatives unitary(space(M,1)*space(M,2)*space(M,3),space(Um,1));
         Um=U1*Um;
-        U2=unitary(space(Vm,2)',space(M,4)'*space(M,5)'*space(M,6)');
+        U2=@ignore_derivatives unitary(space(Vm,2)',space(M,4)'*space(M,5)'*space(M,6)');
         Vm=Vm*U2;
     end
 
@@ -801,4 +801,20 @@ function truncated_svd_method(M,chi,svd_lanczos_tol,construct_double_layer)
     
     return Um,Sm,Vm, M
 
+end
+
+
+function mypinv(M)
+    M_inv=M*0;
+    for cc=1:length(M.data.values)
+        Block=M.data.values[cc];
+        elements=diag(Block);
+        pos=findall(elements.>(maximum(elements)*1e-15))
+        Block_inv=Block*0;
+        for dd in pos
+            Block_inv[dd,dd]=1/Block[dd,dd];
+        end
+        M_inv.data.values[cc]=Block_inv;
+    end
+    return M_inv
 end

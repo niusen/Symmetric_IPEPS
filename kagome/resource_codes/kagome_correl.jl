@@ -1,11 +1,13 @@
+using Zygote:@ignore_derivatives
+
 function build_double_layer_extra_leg(A,operator)
     #su2 operator has three legs, such as svd decomposition of Heisenberg interaction 
     #first two indices of operator are physical indices
     A=permute(A,(1,2,),(3,4,5));
-    U_L=unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-    U_D=unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-    U_R=inv(U_L);
-    U_U=inv(U_D);
+    U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
+    U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+    U_R=(U_L)';
+    U_U=(U_D)';
     # display(space(U_L))
     # display(space(U_D))
     # display(space(U_R))
@@ -16,7 +18,7 @@ function build_double_layer_extra_leg(A,operator)
 
     uM=permute(uM,(1,2,3,),())
     V=space(vM,1);
-    U=unitary(fuse(V' ⊗ V), V' ⊗ V);
+    U=@ignore_derivatives unitary(fuse(V' ⊗ V), V' ⊗ V);
     @tensor double_LD[:]:=uM'[-1,-2,1]*U'[1,-3,-4];
     @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
     
@@ -239,7 +241,7 @@ function cal_correl(filenm,D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_t
     @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
     A_unfused=PEPS_tensor;
 
-    U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+    U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
     @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
 

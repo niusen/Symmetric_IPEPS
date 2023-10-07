@@ -1,6 +1,6 @@
 using LinearAlgebra
 using TensorKit
-
+using Zygote:@ignore_derivatives
 
 function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2",)
     construct_double_layer=ctm_setting.construct_double_layer;
@@ -265,7 +265,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         # V_D_d=V_D ⊗ V_d;
         # V_Dd=fuse(V_D_d);
         # V_dd=fuse(V_d' ⊗ V_d);
-        # U_Dd=unitary(V_Dd,V_D_d);
+        # U_Dd=@ignore_derivatives unitary(V_Dd,V_D_d);
         # @tensor A_fused[:]:=A[-1,-2,-3,1,2]*U_Dd[-4,1,2];
 
         # A_fused=permute(A_fused,(1,2,),(3,4,));
@@ -274,7 +274,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
     
         # uM=permute(uM,(1,2,3,),());
         # V=space(vM,1);
-        # U=unitary(fuse(V' ⊗ V), V' ⊗ V);
+        # U=@ignore_derivatives unitary(fuse(V' ⊗ V), V' ⊗ V);
         # @tensor double_LD[:]:=uM'[-1,-2,1]*U'[1,-3,-4];
         # @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
 
@@ -292,12 +292,12 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         # double_RU=double_RU*U_R;
         # double_RU=permute(double_RU,(1,4,),(2,3,));
     
-        # U_Ud=unitary(space(U_U,3) ⊗ V_dd, V_Dd' ⊗ V_Dd);
+        # U_Ud=@ignore_derivatives unitary(space(U_U,3) ⊗ V_dd, V_Dd' ⊗ V_Dd);
         # @tensor double_RU[:]:=double_RU[-1,-2,1,2]*U_Ud[-3,-4,1,2];
         # double_RU=permute(double_RU,(1,),(2,3,4,));
         # AA_open_fused=permute(double_LD*double_RU,(1,2,3,4,5),());
         
-        # U_dd=unitary(V_d' ⊗ V_d, V_dd);
+        # U_dd=@ignore_derivatives unitary(V_d' ⊗ V_d, V_dd);
         # return AA_open_fused, U_dd
     elseif inds in ["1","2","3"]
         #display(space(A))
@@ -312,7 +312,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         elseif inds=="3"
             A_unfused=permute(A_unfused,(1,2,3,4,7,5,6,),());
         end
-        fuse_spin=unitary(fuse(V_s ⊗ V_s), V_s ⊗ V_s);
+        fuse_spin=@ignore_derivatives unitary(fuse(V_s ⊗ V_s), V_s ⊗ V_s);
         @tensor A_fused[:]:=A_unfused[-1,-2,-3,-4,-5,1,2]*fuse_spin[-6,1,2];
         V_ss=fuse(V_s' ⊗ V_s);
 
@@ -325,7 +325,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         uM=permute(uM,(1,2,3,),());
         Vp=space(vM_dag,1);
         V=space(vM,1);
-        U=unitary(fuse(Vp ⊗ V), Vp ⊗ V);
+        U=@ignore_derivatives unitary(fuse(Vp ⊗ V), Vp ⊗ V);
         @tensor double_LD[:]:=uM_dag[-1,-2,-3,1]*U'[1,-4,-5];
         @tensor double_LD[:]:=double_LD[-1,-3,-5,1,-6]*uM[-2,-4,1];
 
@@ -342,7 +342,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
     
         double_RU=permute(double_RU,(1,2,5,6,),(3,4,));
         double_RU=double_RU*U_U;
-        U_s_s=unitary(V_ss, V_s' ⊗ V_s);
+        U_s_s=@ignore_derivatives unitary(V_ss, V_s' ⊗ V_s);
         @tensor double_RU[:]:=double_RU[-1,-2,1,2,-3]*U_s_s[-4,1,2];
 
         A_fused=[];#clear memory

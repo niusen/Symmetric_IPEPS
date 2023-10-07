@@ -142,83 +142,83 @@ a,b=cfun(A_fused,CTM)
 
 
 
-function cfun(x)
-    (ψ,env) = x
+# function cfun(x)
+#     (ψ,env) = x
 
-    function fun(peps)
-        env = leading_boundary(peps, alg_ctm, env)
-        x = H_expectation_value(peps, env, H)   
-        return x
-    end
+#     function fun(peps)
+#         env = leading_boundary(peps, alg_ctm, env)
+#         x = H_expectation_value(peps, env, H)   
+#         return x
+#     end
 
-    ∂E = fun'(ψ)
-    env = leading_boundary(ψ, alg_ctm, env)
-    E = H_expectation_value(ψ, env, H)
+#     ∂E = fun'(ψ)
+#     env = leading_boundary(ψ, alg_ctm, env)
+#     E = H_expectation_value(ψ, env, H)
 
-    @assert !isnan(norm(∂E))
-    return E,∂E
-end
+#     @assert !isnan(norm(∂E))
+#     return E,∂E
+# end
 
-# my_retract is not an in place function which should not change x
-function my_retract(x,dx,α::Number)
-    (ϕ,env0) = x
-    ψ = deepcopy(ϕ)
-    env = deepcopy(env0)
-    ψ.A .+= dx.A .* α
-    #env = leading_boundary(ψ, alg_ctm,env)
-    return (ψ,env),dx
-end
+# # my_retract is not an in place function which should not change x
+# function my_retract(x,dx,α::Number)
+#     (ϕ,env0) = x
+#     ψ = deepcopy(ϕ)
+#     env = deepcopy(env0)
+#     ψ.A .+= dx.A .* α
+#     #env = leading_boundary(ψ, alg_ctm,env)
+#     return (ψ,env),dx
+# end
 
-my_inner(x,dx1,dx2) = real(dot(dx1,dx2))
+# my_inner(x,dx1,dx2) = real(dot(dx1,dx2))
 
-function my_add!(Y, X, a)
-    Y.A .+= X.A .* a
-    return Y
-end
+# function my_add!(Y, X, a)
+#     Y.A .+= X.A .* a
+#     return Y
+# end
 
-function my_scale!(η, β)
-    rmul!(η.A, β)
-    return η
-end
-
-
-function init_psi(d::Int, D::Int, Lx::Int, Ly::Int)
-    Pspaces = fill(ℂ^d,Lx,Ly)
-    Nspaces = fill(ℂ^D,Lx,Ly)
-    Espaces = fill(ℂ^D,Lx,Ly)
-
-    Sspaces = adjoint.(circshift(Nspaces, (1, 0)))
-    Wspaces = adjoint.(circshift(Espaces, (0, -1)))
-
-    A = map(Pspaces, Nspaces, Espaces, Sspaces, Wspaces) do P, N, E, S, W
-        return TensorMap(rand, ComplexF64, P ← N * E * S * W)
-    end
-
-    return InfinitePEPS(A)
-end
+# function my_scale!(η, β)
+#     rmul!(η.A, β)
+#     return η
+# end
 
 
-alg_ctm = CTMRG(
-            verbose=10000,
-            tol=1e-10,
-            trscheme=truncdim(10),
-            miniter=4,
-            maxiter=200
-        )
+# function init_psi(d::Int, D::Int, Lx::Int, Ly::Int)
+#     Pspaces = fill(ℂ^d,Lx,Ly)
+#     Nspaces = fill(ℂ^D,Lx,Ly)
+#     Espaces = fill(ℂ^D,Lx,Ly)
 
-function main(;d=2,D=2,Lx=1,Ly=1)
-    ψ = init_psi(d,D,Lx,Ly)   
-    env = leading_boundary(ψ, alg_ctm) 
-    optimize(
-        cfun, 
-        (ψ,env),
-        ConjugateGradient(verbosity=3); 
-        inner=my_inner,
-        retract=my_retract,
-        scale! = my_scale!,
-        add! = my_add!
-    )
-    return ψ
-end
+#     Sspaces = adjoint.(circshift(Nspaces, (1, 0)))
+#     Wspaces = adjoint.(circshift(Espaces, (0, -1)))
 
-main()
+#     A = map(Pspaces, Nspaces, Espaces, Sspaces, Wspaces) do P, N, E, S, W
+#         return TensorMap(rand, ComplexF64, P ← N * E * S * W)
+#     end
+
+#     return InfinitePEPS(A)
+# end
+
+
+# alg_ctm = CTMRG(
+#             verbose=10000,
+#             tol=1e-10,
+#             trscheme=truncdim(10),
+#             miniter=4,
+#             maxiter=200
+#         )
+
+# function main(;d=2,D=2,Lx=1,Ly=1)
+#     ψ = init_psi(d,D,Lx,Ly)   
+#     env = leading_boundary(ψ, alg_ctm) 
+#     optimize(
+#         cfun, 
+#         (ψ,env),
+#         ConjugateGradient(verbosity=3); 
+#         inner=my_inner,
+#         retract=my_retract,
+#         scale! = my_scale!,
+#         add! = my_add!
+#     )
+#     return ψ
+# end
+
+# main()

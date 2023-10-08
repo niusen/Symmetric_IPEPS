@@ -130,10 +130,10 @@ function CTMRG(A,chi,init,ctm_setting)
 
     #initial corner transfer matrix
         #initial corner transfer matrix
-    if isempty(init["CTM"])
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init["init_type"],CTM_ite_info,construct_double_layer);
+    if init.reconstruct
+        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info,construct_double_layer);
         AA_memory=Base.summarysize(AA_fused)/1024/1024;
-        if CTM_ite_info
+        @ignore_derivatives if CTM_ite_info
             println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
         end
     else
@@ -147,15 +147,15 @@ function CTMRG(A,chi,init,ctm_setting)
         else
             AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
             AA_memory=Base.summarysize(AA_fused)/1024/1024;
-            if CTM_ite_info
+            @ignore_derivatives  if CTM_ite_info
                 println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
             end
             CTM=deepcopy(init["CTM"]);
         end
     end
 
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
     ctm_setting.conv_check="singular_value"
 
     ss_old1=ones(chi)*2;
@@ -168,7 +168,7 @@ function CTMRG(A,chi,init,ctm_setting)
     #Iteration
 
     print_corner=false;
-    if print_corner
+    @ignore_derivatives if print_corner
         println("corner 4:")
         C4_spec=svdvals(convert(Array,Cset[4]));
         C4_spec=C4_spec/C4_spec[1];
@@ -194,7 +194,7 @@ function CTMRG(A,chi,init,ctm_setting)
         AA_rotated=rotate_AA(A_fused,construct_double_layer);
     end
 
-    if CTM_ite_info
+    @ignore_derivatives  if CTM_ite_info
         println("start CTM iterations:")
     end
     ite_num=0;
@@ -209,7 +209,7 @@ function CTMRG(A,chi,init,ctm_setting)
         end
 
         print_corner=false;
-        if print_corner
+        @ignore_derivatives if print_corner
             println("corner 4:")
             C4_spec=svdvals(convert(Array,Cset[4]));
             C4_spec=C4_spec/C4_spec[1];
@@ -232,14 +232,14 @@ function CTMRG(A,chi,init,ctm_setting)
 
 
         if ctm_setting.conv_check=="singular_value" #check convergence of singular value
-            er1,ss_new1=spectrum_conv_check(ss_old1,Cset[1]);
-            er2,ss_new2=spectrum_conv_check(ss_old2,Cset[2]);
-            er3,ss_new3=spectrum_conv_check(ss_old3,Cset[3]);
-            er4,ss_new4=spectrum_conv_check(ss_old4,Cset[4]);
+            er1,ss_new1=@ignore_derivatives spectrum_conv_check(ss_old1,Cset.C1);
+            er2,ss_new2=@ignore_derivatives spectrum_conv_check(ss_old2,Cset.C2);
+            er3,ss_new3=@ignore_derivatives spectrum_conv_check(ss_old3,Cset.C3);
+            er4,ss_new4=@ignore_derivatives spectrum_conv_check(ss_old4,Cset.C4);
 
-            er=maximum([er1,er2,er3,er4]);
+            er=@ignore_derivatives max(er1,er2,er3,er4);
             ite_err=er;
-            if CTM_ite_info
+            @ignore_derivatives  if CTM_ite_info
                 println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));flush(stdout);
             end
             if er<ctm_setting.CTM_conv_tol
@@ -269,8 +269,8 @@ function CTMRG(A,chi,init,ctm_setting)
         # end
     end
 
-    CTM["Cset"]=Cset;
-    CTM["Tset"]=Tset;
+    CTM.Cset=Cset;
+    CTM.Tset=Tset;
     if CTM_conv_info
         return CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err
     else
@@ -293,14 +293,14 @@ end
 function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
     #if construct_double_layer==false, then AA is single layer tensor
     
-    M1=Cset[mod1(direction,4)];
-    M2=Tset[mod1(direction,4)];
-    M3=Tset[mod1(direction-1,4)];
+    M1=get_Cset(Cset, mod1(direction,4));
+    M2=get_Tset(Tset, mod1(direction,4));
+    M3=get_Tset(Tset, mod1(direction-1,4));
     #M4=AA;
     M5=M3;
     #M6=M4;
-    M7=Cset[mod1(direction-1,4)];
-    M8=Tset[mod1(direction-2,4)];
+    M7=get_Cset(Cset, mod1(direction-1,4));
+    M8=get_Tset(Tset, mod1(direction-2,4));
 
     if construct_double_layer
         @tensor MMup[:]:=M1[1,2]*M2[2,3,-3]*M3[-1,4,1]*AA[4,-2,-4,3];
@@ -325,14 +325,14 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     MMlow=permute(MMlow,permut_ind1,permut_ind2)
 
     if projector_strategy=="4x4"
-        M1_=Cset[mod1(direction+1,4)];
-        M2_=Tset[mod1(direction,4)];
-        M3_=Tset[mod1(direction+1,4)];
+        M1_=get_Cset(Cset, mod1(direction+1,4));
+        M2_=get_Tset(Tset, mod1(direction,4));
+        M3_=get_Tset(Tset, mod1(direction+1,4));
         #M4_=M4;
         M5_=M3_;
         #M6_=M4_;
-        M7_=Cset[mod1(direction-2,4)];
-        M8_=Tset[mod1(direction-2,4)];
+        M7_=get_Cset(Cset, mod1(direction-2,4));
+        M8_=get_Tset(Tset, mod1(direction-2,4));
 
         if construct_double_layer
             @tensor MMup_reflect[:]:=M2_[-1,3,1]* M1_[1,2]* AA[-2,-4,4,3]* M3_[2,4,-3];
@@ -370,8 +370,7 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     
     # println(sM.data.values)
     sM=sM/norm(sM);
-    # println(sM.data.values)
-
+    # println(sM.data.values)treat_svd_results
     multiplet_tol=1e-5;
     uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
 
@@ -381,20 +380,20 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     PM=permute(PM,(permut_ind1.+1),(1,));
 
     if construct_double_layer
-        @tensor M5tem[:]:=Tset[mod1(direction-1,4)][4,3,1]*AA[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
-        @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,-2]*PM_inv[1,3,-1];
-        @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,1]* PM[2,3,-2];
+        @tensor M5tem[:]:=get_Tset(Tset, mod1(direction-1,4))[4,3,1]*AA[3,5,-2,2]* PM_inv[4,5,-1]* PM[1,2,-3];
+        @tensor M1tem[:]:=get_Cset(Cset, mod1(direction,4))[1,2]*get_Tset(Tset, mod1(direction,4))[2,3,-2]*PM_inv[1,3,-1];
+        @tensor M7tem[:]:=get_Cset(Cset, mod1(direction-1,4))[1,2]*get_Tset(Tset, mod1(direction-2,4))[-1,3,1]* PM[2,3,-2];
     else
-        @tensor M5tem[:]:=Tset[mod1(direction-1,4)][1,5,3,7]*AA[3,2,-3,8,6]* PM_inv[1,4,2,-1]* PM[7,9,8,-4]*AA'[5,4,-2,9,6];
-        @tensor M1tem[:]:=Cset[mod1(direction,4)][1,2]*Tset[mod1(direction,4)][2,3,4,-2]*PM_inv[1,3,4,-1];
-        @tensor M7tem[:]:=Cset[mod1(direction-1,4)][1,2]*Tset[mod1(direction-2,4)][-1,3,4,1]* PM[2,3,4,-2];
+        @tensor M5tem[:]:=get_Tset(Tset, mod1(direction-1,4))[1,5,3,7]*AA[3,2,-3,8,6]* PM_inv[1,4,2,-1]* PM[7,9,8,-4]*AA'[5,4,-2,9,6];
+        @tensor M1tem[:]:=get_Cset(Cset, mod1(direction,4))[1,2]*get_Tset(Tset, mod1(direction,4))[2,3,4,-2]*PM_inv[1,3,4,-1];
+        @tensor M7tem[:]:=get_Cset(Cset, mod1(direction-1,4))[1,2]*get_Tset(Tset, mod1(direction-2,4))[-1,3,4,1]* PM[2,3,4,-2];
     end
 
 
 
-    Cset[mod1(direction,4)]=M1tem/norm(M1tem);
-    Tset[mod1(direction-1,4)]=M5tem/norm(M5tem);
-    Cset[mod1(direction-1,4)]=M7tem/norm(M7tem);
+    Cset=set_Cset(Cset, M1tem/norm(M1tem),mod1(direction,4));
+    Tset=set_Tset(Tset, M5tem/norm(M5tem),mod1(direction-1,4));
+    Cset=set_Cset(Cset, M7tem/norm(M7tem),mod1(direction-1,4));
     return Cset,Tset
 end
 
@@ -404,7 +403,7 @@ end
 
 
 function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
-    if CTM_ite_info
+    @ignore_derivatives  if CTM_ite_info
         display("initialize CTM")
     end
     #numind(A)
@@ -502,9 +501,42 @@ end;
 
 
 
+# function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
+#     #the multiplet is not due to su(2) symmetry
+#      s_dense=@ignore_derivatives sort(abs.(diag(convert(Array,s))),rev=true);
+
+
+#     # println(s_dense/s_dense[1])
+
+#     if length(s_dense)>chi
+#         value_trun=s_dense[chi+1];
+#     else
+#         value_trun=0;
+#     end
+#     value_max=maximum(s_dense);
+
+#     s_Dict=convert(Dict,s);
+    
+#     space_full=space(s,1);
+#     for sp in sectors(space_full)
+
+#         diag_elem=abs.(diag(s_Dict[:data][string(sp)]));
+#         for cd=1:length(diag_elem)
+#             if ((diag_elem[cd]/value_max)<trun_tol) | (diag_elem[cd]<=value_trun) |(abs((diag_elem[cd]-value_trun)/value_trun)<multiplet_tol)
+#                 diag_elem[cd]=0;
+#             end
+#         end
+#         s_Dict[:data][string(sp)]=diagm(diag_elem);
+#     end
+#     s=convert(TensorMap,s_Dict);
+
+#     return s
+# end
+
 function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
     #the multiplet is not due to su(2) symmetry
-    s_dense=sort(abs.(diag(convert(Array,s))),rev=true);
+     s_dense=@ignore_derivatives sort(abs.(diag(convert(Array,s))),rev=true);
+
 
     # println(s_dense/s_dense[1])
 
@@ -530,14 +562,16 @@ function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
     end
     s=convert(TensorMap,s_Dict);
 
-    # s_=sort(diag(convert(Array,s)),rev=true);
-    # s_=s_/s_[1];
-    # print(s_)
-    # @assert 1+1==3
-    return s
+    s_dense=convert(Array,s);
+    s_dense=unique(diag(s_dense));
+    s_dense=sort(s_dense);
+    if s_dense[1]==0 #return the minimal nonzero element
+        return s_dense[2]
+    else
+        return s_dense[1]
+    end
+
 end
-
-
 
 function delet_zero_block(U,Σ,V)
 
@@ -584,43 +618,23 @@ end
 
 function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
 
-    sM=truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
-
-    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
-    #println(sM_new)
-    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
-    uM=uM_new;
-    sM=sM_new;
-    vM=vM_new;
-    #println(diag(convert(Array,sM)))
-
-
     sM=sM/norm(sM)
-    sM_inv=mypinv(sM);
-    sM_dense=convert(Array,sM)
+    s_min=@ignore_derivatives truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
 
-    # println("svd:")
-    # sm_=sort(diag(sM_dense),rev=true)
-    # println(sm_/sm_[1])
+    # uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+    # @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
+    # uM=uM_new;
+    # sM=sM_new;
+    # vM=vM_new;
 
-    # _,sM_test,_ = tsvd(M; trunc=truncdim(chi+1));
-    # sm_=sort(diag(convert(Array,sM_test)),rev=true)
-    # println(sm_/sm_[1])
 
-    for c1=1:size(sM_dense,1)
-        if sM_dense[c1,c1]<trun_tol
-            sM_dense[c1,c1]=0;
-        end
-    end
-    #display(sM_dense)
-    #display(pinv.(sM_dense))
+    
+    #sM_inv=mypinv(sM);
 
-    #display(sM_inv)
-    #display(convert(Array,sM_inv))
-    #sM_inv_sqrt=sqrt.(convert(Array,sM_inv))
-    #display(space(sM_inv))
-    #display(sM_inv_sqrt)
-    sM_inv_sqrt=TensorMap(pinv.(sqrt.(sM_dense)),codomain(sM_inv)←domain(sM_inv))
+    #sM_inv_sqrt=mysqrt(sM_inv)
+    #sM_inv_sqrt=sdiag_inv_sqrt(sM);
+    #sM_inv_sqrt=sdiag_inv_sqrt(sM,s_min);
+    sM_inv_sqrt=sdiag_inv_sqrt(sM);
 
     return uM,sM,vM,sM_inv_sqrt
 end
@@ -810,17 +824,54 @@ function truncated_svd_method(M,chi,svd_lanczos_tol,construct_double_layer)
 end
 
 
-function mypinv(M)
-    M_inv=M*0;
-    for cc=1:length(M.data.values)
-        Block=M.data.values[cc];
-        elements=diag(Block);
-        pos=findall(elements.>(maximum(elements)*1e-15))
-        Block_inv=Block*0;
-        for dd in pos
-            Block_inv[dd,dd]=1/Block[dd,dd];
+
+
+
+
+
+
+
+
+
+# function sdiag_inv_sqrt(S::AbstractTensorMap)
+#     toret = similar(S);
+    
+#     if sectortype(S) == Trivial
+#         copyto!(toret.data,LinearAlgebra.diagm(LinearAlgebra.diag(S.data).^(-1/2)));
+#     else
+#         for (k,b) in blocks(S)
+#             copyto!(blocks(toret)[k],(LinearAlgebra.diagm(LinearAlgebra.diag(b).^(-1/2))));
+#         end
+#     end
+#     toret
+# end
+
+function sdiag_inv_sqrt(S::AbstractTensorMap)
+    toret = similar(S);
+    global chi,multiplet_tol,trun_tol
+    s_min=truncate_multiplet(S,chi,multiplet_tol,trun_tol);
+    if sectortype(S) == Trivial
+        copyto!(toret.data,LinearAlgebra.(diagm(LinearAlgebra.diag(S.data).^(-1/2))).*(LinearAlgebra.diagm(LinearAlgebra.diag(b).>=(s_min))));
+    else
+        for (k,b) in blocks(S)
+            
+            copyto!(blocks(toret)[k],(LinearAlgebra.diagm(LinearAlgebra.diag(b).^(-1/2))).*(LinearAlgebra.diagm(LinearAlgebra.diag(b).>=(s_min))));
         end
-        M_inv.data.values[cc]=Block_inv;
     end
-    return M_inv
+    toret
+end
+
+
+function ChainRulesCore.rrule(::typeof(sdiag_inv_sqrt),S::AbstractTensorMap)
+    toret = sdiag_inv_sqrt(S);
+    toret,c̄ -> (ChainRulesCore.NoTangent(),-1/2*_elementwise_mult(c̄,toret'^3))
+end
+
+
+function _elementwise_mult(a::AbstractTensorMap,b::AbstractTensorMap)
+    dst = similar(a);
+    for (k,block) in blocks(dst)
+        copyto!(block,blocks(a)[k].*blocks(b)[k]);
+    end
+    dst
 end

@@ -30,6 +30,9 @@ end
 
 
 
+
+
+
 mutable struct Cset_struc
     C1::TensorMap
     C2::TensorMap
@@ -53,7 +56,14 @@ mutable struct CTM_struc
 end
 
 
+Base.@kwdef mutable struct initial_CTM
+    CTM :: CTM_struc 
+    init_type :: String = "PBC";
+    reconstruct :: Bool =false;
 
+
+
+end
 
 function get_Cset(Cset,direction)
     if direction==1

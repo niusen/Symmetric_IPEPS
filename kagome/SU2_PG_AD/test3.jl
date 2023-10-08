@@ -117,11 +117,11 @@ function cfun(A_fused, CTM)
     
     
     function fun(A_fused)
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",false,true);
+        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",true,true);
 
-        #init=initial_CTM(CTM, "PBC");
+        init=initial_CTM(CTM, "PBC", true);
         
-        #CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting)
+        CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting)
         AA_H,_=build_double_layer(A_fused,H_triangle);
         AA,_=build_double_layer(A_fused,[]);
         E=ob(CTM,AA_H)/ob(CTM,AA_fused)
@@ -142,6 +142,9 @@ function cfun(A_fused, CTM)
     return E,∂E
 end
 
+global chi,multiplet_tol,projector_trun_tol
+multiplet_tol=1e-5;
+projector_trun_tol=ctm_setting.CTM_trun_tol
 a,b=cfun(A_fused,CTM)
 
 

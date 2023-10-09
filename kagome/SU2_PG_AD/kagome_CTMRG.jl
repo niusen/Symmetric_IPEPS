@@ -132,7 +132,7 @@ function CTMRG(A,chi,init,ctm_setting)
         #initial corner transfer matrix
     if init.reconstruct
         CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info,construct_double_layer);
-        AA_memory=Base.summarysize(AA_fused)/1024/1024;
+        AA_memory=@ignore_derivatives Base.summarysize(AA_fused)/1024/1024;
         @ignore_derivatives if CTM_ite_info
             println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
         end
@@ -205,7 +205,7 @@ function CTMRG(A,chi,init,ctm_setting)
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
         for direction in direction_order
-            Cset,Tset=CTM_ite(Cset, Tset, AA_rotated[direction], chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            Cset,Tset=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
         end
 
         print_corner=false;
@@ -279,12 +279,15 @@ function CTMRG(A,chi,init,ctm_setting)
 
 end
 function rotate_AA(AA_fused,construct_double_layer)
-    AA_rotated=Vector(undef,4);
+    #AA_rotated=Vector(undef,4);
+    AA_rotated=Tset_struc(AA_fused,AA_fused,AA_fused,AA_fused);
     for direction=1:4
         if construct_double_layer
-            AA_rotated[direction]=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+            AA_rotated_tem=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
+            AA_rotated=set_Tset(AA_rotated,AA_rotated_tem,direction);
         else
-            AA_rotated[direction]=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5,),());
+            AA_rotated_tem=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5,),());
+            AA_rotated=set_Tset(AA_rotated,AA_rotated_tem,direction);
         end
     end
     return AA_rotated
@@ -573,47 +576,7 @@ function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
 
 end
 
-function delet_zero_block(U,Σ,V)
 
-    secs=blocksectors(Σ);
-    sec_length=Vector{Int}(undef,length(secs))
-    U_dict = convert(Dict,U)
-    Σ_dict = convert(Dict,Σ)
-    V_dict = convert(Dict,V)
-
-    #ProductSpace(Rep[SU₂](0=>3, 1/2=>4, 1=>4, 3/2=>2, 2=>1))
-
-    for cc =1:length(secs)
-        c=secs[cc];
-        if (size(diag(Σ_dict[:data][string(c)]),1)>0) & (sum(abs.(diag(Σ_dict[:data][string(c)])))>0)
-            inds=findall(x->(abs.(x).>0), diag(Σ_dict[:data][string(c)]));
-            U_dict[:data][string(c)]=U_dict[:data][string(c)][:,inds];
-            Σ_dict[:data][string(c)]=Σ_dict[:data][string(c)][inds,inds];
-            V_dict[:data][string(c)]=V_dict[:data][string(c)][inds,:];
-
-            sec_length[cc]=length(inds);
-        else
-            delete!(U_dict[:data], string(c))
-            delete!(V_dict[:data], string(c))
-            delete!(Σ_dict[:data], string(c))
-            sec_length[cc]=0;
-        end
-    end
-
-    #define sector string
-    sec_str="ProductSpace(Rep[SU₂](" *string(((dim(secs[1])-1)/2)) * "=>" * string(sec_length[1]);
-    for cc=2:length(secs)
-        sec_str=sec_str*", " * string(((dim(secs[cc])-1)/2)) * "=>" * string(sec_length[cc]);
-    end
-    sec_str=sec_str*"))"
-
-    U_dict[:domain]=sec_str
-    V_dict[:codomain]=sec_str
-    Σ_dict[:domain]=sec_str
-    Σ_dict[:codomain]=sec_str
-
-    return convert(TensorMap, U_dict), convert(TensorMap, Σ_dict), convert(TensorMap, V_dict)
-end
 
 
 function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)

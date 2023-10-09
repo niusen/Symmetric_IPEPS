@@ -22,7 +22,7 @@ include("..\\resource_codes\\Settings.jl")
 Random.seed!(12345)
 
 
-D=3;
+D=6;
 chi=40;
 
 
@@ -63,7 +63,7 @@ dump(ctm_setting);
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
+optim_setting.init_statenm="LS_A1even_D_6_chi_40.json";#"LS_A1even_D_6_chi_40.json";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"

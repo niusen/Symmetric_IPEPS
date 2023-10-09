@@ -1,8 +1,8 @@
 using LinearAlgebra
 using TensorKit
+using Zygote:@ignore_derivatives
 
-
-function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2",)
+function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2")
     construct_double_layer=ctm_setting.construct_double_layer;
 
     if construct_double_layer
@@ -10,7 +10,7 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
     else
         norm_1site=ob_1site_closed(CTM,A_fused,[],[],construct_double_layer);
     end
-    H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
+    H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=@ignore_derivatives Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
     
 
     if kagome_method=="E_single_triangle"
@@ -265,7 +265,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         # V_D_d=V_D ⊗ V_d;
         # V_Dd=fuse(V_D_d);
         # V_dd=fuse(V_d' ⊗ V_d);
-        # U_Dd=unitary(V_Dd,V_D_d);
+        # U_Dd=@ignore_derivatives unitary(V_Dd,V_D_d);
         # @tensor A_fused[:]:=A[-1,-2,-3,1,2]*U_Dd[-4,1,2];
 
         # A_fused=permute(A_fused,(1,2,),(3,4,));
@@ -274,7 +274,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
     
         # uM=permute(uM,(1,2,3,),());
         # V=space(vM,1);
-        # U=unitary(fuse(V' ⊗ V), V' ⊗ V);
+        # U=@ignore_derivatives unitary(fuse(V' ⊗ V), V' ⊗ V);
         # @tensor double_LD[:]:=uM'[-1,-2,1]*U'[1,-3,-4];
         # @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
 
@@ -292,12 +292,12 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         # double_RU=double_RU*U_R;
         # double_RU=permute(double_RU,(1,4,),(2,3,));
     
-        # U_Ud=unitary(space(U_U,3) ⊗ V_dd, V_Dd' ⊗ V_Dd);
+        # U_Ud=@ignore_derivatives unitary(space(U_U,3) ⊗ V_dd, V_Dd' ⊗ V_Dd);
         # @tensor double_RU[:]:=double_RU[-1,-2,1,2]*U_Ud[-3,-4,1,2];
         # double_RU=permute(double_RU,(1,),(2,3,4,));
         # AA_open_fused=permute(double_LD*double_RU,(1,2,3,4,5),());
         
-        # U_dd=unitary(V_d' ⊗ V_d, V_dd);
+        # U_dd=@ignore_derivatives unitary(V_d' ⊗ V_d, V_dd);
         # return AA_open_fused, U_dd
     elseif inds in ["1","2","3"]
         #display(space(A))
@@ -312,7 +312,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         elseif inds=="3"
             A_unfused=permute(A_unfused,(1,2,3,4,7,5,6,),());
         end
-        fuse_spin=unitary(fuse(V_s ⊗ V_s), V_s ⊗ V_s);
+        fuse_spin=@ignore_derivatives unitary(fuse(V_s ⊗ V_s), V_s ⊗ V_s);
         @tensor A_fused[:]:=A_unfused[-1,-2,-3,-4,-5,1,2]*fuse_spin[-6,1,2];
         V_ss=fuse(V_s' ⊗ V_s);
 
@@ -325,7 +325,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
         uM=permute(uM,(1,2,3,),());
         Vp=space(vM_dag,1);
         V=space(vM,1);
-        U=unitary(fuse(Vp ⊗ V), Vp ⊗ V);
+        U=@ignore_derivatives unitary(fuse(Vp ⊗ V), Vp ⊗ V);
         @tensor double_LD[:]:=uM_dag[-1,-2,-3,1]*U'[1,-4,-5];
         @tensor double_LD[:]:=double_LD[-1,-3,-5,1,-6]*uM[-2,-4,1];
 
@@ -342,7 +342,7 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
     
         double_RU=permute(double_RU,(1,2,5,6,),(3,4,));
         double_RU=double_RU*U_U;
-        U_s_s=unitary(V_ss, V_s' ⊗ V_s);
+        U_s_s=@ignore_derivatives unitary(V_ss, V_s' ⊗ V_s);
         @tensor double_RU[:]:=double_RU[-1,-2,1,2,-3]*U_s_s[-4,1,2];
 
         A_fused=[];#clear memory
@@ -357,25 +357,25 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
 end
 
 function ob_1site_closed(CTM,A_fused,AA_fused,op,construct_double_layer)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
     if construct_double_layer
-        @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-        @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-        @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
-        @tensor Norm[:]:=envL[1,2,3]*envR[1,2,3];
+        @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+        @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
+        @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
+        Norm=@tensor envL[1,2,3]*envR[1,2,3];
     else
         if op==[]
             Ap=A_fused';
         else
             @tensor Ap[:]:=A_fused'[-1,-2,-3,-4,1]*op[-5,1];
         end
-        @tensor MLU[:]:=Cset[1][1,2]*Tset[1][2,6,4,-4]*Tset[4][-1,5,3,1]*A_fused[3,-3,-6,4,7]*Ap[5,-2,-5,6,7];
+        @tensor MLU[:]:=Cset.C1[1,2]*Tset.T1[2,6,4,-4]*Tset.T4[-1,5,3,1]*A_fused[3,-3,-6,4,7]*Ap[5,-2,-5,6,7];
 
-        @tensor Norm[:]:=MLU[7,8,9,4,5,6]*Cset[2][4,3]*Tset[2][3,5,6,10]*Cset[3][10,2]*Tset[3][2,8,9,1]*Cset[4][1,7];
+         Norm=@tensor MLU[7,8,9,4,5,6]*Cset.C2[4,3]*Tset.T2[3,5,6,10]*Cset.C3[10,2]*Tset.T3[2,8,9,1]*Cset.C4[1,7];
     end
 
-    Norm=blocks(Norm)[Irrep[SU₂](0)];
+
     return Norm;
 end
 

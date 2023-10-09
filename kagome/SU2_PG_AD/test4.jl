@@ -9,13 +9,13 @@ using Zygote:@ignore_derivatives
 
 
 cd(@__DIR__)
-include("..\\resource_codes\\kagome_load_tensor.jl")
+include("resource_codes\\kagome_load_tensor.jl")
 #include("..\\resource_codes\\kagome_CTMRG.jl")
 include("kagome_CTMRG.jl")
-include("..\\resource_codes\\kagome_model.jl")
-include("..\\resource_codes\\kagome_IPESS.jl")
-include("..\\resource_codes\\kagome_FiniteDiff.jl")
-include("..\\resource_codes\\Settings.jl")
+include("resource_codes\\kagome_model.jl")
+include("resource_codes\\kagome_IPESS.jl")
+include("resource_codes\\kagome_FiniteDiff.jl")
+include("resource_codes\\Settings.jl")
 
 
 

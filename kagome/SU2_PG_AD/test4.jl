@@ -1,5 +1,5 @@
 using Revise, PEPSKit, TensorKit, TensorKitAD, Zygote, MPSKit
-using MPSKitModels, LinearAlgebra, OptimKit
+using LinearAlgebra, OptimKit
 using PEPSKit: NORTH,SOUTH,WEST,EAST,NORTHWEST,NORTHEAST,SOUTHEAST,SOUTHWEST,@diffset
 using JLD2,ChainRulesCore
 using KrylovKit
@@ -42,7 +42,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 Bond_irrep="A";
 Triangle_irrep="A1+iA2";
 nonchiral="A1_even";#"No", "A1_even"
-
+ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
 
 
@@ -63,7 +63,7 @@ dump(ctm_setting);
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"LS_A1even_U1_D_6_chi_60.json";#"nothing";
+optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
@@ -79,23 +79,26 @@ dump(energy_setting);
 
 A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
 global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb  
+
 #run_FiniteDiff(parameters,D,chi,Bond_irrep,Triangle_irrep,nonchiral,ctm_setting,optim_setting,energy_setting);
 
 
-json_dict, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, A1_has_odd, A2_has_odd=initial_state(Bond_irrep,Triangle_irrep,nonchiral,D,"nothing",0)
+json_dict, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, A1_has_odd, A2_has_odd=initial_state(Bond_irrep,Triangle_irrep,nonchiral,D,optim_setting.init_statenm,optim_setting.init_noise)
+elementary_tensors=Elementary_tensors(A_set,B_set,A1_set,A2_set,A1_has_odd,A2_has_odd);
 bond_tensor,triangle_tensor=construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb)
 
 PEPS_tensor=bond_tensor;
 @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
 A_unfused=PEPS_tensor;
 
-U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
 @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
 H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit =Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
 
 AA_H,_=build_double_layer(A_fused,H_triangle);
 CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",false,true);
+
 
 
 function ob(CTM,AA_fused)
@@ -111,41 +114,58 @@ function ob(CTM,AA_fused)
 
     return Norm;
 end
-ob(CTM,AA_H)
+ob(CTM,AA_H)/ob(CTM,AA_fused)
 
-function cfun(A_fused)
+
+function cfun(state_vec)
     
     
-    function fun(A_fused)
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",true,true);
+    function fun(x)
+        global chi, ipess_irrep, elementary_tensors
+        #Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=vector_to_coes(elementary_tensors, ipess_irrep, x);
 
-        init=initial_CTM(CTM, "PBC", true);
-        
-        CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting)
-        AA_H,_=build_double_layer(A_fused,H_triangle);
-        AA,_=build_double_layer(A_fused,[]);
-        E=ob(CTM,AA_H)/ob(CTM,AA_fused)
+        bond_tensor,triangle_tensor=construct_su2_PG_IPESS_vec(x,elementary_tensors, ipess_irrep);
+        PEPS_tensor=bond_tensor;
+        @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
+        A_unfused=PEPS_tensor;
+
+        U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+        @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+        A_fused=A_fused/norm(A_fused);
+        #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
+        init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
+
+        CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting)
+        E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
+        E=real(E_up+E_down)/3;
         println(E)
+        global E_tem, CTM_tem, AA_fused_tem
+        CTM_tem=deepcopy(CTM);
+        AA_fused_tem=deepcopy(AA_fused);
+        E_tem=deepcopy(E)
         return E
     end
 
-    ∂E = fun'(A_fused)
-
-    CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",false,true);
-    AA_H,_=build_double_layer(A_fused,H_triangle);
-    AA,_=build_double_layer(A_fused,[]);
-    E=ob(CTM,AA_H)/ob(CTM,AA_fused)
     
+    ∂E = fun'(state_vec)
+    #E=fun(state_vec)
+
+    
+    global E_tem, CTM_tem, AA_fused_tem
 
     @assert !isnan(norm(∂E))
     
-    return E,∂E
+    return E_tem,∂E,CTM_tem, AA_fused_tem
 end
 
 global chi,multiplet_tol,projector_trun_tol
 multiplet_tol=1e-5;
 projector_trun_tol=ctm_setting.CTM_trun_tol
-a,b=cfun(A_fused)
+global ipess_irrep, elementary_tensors
+state_vec=coes_to_vector(Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, ipess_irrep)
+
+E,∂E,CTM_tem, AA_fused_tem=cfun(state_vec);
+println(E,∂E)
 
 
 

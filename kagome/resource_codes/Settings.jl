@@ -56,14 +56,28 @@ mutable struct CTM_struc
 end
 
 
-Base.@kwdef mutable struct initial_CTM
-    CTM :: CTM_struc 
+Base.@kwdef mutable struct initial_condition
+    
     init_type :: String = "PBC";
     reconstruct :: Bool =false;
-
+    has_AA_fused :: Bool =false
 
 
 end
+
+
+
+mutable struct initial_tensors
+    CTM :: CTM_struc 
+    AA_fused :: TensorMap
+    U_L :: TensorMap
+    U_R :: TensorMap
+    U_D :: TensorMap
+    U_U :: TensorMap
+
+
+end
+
 
 function get_Cset(Cset,direction)
     if direction==1
@@ -117,3 +131,20 @@ function set_Tset(Tset,M,direction)
     return Tset
 end
 
+
+struct Elementary_tensors
+    A_set :: Vector{Any}
+    B_set :: Vector{Any}
+    A1_set :: Vector{Any}
+    A2_set :: Vector{Any}
+    A1_has_odd :: Vector{Float64}
+    A2_has_odd :: Vector{Float64}
+
+end
+
+Base.@kwdef struct IPESS_IRREP
+    Bond_irrep :: String = "A"; #"A", "B", "A+iB"
+    Triangle_irrep :: String = "A1+iA2"; #"A1", "A2", "A1+iA2"
+    nonchiral :: String = "No"; #"No", "A1_even", "A1_odd"
+
+end

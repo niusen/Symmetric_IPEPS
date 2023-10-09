@@ -111,7 +111,7 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,init,ctm_setting)
+function CTMRG(A,chi,init,auxi_tensors,ctm_setting)
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     ########################
     CTM_trun_tol=ctm_setting.CTM_trun_tol;
@@ -137,13 +137,13 @@ function CTMRG(A,chi,init,ctm_setting)
             println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
         end
     else
-        if "AA_fused" in keys(init)
-            AA_fused=init["AA_fused"];
-            U_L=init["U_L"];
-            U_D=init["U_D"];
-            U_R=init["U_R"];
-            U_U=init["U_U"];
-            CTM=deepcopy(init["CTM"]);
+        if init.has_AA_fused
+            AA_fused=auxi_tensors.AA_fused;
+            U_L=auxi_tensors.U_L;
+            U_D=auxi_tensors.U_D;
+            U_R=auxi_tensors.U_R;
+            U_U=auxi_tensors.U_U;
+            CTM=deepcopy(init.CTM);
         else
             AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
             AA_memory=Base.summarysize(AA_fused)/1024/1024;
@@ -811,8 +811,8 @@ end
 
 function sdiag_inv_sqrt(S::AbstractTensorMap)
     toret = similar(S);
-    global chi,multiplet_tol,trun_tol
-    s_min=truncate_multiplet(S,chi,multiplet_tol,trun_tol);
+    global chi,multiplet_tol,projector_trun_tol
+    s_min=truncate_multiplet(S,chi,multiplet_tol,projector_trun_tol);
     if sectortype(S) == Trivial
         copyto!(toret.data,LinearAlgebra.(diagm(LinearAlgebra.diag(S.data).^(-1/2))).*(LinearAlgebra.diagm(LinearAlgebra.diag(b).>=(s_min))));
     else

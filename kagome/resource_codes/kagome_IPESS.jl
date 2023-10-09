@@ -64,7 +64,7 @@ function nonchiral_projection(nonchiral,Triangle_A1_coe,Triangle_A2_coe,A1_set_o
     return Triangle_A1_coe,Triangle_A2_coe, A1_has_odd, A2_has_odd
 end
 
-function construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb)
+function construct_su2_PG_IPESS(json_dict :: Dict{String, Any}, A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb)
     Bond_irrep=json_dict["Bond_irrep"]
     nonchiral=json_dict["nonchiral"]
 
@@ -146,10 +146,69 @@ function construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,
     return bond_tensor,triangle_tensor
 end
 
+function construct_su2_PG_IPESS_vec(state_vec :: Vector{Float64},elementary_tensors, ipess_irrep)
+    A_set=elementary_tensors.A_set;
+    B_set=elementary_tensors.B_set;
+    A1_set=elementary_tensors.A1_set;
+    A2_set=elementary_tensors.A2_set;
+
+    Bond_irrep=ipess_irrep.Bond_irrep;
+    Triangle_irrep=ipess_irrep.Triangle_irrep;
+    nonchiral=ipess_irrep.nonchiral;
+
+    Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=vector_to_coes(elementary_tensors, ipess_irrep, state_vec);
+
+    @assert length(Bond_A_coe)==length(A_set)
 
 
+    #combine tensors with coefficients
+    bond_tensor=A_set[1]*0;
+    if Bond_irrep=="A"
+        bond_tensor=A_set[1]*0;
+        for ct in eachindex(Bond_A_coe)
+            bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct];
+        end
+    elseif Bond_irrep=="B"
+        bond_tensor=B_set[1]*0;
+        for ct in eachindex(Bond_B_coe)
+            bond_tensor=bond_tensor+im*B_set[ct]*Bond_B_coe[ct];
+        end
+    elseif Bond_irrep=="A+iB"
+        bond_tensor=A_set[1]*0;
+        for ct in eachindex(Bond_A_coe)
+            bond_tensor=bond_tensor+A_set[ct]*Bond_A_coe[ct];
+        end
+        for ct in eachindex(Bond_B_coe)
+            bond_tensor=bond_tensor+im*B_set[ct]*Bond_B_coe[ct];
+        end
+    end
 
-function get_tensor_coes(json_dict)
+    triangle_tensor=A1_set[1]*0;
+    if Triangle_irrep=="A1"
+        triangle_tensor=A1_set[1]*0;
+        for ct in eachindex(Triangle_A1_coe)
+            triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct];
+        end
+    elseif Triangle_irrep=="A2"
+        triangle_tensor=A2_set[1]*0;
+        for ct in eachindex(Triangle_A2_coe)
+            triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct];
+        end
+    elseif Triangle_irrep=="A1+iA2"
+        triangle_tensor=A1_set[1]*0;
+        for ct in eachindex(Triangle_A1_coe)
+            triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct];
+        end
+        for ct in eachindex(Triangle_A2_coe)
+            triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct];
+        end
+    end
+
+    return bond_tensor,triangle_tensor
+end
+
+
+function get_tensor_coes(json_dict :: Dict{String, Any})
     Bond_irrep=json_dict["Bond_irrep"]
     if Bond_irrep=="A"
         Bond_A_coe=read_string(json_dict["coes"]["Bond_A_coe"]["entries"]);
@@ -183,6 +242,8 @@ function get_tensor_coes(json_dict)
 
     return Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
 end
+
+
 
 
 
@@ -316,7 +377,79 @@ end
 
 
 
-function set_vector(json_dict, vec)
+
+
+
+
+
+
+function normalize_IPESS_SU2_PG(state_dict)
+    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state_dict)
+    if Bond_irrep=="A"
+        Bond_norm=norm(Bond_A_coe)
+        Bond_A_coe=Bond_A_coe/Bond_norm
+    elseif Bond_irrep=="B"
+        Bond_norm=norm(Bond_B_coe)
+        Bond_B_coe=Bond_B_coe/Bond_norm
+    elseif Bond_irrep=="A+iB"
+        Bond_norm=sqrt(norm(Bond_A_coe)^2+norm(Bond_B_coe)^2)
+        Bond_A_coe=Bond_A_coe/Bond_norm
+        Bond_B_coe=Bond_B_coe/Bond_norm
+    end
+
+    if Triangle_irrep=="A1"
+        Triangle_norm=norm(Triangle_A1_coe)
+        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
+    elseif Triangle_irrep=="A2"
+        Triangle_norm=norm(Triangle_A2_coe)
+        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
+    elseif Triangle_irrep=="A1+iA2"
+        Triangle_norm=sqrt(norm(Triangle_A1_coe)^2+norm(Triangle_A2_coe)^2)
+        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
+        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
+    end
+
+    state_dict=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe)
+    return state_dict
+end
+
+
+
+function get_vector(json_dict :: Dict{String, Any})
+    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(json_dict);
+    if Bond_irrep=="A"
+        if Triangle_irrep=="A1"
+            vec=vcat(Bond_A_coe,Triangle_A1_coe);
+        elseif Triangle_irrep=="A2"
+            vec=vcat(Bond_A_coe,Triangle_A2_coe);
+        elseif Triangle_irrep=="A1+iA2"
+            vec=vcat(Bond_A_coe,Triangle_A1_coe,Triangle_A2_coe);
+        end
+    elseif Bond_irrep=="B"
+        if Triangle_irrep=="A1"
+            vec=vcat(Bond_B_coe,Triangle_A1_coe);
+        elseif Triangle_irrep=="A2"
+            vec=vcat(Bond_B_coe,Triangle_A2_coe);
+        elseif Triangle_irrep=="A1+iA2"
+            vec=vcat(Bond_B_coe,Triangle_A1_coe,Triangle_A2_coe);
+        end
+    elseif Bond_irrep=="A+iB"
+        if Triangle_irrep=="A1"
+            vec=vcat(Bond_A_coe,Bond_B_coe,Triangle_A1_coe);
+        elseif Triangle_irrep=="A2"
+            vec=vcat(Bond_A_coe,Bond_B_coe,Triangle_A2_coe);
+        elseif Triangle_irrep=="A1+iA2"
+            vec=vcat(Bond_A_coe,Bond_B_coe,Triangle_A1_coe,Triangle_A2_coe);
+        end
+    end
+    return vec
+end
+
+
+
+
+
+function set_vector(json_dict :: Dict{String, Any}, vec)
     Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coes0, Bond_B_coes0, Triangle_A1_coes0, Triangle_A2_coes0=get_tensor_coes(json_dict);
     if Bond_irrep=="A"
         if Triangle_irrep=="A1"
@@ -430,42 +563,11 @@ end
 
 
 
+function coes_to_vector(Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, ipess_irrep)
+    Bond_irrep=ipess_irrep.Bond_irrep;
+    Triangle_irrep==ipess_irrep.Triangle_irrep;
+    nonchiral==ipess_irrep.nonchiral;
 
-
-function normalize_IPESS_SU2_PG(state_dict)
-    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(state_dict)
-    if Bond_irrep=="A"
-        Bond_norm=norm(Bond_A_coe)
-        Bond_A_coe=Bond_A_coe/Bond_norm
-    elseif Bond_irrep=="B"
-        Bond_norm=norm(Bond_B_coe)
-        Bond_B_coe=Bond_B_coe/Bond_norm
-    elseif Bond_irrep=="A+iB"
-        Bond_norm=sqrt(norm(Bond_A_coe)^2+norm(Bond_B_coe)^2)
-        Bond_A_coe=Bond_A_coe/Bond_norm
-        Bond_B_coe=Bond_B_coe/Bond_norm
-    end
-
-    if Triangle_irrep=="A1"
-        Triangle_norm=norm(Triangle_A1_coe)
-        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
-    elseif Triangle_irrep=="A2"
-        Triangle_norm=norm(Triangle_A2_coe)
-        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
-    elseif Triangle_irrep=="A1+iA2"
-        Triangle_norm=sqrt(norm(Triangle_A1_coe)^2+norm(Triangle_A2_coe)^2)
-        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
-        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
-    end
-
-    state_dict=wrap_json_state(Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe)
-    return state_dict
-end
-
-
-
-function get_vector(json_dict)
-    Bond_irrep, Triangle_irrep, nonchiral, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=get_tensor_coes(json_dict);
     if Bond_irrep=="A"
         if Triangle_irrep=="A1"
             vec=vcat(Bond_A_coe,Triangle_A1_coe);
@@ -492,4 +594,119 @@ function get_vector(json_dict)
         end
     end
     return vec
+end
+
+
+function vector_to_coes(elementary_tensors, ipess_irrep, vec)
+    Bond_irrep=ipess_irrep.Bond_irrep;
+    Triangle_irrep==ipess_irrep.Triangle_irrep;
+    nonchiral==ipess_irrep.nonchiral;
+
+    if Bond_irrep=="A"
+        if Triangle_irrep=="A1"
+            siz=length(elementary_tensors.A_set)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A1_set)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(elementary_tensors.A_set)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(elementary_tensors.A1_set)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A2_set)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(elementary_tensors.A_set)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A1_set)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A2_set)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+        Bond_B_coe=nothing;
+    elseif Bond_irrep=="B"
+        if Triangle_irrep=="A1"
+            siz=length(elementary_tensors.B_set)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A1_set)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(elementary_tensors.B_set)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(elementary_tensors.A1_set)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A2_set)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(elementary_tensors.B_set)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A1_set)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A2_set)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+        Bond_A_coe=nothing;
+    elseif Bond_irrep=="A+iB"
+        if Triangle_irrep=="A1"
+            siz=length(elementary_tensors.A_set)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.B_set)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A1_set)
+            Triangle_A1_coe=vec[1:siz]
+
+            Triangle_A2_coe=nothing
+        elseif Triangle_irrep=="A2"
+            siz=length(elementary_tensors.A_set)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.B_set)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            # siz=length(elementary_tensors.A1_set)
+            # Triangle_A1_coe=vec[1:siz]
+            # vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A2_set)
+            Triangle_A2_coe=vec[1:siz]
+
+            Triangle_A1_coe=nothing
+        elseif Triangle_irrep=="A1+iA2"
+            siz=length(elementary_tensors.A_set)
+            Bond_A_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.B_set)
+            Bond_B_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A1_set)
+            Triangle_A1_coe=vec[1:siz]
+            vec=vec[siz+1:length(vec)]
+            siz=length(elementary_tensors.A2_set)
+            Triangle_A2_coe=vec[1:siz]
+        end
+
+    end
+
+    return Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
 end

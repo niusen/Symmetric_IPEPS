@@ -151,6 +151,7 @@ function construct_su2_PG_IPESS_vec(state_vec :: Vector{Float64},elementary_tens
     B_set=elementary_tensors.B_set;
     A1_set=elementary_tensors.A1_set;
     A2_set=elementary_tensors.A2_set;
+    A2_has_odd=elementary_tensors.A2_has_odd
 
     Bond_irrep=ipess_irrep.Bond_irrep;
     Triangle_irrep=ipess_irrep.Triangle_irrep;
@@ -196,11 +197,27 @@ function construct_su2_PG_IPESS_vec(state_vec :: Vector{Float64},elementary_tens
         end
     elseif Triangle_irrep=="A1+iA2"
         triangle_tensor=A1_set[1]*0;
-        for ct in eachindex(Triangle_A1_coe)
-            triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct];
-        end
-        for ct in eachindex(Triangle_A2_coe)
-            triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct];
+        if nonchiral=="No"
+            for ct in eachindex(Triangle_A1_coe)
+                triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct];
+            end
+            for ct in eachindex(Triangle_A2_coe)
+                triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct];
+            end
+        elseif nonchiral=="A1_even"
+            for ct in eachindex(Triangle_A1_coe)
+                triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct]*(1-A1_has_odd[ct]);
+            end
+            for ct in eachindex(Triangle_A2_coe)
+                triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct]*A2_has_odd[ct];
+            end
+        elseif nonchiral=="A1_odd"
+            for ct in eachindex(Triangle_A1_coe)
+                triangle_tensor=triangle_tensor+A1_set[ct]*Triangle_A1_coe[ct]*A1_has_odd[ct];
+            end
+            for ct in eachindex(Triangle_A2_coe)
+                triangle_tensor=triangle_tensor+im*A2_set[ct]*Triangle_A2_coe[ct]*(1-A2_has_odd[ct]);
+            end
         end
     end
 

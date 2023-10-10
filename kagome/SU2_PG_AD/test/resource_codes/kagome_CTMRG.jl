@@ -358,11 +358,6 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
         RMlow=MMlow;
     end
 
-    #without the below normalization, the gradiant of svd will explode!!!
-    #Also we should ignore derivative of this step, otherwise it seems that the normalization factor will accumulate and the grad explode again!!!
-    RMlow=@ignore_derivatives RMlow/norm(RMlow);
-    RMup=@ignore_derivatives RMup/norm(RMup);
-
     M=RMup*RMlow;
 
     if CTM_trun_svd
@@ -383,12 +378,13 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
 
 
-
-    PM_inv=RMlow*vM'*sM_inv_sqrt;
-    PM=sM_inv_sqrt*uM'*RMup;
+    PM_inv_=RMlow*vM'*sM_inv_sqrt;
+    PM_inv=@ignore_derivatives unitary(space(RMlow,1)*space(RMlow,2), fuse(space(RMlow,1)*space(RMlow,2)));
+    PM_=sM_inv_sqrt*uM'*RMup;
+    PM=@ignore_derivatives unitary(fuse(space(RMup,3)'*space(RMup,4)'), space(RMup,3)'*space(RMup,4)')
+    println(space(PM))
+    println(space(PM_))
     PM=permute(PM,(permut_ind1.+1),(1,));
-    #println([norm(PM),norm(PM_inv)])
-
 
 
     if construct_double_layer

@@ -11,7 +11,7 @@ using Zygote:@ignore_derivatives
 cd(@__DIR__)
 include("resource_codes\\kagome_load_tensor.jl")
 #include("..\\resource_codes\\kagome_CTMRG.jl")
-include("kagome_CTMRG.jl")
+include("resource_codes\\kagome_CTMRG.jl")
 include("resource_codes\\kagome_model.jl")
 include("resource_codes\\kagome_IPESS.jl")
 include("resource_codes\\kagome_FiniteDiff.jl")
@@ -22,11 +22,11 @@ include("resource_codes\\Settings.jl")
 Random.seed!(12345)
 
 
-D=8;
+D=6;
 chi=40;
 
 
-theta=0.2*pi;
+theta=0*pi;
 J1=cos(theta);
 J2=0;
 J3=0;
@@ -49,7 +49,7 @@ ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
 ctm_setting=CTMRG_settings();
 ctm_setting.CTM_conv_tol=1e-6;
-ctm_setting.CTM_ite_nums=50;
+ctm_setting.CTM_ite_nums=1;
 ctm_setting.CTM_trun_tol=1e-8;
 ctm_setting.svd_lanczos_tol=1e-8;
 ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -63,7 +63,7 @@ dump(ctm_setting);
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="julia_LS_D_8_chi_40.json";#"LS_A1even_D_6_chi_40.json";#"nothing";
+optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"

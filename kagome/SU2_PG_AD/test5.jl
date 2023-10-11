@@ -49,7 +49,7 @@ ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
 ctm_setting=CTMRG_settings();
 ctm_setting.CTM_conv_tol=1e-6;
-ctm_setting.CTM_ite_nums=50;
+ctm_setting.CTM_ite_nums=100;
 ctm_setting.CTM_trun_tol=1e-8;
 ctm_setting.svd_lanczos_tol=1e-8;
 ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -63,7 +63,7 @@ dump(ctm_setting);
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="julia_LS_D_8_chi_40.json";#"LS_A1even_D_6_chi_40.json";#"nothing";
+optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"

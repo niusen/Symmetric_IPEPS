@@ -52,7 +52,13 @@ function build_double_layer(A,operator)
 end
 
 
-function fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U)
+function fuse_CTM_legs(A,CTM)
+    A=permute(deepcopy(A),(1,2,),(3,4,5));
+    U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
+    U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+    U_R=(U_L)';
+    U_U=(U_D)';
+
     #Tset_new=Vector{TensorMap}(undef,4);
     #fuse CTM legs
     Tset=CTM.Tset;
@@ -111,7 +117,7 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,init,auxi_tensors,ctm_setting)
+function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     ########################
     CTM_trun_tol=ctm_setting.CTM_trun_tol;
@@ -131,7 +137,11 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting)
     #initial corner transfer matrix
         #initial corner transfer matrix
     if init.reconstruct
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info,construct_double_layer);
+        AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
+        
+        #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info,construct_double_layer);
+        CTM_init= init_CTM(chi,A,init.init_type,CTM_ite_info,construct_double_layer); #somehow I can't include grad here
+        CTM=deepcopy(CTM_init);
         AA_memory=@ignore_derivatives Base.summarysize(AA_fused)/1024/1024;
         @ignore_derivatives if CTM_ite_info
             println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
@@ -205,7 +215,11 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting)
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
         for direction in direction_order
-            Cset,Tset=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            if optim_settings.grad_checkpoint #use checkpoint to save memory
+                Cset,Tset= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
+            else
+                Cset,Tset=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            end
         end
 
         print_corner=false;
@@ -377,7 +391,7 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     end
     
     # println(sM.data.values)
-    sM=sM/norm(sM);
+    sM=@ignore_derivatives sM/norm(sM);
     # println(sM.data.values)treat_svd_results
     multiplet_tol=1e-5;
     uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
@@ -402,10 +416,15 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     end
 
 
+    C1_tem=@ignore_derivatives M1tem/norm(M1tem); #somehow I must ignore grad of such normalization, otherwise error will occur in the checkpoint punction
+    Cset=set_Cset(Cset, C1_tem,mod1(direction,4));
 
-    Cset=set_Cset(Cset, M1tem/norm(M1tem),mod1(direction,4));
-    Tset=set_Tset(Tset, M5tem/norm(M5tem),mod1(direction-1,4));
-    Cset=set_Cset(Cset, M7tem/norm(M7tem),mod1(direction-1,4));
+    T_tem=@ignore_derivatives M5tem/norm(M5tem);
+    Tset=set_Tset(Tset, T_tem, mod1(direction-1,4));
+
+    C4_tem=@ignore_derivatives M7tem/norm(M7tem);
+    Cset=set_Cset(Cset, C4_tem, mod1(direction-1,4));
+
     return Cset,Tset
 end
 
@@ -487,9 +506,9 @@ function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
     CTM=CTM_struc(Cset, Tset);
     
     if construct_double_layer
-        AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
-        
-        CTM=fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U);
+        #AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
+
+        CTM=@ignore_derivatives fuse_CTM_legs(A,CTM);
         
     else
         U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
@@ -499,7 +518,8 @@ function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
         AA_fused=[];
     end
 
-    return CTM, AA_fused, U_L,U_D,U_R,U_U
+    #return CTM, AA_fused, U_L,U_D,U_R,U_U
+    return CTM
 
 
 end;
@@ -590,7 +610,7 @@ end
 
 function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
 
-    sM=sM/norm(sM)
+    sM=@ignore_derivatives sM/norm(sM)
     s_min=@ignore_derivatives truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
 
     # uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);

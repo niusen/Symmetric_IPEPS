@@ -26,7 +26,7 @@ D=8;
 chi=40;
 
 
-theta=0.2*pi;
+theta=0.4*pi;
 J1=cos(theta);
 J2=0;
 J3=0;
@@ -67,6 +67,7 @@ optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
+optim_setting.grad_checkpoint=true;
 
 dump(optim_setting);
 
@@ -96,25 +97,9 @@ U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tens
 
 H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit =Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
 
-AA_H,_=build_double_layer(A_fused,H_triangle);
-CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",false,true);
 
 
 
-function ob(CTM,AA_fused)
-    Cset=CTM.Cset;
-    Tset=CTM.Tset;
-
-    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
-    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
-    Norm= @tensor envL[1,2,3]*envR[1,2,3];
-    Norm=real(Norm);
-
-
-    return Norm;
-end
-ob(CTM,AA_H)/ob(CTM,AA_fused)
 
 
 function cfun(state_vec)
@@ -135,7 +120,7 @@ function cfun(state_vec)
         #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
         init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
 
-        CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting)
+        CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
         E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
         E=real(E_up+E_down)/3;
         println(E)
@@ -164,6 +149,7 @@ projector_trun_tol=ctm_setting.CTM_trun_tol
 global ipess_irrep, elementary_tensors
 state_vec=coes_to_vector(Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, ipess_irrep)
 
+state_vec=normalize_IPESS_SU2_PG_vec(elementary_tensors, ipess_irrep, state_vec);
 E,∂E,CTM_tem, AA_fused_tem=cfun(state_vec);
 println(E,∂E)
 

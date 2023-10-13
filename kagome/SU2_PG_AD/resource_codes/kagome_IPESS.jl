@@ -727,3 +727,40 @@ function vector_to_coes(elementary_tensors, ipess_irrep, vec)
 
     return Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe
 end
+
+
+
+function normalize_IPESS_SU2_PG_vec(elementary_tensors, ipess_irrep, vec)
+    Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=vector_to_coes(elementary_tensors, ipess_irrep, vec)
+    Bond_irrep=ipess_irrep.Bond_irrep;
+    Triangle_irrep==ipess_irrep.Triangle_irrep;
+    nonchiral==ipess_irrep.nonchiral;
+
+
+    if Bond_irrep=="A"
+        Bond_norm=norm(Bond_A_coe)
+        Bond_A_coe=Bond_A_coe/Bond_norm
+    elseif Bond_irrep=="B"
+        Bond_norm=norm(Bond_B_coe)
+        Bond_B_coe=Bond_B_coe/Bond_norm
+    elseif Bond_irrep=="A+iB"
+        Bond_norm=sqrt(norm(Bond_A_coe)^2+norm(Bond_B_coe)^2)
+        Bond_A_coe=Bond_A_coe/Bond_norm
+        Bond_B_coe=Bond_B_coe/Bond_norm
+    end
+
+    if Triangle_irrep=="A1"
+        Triangle_norm=norm(Triangle_A1_coe)
+        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
+    elseif Triangle_irrep=="A2"
+        Triangle_norm=norm(Triangle_A2_coe)
+        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
+    elseif Triangle_irrep=="A1+iA2"
+        Triangle_norm=sqrt(norm(Triangle_A1_coe)^2+norm(Triangle_A2_coe)^2)
+        Triangle_A1_coe=Triangle_A1_coe/Triangle_norm
+        Triangle_A2_coe=Triangle_A2_coe/Triangle_norm
+    end
+
+    state_vec=coes_to_vector(Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, ipess_irrep)
+    return state_vec
+end

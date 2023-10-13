@@ -17,6 +17,7 @@ Base.@kwdef mutable struct Optim_settings
     init_noise :: Float64 =0
     grad_CTM_method :: String ="from_converged_CTM"; # "restart" or "from_converged_CTM"
     linesearch_CTM_method :: String ="from_converged_CTM"; # "restart" or "from_converged_CTM"
+    grad_checkpoint :: Bool = true #use check point to save memory, i.e., only store CTM tensors in each iteration and disgard larger intermidiate tensors.
 end
 
 Base.@kwdef mutable struct Energy_settings

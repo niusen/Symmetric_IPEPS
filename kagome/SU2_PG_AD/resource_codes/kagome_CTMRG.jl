@@ -19,7 +19,7 @@ function build_double_layer(A,operator)
     # uM=uM*sM
     U_tem=@ignore_derivatives unitary(fuse(space(A,1)*space(A,2)), space(A,1)*space(A,2))*(1+0*im);
     vM=U_tem*A;
-    uM=deepcopy(U_tem)';
+    uM=U_tem';
     @assert(norm(uM*vM-A)/norm(A)<1e-12);
 
     uM=permute(uM,(1,2,3,),())
@@ -278,9 +278,8 @@ function rotate_AA(AA_fused,construct_double_layer)
     return AA_rotated
 end
 
-function CTM_ite(Cset0, Tset0, AA, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
-    Cset=deepcopy(Cset0);
-    Tset=deepcopy(Tset0);
+function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
+
     #if construct_double_layer==false, then AA is single layer tensor
     
     M1=get_Cset(Cset, mod1(direction,4));

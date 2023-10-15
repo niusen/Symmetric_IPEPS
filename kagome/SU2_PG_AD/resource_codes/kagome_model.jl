@@ -250,8 +250,8 @@ function Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
     return H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit 
 end
 
-function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
-    A_unfused=deepcopy(A_unfused);
+function build_double_layer_open(A_unfused0,inds,U_phy,U_L,U_D,U_R,U_U)
+
 
 
     #seperate the physical index that to be open
@@ -301,24 +301,34 @@ function build_double_layer_open(A_unfused,inds,U_phy,U_L,U_D,U_R,U_U)
     elseif inds in ["1","2","3"]
         #display(space(A))
         #A=permute(A,(1,2,3,),(4,5,));
-        V_D=space(A_unfused, 4);
-        V_s=space(A_unfused,7);
+        V_D=space(A_unfused0, 4);
+        V_s=space(A_unfused0,7);
 
         if inds=="1"
-            A_unfused=permute(A_unfused,(1,2,3,4,5,6,7,),());
+            A_unfused=permute(A_unfused0,(1,2,3,4,5,6,7,),());
         elseif inds=="2"
-            A_unfused=permute(A_unfused,(1,2,3,4,6,5,7,),());
+            A_unfused=permute(A_unfused0,(1,2,3,4,6,5,7,),());
         elseif inds=="3"
-            A_unfused=permute(A_unfused,(1,2,3,4,7,5,6,),());
+            A_unfused=permute(A_unfused0,(1,2,3,4,7,5,6,),());
         end
         fuse_spin=@ignore_derivatives unitary(fuse(V_s ⊗ V_s), V_s ⊗ V_s);
         @tensor A_fused[:]:=A_unfused[-1,-2,-3,-4,-5,1,2]*fuse_spin[-6,1,2];
         V_ss=@ignore_derivatives fuse(V_s' ⊗ V_s);
 
-        uM_dag,sM_dag,vM_dag=tsvd(permute(A_fused',(1,2,3,),(4,5,6,)));
-        uM_dag=uM_dag*sM_dag;
-        uM,sM,vM=tsvd(permute(A_fused,(1,2,),(3,4,5,6,)));
-        uM=uM*sM;
+        # uM_dag,sM_dag,vM_dag=tsvd(permute(A_fused',(1,2,3,),(4,5,6,)));
+        # uM_dag=uM_dag*sM_dag;
+        Ap=permute(A_fused',(1,2,3,),(4,5,6,));
+        Up_tem=@ignore_derivatives unitary(fuse(space(Ap,1)*space(Ap,2)*space(Ap,3)), space(Ap,1)*space(Ap,2)*space(Ap,3))*(1+0*im);
+        vM_dag=Up_tem*Ap;
+        uM_dag=Up_tem';
+
+
+        # uM,sM,vM=tsvd(permute(A_fused,(1,2,),(3,4,5,6,)));
+        # uM=uM*sM;
+        U_tem=@ignore_derivatives unitary(fuse(space(A_fused,1)*space(A_fused,2)), space(A_fused,1)*space(A_fused,2))*(1+0*im);
+        vM=U_tem*permute(A_fused,(1,2,),(3,4,5,6,));
+        uM=U_tem';
+
         
         uM_dag=permute(uM_dag,(1,2,3,4,),());
         uM=permute(uM,(1,2,3,),());

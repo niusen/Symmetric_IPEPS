@@ -9,14 +9,13 @@ using Zygote:@ignore_derivatives
 
 
 cd(@__DIR__)
-include("..\\resource_codes\\kagome_load_tensor.jl")
+include("resource_codes\\kagome_load_tensor.jl")
 #include("..\\resource_codes\\kagome_CTMRG.jl")
-include("kagome_CTMRG.jl")
-include("..\\resource_codes\\kagome_model.jl")
-include("..\\resource_codes\\kagome_IPESS.jl")
-include("..\\resource_codes\\kagome_FiniteDiff.jl")
-include("..\\resource_codes\\Settings.jl")
-
+include("resource_codes\\kagome_CTMRG.jl")
+include("resource_codes\\kagome_model.jl")
+include("resource_codes\\kagome_IPESS.jl")
+include("resource_codes\\kagome_FiniteDiff.jl")
+include("resource_codes\\Settings.jl")
 
 
 Random.seed!(12345)
@@ -95,7 +94,8 @@ U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEP
 H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit =Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
 
 AA_H,_=build_double_layer(A_fused,H_triangle);
-CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",false,true);
+init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
+CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
 
 
 function ob(CTM,AA_fused)
@@ -117,8 +117,9 @@ function cfun(A_fused, CTM)
     
     
     function fun(A_fused)
-        CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",false,true);
-
+        init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
+        CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
+        
         #init=initial_CTM(CTM, "PBC");
         
         #CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,ctm_setting)
@@ -131,7 +132,8 @@ function cfun(A_fused, CTM)
 
     ∂E = fun'(A_fused)
 
-    CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(10,A_fused,"PBC",false,true);
+    init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
     AA_H,_=build_double_layer(A_fused,H_triangle);
     AA,_=build_double_layer(A_fused,[]);
     E=ob(CTM,AA_H)/ob(CTM,AA_fused)

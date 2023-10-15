@@ -108,28 +108,28 @@ end
 
 function set_Cset(Cset,M,direction)
     if direction==1 
-        Cset.C1=M;
+        Cset_new=Cset_struc(M,Cset.C2,Cset.C3,Cset.C4);
     elseif direction==2
-        Cset.C2=M; 
+        Cset_new=Cset_struc(Cset.C1,M,Cset.C3,Cset.C4); 
     elseif direction==3
-        Cset.C3=M; 
+        Cset_new=Cset_struc(Cset.C1,Cset.C2,M,Cset.C4); 
     elseif direction==4
-        Cset.C4=M; 
+        Cset_new=Cset_struc(Cset.C1,Cset.C2,Cset.C3,M);
     end
-    return Cset
+    return Cset_new
 end
 
 function set_Tset(Tset,M,direction)
     if direction==1 
-        Tset.T1=M;
+        Tset_new=Tset_struc(M,Tset.T2,Tset.T3,Tset.T4);
     elseif direction==2
-        Tset.T2=M; 
+        Tset_new=Tset_struc(Tset.T1,M,Tset.T3,Tset.T4);
     elseif direction==3
-        Tset.T3=M; 
+        Tset_new=Tset_struc(Tset.T1,Tset.T2,M,Tset.T4);
     elseif direction==4
-        Tset.T4=M; 
+        Tset_new=Tset_struc(Tset.T1,Tset.T2,Tset.T3,M);
     end
-    return Tset
+    return Tset_new
 end
 
 

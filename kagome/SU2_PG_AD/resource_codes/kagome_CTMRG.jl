@@ -5,8 +5,8 @@ using Zygote:@ignore_derivatives
 function build_double_layer(A,operator)
     #display(space(A))
     A=permute(A,(1,2,),(3,4,5));
-    U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-    U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+    U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1))*(1+0*im);
+    U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2))*(1+0*im);
     U_R=(U_L)';
     U_U=(U_D)';
     # display(space(U_L))
@@ -14,14 +14,20 @@ function build_double_layer(A,operator)
     # display(space(U_R))
     # display(space(U_D))
 
-    uM,sM,vM=tsvd(A);
-    uM=uM*sM
+    # #uM,sM,vM=tsvd(A; trunc=truncerr(1e-10));
+    # uM,sM,vM=tsvd(A);
+    # uM=uM*sM
+    U_tem=@ignore_derivatives unitary(fuse(space(A,1)*space(A,2)), space(A,1)*space(A,2))*(1+0*im);
+    vM=U_tem*A;
+    uM=deepcopy(U_tem)';
+    @assert(norm(uM*vM-A)/norm(A)<1e-12);
 
     uM=permute(uM,(1,2,3,),())
     V=space(vM,1);
-    U=@ignore_derivatives unitary(fuse(V' ⊗ V), V' ⊗ V);
+    U=@ignore_derivatives unitary(fuse(V' ⊗ V), V' ⊗ V)*(1+0*im);
     @tensor double_LD[:]:=uM'[-1,-2,1]*U'[1,-3,-4];
     @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
+
 
     vM=permute(vM,(1,2,3,4,),());
     if operator==[]
@@ -47,53 +53,18 @@ function build_double_layer(A,operator)
     double_RU=permute(double_RU,(1,),(2,3,));
     AA_fused=double_LD*double_RU;
 
+    # A=permute(A,(1,2,3,4,5,));
+    # if operator==[]
+    #     @tensor AA_fused[:]:=A'[2,4,6,8,1]*A[3,5,7,9,1]*U_L[-1,2,3]*U_D[-2,4,5]*U_R[6,7,-3]*U_U[8,9,-4];
+    # else
+    #     @tensor Ap[:]:=A'[-1,-2,-3,-4,1]*operator[-5,1];
+    #     @tensor AA_fused[:]:=Ap[2,4,6,8,1]*A[3,5,7,9,1]*U_L[-1,2,3]*U_D[-2,4,5]*U_R[6,7,-3]*U_U[8,9,-4];
+    # end
     
     return AA_fused, U_L,U_D,U_R,U_U
 end
 
 
-function fuse_CTM_legs(A,CTM)
-    A=permute(deepcopy(A),(1,2,),(3,4,5));
-    U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-    U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-    U_R=(U_L)';
-    U_U=(U_D)';
-
-    #Tset_new=Vector{TensorMap}(undef,4);
-    #fuse CTM legs
-    Tset=CTM.Tset;
-
-    #T4
-    T4=permute(Tset.T4,(1,4,),(2,3,));
-    T4=T4*U_R;
-    T4=permute(T4,(1,3,2,),());
-    #Tset_new[4]=T4
-    #display(space(T4))
-
-    #T3
-    T3=permute(Tset.T3,(1,4,),(2,3,));
-    T3=T3*U_U;
-    T3=permute(T3,(1,3,2,),());
-    #Tset_new[3]=T3
-    #display(space(T3))
-
-    #T2
-    T2=permute(Tset.T2,(2,3,),(1,4,));
-    T2=U_L*T2;
-    T2=permute(T2,(2,1,3,),());
-    #Tset_new[2]=T2
-    #display(space(T2))
-
-    #T1
-    T1=permute(Tset.T1,(2,3,),(1,4,));
-    T1=U_D*T1;
-    T1=permute(T1,(2,1,3,),());
-    #Tset_new[1]=T1
-    #display(space(T1))
-
-    CTM.Tset=Tset_struc(T1,T2,T3,T4);
-    return CTM
-end
 
 function spectrum_conv_check(ss_old,C_new)
     _,ss_new,_=svd(permute(C_new,(1,),(2,)));
@@ -139,8 +110,8 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
     if init.reconstruct
         AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
         
-        #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info,construct_double_layer);
-        CTM_init= init_CTM(chi,A,init.init_type,CTM_ite_info,construct_double_layer); #somehow I can't include grad here
+        #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info);
+        CTM_init= init_CTM(chi,A,init.init_type,CTM_ite_info);
         CTM=deepcopy(CTM_init);
         AA_memory=@ignore_derivatives Base.summarysize(AA_fused)/1024/1024;
         @ignore_derivatives if CTM_ite_info
@@ -307,7 +278,9 @@ function rotate_AA(AA_fused,construct_double_layer)
     return AA_rotated
 end
 
-function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
+function CTM_ite(Cset0, Tset0, AA, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
+    Cset=deepcopy(Cset0);
+    Tset=deepcopy(Tset0);
     #if construct_double_layer==false, then AA is single layer tensor
     
     M1=get_Cset(Cset, mod1(direction,4));
@@ -416,13 +389,16 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     end
 
 
-    C1_tem=@ignore_derivatives M1tem/norm(M1tem); #somehow I must ignore grad of such normalization, otherwise error will occur in the checkpoint punction
+    norm_M1=sqrt(dot(M1tem,M1tem));
+    C1_tem= M1tem/norm_M1; #somehow I must ignore grad of such normalization, otherwise error will occur in the checkpoint punction
     Cset=set_Cset(Cset, C1_tem,mod1(direction,4));
 
-    T_tem=@ignore_derivatives M5tem/norm(M5tem);
+    T_norm=sqrt(dot(M5tem,M5tem));
+    T_tem= M5tem/T_norm;
     Tset=set_Tset(Tset, T_tem, mod1(direction-1,4));
 
-    C4_tem=@ignore_derivatives M7tem/norm(M7tem);
+    norm_M7=sqrt(dot(M7tem,M7tem));
+    C4_tem= M7tem/norm_M7;
     Cset=set_Cset(Cset, C4_tem, mod1(direction-1,4));
 
     return Cset,Tset
@@ -433,7 +409,7 @@ end
 
 
 
-function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
+function init_CTM(chi,A,type,CTM_ite_info)
     @ignore_derivatives  if CTM_ite_info
         display("initialize CTM")
     end
@@ -450,79 +426,31 @@ function init_CTM(chi,A,type,CTM_ite_info,construct_double_layer)
     #space(A,1)
     
     if type=="PBC"
-        for direction=1:4
-            inds=(mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),5);
-            A_rotate=permute(A,inds);
-            Ap_rotate=A_rotate';
-
-            @tensor M[:]:=Ap_rotate[1,-1,-3,2,3]*A_rotate[1,-2,-4,2,3];
-            Cset=set_Cset(Cset,M,direction);
-            @tensor M[:]:=Ap_rotate[-1,-3,-5,1,2]*A_rotate[-2,-4,-6,1,2];
-            Tset=set_Tset(Tset,M,direction);
-        end
-        
-        #fuse legs
-        #ul_set=Vector{TensorMap}(undef,4);
-        #ur_set=Vector{TensorMap}(undef,4);
-        ul_set=Tset_struc(A,A,A,A)
-        ur_set=Tset_struc(A,A,A,A)
-        for direction=1:2
-            ul_set_tem=@ignore_derivatives unitary(fuse(space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4)), space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4));
-            ur_set_tem=@ignore_derivatives unitary(fuse(space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6)), space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6));
-            ul_set=set_Tset(ul_set,ul_set_tem,direction);
-            ur_set=set_Tset(ur_set,ur_set_tem,direction);
-        end
-        for direction=3:4
-            ul_set_tem=@ignore_derivatives unitary(fuse(space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4))', space(get_Cset(Cset,direction), 3) ⊗ space(get_Cset(Cset,direction), 4));
-            ur_set_tem=@ignore_derivatives unitary(fuse(space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6))', space(get_Tset(Tset,direction), 5) ⊗ space(get_Tset(Tset,direction), 6));
-            ul_set=set_Tset(ul_set,ul_set_tem,direction);
-            ur_set=set_Tset(ur_set,ur_set_tem,direction);
-        end
-        for direction=1:4
-            C=get_Cset(Cset,direction);
-            ul=get_Tset(ur_set,mod1(direction-1,4));
-            ur=get_Tset(ul_set,direction);
-            ulp=permute(ul',(3,),(1,2,));
-            urp=permute(ur',(3,),(1,2,));
-            #@tensor Cnew[(-1);(-2)]:=ulp[-1,1,2]*C[1,2,3,4]*ur[-2,3,4]
-            @tensor Cnew[:]:=ulp[-1,1,2]*C[1,2,3,4]*ur[-2,3,4];#put all indices in tone side so that its adjoint has the same index order
-            Cset=set_Cset(Cset,Cnew,direction);
-            
-
-            T=get_Tset(Tset,direction);
-            ul=get_Tset(ul_set,direction);
-            ur=get_Tset(ur_set,direction);
-            ulp=permute(ul',(3,),(1,2,));
-            urp=permute(ur',(3,),(1,2,));
-            #@tensor Tnew[(-1);(-2,-3,-4)]:=ulp[-1,1,2]*T[1,2,-2,-3,3,4]*ur[-4,3,4]
-            @tensor Tnew[:]:=ulp[-1,1,2]*T[1,2,-2,-3,3,4]*ur[-4,3,4];#put all indices in tone side so that its adjoint has the same index order
-            Tset=set_Tset(Tset,Tnew,direction);
-            
-        end
+        U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
+        U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+        U_R=(U_L)';
+        U_U=(U_D)';
+        @tensor C1[:]:=A'[2,4,6,3,1]*A[2,5,7,3,1]*U_D[-1,4,5]*U_R[6,7,-2];
+        @tensor C2[:]:=A'[4,6,3,2,1]*A[5,7,3,2,1]*U_L[-1,4,5]*U_D[-2,6,7];
+        @tensor C3[:]:=A'[6,3,2,4,1]*A[7,3,2,5,1]*U_U[4,5,-1]*U_L[-2,6,7];
+        @tensor C4[:]:=A'[2,3,6,4,1]*A[2,3,7,5,1]*U_R[6,7,-1]*U_U[4,5,-2];
+    
+        @tensor T4[:]:=A'[2,3,5,7,1]*A[2,4,6,8,1]*U_D[-1,3,4]*U_R[5,6,-2]*U_U[7,8,-3];
+        @tensor T1[:]:=A'[3,5,7,2,1]*A[4,6,8,2,1]*U_L[-1,3,4]*U_D[-2,5,6]*U_R[7,8,-3];
+        @tensor T2[:]:=A'[5,7,2,3,1]*A[6,8,2,4,1]*U_U[3,4,-1]*U_L[-2,5,6]*U_D[-3,7,8];
+        @tensor T3[:]:=A'[7,2,3,5,1]*A[8,2,4,6,1]*U_R[3,4,-1]*U_U[5,6,-2]*U_L[-3,7,8];
+    
+        Cset=Cset_struc(C1,C2,C3,C4);
+        Tset=Tset_struc(T1,T2,T3,T4);
+    
+        CTM=CTM_struc(Cset,Tset)
 
     elseif type=="random"
     end
 
     CTM=CTM_struc(Cset, Tset);
-    
-    if construct_double_layer
-        #AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
-
-        CTM=@ignore_derivatives fuse_CTM_legs(A,CTM);
-        
-    else
-        U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-        U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-        U_R=(U_L)';
-        U_U=(U_D)';
-        AA_fused=[];
-    end
-
-    #return CTM, AA_fused, U_L,U_D,U_R,U_U
     return CTM
-
-
-end;
+end
 
 
 

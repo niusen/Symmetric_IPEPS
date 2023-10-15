@@ -23,10 +23,10 @@ Random.seed!(12345)
 
 
 D=6;
-chi=60;
+chi=40;
 
 
-theta=0.0*pi;
+theta=0.2*pi;
 J1=cos(theta);
 J2=0;
 J3=0;
@@ -49,7 +49,7 @@ ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
 ctm_setting=CTMRG_settings();
 ctm_setting.CTM_conv_tol=1e-6;
-ctm_setting.CTM_ite_nums=50;
+ctm_setting.CTM_ite_nums=0;
 ctm_setting.CTM_trun_tol=1e-8;
 ctm_setting.svd_lanczos_tol=1e-8;
 ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -63,7 +63,7 @@ dump(ctm_setting);
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="LS_A1even_D_6_chi_40.json";#"LS_A1even_D_6_chi_40.json";#"nothing";
+optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
@@ -97,47 +97,107 @@ U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tens
 
 H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit =Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
 
+global H_triangle
+  
+
+function build_double_layer_no_svd(A,operator)
+    #display(space(A))
+    A=permute(A,(1,2,),(3,4,5));
+    U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
+    U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
+    U_R=(U_L)';
+    U_U=(U_D)';
+    # display(space(U_L))
+    # display(space(U_D))
+    # display(space(U_R))
+    # display(space(U_D))
+
+    # uM,sM,vM=tsvd(A);
+    # uM=uM*sM
+
+    # uM=permute(uM,(1,2,3,),())
+    # V=space(vM,1);
+    # U=@ignore_derivatives unitary(fuse(V' ⊗ V), V' ⊗ V);
+    # @tensor double_LD[:]:=uM'[-1,-2,1]*U'[1,-3,-4];
+    # @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
+
+    # vM=permute(vM,(1,2,3,4,),());
+    # if operator==[]
+    #     @tensor double_RU[:]:=U[-1,-2,1]*vM[1,-3,-4,-5];
+    #     @tensor double_RU[:]:=vM'[1,-2,-4,2]*double_RU[-1,1,-3,-5,2];
+    # else
+    #     @tensor double_RU[:]:=U[-1,-2,1]*vM[1,-3,-4,-5];
+    #     @tensor double_RU[:]:=vM'[3,-2,-4,1]*operator[2,1]*double_RU[-1,3,-3,-5,2];
+    # end
+    # #display(space(double_RU))
+
+    # double_LD=permute(double_LD,(1,2,),(3,4,5,));
+    # double_LD=U_L*double_LD;
+    # double_LD=permute(double_LD,(2,3,),(1,4,));
+    # double_LD=U_D*double_LD;
+    # double_LD=permute(double_LD,(2,1,),(3,));
+    # #display(space(double_LD))
+    # double_RU=permute(double_RU,(1,4,5,),(2,3,));
+    # double_RU=double_RU*U_R;
+    # double_RU=permute(double_RU,(1,4,),(2,3,));
+    # double_RU=double_RU*U_U;
+    # double_LD=permute(double_LD,(1,2,),(3,));
+    # double_RU=permute(double_RU,(1,),(2,3,));
+    # AA_fused=double_LD*double_RU;
+
+    A=permute(A,(1,2,3,4,5,));
+    @tensor AA_fused[:]:=A'[2,4,6,8,1]*A[3,5,7,9,1]*U_L[-1,2,3]*U_D[-2,4,5]*U_R[6,7,-3]*U_U[8,9,-4];
+
+    
+    return AA_fused, U_L,U_D,U_R,U_U
+end
+
+CTM= init_CTM(chi,A_fused,"PBC",false); #somehow I can't include grad here
+global CTM
+
+function fun(x)
+    global chi, ipess_irrep, elementary_tensors, H_triangle
+    #Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=vector_to_coes(elementary_tensors, ipess_irrep, x);
+
+    bond_tensor,triangle_tensor=construct_su2_PG_IPESS_vec(x,elementary_tensors, ipess_irrep);
+
+    @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
+    A_unfused=PEPS_tensor;
+
+    U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+    @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+    #A_fused=A_fused/norm(A_fused);
+    global CTM
+    #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
 
 
 
+    AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A_fused,[]);
+    # CTM= init_CTM(chi,A_fused,"PBC",false,true); #somehow I can't include grad here
+
+    norm_1site=ob_1site_closed(CTM,[],AA_fused,[],true);
+    AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
+    E_up=ob_1site_closed(CTM,[],AA_H,[],true);
+    #E_up=E_up/norm_1site;
+
+
+    E=real(E_up*2)/3;
+    println(E)
+    # global E_tem, CTM_tem, AA_fused_tem
+    # CTM_tem=deepcopy(CTM);
+    # AA_fused_tem=deepcopy(AA_fused);
+    # E_tem=deepcopy(E)
+    return E
+end
 
 
 function cfun(state_vec)
     
-    
-    function fun(x)
-        global chi, ipess_irrep, elementary_tensors
-        #Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=vector_to_coes(elementary_tensors, ipess_irrep, x);
 
-        bond_tensor,triangle_tensor=construct_su2_PG_IPESS_vec(x,elementary_tensors, ipess_irrep);
-        PEPS_tensor=bond_tensor;
-        @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
-        A_unfused=PEPS_tensor;
-
-        U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
-        @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
-        A_fused=A_fused/norm(A_fused);
-        #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
-        init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
-
-        CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
-        E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
-        E=real(E_up+E_down)/3;
-        println(E)
-        global E_tem, CTM_tem, AA_fused_tem
-        CTM_tem=deepcopy(CTM);
-        AA_fused_tem=deepcopy(AA_fused);
-        E_tem=deepcopy(E)
-        return E
-    end
-
-    
     ∂E = fun'(state_vec)
     #E=fun(state_vec)
-
     
     global E_tem, CTM_tem, AA_fused_tem
-
     @assert !isnan(norm(∂E))
     
     return E_tem,∂E,CTM_tem, AA_fused_tem
@@ -155,10 +215,27 @@ println(E,∂E)
 
 
 
+dt=0.000001
+
+E0=fun(state_vec);
+
+grad=Vector{Float64}(undef,0);
+
+for cc=1:length(state_vec)
+    state_vec_tem=deepcopy(state_vec);
+    state_vec_tem[cc]=state_vec_tem[cc]+dt;
+    grad=vcat(grad,(fun(state_vec_tem)-E0)/dt);
+
+end
+println(grad)
 
 
 
 
+# init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
+
+# CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
+# E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting1.kagome_method);
 
 # function cfun(x)
 #     (ψ,env) = x

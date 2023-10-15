@@ -100,10 +100,6 @@ H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit =Hamiltoni
 global H_triangle
   
 
-_, U_L,U_D,U_R,U_U=build_double_layer(A_fused,[]);
-
-CTM= init_CTM(chi,A_fused,"PBC",false); #somehow I can't include grad here
-#global CTM
 
 function fun(x)
     global chi, ipess_irrep, elementary_tensors, H_triangle
@@ -132,9 +128,9 @@ function fun(x)
     # E=real(E_up*2)/3;
 
     AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A_fused,[]);
-    CTM= init_CTM(chi,A_fused,"PBC",false); 
+    #CTM= init_CTM(chi,A_fused,"PBC",false); 
     init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
-    #CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
+    CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
 
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
     E=real(E_up+E_down)/3;

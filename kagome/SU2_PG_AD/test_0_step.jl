@@ -22,11 +22,11 @@ include("resource_codes\\Settings.jl")
 Random.seed!(12345)
 
 
-D=3;
+D=6;
 chi=40;
 
 
-theta=0.0*pi;
+theta=0.2*pi;
 J1=cos(theta);
 J2=0;
 J3=0;
@@ -41,7 +41,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 Bond_irrep="A";
 Triangle_irrep="A1+iA2";
-nonchiral="A1_even";#"No", "A1_even"
+nonchiral="No";#"No", "A1_even"
 ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
 
@@ -156,7 +156,7 @@ println(E,∂E)
 
 
 
-dt=0.001
+dt=0.00001
 
 E0=fun(state_vec);
 
@@ -169,7 +169,7 @@ for cc=1:length(state_vec)
 
 end
 println(grad)
-
+println(∂E./grad)
 
 
 

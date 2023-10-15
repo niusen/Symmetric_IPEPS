@@ -111,8 +111,8 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
         AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
         
         #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info);
-        CTM_init= init_CTM(chi,A,init.init_type,CTM_ite_info);
-        CTM=deepcopy(CTM_init);
+        CTM= init_CTM(chi,A,init.init_type,CTM_ite_info);
+
         AA_memory=@ignore_derivatives Base.summarysize(AA_fused)/1024/1024;
         @ignore_derivatives if CTM_ite_info
             println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);

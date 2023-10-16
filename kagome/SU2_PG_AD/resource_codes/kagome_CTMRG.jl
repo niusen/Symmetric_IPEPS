@@ -185,6 +185,7 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
+
  
         
         for direction in direction_order

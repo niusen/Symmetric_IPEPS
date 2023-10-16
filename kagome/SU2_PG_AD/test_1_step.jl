@@ -11,7 +11,7 @@ using Zygote:@ignore_derivatives
 cd(@__DIR__)
 include("resource_codes\\kagome_load_tensor.jl")
 #include("..\\resource_codes\\kagome_CTMRG.jl")
-include("resource_codes\\kagome_CTMRG_test.jl")
+include("resource_codes\\kagome_CTMRG.jl")
 include("resource_codes\\kagome_model.jl")
 include("resource_codes\\kagome_IPESS.jl")
 include("resource_codes\\kagome_FiniteDiff.jl")
@@ -115,7 +115,7 @@ function fun(x)
     #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
     init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
 
-    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG_test(A_fused,chi,init,[],ctm_setting,optim_setting)
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
     E=real(E_up+E_down)/3;
     println(E)

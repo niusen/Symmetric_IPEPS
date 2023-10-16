@@ -185,11 +185,17 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
+ 
+        
         for direction in direction_order
             if optim_settings.grad_checkpoint #use checkpoint to save memory
-                Cset,Tset= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
+                C1,C2,C3,C4, T1,T2,T3,T4= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                Cset=Cset_struc(C1,C2,C3,C4);
+                Tset=Tset_struc(T1,T2,T3,T4);
             else
-                Cset,Tset=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                C1,C2,C3,C4, T1,T2,T3,T4=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                Cset=Cset_struc(C1,C2,C3,C4);
+                Tset=Tset_struc(T1,T2,T3,T4);
             end
         end
 
@@ -346,8 +352,12 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
 
     #without the below normalization, the gradiant of svd will explode!!!
     #Also we should ignore derivative of this step, otherwise it seems that the normalization factor will accumulate and the grad explode again!!!
-    RMlow=@ignore_derivatives RMlow/norm(RMlow);
-    RMup=@ignore_derivatives RMup/norm(RMup);
+    
+    RMlow_norm=norm(RMlow);
+    RMlow= RMlow/RMlow_norm;
+
+    RMup_norm=norm(RMup);
+    RMup= RMup/RMup_norm;
 
     M=RMup*RMlow;
 
@@ -363,15 +373,26 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     end
     
     # println(sM.data.values)
-    sM=@ignore_derivatives sM/norm(sM);
+    sM_norm=norm(sM);
+    sM=sM/sM_norm;
     # println(sM.data.values)treat_svd_results
     multiplet_tol=1e-5;
     uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
 
 
 
-    PM_inv=RMlow*vM'*sM_inv_sqrt;
-    PM=sM_inv_sqrt*uM'*RMup;
+    PM_inv_=RMlow*vM'*sM_inv_sqrt;
+    PM_=sM_inv_sqrt*uM'*RMup;
+
+    PM_inv=@ignore_derivatives unitary(space(RMlow,1)*space(RMlow,2), fuse(space(RMlow,1)*space(RMlow,2)))
+    PM=@ignore_derivatives unitary(fuse(space(RMup,3)*space(RMup,4)), space(RMup,3)'*space(RMup,4)')
+
+    # println(space(PM_inv_))
+    # println(space(PM_inv))
+
+    # println(space(PM_))
+    # println(space(PM))
+
     PM=permute(PM,(permut_ind1.+1),(1,));
     #println([norm(PM),norm(PM_inv)])
 
@@ -388,19 +409,29 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     end
 
 
-    norm_M1=sqrt(dot(M1tem,M1tem));
+    norm_M1=norm(M1tem);
     C1_tem= M1tem/norm_M1; #somehow I must ignore grad of such normalization, otherwise error will occur in the checkpoint punction
-    Cset=set_Cset(Cset, C1_tem,mod1(direction,4));
 
-    T_norm=sqrt(dot(M5tem,M5tem));
-    T_tem= M5tem/T_norm;
-    Tset=set_Tset(Tset, T_tem, mod1(direction-1,4));
-
-    norm_M7=sqrt(dot(M7tem,M7tem));
+    T_norm=norm(M5tem);
+    T4_tem= M5tem/T_norm;
+    
+    norm_M7=norm(M7tem);
     C4_tem= M7tem/norm_M7;
-    Cset=set_Cset(Cset, C4_tem, mod1(direction-1,4));
+    
 
-    return Cset,Tset
+    # Cset=set_Cset(Cset, C1_tem,mod1(direction,4));
+    # Cset=set_Cset(Cset, C4_tem, mod1(direction-1,4));
+    # Tset=set_Tset(Tset, T4_tem, mod1(direction-1,4));
+
+    if direction==1
+        return C1_tem, Cset.C2, Cset.C3, C4_tem, Tset.T1, Tset.T2, Tset.T3, T4_tem
+    elseif direction==2
+        return C4_tem, C1_tem, Cset.C3, Cset.C4, T4_tem, Tset.T2, Tset.T3, Tset.T4
+    elseif direction==3
+        return Cset.C1, C4_tem, C1_tem, Cset.C4, Tset.T1, T4_tem, Tset.T3, Tset.T4
+    elseif direction==4
+        return Cset.C1, Cset.C2, C4_tem, C1_tem, Tset.T1, Tset.T2, T4_tem, Tset.T4
+    end
 end
 
 

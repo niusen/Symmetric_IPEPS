@@ -11,7 +11,7 @@ using Zygote:@ignore_derivatives
 cd(@__DIR__)
 include("resource_codes\\kagome_load_tensor.jl")
 #include("..\\resource_codes\\kagome_CTMRG.jl")
-include("resource_codes\\kagome_CTMRG.jl")
+include("resource_codes\\kagome_CTMRG_test.jl")
 include("resource_codes\\kagome_model.jl")
 include("resource_codes\\kagome_IPESS.jl")
 include("resource_codes\\kagome_FiniteDiff.jl")
@@ -22,7 +22,7 @@ include("resource_codes\\Settings.jl")
 Random.seed!(12345)
 
 
-D=6;
+D=8;
 chi=40;
 
 
@@ -63,7 +63,7 @@ dump(ctm_setting);
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
+optim_setting.init_statenm="julia_LS_D_8_chi_40.json";#"LS_A1even_D_6_chi_40.json";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
@@ -115,7 +115,7 @@ function fun(x)
     #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
     init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
 
-    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG_test(A_fused,chi,init,[],ctm_setting,optim_setting)
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
     E=real(E_up+E_down)/3;
     println(E)

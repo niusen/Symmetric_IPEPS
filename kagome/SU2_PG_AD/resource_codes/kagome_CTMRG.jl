@@ -354,11 +354,14 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     #without the below normalization, the gradiant of svd will explode!!!
     #Also we should ignore derivative of this step, otherwise it seems that the normalization factor will accumulate and the grad explode again!!!
     
-    RMlow_norm=norm(RMlow);
-    RMlow= RMlow/RMlow_norm;
+    # RMlow_norm=norm(RMlow);
+    # RMlow= RMlow/RMlow_norm;
 
-    RMup_norm=norm(RMup);
-    RMup= RMup/RMup_norm;
+    # RMup_norm=@ignore_derivatives norm(RMup);
+    # RMup= RMup/RMup_norm;
+
+    RMlow=@ignore_derivatives RMlow/norm(RMlow);
+    RMup=@ignore_derivatives RMup/norm(RMup);
 
     M=RMup*RMlow;
 

@@ -185,6 +185,9 @@ function CTMRG_test(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
+        direction_order=[1];
+
+ 
         
         for direction in direction_order
             if optim_settings.grad_checkpoint #use checkpoint to save memory
@@ -352,11 +355,14 @@ function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,proj
     #without the below normalization, the gradiant of svd will explode!!!
     #Also we should ignore derivative of this step, otherwise it seems that the normalization factor will accumulate and the grad explode again!!!
     
-    RMlow_norm=norm(RMlow);
-    RMlow= RMlow/RMlow_norm;
+    # RMlow_norm=norm(RMlow);
+    # RMlow= RMlow/RMlow_norm;
 
-    RMup_norm=norm(RMup);
-    RMup= RMup/RMup_norm;
+    # RMup_norm=@ignore_derivatives norm(RMup);
+    # RMup= RMup/RMup_norm;
+
+    RMlow=@ignore_derivatives RMlow/norm(RMlow);
+    RMup=@ignore_derivatives RMup/norm(RMup);
 
     M=RMup*RMlow;
 
@@ -377,14 +383,14 @@ function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,proj
     # println(sM.data.values)treat_svd_results
     multiplet_tol=1e-5;
     uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
+    #sM_inv_sqrt=sdiag_inv_sqrt(sM);
 
 
+    PM_inv=RMlow*vM'*sM_inv_sqrt;
+    PM=sM_inv_sqrt*uM'*RMup;
 
-    PM_inv_=RMlow*vM'*sM_inv_sqrt;
-    PM_=sM_inv_sqrt*uM'*RMup;
-
-    PM_inv=@ignore_derivatives unitary(space(RMlow,1)*space(RMlow,2), fuse(space(RMlow,1)*space(RMlow,2)))
-    PM=@ignore_derivatives unitary(fuse(space(RMup,3)*space(RMup,4)), space(RMup,3)'*space(RMup,4)')
+    # PM_inv=@ignore_derivatives unitary(space(RMlow,1)*space(RMlow,2), fuse(space(RMlow,1)*space(RMlow,2)))
+    # PM=@ignore_derivatives unitary(fuse(space(RMup,3)*space(RMup,4)), space(RMup,3)'*space(RMup,4)')
 
     # println(space(PM_inv_))
     # println(space(PM_inv))
@@ -411,11 +417,9 @@ function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,proj
     norm_M1=norm(M1tem);
     C1_tem= M1tem/norm_M1; #somehow I must ignore grad of such normalization, otherwise error will occur in the checkpoint punction
 
-
     T_norm=norm(M5tem);
     T4_tem= M5tem/T_norm;
     
-
     norm_M7=norm(M7tem);
     C4_tem= M7tem/norm_M7;
     
@@ -570,7 +574,7 @@ end
 function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
 
     sM=@ignore_derivatives sM/norm(sM)
-    s_min=@ignore_derivatives truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
+    #s_min=@ignore_derivatives truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
 
     # uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
     # @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14

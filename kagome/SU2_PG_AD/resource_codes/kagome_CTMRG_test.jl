@@ -60,7 +60,7 @@ function build_double_layer(A,operator)
     #     @tensor Ap[:]:=A'[-1,-2,-3,-4,1]*operator[-5,1];
     #     @tensor AA_fused[:]:=Ap[2,4,6,8,1]*A[3,5,7,9,1]*U_L[-1,2,3]*U_D[-2,4,5]*U_R[6,7,-3]*U_U[8,9,-4];
     # end
-    
+
     return AA_fused, U_L,U_D,U_R,U_U
 end
 
@@ -185,7 +185,7 @@ function CTMRG_test(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
-        direction_order=[1];
+        #direction_order=[1];
 
  
         
@@ -288,6 +288,7 @@ end
 
 function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
 
+    #jldsave("CTM_ite.jld2"; Cset,Tset,AA,chi,direction)
     #if construct_double_layer==false, then AA is single layer tensor
     
     M1=get_Cset(Cset, mod1(direction,4));
@@ -361,10 +362,23 @@ function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,proj
     # RMup_norm=@ignore_derivatives norm(RMup);
     # RMup= RMup/RMup_norm;
 
-    RMlow=@ignore_derivatives RMlow/norm(RMlow);
-    RMup=@ignore_derivatives RMup/norm(RMup);
+    # RMlow=@ignore_derivatives RMlow/norm(RMlow);
+    # RMup=@ignore_derivatives RMup/norm(RMup);
 
-    M=RMup*RMlow;
+    norm_low=@ignore_derivatives norm(RMlow);
+    norm_up=@ignore_derivatives norm(RMup);
+    
+    norm_total=@ignore_derivatives sqrt(10^round(log10(norm_low*norm_up)))
+    RMlow=RMlow/norm_total;#gradient of this step can't be ignored, otherwise final grad will be oncorrect
+    RMup=RMup/norm_total;
+
+
+    M=RMup*RMlow*1e12;
+
+    #M=@ignore_derivatives M/norm(M);
+
+    
+    #jldsave("hard_tensor.jld2"; M)
 
     if CTM_trun_svd
         uM,sM,vM, M=truncated_svd_method(M,chi+20,svd_lanczos_tol,construct_double_layer);
@@ -375,6 +389,7 @@ function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,proj
         # println("error of truncated svd: "*string(norm(TT_-TT)/norm(TT)))
     else
         uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
+        #uM,sM,vM = tsvd(M);
     end
     
     # println(sM.data.values)
@@ -382,12 +397,14 @@ function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,proj
     sM=sM/sM_norm;
     # println(sM.data.values)treat_svd_results
     multiplet_tol=1e-5;
-    uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
-    #sM_inv_sqrt=sdiag_inv_sqrt(sM);
+
+    sM_inv_sqrt=sdiag_inv_sqrt(sM);
+    #sM_inv_sqrt=@ignore_derivatives unitary(space(sM,1),space(sM,1));
 
 
     PM_inv=RMlow*vM'*sM_inv_sqrt;
     PM=sM_inv_sqrt*uM'*RMup;
+
 
     # PM_inv=@ignore_derivatives unitary(space(RMlow,1)*space(RMlow,2), fuse(space(RMlow,1)*space(RMlow,2)))
     # PM=@ignore_derivatives unitary(fuse(space(RMup,3)*space(RMup,4)), space(RMup,3)'*space(RMup,4)')
@@ -413,7 +430,7 @@ function CTM_ite_test(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,proj
         @tensor M7tem[:]:=get_Cset(Cset, mod1(direction-1,4))[1,2]*get_Tset(Tset, mod1(direction-2,4))[-1,3,4,1]* PM[2,3,4,-2];
     end
 
-
+    
     norm_M1=norm(M1tem);
     C1_tem= M1tem/norm_M1; #somehow I must ignore grad of such normalization, otherwise error will occur in the checkpoint punction
 
@@ -566,32 +583,6 @@ function truncate_multiplet(s,chi,multiplet_tol,trun_tol)
         return s_dense[1]
     end
 
-end
-
-
-
-
-function treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol)
-
-    sM=@ignore_derivatives sM/norm(sM)
-    #s_min=@ignore_derivatives truncate_multiplet(sM,chi,multiplet_tol,trun_tol);
-
-    # uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
-    # @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
-    # uM=uM_new;
-    # sM=sM_new;
-    # vM=vM_new;
-
-
-    
-    #sM_inv=mypinv(sM);
-
-    #sM_inv_sqrt=mysqrt(sM_inv)
-    #sM_inv_sqrt=sdiag_inv_sqrt(sM);
-    #sM_inv_sqrt=sdiag_inv_sqrt(sM,s_min);
-    sM_inv_sqrt=sdiag_inv_sqrt(sM);
-
-    return uM,sM,vM,sM_inv_sqrt
 end
 
 

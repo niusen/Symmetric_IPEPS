@@ -359,6 +359,7 @@ function build_double_layer_open(A_unfused0,inds,U_phy,U_L,U_D,U_R,U_U)
         @tensor AA_open_fused[:]:=double_LD[-1,-2,2,1]*double_RU[1,2,-3,-4,-5];
 
         U_s_s=U_s_s';
+
         return AA_open_fused, U_s_s 
 
     end

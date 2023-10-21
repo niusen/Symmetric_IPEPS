@@ -38,7 +38,6 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 
 
-
 Bond_irrep="A";
 Triangle_irrep="A1+iA2";
 nonchiral="No";#"No", "A1_even"
@@ -49,7 +48,7 @@ ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
 ctm_setting=CTMRG_settings();
 ctm_setting.CTM_conv_tol=1e-6;
-ctm_setting.CTM_ite_nums=1;
+ctm_setting.CTM_ite_nums=10;
 ctm_setting.CTM_trun_tol=1e-8;
 ctm_setting.svd_lanczos_tol=1e-8;
 ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -151,6 +150,9 @@ global ipess_irrep, elementary_tensors
 state_vec=coes_to_vector(Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, ipess_irrep)
 
 state_vec=normalize_IPESS_SU2_PG_vec(elementary_tensors, ipess_irrep, state_vec);
+
+#fun(state_vec)
+
 E,∂E,CTM_tem, AA_fused_tem=cfun(state_vec);
 println(E,∂E)
 
@@ -171,90 +173,3 @@ end
 println(grad)
 println(∂E./grad)
 
-
-
-# init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
-
-# CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
-# E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting1.kagome_method);
-
-# function cfun(x)
-#     (ψ,env) = x
-
-#     function fun(peps)
-#         env = leading_boundary(peps, alg_ctm, env)
-#         x = H_expectation_value(peps, env, H)   
-#         return x
-#     end
-
-#     ∂E = fun'(ψ)
-#     env = leading_boundary(ψ, alg_ctm, env)
-#     E = H_expectation_value(ψ, env, H)
-
-#     @assert !isnan(norm(∂E))
-#     return E,∂E
-# end
-
-# # my_retract is not an in place function which should not change x
-# function my_retract(x,dx,α::Number)
-#     (ϕ,env0) = x
-#     ψ = deepcopy(ϕ)
-#     env = deepcopy(env0)
-#     ψ.A .+= dx.A .* α
-#     #env = leading_boundary(ψ, alg_ctm,env)
-#     return (ψ,env),dx
-# end
-
-# my_inner(x,dx1,dx2) = real(dot(dx1,dx2))
-
-# function my_add!(Y, X, a)
-#     Y.A .+= X.A .* a
-#     return Y
-# end
-
-# function my_scale!(η, β)
-#     rmul!(η.A, β)
-#     return η
-# end
-
-
-# function init_psi(d::Int, D::Int, Lx::Int, Ly::Int)
-#     Pspaces = fill(ℂ^d,Lx,Ly)
-#     Nspaces = fill(ℂ^D,Lx,Ly)
-#     Espaces = fill(ℂ^D,Lx,Ly)
-
-#     Sspaces = adjoint.(circshift(Nspaces, (1, 0)))
-#     Wspaces = adjoint.(circshift(Espaces, (0, -1)))
-
-#     A = map(Pspaces, Nspaces, Espaces, Sspaces, Wspaces) do P, N, E, S, W
-#         return TensorMap(rand, ComplexF64, P ← N * E * S * W)
-#     end
-
-#     return InfinitePEPS(A)
-# end
-
-
-# alg_ctm = CTMRG(
-#             verbose=10000,
-#             tol=1e-10,
-#             trscheme=truncdim(10),
-#             miniter=4,
-#             maxiter=200
-#         )
-
-# function main(;d=2,D=2,Lx=1,Ly=1)
-#     ψ = init_psi(d,D,Lx,Ly)   
-#     env = leading_boundary(ψ, alg_ctm) 
-#     optimize(
-#         cfun, 
-#         (ψ,env),
-#         ConjugateGradient(verbosity=3); 
-#         inner=my_inner,
-#         retract=my_retract,
-#         scale! = my_scale!,
-#         add! = my_add!
-#     )
-#     return ψ
-# end
-
-# main()

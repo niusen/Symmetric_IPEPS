@@ -61,6 +61,7 @@ function build_double_layer(A,operator)
     #     @tensor AA_fused[:]:=Ap[2,4,6,8,1]*A[3,5,7,9,1]*U_L[-1,2,3]*U_D[-2,4,5]*U_R[6,7,-3]*U_U[8,9,-4];
     # end
     
+
     return AA_fused, U_L,U_D,U_R,U_U
 end
 

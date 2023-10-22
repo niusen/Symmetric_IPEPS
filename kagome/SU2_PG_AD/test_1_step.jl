@@ -43,7 +43,7 @@ Triangle_irrep="A1+iA2";
 nonchiral="No";#"No", "A1_even"
 ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
-Norm_coe=10;
+
 
 
 ctm_setting=CTMRG_settings();
@@ -80,10 +80,7 @@ dump(energy_setting);
 A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
 global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb  
 
-A_set=A_set*Norm_coe;
-B_set=B_set*Norm_coe;
-A1_set=A1_set*Norm_coe;
-A2_set=A2_set*Norm_coe;
+
 #run_FiniteDiff(parameters,D,chi,Bond_irrep,Triangle_irrep,nonchiral,ctm_setting,optim_setting,energy_setting);
 
 

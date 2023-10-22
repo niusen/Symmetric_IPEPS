@@ -9,7 +9,7 @@ using Zygote:@ignore_derivatives
 
 
 cd(@__DIR__)
-
+include("resource_codes\\AD_lib.jl")
 
 
 Random.seed!(12345)
@@ -17,12 +17,13 @@ Random.seed!(12345)
 a=load("hard_tensor.jld2");
 M1=a["M"];
 M2=TensorMap(randn,space(M1,1)*space(M1,2),space(M1,1)*space(M1,2));
+M3=TensorMap(randn,space(M1,1)*space(M1,2),space(M1,1)*space(M1,2));
 
 
 # M1=TensorMap(randn,ℂ^10*ℂ^10,ℂ^10*ℂ^10);
 # M2=TensorMap(randn,ℂ^10*ℂ^10,ℂ^10*ℂ^10);
-M1=M1*M1*M1*M1;
-M2=M2*M2*M2*M2;
+# M1=M1*M1*M1*M1;
+# M2=M2*M2*M2*M2;
 M1=M1/norm(M1);
 M2=M2/norm(M2);
 
@@ -30,16 +31,16 @@ global chi=20;
 
 
 function fun(x)
-    global chi,M1,M2
+    global chi,M1,M2,M3
     M=M1*x[1]*M2*x[2];
     #M=@ignore_derivatives M/norm(M);
-    #uM,sM,vM = tsvd(M; trunc=truncdim(chi));
+    uM,sM,vM = my_tsvd(M; trunc=truncdim(chi));
     
-    uM,sM,vM = tsvd(M);
+    #uM,sM,vM = tsvd(M);
     println(diag(convert(Array,sM)))
 
     #E_=uM*sM*sM*vM;
-    E=@tensor uM[1,2,3]*sM[3,4]*sM[4,5]*vM[5,1,2];
+    E=@tensor uM[6,7,3]*sM[3,4]*sM[4,5]*vM[5,1,2]*M3[1,2,6,7];
     E=real(E);
     println(E)
     return E

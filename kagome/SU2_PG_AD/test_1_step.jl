@@ -10,12 +10,12 @@ using Zygote:@ignore_derivatives
 
 cd(@__DIR__)
 include("resource_codes\\kagome_load_tensor.jl")
-#include("..\\resource_codes\\kagome_CTMRG.jl")
-include("resource_codes\\kagome_CTMRG_test.jl")
+include("..\\resource_codes\\kagome_CTMRG.jl")
 include("resource_codes\\kagome_model.jl")
 include("resource_codes\\kagome_IPESS.jl")
 include("resource_codes\\kagome_FiniteDiff.jl")
 include("resource_codes\\Settings.jl")
+include("resource_codes\\AD_lib.jl")
 
 
 
@@ -43,7 +43,7 @@ Triangle_irrep="A1+iA2";
 nonchiral="No";#"No", "A1_even"
 ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
-
+Norm_coe=10;
 
 
 ctm_setting=CTMRG_settings();
@@ -80,6 +80,10 @@ dump(energy_setting);
 A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
 global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb  
 
+A_set=A_set*Norm_coe;
+B_set=B_set*Norm_coe;
+A1_set=A1_set*Norm_coe;
+A2_set=A2_set*Norm_coe;
 #run_FiniteDiff(parameters,D,chi,Bond_irrep,Triangle_irrep,nonchiral,ctm_setting,optim_setting,energy_setting);
 
 
@@ -110,11 +114,12 @@ function fun(x)
     U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
     @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
-    #A_fused= A_fused/norm(A_fused);
+    # norm_A=norm(A_fused)
+    # A_fused= A_fused/norm_A;
     #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
     init=initial_condition(init_type="PBC", reconstruct=true, has_AA_fused=false);
 
-    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG_test(A_fused,chi,init,[],ctm_setting,optim_setting)
+    CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],ctm_setting,optim_setting)
     E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
     E=real(E_up+E_down)/3;
     println(E)

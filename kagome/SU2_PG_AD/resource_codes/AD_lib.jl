@@ -23,42 +23,59 @@ function ChainRulesCore.rrule(::typeof(show_grad), T::AbstractTensorMap)
 end
 
 
-function my_pinv(T,trun)
+function my_pinv(T)
+    epsilon0 = 1e-12
+    epsilon=epsilon0*maximum(diag(convert(Array,T)))
     T_new=deepcopy(T);
-    t_max=maximum(diag(convert(Array,T)));
+
     for (k,dst) in blocks(T_new)
         src = blocks(T_new)[k]
         @inbounds for i in 1:size(dst,1)
-            if dst[i,i]/t_max>trun
+            dst[i,i] = dst[i,i]/(dst[i,i]^2+epsilon)
+        end
+    end
+    return T_new
+end
+
+function my_pinv2(T)
+    epsilon0 = 1e-8
+    epsilon=epsilon0*maximum(diag(convert(Array,T)))
+    T_new=deepcopy(T);
+
+    for (k,dst) in blocks(T_new)
+        src = blocks(T_new)[k]
+        @inbounds for i in 1:size(dst,1)
+            if abs(dst[i,i])>epsilon
                 dst[i,i] = 1/dst[i,i]
-            else
-                dst[i,i] = dst[i,i]*0
             end
         end
     end
     return T_new
 end
 
-
-
 function my_tsvd(T::AbstractTensorMap; kwargs...)
     (U,S,V) = tsvd(T;kwargs...);
     return (U,S,V)
 end
 function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
-    T = eltype(t);
-    global chi,multiplet_tol,projector_trun_tol
+    global multiplet_tol, grad_inverse_tol, grad_regulation_epsilon, show_ite_grad_norm
+    #grad_inverse_tol=1e-8
+    #grad_regulation_epsilon=1e-12;
     (U,S,V) = my_tsvd(t;kwargs...);#println(S.data.values)
-    epsilon = 1e-12
-
+    epsilon1=maximum(diag(convert(Array,S)))*grad_inverse_tol;
+    epsilon2=maximum(diag(convert(Array,S)))*grad_regulation_epsilon;
     Fp = similar(S);
     for (k,dst) in blocks(Fp)
         src = blocks(S)[k]
         @inbounds for i in 1:size(dst,1),j in 1:size(dst,2)
-            if (src[j,j] + src[i,i])<projector_trun_tol
-                ff = (src[j,j]-src[i,i])/((src[j,j]-src[i,i])^2+epsilon)
-            else
-                ff = (src[j,j]-src[i,i])/((src[j,j]-src[i,i])^2+epsilon)+1/(src[j,j] + src[i,i])
+            ff=0;
+            if abs(src[j,j]-src[i,i])>epsilon1
+                if abs(abs(src[j,j])/abs(src[i,i])-1)>multiplet_tol #relative difference is big
+                    ff=ff + (src[j,j]-src[i,i])/((src[j,j]-src[i,i])^2+epsilon2)
+                end
+            end
+            if src[j,j] + src[i,i]>epsilon1
+                ff=ff + (src[j,j] + src[i,i])/((src[j,j] + src[i,i])^2+epsilon2)
             end
             dst[i,j] = (i == j) ? zero(eltype(S)) : ff
         end
@@ -68,19 +85,24 @@ function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
     for (k,dst) in blocks(Fm)
         src = blocks(S)[k]
         @inbounds for i in 1:size(dst,1),j in 1:size(dst,2)
-            if (src[j,j] + src[i,i])<projector_trun_tol
-                ff = (src[j,j]-src[i,i])/((src[j,j]-src[i,i])^2+epsilon)
-            else
-                ff = (src[j,j]-src[i,i])/((src[j,j]-src[i,i])^2+epsilon)-1/(src[j,j] + src[i,i])
+            ff=0;
+            if abs(src[j,j]-src[i,i])>epsilon1
+                if abs(abs(src[j,j])/abs(src[i,i])-1)>multiplet_tol #relative difference is big
+                    ff=ff + (src[j,j]-src[i,i])/((src[j,j]-src[i,i])^2+epsilon2)
+                end
+            end
+            if src[j,j] + src[i,i]>epsilon1
+                ff=ff - (src[j,j] + src[i,i])/((src[j,j] + src[i,i])^2+epsilon2)
             end
             dst[i,j] = (i == j) ? zero(eltype(S)) : ff
         end
     end
-
+    #jldsave("svd.jld2"; U,S,V)
 
     function pullback(v)
         dU,dS,dV = v
-        println("Norm of dU, dS, dV: "*string([norm(dU),norm(dS),norm(dV)]))
+        #jldsave("svd_backward.jld2"; dU,dS,dV)
+        #println("Norm of dU, dS, dV: "*string([norm(dU),norm(dS),norm(dV)]))
 
         dA = zero(t);
         #A_s bar term
@@ -100,25 +122,32 @@ function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
             dA += U*(Km)*V/2
         end
 
-        ####!!! I don't know why below term exist in TensorKitAD. I didn't find below term in the formulas. In my test without such term is more accurate.
+        # ####!!!  In my test without such term is more accurate.
         # #A_d bar term, only relevant if matrix is complex
         # if dV != ChainRulesCore.ZeroTangent() && T <: Complex
-        #     L = _elementwise_mult(VpdV,one(Fm))
-        #     dA += 1/2*U*my_pinv(S,projector_trun_tol)*(L' - L)*V
+        #     L = _elementwise_mult(V*dV',one(Fm))
+        #     dA += 1/2*U*my_pinv(S)*(L' - L)*V
         # end
 
         if codomain(t)!=domain(t)
             pru = U*U';
             prv = V'*V;
-            dA += (one(pru)-pru)*dU*my_pinv(S,projector_trun_tol)*V
-            dA += U*my_pinv(S,projector_trun_tol)*dV*(one(prv)-prv)
+            dA += (one(pru)-pru)*dU*my_pinv(S)*V
+            dA += U*my_pinv(S)*dV*(one(prv)-prv)
         end
 
-        println("Norm of dA: "*string(norm(dA)))
+        if show_ite_grad_norm
+            println("Norm of dA: "*string(norm(dA)))
+        end
+        global grad_norm
+        grad_norm=deepcopy(norm(dA));
         return NoTangent(), dA, [NoTangent() for kwa in kwargs]...
     end
     return (U,S,V), pullback
 end
+
+
+
 
 # function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
 #     T = eltype(t);
@@ -135,13 +164,13 @@ end
 #         src = blocks(S)[k]
 
 #         @inbounds for i in 1:size(dst,1),j in 1:size(dst,2)
-#             if abs(src[j,j] - src[i,i])<1e-8
-#                 d = 1e16
+#             if abs(src[j,j]^2 - src[i,i]^2)<1e-12
+#                 dst[i,j]=0
 #             else
-#                 d = src[j,j]^2-src[i,i]^2
+#                 dst[i,j]=1/(src[j,j]^2 - src[i,i]^2)
 #             end
 
-#             dst[i,j] = (i == j) ? zero(eltype(S)) : 1/d
+
 #         end
 #         # @inbounds for i in 1:size(dst,1),j in 1:size(dst,2)
 #         #     if abs(src[j,j] - src[i,i])<1e-12
@@ -178,14 +207,14 @@ end
 #         #A_d bar term, only relevant if matrix is complex
 #         if dV != ChainRulesCore.ZeroTangent() && T <: Complex
 #             L = _elementwise_mult(VpdV,one(F))
-#             dA += 1/2*U*my_pinv(S,projector_trun_tol)*(L' - L)*V
+#             dA += 1/2*U*my_pinv2(S)*(L' - L)*V
 #         end
 
 #         if codomain(t)!=domain(t)
 #             pru = U*U';
 #             prv = V'*V;
-#             dA += (one(pru)-pru)*dU*my_pinv(S,projector_trun_tol)*V
-#             dA += U*my_pinv(S,projector_trun_tol)*dV*(one(prv)-prv)
+#             dA += (one(pru)-pru)*dU*my_pinv2(S)*V
+#             dA += U*my_pinv2(S)*dV*(one(prv)-prv)
 #         end
 
 #         println("Norm of dA: "*string(norm(dA)))

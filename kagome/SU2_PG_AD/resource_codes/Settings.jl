@@ -1,4 +1,4 @@
-Base.@kwdef mutable struct CTMRG_settings
+Base.@kwdef mutable struct grad_CTMRG_settings
     CTM_conv_tol :: Float64 = 1e-6
     CTM_ite_nums :: Int64 =200
     CTM_trun_tol :: Float64 =1e-8
@@ -9,6 +9,21 @@ Base.@kwdef mutable struct CTMRG_settings
     CTM_conv_info :: Bool = true
     CTM_trun_svd :: Bool = false
     construct_double_layer :: Bool=true
+    grad_checkpoint :: Bool = false #use check point to save memory, i.e., only store CTM tensors in each iteration and disgard larger intermidiate tensors.
+end
+
+Base.@kwdef mutable struct LS_CTMRG_settings
+    CTM_conv_tol :: Float64 = 1e-6
+    CTM_ite_nums :: Int64 =200
+    CTM_trun_tol :: Float64 =1e-8
+    svd_lanczos_tol :: Float64 =1e-8
+    projector_strategy :: String ="4x4";#"4x4" or "4x2"
+    conv_check :: String ="singular_value";
+    CTM_ite_info :: Bool = true
+    CTM_conv_info :: Bool = true
+    CTM_trun_svd :: Bool = false
+    construct_double_layer :: Bool=true
+    grad_checkpoint :: Bool = false #use check point to save memory, i.e., only store CTM tensors in each iteration and disgard larger intermidiate tensors.
 end
 
 
@@ -17,7 +32,6 @@ Base.@kwdef mutable struct Optim_settings
     init_noise :: Float64 =0
     grad_CTM_method :: String ="from_converged_CTM"; # "restart" or "from_converged_CTM"
     linesearch_CTM_method :: String ="from_converged_CTM"; # "restart" or "from_converged_CTM"
-    grad_checkpoint :: Bool = true #use check point to save memory, i.e., only store CTM tensors in each iteration and disgard larger intermidiate tensors.
 end
 
 Base.@kwdef mutable struct Energy_settings
@@ -28,6 +42,11 @@ Base.@kwdef mutable struct Energy_settings
 end
 
 
+Base.@kwdef mutable struct Backward_settings
+    grad_inverse_tol :: Float64 = 1e-8
+    grad_regulation_epsilon :: Float64 = 1e-12
+    show_ite_grad_norm :: Bool = false;
+end
 
 
 
@@ -60,24 +79,15 @@ end
 Base.@kwdef mutable struct initial_condition
     
     init_type :: String = "PBC";
-    reconstruct :: Bool =false;
-    has_AA_fused :: Bool =false
+    reconstruct_CTM :: Bool =false;
+    reconstruct_AA :: Bool =false
 
 
 end
 
 
 
-mutable struct initial_tensors
-    CTM :: CTM_struc 
-    AA_fused :: TensorMap
-    U_L :: TensorMap
-    U_R :: TensorMap
-    U_D :: TensorMap
-    U_U :: TensorMap
 
-
-end
 
 
 function get_Cset(Cset,direction)

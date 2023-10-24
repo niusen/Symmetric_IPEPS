@@ -88,7 +88,7 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
+function CTMRG(A,chi,init, CTM0,ctm_setting)
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     ########################
     CTM_trun_tol=ctm_setting.CTM_trun_tol;
@@ -106,34 +106,28 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
 
 
     #initial corner transfer matrix
-        #initial corner transfer matrix
-    if init.reconstruct
-        AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
-        
-        #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A,init.init_type,CTM_ite_info);
-        CTM= init_CTM(chi,A,init.init_type,CTM_ite_info);
 
+    if init.reconstruct_AA
+        AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
         AA_memory=@ignore_derivatives Base.summarysize(AA_fused)/1024/1024;
         @ignore_derivatives if CTM_ite_info
             println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
         end
     else
-        if init.has_AA_fused
-            AA_fused=auxi_tensors.AA_fused;
-            U_L=auxi_tensors.U_L;
-            U_D=auxi_tensors.U_D;
-            U_R=auxi_tensors.U_R;
-            U_U=auxi_tensors.U_U;
-            CTM=deepcopy(init.CTM);
-        else
-            AA_fused, U_L,U_D,U_R,U_U=build_double_layer(A,[]);
-            AA_memory=Base.summarysize(AA_fused)/1024/1024;
-            @ignore_derivatives  if CTM_ite_info
-                println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
-            end
-            CTM=deepcopy(init["CTM"]);
-        end
+        AA_fused=auxi_tensors.AA_fused;
+        U_L=auxi_tensors.U_L;
+        U_D=auxi_tensors.U_D;
+        U_R=auxi_tensors.U_R;
+        U_U=auxi_tensors.U_U;
     end
+
+    if init.reconstruct_CTM
+        CTM= init_CTM(chi,A,init.init_type,CTM_ite_info);
+    else
+        CTM=deepcopy(CTM0);
+    end
+        
+        
 
     Cset=CTM.Cset;
     Tset=CTM.Tset;
@@ -190,7 +184,7 @@ function CTMRG(A,chi,init,auxi_tensors,ctm_setting,optim_settings)
  
         
         for direction in direction_order
-            if optim_settings.grad_checkpoint #use checkpoint to save memory
+            if ctm_setting.grad_checkpoint #use checkpoint to save memory
                 C1,C2,C3,C4, T1,T2,T3,T4= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
                 # C1=show_grad(C1);
                 # C2=show_grad(C2);

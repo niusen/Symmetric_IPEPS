@@ -151,6 +151,7 @@ function construct_su2_PG_IPESS_vec(state_vec :: Vector{Float64},elementary_tens
     B_set=elementary_tensors.B_set;
     A1_set=elementary_tensors.A1_set;
     A2_set=elementary_tensors.A2_set;
+    A1_has_odd=elementary_tensors.A1_has_odd
     A2_has_odd=elementary_tensors.A2_has_odd
 
     Bond_irrep=ipess_irrep.Bond_irrep;

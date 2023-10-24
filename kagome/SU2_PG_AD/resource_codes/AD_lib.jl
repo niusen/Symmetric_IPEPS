@@ -58,12 +58,12 @@ function my_tsvd(T::AbstractTensorMap; kwargs...)
     return (U,S,V)
 end
 function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
-    global multiplet_tol, grad_inverse_tol, grad_regulation_epsilon, show_ite_grad_norm
+    global multiplet_tol, backward_settings
     #grad_inverse_tol=1e-8
     #grad_regulation_epsilon=1e-12;
     (U,S,V) = my_tsvd(t;kwargs...);#println(S.data.values)
-    epsilon1=maximum(diag(convert(Array,S)))*grad_inverse_tol;
-    epsilon2=maximum(diag(convert(Array,S)))*grad_regulation_epsilon;
+    epsilon1=maximum(diag(convert(Array,S)))*backward_settings.grad_inverse_tol;
+    epsilon2=maximum(diag(convert(Array,S)))*backward_settings.grad_regulation_epsilon;
     Fp = similar(S);
     for (k,dst) in blocks(Fp)
         src = blocks(S)[k]
@@ -136,7 +136,7 @@ function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
             dA += U*my_pinv(S)*dV*(one(prv)-prv)
         end
 
-        if show_ite_grad_norm
+        if backward_settings.show_ite_grad_norm
             println("Norm of dA: "*string(norm(dA)))
         end
         global grad_norm

@@ -30,8 +30,8 @@ end
 Base.@kwdef mutable struct Optim_settings
     init_statenm :: String ="nothing"
     init_noise :: Float64 =0
-    grad_CTM_method :: String ="from_converged_CTM"; # "restart" or "from_converged_CTM"
-    linesearch_CTM_method :: String ="from_converged_CTM"; # "restart" or "from_converged_CTM"
+    grad_CTM_method :: String ="restart"; # "restart" or "from_converged_CTM"
+    linesearch_CTM_method :: String ="restart"; # "restart" or "from_converged_CTM"
 end
 
 Base.@kwdef mutable struct Energy_settings

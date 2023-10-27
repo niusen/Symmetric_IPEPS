@@ -43,7 +43,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 
 #state_dict=read_json_state("LS_D_8_chi_40.json")
-init_statenm=nothing;
+init_statenm="nothing";
 #init_statenm="julia_LS_D_8_chi_40.json"
 init_noise=0;
 Bond_irrep="A";
@@ -93,6 +93,8 @@ T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambd
 println(space(T_u))
 println(space(T_d))
 
+filenm="SimpleUpdate_D_"*string(D_max)*".jld2"
+jldsave(filenm; B_a,B_b,B_c,T_u,T_d);
 
 @tensor PEPS_tensor[:] := B_a[-1,1,-5]*B_b[4,3,-6]*B_c[-4,2,-7]*T_u[1,3,2]*T_d[-3,4,-2];
 A_unfused=PEPS_tensor;

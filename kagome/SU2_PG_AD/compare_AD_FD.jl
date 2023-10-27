@@ -46,7 +46,7 @@ ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
 
 
 
-ctm_setting=CTMRG_settings();
+ctm_setting=grad_CTMRG_settings();
 ctm_setting.CTM_conv_tol=1e-6;
 ctm_setting.CTM_ite_nums=50;
 ctm_setting.CTM_trun_tol=1e-8;
@@ -91,7 +91,7 @@ global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu,
 json_dict, Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe, A1_has_odd, A2_has_odd=initial_state(Bond_irrep,Triangle_irrep,nonchiral,D,optim_setting.init_statenm,optim_setting.init_noise)
 elementary_tensors=Elementary_tensors(A_set,B_set,A1_set,A2_set,A1_has_odd,A2_has_odd);
 bond_tensor,triangle_tensor=construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb)
-
+# jldsave("initial_tensor.jld2"; bond_tensor,triangle_tensor)
 
 @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
 A_unfused=PEPS_tensor;

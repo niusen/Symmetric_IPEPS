@@ -46,7 +46,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", J
 
 
 #state_dict=read_json_state("LS_D_8_chi_40.json")
-init_statenm=nothing;
+init_statenm="nothing";
 #init_statenm="julia_LS_D_8_chi_40.json"
 init_noise=0;
 Bond_irrep="A";

@@ -9,11 +9,10 @@ using Zygote:@ignore_derivatives
 
 
 cd(@__DIR__)
-include("resource_codes\\kagome_load_tensor.jl")
+
 include("resource_codes\\kagome_CTMRG.jl")
 include("resource_codes\\kagome_model.jl")
-include("resource_codes\\kagome_IPESS.jl")
-include("resource_codes\\kagome_AD.jl")
+include("resource_codes\\kagome_AD_SU2.jl")
 include("resource_codes\\Settings.jl")
 include("resource_codes\\AD_lib.jl")
 
@@ -34,16 +33,6 @@ Jchi=0;
 Jtrip=sin(theta);
 
 parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", Jtrip)]);
-
-
-
-
-Bond_irrep="A";
-Triangle_irrep="A1+iA2";
-nonchiral="A1_even";#"No", "A1_even"
-ipess_irrep=IPESS_IRREP(Bond_irrep, Triangle_irrep, nonchiral);
-dump(ipess_irrep);
-
 
 
 grad_ctm_setting=grad_CTMRG_settings();
@@ -81,15 +70,14 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"LS_A1even_D_6_chi_40.json";#"nothing";
+optim_setting.init_statenm="LS_D_6_chi_40.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
-optim_setting.grad_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
 energy_setting=Energy_settings()
-energy_setting.kagome_method ="E_single_triangle";#"E_single_triangle", "E_triangle"
-energy_setting.E_up_method = "1x1";#"1x1", "2x2"
+energy_setting.kagome_method ="E_triangle";#"E_single_triangle", "E_triangle"
+energy_setting.E_up_method = "2x2";#"1x1", "2x2"
 energy_setting.cal_chiral_order = false;
 dump(energy_setting);
 
@@ -103,7 +91,24 @@ projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
 global backward_settings
 
-run_FiniteDiff(parameters, D, chi, ipess_irrep, LS_ctm_setting, optim_setting, energy_setting)
+
+
+
+
+
+global Vv
+
+if D==6
+    Vv=SU2Space(0=>1,1/2=>1,1=>1);
+elseif D==8
+    Vv=SU2Space(0=>1,1/2=>2,1=>1);
+end
+
+
+
+
+#E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));
+#run_FiniteDiff(parameters, Vv, chi, LS_ctm_setting, optim_setting, energy_setting)
 
 #fun(state_vec)
 # global E_tem, CTM_tem
@@ -118,3 +123,10 @@ run_FiniteDiff(parameters, D, chi, ipess_irrep, LS_ctm_setting, optim_setting, e
 
 
 
+
+state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise)
+state_vec=normalize_tensor_group(state_vec);
+
+E0_, grad,CTM_tem=get_grad(state_vec);
+include("resource_codes\\kagome_AD_SU2.jl")
+E0,grad_=FD(state_vec)

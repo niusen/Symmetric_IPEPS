@@ -1,9 +1,15 @@
-function get_grad(state_vec)
-    ∂E = cost_fun'(state_vec)
+function get_grad(x)
+    ∂E = cost_fun'(x)
     #E=fun(state_vec)
     global E_tem, CTM_tem
-
-    @assert !isnan(norm(∂E))
+    
+    if isa(∂E, Tuple)
+        for elem in ∂E
+            @assert !isnan(norm(elem))
+        end
+    elseif isa(∂E, Vector)
+        @assert !isnan(norm(∂E))
+    end
     
     return E_tem,∂E,CTM_tem
 end
@@ -27,7 +33,9 @@ function FD(state_vec)
 
 end
 
-function cost_fun(x)
+
+
+function cost_fun(x :: Vector) #variational parameters are coefficients of elementary tensors
     global chi, parameters, ipess_irrep, elementary_tensors, energy_setting, grad_ctm_setting
     #Bond_A_coe, Bond_B_coe, Triangle_A1_coe, Triangle_A2_coe=vector_to_coes(elementary_tensors, ipess_irrep, x);
 
@@ -54,6 +62,8 @@ function cost_fun(x)
     E_tem=deepcopy(E)
     return E
 end
+
+
 
 
 function energy_CTM(ipess_irrep, elementary_tensors, state, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
@@ -117,7 +127,7 @@ end
 
 
 
-function grad_line_search(state_vec, D, chi, parameters, optim_setting, LS_ctm_setting, energy_setting, grad0=None, direction0=None, alpha0=1, ls_ratio=1/3, ls_max=10)
+function grad_line_search(E_old, state_vec, D, chi, parameters, optim_setting, LS_ctm_setting, energy_setting, grad0=None, direction0=None, alpha0=1, ls_ratio=1/3, ls_max=10)
     
     if nonchiral=="No"
         filenm="LS_D_"*string(D)*"_chi_"*string(chi)*".json"
@@ -130,7 +140,14 @@ function grad_line_search(state_vec, D, chi, parameters, optim_setting, LS_ctm_s
     state_vec=normalize_IPESS_SU2_PG_vec(elementary_tensors, ipess_irrep, state_vec);
 
     global E_tem, CTM_tem
-    @time E0,grad,CTM_tem=get_grad(state_vec);
+    @time E0_, grad,CTM_tem=get_grad(state_vec);
+
+    if E_old==[]
+        E0=E0_;
+    else
+        E0=E_old;#if there is only a few CTM steps are used for obtaining grad, then the energy from the last line search is more reliable
+    end
+
     global grad_norm
     println("Norm of dA: "*string(grad_norm))
 
@@ -253,8 +270,10 @@ function run_FiniteDiff(parameters, D, chi, ipess_irrep, LS_ctm_setting, optim_s
     ls_ratio=1/3;
     ls_max=5;
 
+    E0=[];
     for ite=1:100
-        E,state_vec,grad,direction,improvement=grad_line_search(state_vec, D, chi, parameters, optim_setting, LS_ctm_setting, energy_setting, grad, direction, alpha0, ls_ratio, ls_max)
+        E,state_vec,grad,direction,improvement=grad_line_search(E0, state_vec, D, chi, parameters, optim_setting, LS_ctm_setting, energy_setting, grad, direction, alpha0, ls_ratio, ls_max)
+        E0=deepcopy(E);
         println("grad norm: "*string(norm(grad)));flush(stdout)
         if -improvement<1e-7
             break

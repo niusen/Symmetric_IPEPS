@@ -1,5 +1,5 @@
 import Base: +, -, *,/
-import LinearAlgebra: norm
+import LinearAlgebra: norm,dot
 #Define operations of groups of TensorMap
 *(coe,tt :: Vector{TensorMap})=add_group(tt,[],coe,0);
 /(coe,tt :: Vector{TensorMap})=add_group(tt,[],1/coe,0);

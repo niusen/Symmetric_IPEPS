@@ -1,8 +1,9 @@
 import Base: +, -, *,/
 import LinearAlgebra: norm,dot
 #Define operations of groups of TensorMap
-*(coe,tt :: Vector{TensorMap})=add_group(tt,[],coe,0);
-/(coe,tt :: Vector{TensorMap})=add_group(tt,[],1/coe,0);
+*(coe::Number,tt :: Vector{TensorMap})=add_group(tt,[],coe,0);
+*(tt :: Vector{TensorMap}, coe:: Number)=add_group(tt,[],coe,0);
+/(coe::Number,tt :: Vector{TensorMap})=add_group(tt,[],1/coe,0);
 +(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=add_group(tt1,tt2,1,+1);
 -(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=add_group(tt1,tt2,1,-1);
 norm(tt :: Vector{TensorMap})=norm_tensor_group(tt);
@@ -68,7 +69,8 @@ function get_grad(x)
     ∂E = cost_fun'(x)
     #E=fun(state_vec)
     global E_tem, CTM_tem
-    
+    x_tem=x;
+
     if isa(∂E, Vector{Float64})
         @assert !isnan(norm(∂E))
     elseif isa(∂E, Vector)
@@ -121,6 +123,9 @@ function dot_tensor_group(Tp1,Tp2)
     y=0;
     for cc in eachindex(Tp1)
         y=y+dot(Tp1[cc],Tp2[cc])
+    end
+    if imag(y)/real(y)<1e-10
+        y=real(y);
     end
     return y
 end
@@ -250,7 +255,7 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         chiral_order_down=[];
         
     end
-    return energy,chiral_order_up, chiral_order_down,ite_num,ite_err,CTM
+    return real(energy),chiral_order_up, chiral_order_down,ite_num,ite_err,CTM
 end
 
 

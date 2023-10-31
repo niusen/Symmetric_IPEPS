@@ -55,11 +55,16 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused, A_fused, AA_fus
             norm_LU_RU_LD=@tensor rho_LU_RU_LD[1,1];
             E_down=E_down/norm_LU_RU_LD;    
         elseif  E_dn_method=="simplified"
-            B1=iPESS_tensors[1];
-            B2=iPESS_tensors[2];
-            B3=iPESS_tensors[3];
-            Tup=iPESS_tensors[4];
-            Tdn=iPESS_tensors[5];
+            # B1=iPESS_tensors[1];
+            # B2=iPESS_tensors[2];
+            # B3=iPESS_tensors[3];
+            # Tup=iPESS_tensors[4];
+            # Tdn=iPESS_tensors[5];
+            B1=iPESS_tensors.B1;
+            B2=iPESS_tensors.B2;
+            B3=iPESS_tensors.B3;
+            Tup=iPESS_tensors.Tup;
+            Tdn=iPESS_tensors.Tdn;
 
             U_phy2=@ignore_derivatives unitary(fuse(space(A_unfused, 5) ⊗ space(A_unfused, 6)), space(A_unfused, 5) ⊗ space(A_unfused, 6));
             U_phy5=@ignore_derivatives unitary(fuse(space(U_phy2, 1) ⊗ space(U_phy, 1)), space(U_phy2, 1) ⊗ space(U_phy, 1));

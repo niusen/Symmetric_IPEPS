@@ -1,6 +1,7 @@
 using LinearAlgebra: norm, dot
 
-function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
+#function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
+function gdoptimize(f, g!, fg!, x0::iPEPS_ansatz, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
     global chi,D
     println("D="*string(D));flush(stdout);
     println("chi="*string(chi));flush(stdout);
@@ -12,13 +13,13 @@ function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int 
     gtol = max(g_rtol*gnorm, g_atol)
 
     # Univariate line search functions
-    ϕ(α) = f(x .+ α.*s)
+    ϕ(α) = f(x + α*s)
     function dϕ(α)
-        g!(gvec, x .+ α.*s)
+        g!(gvec, x + α*s)
         return real(dot(gvec, s)) #I am not sure if taking real part is reasonable. If the output is complex the algorithm fails.
     end
     function ϕdϕ(α)
-        phi = fg!(gvec, x .+ α.*s)
+        phi = fg!(gvec, x + α*s)
         dphi = real(dot(gvec, s)) #I am not sure if taking real part is reasonable. If the output is complex the algorithm fails.
         return (phi, dphi)
     end
@@ -60,7 +61,8 @@ function f(x)
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
         filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
-        jldsave(filenm; B_a=x[1],B_b=x[2],B_c=x[3],T_u=x[4],T_d=x[5]);
+        #jldsave(filenm; B_a=x[1],B_b=x[2],B_c=x[3],T_u=x[4],T_d=x[5]);
+        jldsave(filenm; B_a=x.B1,B_b=x.B2,B_c=x.B3,T_u=x.Tup,T_d=x.Tdn);
         global starting_time
         Now=now();
         Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
@@ -69,7 +71,7 @@ function f(x)
     return E;
 end
 
-function g!(gvec, x)# this function changes the value of gvec
+function g!(gvec::Vector{TensorMap}, x)# this function changes the value of gvec
     println("compute grad")
     global E_tem, CTM_tem
     E_tem,∂E,CTM_tem=get_grad(x);
@@ -79,7 +81,18 @@ function g!(gvec, x)# this function changes the value of gvec
     end
     return gvec
 end
-
+function g!(gvec::iPEPS_ansatz, x)# this function changes the value of gvec
+    println("compute grad")
+    global E_tem, CTM_tem
+    E_tem,∂E,CTM_tem=get_grad(x);
+    #gvec=∂E;#this will not change the input variable
+    Fields=fieldnames(typeof(gvec));
+    for i in Fields
+        Value=getfield(∂E, i)
+        setfield!(gvec,i,Value)
+    end
+    return gvec
+end
 function fg!(gvec, x)
     #println("one fg!")
     g!(gvec, x)

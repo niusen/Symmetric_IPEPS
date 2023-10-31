@@ -2,12 +2,19 @@ import Base: +, -, *,/
 import LinearAlgebra: norm,dot
 #Define operations of groups of TensorMap
 *(coe::Number,tt :: Vector{TensorMap})=add_group(tt,[],coe,0);
+*(coe::Number,tt :: iPEPS_ansatz)=add_group(tt,[],coe,0);
 *(tt :: Vector{TensorMap}, coe:: Number)=add_group(tt,[],coe,0);
-/(coe::Number,tt :: Vector{TensorMap})=add_group(tt,[],1/coe,0);
+*(tt :: iPEPS_ansatz, coe:: Number)=add_group(tt,[],coe,0);
+/(tt :: Vector{TensorMap}, coe::Number)=add_group(tt,[],1/coe,0);
+/(:: iPEPS_ansatz, coe::Number,tt)=add_group(tt,[],1/coe,0);
 +(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=add_group(tt1,tt2,1,+1);
++(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=add_group(tt1,tt2,1,+1);
 -(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=add_group(tt1,tt2,1,-1);
+-(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=add_group(tt1,tt2,1,-1);
 norm(tt :: Vector{TensorMap})=norm_tensor_group(tt);
+norm(tt :: iPEPS_ansatz)=norm_tensor_group(tt);
 dot(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=dot_tensor_group(tt1,tt2);
+dot(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=dot_tensor_group(tt1,tt2);
 
 function define_tensor_group(b1,b2,b3,tup,tdn)
     state=Vector{TensorMap}(undef,5);
@@ -33,12 +40,14 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
         tup=permute(tup,(1,2,3,));
         tdn=permute(tdn,(1,2,3,));
 
-        state=define_tensor_group(b1,b2,b3,tup,tdn)
+        #state=define_tensor_group(b1,b2,b3,tup,tdn)
+        state=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
         return state
     else
         
         println("load state: "*init_statenm);flush(stdout);
         data=load(init_statenm);
+
         B_a=data["B_a"];
         B_b=data["B_b"];
         B_c=data["B_c"];
@@ -58,15 +67,26 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
         Tu=T_u+Tu_noise*init_noise*norm(T_u)/norm(Tu_noise);
         Td=T_d+Td_noise*init_noise*norm(T_d)/norm(Td_noise);
 
-        state=define_tensor_group(Ba,Bb,Bc,Tu,Td)
+        #state=define_tensor_group(Ba,Bb,Bc,Tu,Td)
+        state=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
+
         return state
     end
-
 end
 
-
+function NamedTuple_to_Struc(∂E,x)
+    ∂E=∂E[1];
+    ∂E_new=deepcopy(x);
+    Keys=keys(∂E);
+    for cc in Keys
+        setfield!(∂E_new,cc,getindex(∂E,cc))
+    end
+    return ∂E_new
+end
 function get_grad(x)
-    ∂E = cost_fun'(x)
+    #∂E = cost_fun'(x);
+    ∂E=gradient(x ->cost_fun(x), x);#this works when x is a mutable structure. The output is a NamedTuple, not a structure, due to that the cost function takes out some fields of the input structure.
+    ∂E=NamedTuple_to_Struc(∂E,x);
     #E=fun(state_vec)
     global E_tem, CTM_tem
     x_tem=x;
@@ -82,7 +102,7 @@ function get_grad(x)
     return E_tem,∂E,CTM_tem
 end
 
-function norm_tensor_group(x0)
+function norm_tensor_group(x0:: Vector{TensorMap})
     Norm=0;
     for tt in x0
         Norm=Norm+norm(tt)^2;
@@ -91,7 +111,18 @@ function norm_tensor_group(x0)
     return Norm
 end
 
-function normalize_tensor_group(x0)
+function norm_tensor_group(x0:: iPEPS_ansatz)
+    Norm=0;
+    Fields=fieldnames(typeof(x0));
+    for i in Fields
+        Value=getfield(x0, i)
+        Norm=Norm+norm(Value)^2;
+    end
+    Norm=sqrt(Norm);
+    return Norm
+end
+
+function normalize_tensor_group(x0:: Vector{TensorMap})
     Norm=norm_tensor_group(x0);
     #x_new=[[tt/Norm for tt in x0]...,]
     x_new=deepcopy(x0);
@@ -101,7 +132,18 @@ function normalize_tensor_group(x0)
     return x_new
 end
 
-function add_group(Tp1, Tp2, coe1, coe2)
+function normalize_tensor_group(x0:: iPEPS_ansatz)
+    x_new=deepcopy(x0);
+    Norm=norm_tensor_group(x0);
+    Fields=fieldnames(typeof(x_new));
+    for i in Fields
+        Value=getfield(x_new, i)
+        setfield!(x_new,i,Value/Norm)
+    end
+    return x_new
+end
+
+function add_group(Tp1:: Vector{TensorMap}, Tp2, coe1, coe2)
     # if Tp2==[]
     #     x_new=[[tt*coe1 for tt in Tp1]...,];
     # else
@@ -119,7 +161,23 @@ function add_group(Tp1, Tp2, coe1, coe2)
     end
     return x_new
 end
-function dot_tensor_group(Tp1,Tp2)
+function add_group(Tp1:: iPEPS_ansatz, Tp2, coe1, coe2)
+    x_new=deepcopy(Tp1);
+    if Tp2==[]
+        Fields=fieldnames(typeof(Tp1));
+        for i in Fields
+            setfield!(x_new,i,getfield(Tp1, i)*coe1)
+        end
+
+    else
+        Fields=fieldnames(typeof(Tp1));
+        for i in Fields
+            setfield!(x_new,i,getfield(Tp1, i)*coe1+getfield(Tp2, i)*coe2)
+        end
+    end
+    return x_new
+end
+function dot_tensor_group(Tp1::Vector{TensorMap},Tp2::Vector{TensorMap})
     y=0;
     for cc in eachindex(Tp1)
         y=y+dot(Tp1[cc],Tp2[cc])
@@ -129,7 +187,17 @@ function dot_tensor_group(Tp1,Tp2)
     end
     return y
 end
-
+function dot_tensor_group(Tp1::iPEPS_ansatz, Tp2::iPEPS_ansatz)
+    y=0;
+    Fields=fieldnames(typeof(Tp1));
+    for i in Fields
+        y=y+dot(getfield(Tp1, i), getfield(Tp2, i));
+    end
+    if imag(y)/real(y)<1e-10
+        y=real(y);
+    end
+    return y
+end
 
 function FD(state_vec)
 
@@ -165,11 +233,16 @@ function FD(state_vec)
 end
 
 function cost_fun(x) #variational parameters are vector of TensorMap
-    B1=x[1];
-    B2=x[2];
-    B3=x[3];
-    Tup=x[4];
-    Tdn=x[5];
+    # B1=x[1];
+    # B2=x[2];
+    # B3=x[3];
+    # Tup=x[4];
+    # Tdn=x[5];
+    B1=x.B1;
+    B2=x.B2;
+    B3=x.B3;
+    Tup=x.Tup;
+    Tdn=x.Tdn;
 
     global chi, parameters, energy_setting, grad_ctm_setting
 
@@ -200,11 +273,16 @@ end
 
 
 function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
-    B1=x[1];
-    B2=x[2];
-    B3=x[3];
-    Tup=x[4];
-    Tdn=x[5];
+    # B1=x[1];
+    # B2=x[2];
+    # B3=x[3];
+    # Tup=x[4];
+    # Tdn=x[5];
+    B1=x.B1;
+    B2=x.B2;
+    B3=x.B3;
+    Tup=x.Tup;
+    Tdn=x.Tdn;
 
     @tensor PEPS_tensor[:] := B1[-1,1,-5]*B2[4,3,-6]*B3[-4,2,-7]*Tup[1,3,2]*Tdn[-3,4,-2];
     A_unfused=PEPS_tensor;

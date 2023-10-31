@@ -11,6 +11,7 @@ using Dates
 
 cd(@__DIR__)
 
+include("resource_codes\\iPEPS_ansatz.jl")
 include("resource_codes\\kagome_CTMRG.jl")
 include("resource_codes\\kagome_model.jl")
 include("resource_codes\\kagome_AD_SU2.jl")
@@ -18,6 +19,7 @@ include("resource_codes\\Settings.jl")
 include("resource_codes\\AD_lib.jl")
 include("resource_codes\\line_search_lib.jl")
 include("resource_codes\\optimkit_lib.jl")
+
 
 
 

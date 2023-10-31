@@ -1,6 +1,9 @@
 using LinearAlgebra: norm, dot
 
 function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
+    global chi,D
+    println("D="*string(D));flush(stdout);
+    println("chi="*string(chi));flush(stdout);
     x = deepcopy(x0)
     gvec = similar(x)
     g!(gvec, x)
@@ -31,7 +34,8 @@ function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int 
         s = (-1)*gvec
 
         dϕ_0 = dot(s, gvec)
-        α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1.0, fx, dϕ_0)
+        #α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1.0, fx, dϕ_0)
+        α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1/5, fx, dϕ_0)
 
         x = x + α*s
         g!(gvec, x)
@@ -50,8 +54,8 @@ function f(x)
         init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
         CTM0=[];
     end
-    E,chiral_order_up, chiral_order_down,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-    println("E= "*string(E)*", "*"chiral_order_up= "*string(real(chiral_order_up))*", "*"chiral_order_down= "*string(real(chiral_order_down))*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    E,E_up, E_down,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+    println("E= "*string(E)*", "*"E_up= "*string(real(E_up))*", "*"E_down= "*string(real(E_down))*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
     global E_history
     if E<minimum(E_history)
         E_history=vcat(E_history,E);

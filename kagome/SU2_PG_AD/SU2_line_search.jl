@@ -63,7 +63,7 @@ LS_ctm_setting.CTM_ite_info=false;
 LS_ctm_setting.CTM_conv_info=true;
 LS_ctm_setting.CTM_trun_svd=false;
 LS_ctm_setting.construct_double_layer=true;
-LS_ctm_setting.grad_checkpoint=false;
+LS_ctm_setting.grad_checkpoint=true;
 dump(LS_ctm_setting);
 
 backward_settings=Backward_settings();
@@ -81,6 +81,7 @@ dump(optim_setting);
 energy_setting=Energy_settings()
 energy_setting.kagome_method ="E_triangle";#"E_single_triangle", "E_triangle"
 energy_setting.E_up_method = "2x2";#"1x1", "2x2"
+energy_setting.E_dn_method = "simplified";#"open_leg", "simplfied"
 energy_setting.cal_chiral_order = false;
 dump(energy_setting);
 
@@ -105,7 +106,18 @@ if D==6
     Vv=SU2Space(0=>1,1/2=>1,1=>1);
 elseif D==8
     Vv=SU2Space(0=>1,1/2=>2,1=>1);
+elseif D==12
+    Vv=SU2Space(0=>1,1/2=>2,1=>1,3/2=>1);
+elseif D==13
+    Vv=SU2Space(0=>2,1/2=>2,1=>1,3/2=>1);    
+elseif D==16
+    Vv=SU2Space(0=>2,1/2=>2,1=>2,3/2=>1);
+elseif D==18
+    Vv=SU2Space(0=>2,1/2=>3,1=>2,3/2=>1);
+elseif Vv==23
+    Vv=SU2Space(0=>2,1/2=>3,1=>2,3/2=>1,2=>1);
 end
+@assert dim(Vv)==D;
 
 global starting_time
 starting_time=now();

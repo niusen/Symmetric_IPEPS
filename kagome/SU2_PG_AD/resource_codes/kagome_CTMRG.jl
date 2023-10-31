@@ -7,8 +7,10 @@ function build_double_layer(A,operator)
     A=permute(A,(1,2,),(3,4,5));
     U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1))*(1+0*im);
     U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2))*(1+0*im);
-    U_R=(U_L)';
-    U_U=(U_D)';
+    # U_R=(U_L)';
+    # U_U=(U_D)';
+    U_R=@ignore_derivatives unitary(space(A, 3) ⊗ space(A, 3)', fuse(space(A, 3)' ⊗ space(A, 3)))*(1+0*im);
+    U_U=@ignore_derivatives unitary(space(A, 4) ⊗ space(A, 4)', fuse(space(A, 4)' ⊗ space(A, 4)))*(1+0*im);
     # display(space(U_L))
     # display(space(U_D))
     # display(space(U_R))

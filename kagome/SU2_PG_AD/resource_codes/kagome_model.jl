@@ -2,7 +2,7 @@ using LinearAlgebra
 using TensorKit
 using Zygote:@ignore_derivatives
 
-function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2")
+function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2",E_dn_method="simplfied")
     construct_double_layer=ctm_setting.construct_double_layer;
 
     if construct_double_layer
@@ -26,12 +26,6 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
         return E_up, E_down  
 
     elseif (kagome_method=="E_triangle") | (kagome_method=="J2J3") #calculate up and down triangle energy
-        if construct_double_layer
-            AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
-            AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
-            AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
-        end
-
 
         # up triangle
         if E_up_method=="1x1"
@@ -43,16 +37,70 @@ function evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_
             E_up=ob_RD(CTM,AA_H,AA_fused);
             E_up_norm=ob_RD(CTM,AA_fused,AA_fused);
             E_up=E_up/E_up_norm;
-
         end
+
         # down triangle
-        rho_LU_RU_LD=ob_LU_RU_LD(CTM,AA_fused,AA2,AA1,AA3);
-        rho_LU_RU_LD=permute(rho_LU_RU_LD,(1,3,2,),());#anti-clock-wise order
-        @tensor rho_LU_RU_LD[:]:=U_ss[-1,-4,1]*U_ss[-2,-5,2]*U_ss[-3,-6,3]*rho_LU_RU_LD[1,2,3];
-        @tensor rho_LU_RU_LD[:]:=U_phy'[4,5,6,-1]*rho_LU_RU_LD[4,5,6,1,2,3]*U_phy[-2,1,2,3];
-        E_down=@tensor rho_LU_RU_LD[1,2]*H_triangle[2,1];
-        norm_LU_RU_LD=@tensor rho_LU_RU_LD[1,1];
-        E_down=E_down/norm_LU_RU_LD;     
+        if E_dn_method=="open_leg"
+            if construct_double_layer
+                AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
+                AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
+                AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
+            end
+
+            rho_LU_RU_LD=ob_LU_RU_LD(CTM,AA_fused,AA2,AA1,AA3);
+            rho_LU_RU_LD=permute(rho_LU_RU_LD,(1,3,2,),());#anti-clock-wise order
+            @tensor rho_LU_RU_LD[:]:=U_ss[-1,-4,1]*U_ss[-2,-5,2]*U_ss[-3,-6,3]*rho_LU_RU_LD[1,2,3];
+            @tensor rho_LU_RU_LD[:]:=U_phy'[4,5,6,-1]*rho_LU_RU_LD[4,5,6,1,2,3]*U_phy[-2,1,2,3];
+            E_down=@tensor rho_LU_RU_LD[1,2]*H_triangle[2,1];
+            norm_LU_RU_LD=@tensor rho_LU_RU_LD[1,1];
+            E_down=E_down/norm_LU_RU_LD;    
+        elseif  E_dn_method=="simplified"
+            B1=iPESS_tensors[1];
+            B2=iPESS_tensors[2];
+            B3=iPESS_tensors[3];
+            Tup=iPESS_tensors[4];
+            Tdn=iPESS_tensors[5];
+
+            U_phy2=@ignore_derivatives unitary(fuse(space(A_unfused, 5) ⊗ space(A_unfused, 6)), space(A_unfused, 5) ⊗ space(A_unfused, 6));
+            U_phy5=@ignore_derivatives unitary(fuse(space(U_phy2, 1) ⊗ space(U_phy, 1)), space(U_phy2, 1) ⊗ space(U_phy, 1));
+            @tensor PEPS_LU_a_[:]:= B1[-1,1,-4]*B3[-3,2,-5]*Tup[1,-2,2];
+            @tensor PEPS_LU_a[:]:=PEPS_LU_a_[-1,-2,-3,1,2]*U_phy2[-4,1,2];
+            @tensor PEPS_LU_b_[:]:= B2[1,-1,-4]*B3[2,-2,-5]*B1[3,-3,-6]*Tdn[3,1,2];
+            @tensor PEPS_LU_b[:]:=PEPS_LU_b_[-1,-2,-3,1,2,3]*U_phy[-4,1,2,3];
+            @tensor PEPS_LU[:]:=PEPS_LU_a[-1,1,-4,2]*PEPS_LU_b[1,-2,-3,3]*U_phy5[-5,2,3];
+            U_22=@ignore_derivatives unitary(space(U_phy2,1)',space(U_phy2,1)');
+            @tensor H_triangle_enlarged[:]:=U_22[1,3]*H_triangle[2,4]*U_phy5[-2,3,4]*U_phy5'[1,2,-1];
+            @tensor PEPS_LD[:]:= B1[-1,1,4]*B2[3,2,5]*Tup[1,2,-4]*Tdn[-3,3,-2]*U_phy2[-5,4,5];
+            @tensor PEPS_RU[:] := B2[3,2,4]*B3[-4,1,5]*Tup[-1,2,1]*Tdn[-3,3,-2]*U_phy2[-5,4,5];
+
+            if ctm_setting.grad_checkpoint
+                AA_LU, L_LU,D_LU,R_LU,U_LU=Zygote.checkpointed(build_double_layer, PEPS_LU, H_triangle_enlarged);
+                #AA_LU, L_LU,D_LU,R_LU,U_LU=build_double_layer(PEPS_LU, []);
+                AA_LD, L_LD,D_LD,R_LD,U_LD=Zygote.checkpointed(build_double_layer, PEPS_LD, []);
+                AA_RU, L_RU,D_RU,R_RU,U_RU=Zygote.checkpointed(build_double_layer, PEPS_RU, []);
+            else
+                AA_LU, L_LU,D_LU,R_LU,U_LU=build_double_layer(PEPS_LU, H_triangle_enlarged);
+                #AA_LU, L_LU,D_LU,R_LU,U_LU=build_double_layer(PEPS_LU, []);
+                AA_LD, L_LD,D_LD,R_LD,U_LD=build_double_layer(PEPS_LD, []);
+                AA_RU, L_RU,D_RU,R_RU,U_RU=build_double_layer(PEPS_RU, []);
+            end
+
+            E_down=ob_LU_RU_LD_ob(CTM,AA_fused,AA_LU,AA_RU,AA_LD);
+            norm_dn=ob_LU_RU_LD_ob(CTM,AA_fused,AA_fused,AA_fused,AA_fused);
+            E_down=E_down/norm_dn;
+
+            # #check
+            # @tensor B3_double[:]:=B3'[1,4,3]*B3[2,5,3]*U_LU[1,2,-1]*D_LU[-2,4,5];
+            # @tensor B1_double[:]:=B1'[1,4,3]*B1[2,5,3]*L_LU[-1,1,2]*R_LU[4,5,-2];
+            # @tensor AA_LU_new[:]:=AA_fused[-1,1,2,-4]*B3_double[1,-2]*B1_double[2,-3];
+            # norm(AA_LU_new-permute(AA_LU,(1,2,3,4,)))/norm(AA_LU_new)
+            
+            # @tensor AA_new1[:]:=AA_LD[-1,-2,-3,1]*B3_double[-4,1];
+            # norm(AA_new1-permute(AA_fused,(1,2,3,4,)))/norm(AA_new1)
+
+            # @tensor AA_new2[:]:=AA_RU[1,-2,-3,-4]*B1_double[-1,1];
+            # norm(AA_new2-permute(AA_fused,(1,2,3,4,)))/norm(AA_new2)
+        end
         return E_up, E_down   
     elseif kagome_method=="E_bond"
         if construct_double_layer
@@ -521,6 +569,29 @@ function ob_LU_RU_LD(CTM,AA_fused,AA_LU,AA_RU,AA_LD)
     up=MM_LU*MM_RU;
     down=MM_LD*MM_RD;
     @tensor rho[:]:= up[-1,1,2,3,4,-2]*down[-3,1,2,3,4];
+    return rho
+end
+
+
+function ob_LU_RU_LD_ob(CTM,AA_fused,AA_LU,AA_RU,AA_LD)
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_LU[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3]* Tset.T2[2,4,-3];
+
+    @tensor MM_LD[:]:=Tset.T4[1,3,-2]*AA_LD[3,4,-5,-3]*Cset.C4[2,1]*Tset.T3[-4,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
+
+    MM_LU=permute(MM_LU,(1,2,),(3,4,));
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
+    rho=@tensor up[1,2,3,4,]*down[1,2,3,4];
     return rho
 end
 

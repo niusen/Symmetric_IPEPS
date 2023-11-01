@@ -11,14 +11,14 @@ using Dates
 
 cd(@__DIR__)
 
-include("resource_codes\\iPEPS_ansatz.jl")
-include("resource_codes\\kagome_CTMRG.jl")
-include("resource_codes\\kagome_model.jl")
-include("resource_codes\\kagome_AD_SU2.jl")
-include("resource_codes\\Settings.jl")
-include("resource_codes\\AD_lib.jl")
-include("resource_codes\\line_search_lib.jl")
-include("resource_codes\\optimkit_lib.jl")
+include("src\\iPEPS_ansatz.jl")
+include("src\\kagome_CTMRG.jl")
+include("src\\kagome_model.jl")
+include("src\\kagome_AD_SU2.jl")
+include("src\\Settings.jl")
+include("src\\AD_lib.jl")
+include("src\\line_search_lib.jl")
+include("src\\optimkit_lib.jl")
 
 
 
@@ -143,7 +143,7 @@ state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_n
 state_vec=normalize_tensor_group(state_vec);
 
 # E0_, grad,CTM_tem=get_grad(state_vec);
-# include("resource_codes\\kagome_AD_SU2.jl")
+# include("src\\kagome_AD_SU2.jl")
 # E0,grad_=FD(state_vec)
 
 global E_history

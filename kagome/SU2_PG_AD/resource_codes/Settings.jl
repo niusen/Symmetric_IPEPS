@@ -54,7 +54,7 @@ end
 
 
 
-mutable struct Cset_struc
+struct Cset_struc #avoid using mutable, which could induce mistake for AD
     C1::TensorMap
     C2::TensorMap
     C3::TensorMap
@@ -62,7 +62,7 @@ mutable struct Cset_struc
 
 end
 
-mutable struct Tset_struc
+struct Tset_struc #avoid using mutable, which could induce mistake for AD
     T1::TensorMap
     T2::TensorMap
     T3::TensorMap
@@ -70,7 +70,7 @@ mutable struct Tset_struc
 
 end
 
-mutable struct CTM_struc
+struct CTM_struc #avoid using mutable, which could induce mistake for AD
     Cset::Cset_struc
     Tset::Tset_struc
 
@@ -142,6 +142,18 @@ function set_Tset(Tset,M,direction)
     end
     return Tset_new
 end
+# function set_Tset_tuple(Tset,M,direction)
+#     if direction==1 
+#         Tset_new=(T1=M,T2=Tset.T2,T3=Tset.T3,T4=Tset.T4);
+#     elseif direction==2
+#         Tset_new=(T1=Tset.T1,T2=M,T3=Tset.T3,T4=Tset.T4);
+#     elseif direction==3
+#         Tset_new=(T1=Tset.T1,T2=Tset.T2,T3=M,T4=Tset.T4);
+#     elseif direction==4
+#         Tset_new=(T1=Tset.T1,T2=Tset.T2,T3=Tset.T3,T4=M);
+#     end
+#     return Tset_new
+# end
 
 
 struct Elementary_tensors

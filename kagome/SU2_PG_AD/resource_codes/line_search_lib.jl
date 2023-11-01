@@ -35,8 +35,8 @@ function gdoptimize(f, g!, fg!, x0::iPEPS_ansatz, linesearch, maxiter::Int = 20,
         s = (-1)*gvec
 
         dϕ_0 = dot(s, gvec)
-        #α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1.0, fx, dϕ_0)
-        α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1/5, fx, dϕ_0)
+        α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1.0, fx, dϕ_0)
+        #α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1/5, fx, dϕ_0)
 
         x = x + α*s
         g!(gvec, x)

@@ -187,7 +187,11 @@ function CTMRG(A,chi,init, CTM0,ctm_setting)
         
         for direction in direction_order
             if ctm_setting.grad_checkpoint #use checkpoint to save memory
-                C1,C2,C3,C4, T1,T2,T3,T4= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                #println("aaa")
+                #C1,C2,C3,C4, T1,T2,T3,T4= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                Cset,Tset= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                #C1,C2,C3,C4,Tset= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+
                 # C1=show_grad(C1);
                 # C2=show_grad(C2);
                 # C3=show_grad(C3);
@@ -196,12 +200,13 @@ function CTMRG(A,chi,init, CTM0,ctm_setting)
                 # T2=show_grad(T2);
                 # T3=show_grad(T3);
                 # T4=show_grad(T4);
-                Cset=Cset_struc(C1,C2,C3,C4);
-                Tset=Tset_struc(T1,T2,T3,T4);
+                #Cset=Cset_struc(C1,C2,C3,C4);
+                # Tset=Tset_struc(T1,T2,T3,T4);
+                #Tset=Tset_struc(Tset.T1,Tset.T2,Tset.T3,Tset.T4);
             else
-                C1,C2,C3,C4, T1,T2,T3,T4=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
-                Cset=Cset_struc(C1,C2,C3,C4);
-                Tset=Tset_struc(T1,T2,T3,T4);
+                # C1,C2,C3,C4, T1,T2,T3,T4=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                # Cset=Cset_struc(C1,C2,C3,C4);
+                # Tset=Tset_struc(T1,T2,T3,T4);
             end
         end
 
@@ -266,8 +271,8 @@ function CTMRG(A,chi,init, CTM0,ctm_setting)
         # end
     end
 
-    CTM.Cset=Cset;
-    CTM.Tset=Tset;
+    CTM=CTM_struc(Cset,Tset);
+
     if CTM_conv_info
         return CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err
     else
@@ -458,19 +463,29 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     
     
 
-    # Cset=set_Cset(Cset, C1_tem,mod1(direction,4));
-    # Cset=set_Cset(Cset, C4_tem, mod1(direction-1,4));
-    # Tset=set_Tset(Tset, T4_tem, mod1(direction-1,4));
+    Cset=set_Cset(Cset, C1_tem,mod1(direction,4));
+    Cset=set_Cset(Cset, C4_tem, mod1(direction-1,4));
+    Tset=set_Tset(Tset, T4_tem, mod1(direction-1,4));
+    return Cset,Tset
 
-    if direction==1
-        return C1_tem, Cset.C2, Cset.C3, C4_tem, Tset.T1, Tset.T2, Tset.T3, T4_tem
-    elseif direction==2
-        return C4_tem, C1_tem, Cset.C3, Cset.C4, T4_tem, Tset.T2, Tset.T3, Tset.T4
-    elseif direction==3
-        return Cset.C1, C4_tem, C1_tem, Cset.C4, Tset.T1, T4_tem, Tset.T3, Tset.T4
-    elseif direction==4
-        return Cset.C1, Cset.C2, C4_tem, C1_tem, Tset.T1, Tset.T2, T4_tem, Tset.T4
-    end
+    # if direction==1
+    #     return C1_tem, Cset.C2, Cset.C3, C4_tem, Tset.T1, Tset.T2, Tset.T3, T4_tem
+    # elseif direction==2
+    #     return C4_tem, C1_tem, Cset.C3, Cset.C4, T4_tem, Tset.T2, Tset.T3, Tset.T4
+    # elseif direction==3
+    #     return Cset.C1, C4_tem, C1_tem, Cset.C4, Tset.T1, T4_tem, Tset.T3, Tset.T4
+    # elseif direction==4
+    #     return Cset.C1, Cset.C2, C4_tem, C1_tem, Tset.T1, Tset.T2, T4_tem, Tset.T4
+    # end
+    # if direction==1
+    #     return C1_tem, Cset.C2, Cset.C3, C4_tem, Tset
+    # elseif direction==2
+    #     return C4_tem, C1_tem, Cset.C3, Cset.C4, Tset
+    # elseif direction==3
+    #     return Cset.C1, C4_tem, C1_tem, Cset.C4, Tset
+    # elseif direction==4
+    #     return Cset.C1, Cset.C2, C4_tem, C1_tem, Tset
+    # end
 end
 
 

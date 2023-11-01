@@ -1,6 +1,6 @@
 using Revise, PEPSKit, TensorKit, TensorKitAD, Zygote, MPSKit
 using LinearAlgebra, OptimKit
-using PEPSKit: NORTH,SOUTH,WEST,EAST,NORTHWEST,NORTHEAST,SOUTHEAST,SOUTHWEST,@diffset
+#using PEPSKit: NORTH,SOUTH,WEST,EAST,NORTHWEST,NORTHEAST,SOUTHEAST,SOUTHWEST,@diffset
 using JLD2,ChainRulesCore
 using KrylovKit
 using JSON

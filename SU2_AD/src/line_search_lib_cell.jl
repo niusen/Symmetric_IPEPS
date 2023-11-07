@@ -112,12 +112,17 @@ end
 
 
 
-function get_grad(x::Matrix{T}) where T<:iPEPS_ansatz
+function get_grad(x0::Matrix{T}) where T<:iPEPS_ansatz
+    global Lx,Ly
     #∂E = cost_fun'(x);
-    
+    x=Matrix{Kagome_iPESS_immutable}(undef,size(x0,1),size(x0,2));
+    for cc in eachindex(x0)
+            x[cc]=Kagome_iPESS_convert(x0[cc]);#convert to immutable ansatz
+    end
+
     ∂E=gradient(x ->cost_fun(x), x)[1];#this works when x is a mutable structure. The output is a NamedTuple, not a structure, due to that the cost function takes out some fields of the input structure.
 
-    ∂E=NamedTuple_to_Struc_cell(∂E,x);
+    ∂E=NamedTuple_to_Struc_cell(∂E,x0);
     #E=fun(state_vec)
     global E_tem, CTM_tem
     x_tem=x;

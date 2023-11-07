@@ -1,4 +1,4 @@
-function build_A_kagome(x::Kagome_iPESS)
+function build_A_kagome(x::Kagome_iPESS_immutable)
     B1=x.B1;
     B2=x.B2;
     B3=x.B3;
@@ -73,7 +73,7 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
     end
 end
 
-function cost_fun(x::Matrix{T}) where T<:iPEPS_ansatz #variational parameters are vector of TensorMap
+function cost_fun(x::Matrix{T}) where T<:iPEPS_ansatz_immutable #variational parameters are vector of TensorMap
     global Lx,Ly,U_phy
     A_unfused_cell=initial_tuple_cell(Lx,Ly);
     A_fused_cell=initial_tuple_cell(Lx,Ly);

@@ -2,7 +2,7 @@ using LinearAlgebra
 using TensorKit
 using Zygote:@ignore_derivatives
 
-function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2",E_dn_method="simplfied")
+function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fused::TensorMap, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2",E_dn_method="simplfied")
     construct_double_layer=ctm_setting.construct_double_layer;
 
     if construct_double_layer

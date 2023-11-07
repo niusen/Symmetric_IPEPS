@@ -168,7 +168,7 @@ function CTMRG(A,chi,init, CTM0,ctm_setting)
     if construct_double_layer
         AA_rotated=rotate_AA(AA_fused,construct_double_layer);
     else
-        AA_rotated=rotate_AA(A_fused,construct_double_layer);
+        AA_rotated=rotate_AA(A,construct_double_layer);
     end
 
     @ignore_derivatives  if CTM_ite_info
@@ -182,31 +182,12 @@ function CTMRG(A,chi,init, CTM0,ctm_setting)
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
         #direction_order=[1];
-
- 
         
         for direction in direction_order
             if ctm_setting.grad_checkpoint #use checkpoint to save memory
-                #println("aaa")
-                #C1,C2,C3,C4, T1,T2,T3,T4= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
                 Cset,Tset= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
-                #C1,C2,C3,C4,Tset= Zygote.checkpointed(CTM_ite, Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
-
-                # C1=show_grad(C1);
-                # C2=show_grad(C2);
-                # C3=show_grad(C3);
-                # C4=show_grad(C4);
-                # T1=show_grad(T1);
-                # T2=show_grad(T2);
-                # T3=show_grad(T3);
-                # T4=show_grad(T4);
-                #Cset=Cset_struc(C1,C2,C3,C4);
-                # Tset=Tset_struc(T1,T2,T3,T4);
-                #Tset=Tset_struc(Tset.T1,Tset.T2,Tset.T3,Tset.T4);
             else
-                # C1,C2,C3,C4, T1,T2,T3,T4=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
-                # Cset=Cset_struc(C1,C2,C3,C4);
-                # Tset=Tset_struc(T1,T2,T3,T4);
+                Cset,Tset=CTM_ite(Cset, Tset, get_Tset(AA_rotated, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
             end
         end
 
@@ -510,10 +491,13 @@ function init_CTM(chi,A,type,CTM_ite_info)
     #space(A,1)
     
     if type=="PBC"
-        U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1));
-        U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2));
-        U_R=(U_L)';
-        U_U=(U_D)';
+        U_L=@ignore_derivatives unitary(fuse(space(A, 1)' ⊗ space(A, 1)), space(A, 1)' ⊗ space(A, 1))*(1+0*im);
+        U_D=@ignore_derivatives unitary(fuse(space(A, 2)' ⊗ space(A, 2)), space(A, 2)' ⊗ space(A, 2))*(1+0*im);
+        # U_R=(U_L)';
+        # U_U=(U_D)';
+        U_R=@ignore_derivatives unitary(space(A, 3) ⊗ space(A, 3)', fuse(space(A, 3)' ⊗ space(A, 3)))*(1+0*im);
+        U_U=@ignore_derivatives unitary(space(A, 4) ⊗ space(A, 4)', fuse(space(A, 4)' ⊗ space(A, 4)))*(1+0*im);
+
         @tensor C1[:]:=A'[2,4,6,3,1]*A[2,5,7,3,1]*U_D[-1,4,5]*U_R[6,7,-2];
         @tensor C2[:]:=A'[4,6,3,2,1]*A[5,7,3,2,1]*U_L[-1,4,5]*U_D[-2,6,7];
         @tensor C3[:]:=A'[6,3,2,4,1]*A[7,3,2,5,1]*U_U[4,5,-1]*U_L[-2,6,7];

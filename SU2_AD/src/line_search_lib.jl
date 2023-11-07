@@ -1,4 +1,22 @@
 using LinearAlgebra: norm, dot
+import Base: +, -, *,/
+import LinearAlgebra: norm,dot
+#Define operations of groups of TensorMap
+*(coe::Number,tt :: Vector{TensorMap})=add_group(tt,[],coe,0);
+*(coe::Number,tt :: iPEPS_ansatz)=add_group(tt,[],coe,0);
+*(tt :: Vector{TensorMap}, coe:: Number)=add_group(tt,[],coe,0);
+*(tt :: iPEPS_ansatz, coe:: Number)=add_group(tt,[],coe,0);
+/(tt :: Vector{TensorMap}, coe::Number)=add_group(tt,[],1/coe,0);
+/(tt:: iPEPS_ansatz, coe::Number)=add_group(tt,[],1/coe,0);
++(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=add_group(tt1,tt2,1,+1);
++(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=add_group(tt1,tt2,1,+1);
+-(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=add_group(tt1,tt2,1,-1);
+-(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=add_group(tt1,tt2,1,-1);
+norm(tt :: Vector{TensorMap})=norm_tensor_group(tt);
+norm(tt :: iPEPS_ansatz)=norm_tensor_group(tt);
+dot(tt1 :: Vector{TensorMap}, tt2 :: Vector{TensorMap})=dot_tensor_group(tt1,tt2);
+dot(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=dot_tensor_group(tt1,tt2);
+
 
 #function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
 function gdoptimize(f, g!, fg!, x0::iPEPS_ansatz, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
@@ -97,6 +115,179 @@ function fg!(gvec, x)
     #println("one fg!")
     g!(gvec, x)
     f(x)
+end
+
+
+
+
+
+
+function define_tensor_group(b1,b2,b3,tup,tdn)
+    state=Vector{TensorMap}(undef,5);
+    state[1]=b1;
+    state[2]=b2;
+    state[3]=b3;
+    state[4]=tup;
+    state[5]=tdn;
+    return state
+end
+
+
+function NamedTuple_to_Struc(∂E,x)
+    ∂E_new=deepcopy(x);
+    Keys=keys(∂E);
+    for cc in Keys
+        setfield!(∂E_new,cc,getindex(∂E,cc))
+    end
+    return ∂E_new
+end
+function get_grad(x)
+    #∂E = cost_fun'(x);
+    ∂E=gradient(x ->cost_fun(x), x)[1];#this works when x is a mutable structure. The output is a NamedTuple, not a structure, due to that the cost function takes out some fields of the input structure.
+    ∂E=NamedTuple_to_Struc(∂E,x);
+    #E=fun(state_vec)
+    global E_tem, CTM_tem
+    x_tem=x;
+
+    if isa(∂E, Vector{Float64})
+        @assert !isnan(norm(∂E))
+    elseif isa(∂E, Vector)
+        for elem in ∂E
+            @assert !isnan(norm(elem))
+        end
+    end
+    
+    return E_tem,∂E,CTM_tem
+end
+
+function norm_tensor_group(x0:: Vector{TensorMap})
+    Norm=0;
+    for tt in x0
+        Norm=Norm+norm(tt)^2;
+    end
+    Norm=sqrt(Norm);
+    return Norm
+end
+
+function norm_tensor_group(x0:: iPEPS_ansatz)
+    Norm=0;
+    Fields=fieldnames(typeof(x0));
+    for i in Fields
+        Value=getfield(x0, i)
+        Norm=Norm+norm(Value)^2;
+    end
+    Norm=sqrt(Norm);
+    return Norm
+end
+
+function normalize_tensor_group(x0:: Vector{TensorMap})
+    Norm=norm_tensor_group(x0);
+    #x_new=[[tt/Norm for tt in x0]...,]
+    x_new=deepcopy(x0);
+    for cc in eachindex(x0)
+        x_new[cc]=x_new[cc]/Norm;
+    end
+    return x_new
+end
+
+function normalize_tensor_group(x0:: iPEPS_ansatz)
+    x_new=deepcopy(x0);
+    Norm=norm_tensor_group(x0);
+    Fields=fieldnames(typeof(x_new));
+    for i in Fields
+        Value=getfield(x_new, i)
+        setfield!(x_new,i,Value/Norm)
+    end
+    return x_new
+end
+
+function add_group(Tp1:: Vector{TensorMap}, Tp2, coe1, coe2)
+    # if Tp2==[]
+    #     x_new=[[tt*coe1 for tt in Tp1]...,];
+    # else
+    #     x_new=[[Tp1[cc]*coe1+Tp2[cc]*coe2 for cc in eachindex(Tp1)]...,];
+    # end 
+    x_new=deepcopy(Tp1);
+    if Tp2==[]
+        for cc in eachindex(Tp1)
+            x_new[cc]=Tp1[cc]*coe1;
+        end
+    else
+        for cc in eachindex(Tp1)
+            x_new[cc]=Tp1[cc]*coe1+Tp2[cc]*coe2;
+        end
+    end
+    return x_new
+end
+function add_group(Tp1:: iPEPS_ansatz, Tp2, coe1, coe2)
+    x_new=deepcopy(Tp1);
+    if Tp2==[]
+        Fields=fieldnames(typeof(Tp1));
+        for i in Fields
+            setfield!(x_new,i,getfield(Tp1, i)*coe1)
+        end
+
+    else
+        Fields=fieldnames(typeof(Tp1));
+        for i in Fields
+            setfield!(x_new,i,getfield(Tp1, i)*coe1+getfield(Tp2, i)*coe2)
+        end
+    end
+    return x_new
+end
+function dot_tensor_group(Tp1::Vector{TensorMap},Tp2::Vector{TensorMap})
+    y=0;
+    for cc in eachindex(Tp1)
+        y=y+dot(Tp1[cc],Tp2[cc])
+    end
+    if imag(y)/real(y)<1e-10
+        y=real(y);
+    end
+    return y
+end
+function dot_tensor_group(Tp1::iPEPS_ansatz, Tp2::iPEPS_ansatz)
+    y=0;
+    Fields=fieldnames(typeof(Tp1));
+    for i in Fields
+        y=y+dot(getfield(Tp1, i), getfield(Tp2, i));
+    end
+    if imag(y)/real(y)<1e-10
+        y=real(y);
+    end
+    return y
+end
+
+function FD(state_vec)
+
+    dt=0.000001
+
+    E0=cost_fun(state_vec);
+
+    grad=similar(state_vec);
+    for ct in eachindex(state_vec)
+        grad[ct]=similar(state_vec[ct])*0;
+    end
+
+    for ct in eachindex(state_vec)
+        for n_block in eachindex(state_vec[ct].data.values)
+            for elem in eachindex(state_vec[ct].data.values[n_block])
+                state_vec_tem=deepcopy(state_vec);
+                T=state_vec_tem[ct].data.values[n_block];
+                T[elem]=T[elem]+dt;
+                state_vec_tem[ct].data.values[n_block]=T;
+                real_part=(cost_fun(state_vec_tem)-E0)/dt;
+
+                state_vec_tem=deepcopy(state_vec);
+                T=state_vec_tem[ct].data.values[n_block];
+                T[elem]=T[elem]+dt*im;
+                state_vec_tem[ct].data.values[n_block]=T;
+                imag_part=(cost_fun(state_vec_tem)-E0)/dt;
+
+                grad[ct].data.values[n_block][elem]=real_part+im*imag_part;
+            end
+        end
+    end
+    return E0, grad
 end
 
 

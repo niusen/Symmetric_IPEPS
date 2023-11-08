@@ -46,8 +46,8 @@ function gdoptimize(f, g!, fg!, x0::Matrix{T}, linesearch, maxiter::Int = 20, g_
         s = (-1)*gvec
 
         dϕ_0 = dot(s, gvec)
-        α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1.0, fx, dϕ_0)
-        #α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1/5, fx, dϕ_0)
+        #α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1.0, fx, dϕ_0)
+        α, fx = linesearch(ϕ, dϕ, ϕdϕ, 1/5, fx, dϕ_0)
 
         x = x + α*s
         g!(gvec, x)
@@ -71,7 +71,7 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
     global E_history
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
-        filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+        filenm="Optim_cell_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
         #jldsave(filenm; B_a=x[1],B_b=x[2],B_c=x[3],T_u=x[4],T_d=x[5]);
         jldsave(filenm; x);
         global starting_time

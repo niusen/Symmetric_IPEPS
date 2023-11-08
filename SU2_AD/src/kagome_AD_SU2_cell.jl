@@ -33,41 +33,35 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
     else
         
         println("load state: "*init_statenm);flush(stdout);
-        data=load(init_statenm);
+        x=load(init_statenm)["x"];
+        state=similar(x);
+        for cc in eachindex(x)
+            ansatz=x[cc];
+            B_a=ansatz.B1;
+            B_b=ansatz.B2;
+            B_c=ansatz.B3;
+            T_u=ansatz.Tup;
+            T_d=ansatz.Tdn;
 
-        B_a=data["B_a"];
-        B_b=data["B_b"];
-        B_c=data["B_c"];
-        T_u=data["T_u"];
-        T_d=data["T_d"];
+            @assert space(B_a,1)==Vspace
+            Ba_noise=TensorMap(randn,codomain(B_a),domain(B_a));
+            Bb_noise=TensorMap(randn,codomain(B_b),domain(B_b));
+            Bc_noise=TensorMap(randn,codomain(B_c),domain(B_c));
+            Tu_noise=TensorMap(randn,codomain(T_u),domain(T_u));
+            Td_noise=TensorMap(randn,codomain(T_d),domain(T_d));
+            
+            Ba=B_a+Ba_noise*init_noise*norm(B_a)/norm(Ba_noise);
+            Bb=B_b+Bb_noise*init_noise*norm(B_b)/norm(Bb_noise);
+            Bc=B_c+Bc_noise*init_noise*norm(B_c)/norm(Bc_noise);
+            Tu=T_u+Tu_noise*init_noise*norm(T_u)/norm(Tu_noise);
+            Td=T_d+Td_noise*init_noise*norm(T_d)/norm(Td_noise);
+            ansatz_new=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
 
-        @assert space(B_a,1)==Vspace
-        Ba_noise=TensorMap(randn,codomain(B_a),domain(B_a));
-        Bb_noise=TensorMap(randn,codomain(B_b),domain(B_b));
-        Bc_noise=TensorMap(randn,codomain(B_c),domain(B_c));
-        Tu_noise=TensorMap(randn,codomain(T_u),domain(T_u));
-        Td_noise=TensorMap(randn,codomain(T_d),domain(T_d));
-        
-        Ba=B_a+Ba_noise*init_noise*norm(B_a)/norm(Ba_noise);
-        Bb=B_b+Bb_noise*init_noise*norm(B_b)/norm(Bb_noise);
-        Bc=B_c+Bc_noise*init_noise*norm(B_c)/norm(Bc_noise);
-        Tu=T_u+Tu_noise*init_noise*norm(T_u)/norm(Tu_noise);
-        Td=T_d+Td_noise*init_noise*norm(T_d)/norm(Td_noise);
-
-        #state=define_tensor_group(Ba,Bb,Bc,Tu,Td)
-        if (Lx==2)&(Ly==2)
-            """change of coordinate 
-            (1,1)  (2,1)
-            (1,2)  (2,2)
-        
-            coordinate of C1 tensor: (cx,cy)
-            """
-            state_11=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
-            state_12=state_11;
-            state_21=state_11;
-            state_22=state_11;
-            state=[state_11 state_12; state_21 state_22];
+            state[cc]=ansatz_new
         end
+
+        
+
 
         return state
     end

@@ -23,3 +23,8 @@ function fill_tuple(M0,a, cx,cy) #avoid mutating matrix, which is necessary for 
     end
     return M
 end
+
+
+Base.@kwdef mutable struct Algrithm_CTMRG_settings
+    CTM_cell_ite_method :: String = "together_update";#"continuous_update", "together_update"
+end

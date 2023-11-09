@@ -111,9 +111,29 @@ function NamedTuple_to_Struc_cell(∂E,x)
 end
 
 
+function normalize_ansatz(x::Matrix{T}) where T<:iPEPS_ansatz
+    for cc in eachindex(x)
+        ansatz=x[cc];
+        B1=ansatz.B1;
+        B2=ansatz.B2;
+        B3=ansatz.B3;
+        Tup=ansatz.Tup;
+        Tdn=ansatz.Tdn;
+
+        B1=B1/norm(B1);
+        B2=B2/norm(B2);
+        B3=B3/norm(B3);
+        Tup=Tup/norm(Tup);
+        Tdn=Tdn/norm(Tdn);
+        ansatz_new=Kagome_iPESS(B1,B2,B3,Tup,Tdn);
+        x[cc]=ansatz_new;
+    end
+    return x
+end
 
 function get_grad(x0::Matrix{T}) where T<:iPEPS_ansatz
     global Lx,Ly
+    x0=normalize_ansatz(x0);
     #∂E = cost_fun'(x);
     x=Matrix{Kagome_iPESS_immutable}(undef,size(x0,1),size(x0,2));
     for cc in eachindex(x0)
@@ -189,7 +209,7 @@ function FD(state_vec::Matrix{TT}) where TT<:iPEPS_ansatz
 
     dt=0.000001
 
-    E0=cost_fun(state_vec);
+    E0=cost_fun_test(state_vec);
 
     grad=similar(state_vec);
     for ct in eachindex(state_vec)
@@ -207,7 +227,7 @@ function FD(state_vec::Matrix{TT}) where TT<:iPEPS_ansatz
                     T[elem]=T[elem]+dt;
                     tensor_.data.values[n_block]=T;
                     setfield!(state_vec_tem[ct],fi,tensor_);
-                    real_part=(cost_fun(state_vec_tem)-E0)/dt;
+                    real_part=(cost_fun_test(state_vec_tem)-E0)/dt;
 
                     state_vec_tem=deepcopy(state_vec);
                     tensor_=getfield(state_vec_tem[ct], fi);
@@ -215,7 +235,7 @@ function FD(state_vec::Matrix{TT}) where TT<:iPEPS_ansatz
                     T[elem]=T[elem]+dt*im;
                     tensor_.data.values[n_block]=T;
                     setfield!(state_vec_tem[ct],fi,tensor_);
-                    imag_part=(cost_fun(state_vec_tem)-E0)/dt;
+                    imag_part=(cost_fun_test(state_vec_tem)-E0)/dt;
 
                     tensor__=getfield(grad[ct],fi);
                     tensor__.data.values[n_block][elem]=real_part+im*imag_part;

@@ -23,7 +23,7 @@ function my_scale!(η, β)
 end
 
 
-function cfun(x)
+function cfun(x::Kagome_iPESS)
     global E_history
     E,∂E,_=get_grad(x)
 
@@ -31,6 +31,23 @@ function cfun(x)
         E_history=vcat(E_history,E);
         filenm="OptimKit_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
         jldsave(filenm; B_a=x[1],B_b=x[2],B_c=x[3],T_u=x[4],T_d=x[5]);
+        global starting_time
+        Now=now();
+        Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+        println("Time consumed: "*string(Time));flush(stdout);
+    end
+
+    return E,∂E
+end
+
+function cfun(x::Matrix{T}) where T<:iPEPS_ansatz
+    global E_history
+    E,∂E,_=get_grad(x)
+
+    if E<minimum(E_history)
+        E_history=vcat(E_history,E);
+        filenm="Optim_cell_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+        jldsave(filenm; x);
         global starting_time
         Now=now();
         Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));

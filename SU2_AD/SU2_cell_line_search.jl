@@ -45,6 +45,10 @@ Jtrip=sin(theta);
 
 parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", Jtrip)]);
 
+algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+dump(algrithm_CTMRG_settings);
+global algrithm_CTMRG_settings
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
@@ -175,7 +179,7 @@ fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
 # fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
 
 
-# #optimize with OptimKit
+#optimize with OptimKit
 # optimkit_op(state_vec)
 
 

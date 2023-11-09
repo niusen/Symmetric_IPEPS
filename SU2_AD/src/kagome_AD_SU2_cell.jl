@@ -12,23 +12,43 @@ function build_A_kagome(x::Kagome_iPESS_immutable)
     return A_unfused,A_fused,U_phy
 end
 
+function build_A_kagome(x::Kagome_iPESS)
+    B1=x.B1;
+    B2=x.B2;
+    B3=x.B3;
+    Tup=x.Tup;
+    Tdn=x.Tdn;
+    @tensor PEPS_tensor[:] := B1[-1,1,-5]*B2[4,3,-6]*B3[-4,2,-7]*Tup[1,3,2]*Tdn[-3,4,-2];
+    A_unfused=PEPS_tensor;
+
+    U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+    @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
+    return A_unfused,A_fused,U_phy
+end
+
 function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
     if init_statenm=="nothing" 
+        global Lx,Ly
         println("Random initial state");flush(stdout);
         Vp=SU2Space(1/2=>1);
-        b1=TensorMap(randn,Vv*Vv,Vp);
-        b2=TensorMap(randn,Vv*Vv,Vp);
-        b3=TensorMap(randn,Vv*Vv,Vp);
-        tup=TensorMap(randn,Vv',Vv*Vv);
-        tdn=TensorMap(randn,Vv',Vv*Vv);
-        b1=permute(b1,(1,2,3,));
-        b2=permute(b2,(1,2,3,));
-        b3=permute(b3,(1,2,3,));
-        tup=permute(tup,(1,2,3,));
-        tdn=permute(tdn,(1,2,3,));
+        state=Matrix{Kagome_iPESS}(undef,Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                b1=TensorMap(randn,Vv*Vv,Vp);
+                b2=TensorMap(randn,Vv*Vv,Vp);
+                b3=TensorMap(randn,Vv*Vv,Vp);
+                tup=TensorMap(randn,Vv',Vv*Vv);
+                tdn=TensorMap(randn,Vv',Vv*Vv);
+                b1=permute(b1,(1,2,3,));
+                b2=permute(b2,(1,2,3,));
+                b3=permute(b3,(1,2,3,));
+                tup=permute(tup,(1,2,3,));
+                tdn=permute(tdn,(1,2,3,));
 
-        #state=define_tensor_group(b1,b2,b3,tup,tdn)
-        state=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
+                #state=define_tensor_group(b1,b2,b3,tup,tdn)
+                state[cx,cy]=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
+            end
+        end
         return state
     else
         
@@ -57,7 +77,7 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
             Td=T_d+Td_noise*init_noise*norm(T_d)/norm(Td_noise);
             ansatz_new=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
 
-            state[cc]=ansatz_new
+            state[cc]=ansatz_new;
         end
 
         
@@ -75,9 +95,9 @@ function cost_fun(x::Matrix{T}) where T<:iPEPS_ansatz_immutable #variational par
     for cx=1:Lx
         for cy=1:Ly
             global U_phy
-        A_unfused,A_fused,U_phy=build_A_kagome(x[cx, cy]);
-        A_unfused_cell=fill_tuple(A_unfused_cell, A_unfused, cx,cy);
-        A_fused_cell=fill_tuple(A_fused_cell, A_fused, cx,cy);
+            A_unfused,A_fused,U_phy=build_A_kagome(x[cx, cy]);
+            A_unfused_cell=fill_tuple(A_unfused_cell, A_unfused, cx,cy);
+            A_fused_cell=fill_tuple(A_fused_cell, A_fused, cx,cy);
         end
     end
 
@@ -95,7 +115,33 @@ function cost_fun(x::Matrix{T}) where T<:iPEPS_ansatz_immutable #variational par
     return E
 end
 
+function cost_fun_test(x::Matrix{T}) where T<:iPEPS_ansatz #variational parameters are vector of TensorMap
+    global Lx,Ly,U_phy
+    A_unfused_cell=initial_tuple_cell(Lx,Ly);
+    A_fused_cell=initial_tuple_cell(Lx,Ly);
 
+    for cx=1:Lx
+        for cy=1:Ly
+            global U_phy
+            A_unfused,A_fused,U_phy=build_A_kagome(x[cx, cy]);
+            A_unfused_cell=fill_tuple(A_unfused_cell, A_unfused, cx,cy);
+            A_fused_cell=fill_tuple(A_fused_cell, A_fused, cx,cy);
+        end
+    end
+
+    global chi, parameters, energy_setting, grad_ctm_setting
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+
+    CTM_cell, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_fused_cell,chi,init,[],grad_ctm_setting)
+    E_total, E_up_cell, E_down_cell=evaluate_ob(parameters, U_phy, x, A_fused_cell, AA_fused_cell, CTM_cell, grad_ctm_setting, energy_setting.kagome_method, energy_setting.E_up_method, energy_setting.E_dn_method);
+    E=E_total/3/(Lx*Ly);
+    #println(E)
+    println("E0= "*string(E));flush(stdout);
+    global E_tem, CTM_tem
+    CTM_tem=deepcopy(CTM_cell);
+    E_tem=deepcopy(E)
+    return E
+end
 
 
 

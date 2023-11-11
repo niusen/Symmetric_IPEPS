@@ -2,6 +2,10 @@
 abstract type iPEPS_ansatz end
 abstract type iPEPS_ansatz_immutable end
 
+function Base.similar(x::iPEPS_ansatz)
+    return deepcopy(x)
+end
+
 mutable struct Kagome_iPESS <: iPEPS_ansatz #this is for line search. Don't use this for AD, otherwise the grad will be incorrect.
     B1::TensorMap
     B2::TensorMap
@@ -20,6 +24,9 @@ struct Kagome_iPESS_immutable <: iPEPS_ansatz_immutable #this is for AD
 
 end
 
+
+
+
 function Kagome_iPESS_convert(ansatz::Kagome_iPESS)
     ansatz_new=Kagome_iPESS_immutable(ansatz.B1,ansatz.B2,ansatz.B3,ansatz.Tup,ansatz.Tdn);
     return ansatz_new
@@ -31,8 +38,52 @@ end
 
 
 
-function Base.similar(x::iPEPS_ansatz)
-    return deepcopy(x)
+
+Base.@kwdef mutable struct Kagome_Energy_settings
+    kagome_method :: String = "E_single_triangle";# "E_single_triangle", "E_triangle", "J2J3", "E_bond"
+    E_up_method :: String = "1x1";#"1x1", "2x2"
+    E_dn_method :: String = "simplified";#"open_leg", "simplfied"
+    cal_chiral_order :: Bool = false;
+
 end
+
+
+##################################################
+
+mutable struct Checkerboard_iPESS <: iPEPS_ansatz #this is for line search. Don't use this for AD, otherwise the grad will be incorrect.
+    B_L::TensorMap
+    B_U::TensorMap
+    Tm::TensorMap
+
+end
+
+struct Checkerboard_iPESS_immutable <: iPEPS_ansatz_immutable #this is for AD
+    B_L::TensorMap
+    B_U::TensorMap
+    Tm::TensorMap
+
+end
+
+
+
+
+function Checkerboard_iPESS_convert(ansatz::Checkerboard_iPESS)
+    ansatz_new=Checkerboard_iPESS_immutable(ansatz.B_L,ansatz.B_U,ansatz.Tm);
+    return ansatz_new
+end
+
+# Base.@kwdef mutable struct Checkerboard_Energy_settings
+#     kagome_method :: String = "E_single_triangle";# "E_single_triangle", "E_triangle", "J2J3", "E_bond"
+#     E_up_method :: String = "1x1";#"1x1", "2x2"
+#     E_dn_method :: String = "simplified";#"open_leg", "simplfied"
+#     cal_chiral_order :: Bool = false;
+
+# end
+
+
+
+
+
+
 
 

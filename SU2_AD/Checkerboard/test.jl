@@ -11,34 +11,43 @@ using Dates
 
 cd(@__DIR__)
 
-include("src\\iPEPS_ansatz.jl")
-include("src\\kagome_CTMRG.jl")
-include("src\\kagome_model.jl")
-include("src\\kagome_AD_SU2.jl")
-include("src\\Settings.jl")
-include("src\\AD_lib.jl")
-include("src\\line_search_lib.jl")
-include("src\\optimkit_lib.jl")
+include("..\\src\\checkerboard_load_tensor.jl")
+
+include("..\\src\\checkerboard_spin_operator.jl")
+include("..\\src\\iPEPS_ansatz.jl")
+include("..\\src\\CTMRG.jl")
+include("..\\src\\CTMRG_unitcell.jl")
+include("..\\src\\checkerboard_model_cell.jl")
+include("..\\src\\checkerboard_AD_SU2_cell.jl")
+include("..\\src\\Settings.jl")
+include("..\\src\\Settings_cell.jl")
+include("..\\src\\AD_lib.jl")
+include("..\\src\\line_search_lib.jl")
+include("..\\src\\line_search_lib_cell.jl")
+include("..\\src\\optimkit_lib.jl")
 
 
 
 
 Random.seed!(555)
+global Lx,Ly #unitcell of ansatz
+Lx=2;
+Ly=2
 
-
-D=6;
+D=2;
 chi=40;
 
 
-theta=0*pi;
-J1=cos(theta);
-J2=0;
-J3=0;
-Jchi=0;
-Jtrip=sin(theta);
+J1=1;
+J2=1;
 
-parameters=Dict([("J1", J1), ("J2", J2), ("J3", J3), ("Jchi", Jchi), ("Jtrip", Jtrip)]);
 
+parameters=Dict([("J1", J1), ("J2", J2)]);
+
+algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+dump(algrithm_CTMRG_settings);
+global algrithm_CTMRG_settings
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
@@ -80,12 +89,12 @@ optim_setting.init_noise=0.1;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
-energy_setting=Energy_settings()
-energy_setting.kagome_method ="E_triangle";#"E_single_triangle", "E_triangle"
-energy_setting.E_up_method = "2x2";#"1x1", "2x2"
-energy_setting.E_dn_method = "simplified";#"open_leg", "simplfied"
-energy_setting.cal_chiral_order = false;
-dump(energy_setting);
+# energy_setting=Energy_settings()
+# energy_setting.kagome_method ="E_triangle";#"E_single_triangle", "E_triangle"
+# energy_setting.E_up_method = "2x2";#"1x1", "2x2"
+# energy_setting.E_dn_method = "simplified";#"open_leg", "simplfied"
+# energy_setting.cal_chiral_order = false;
+# dump(energy_setting);
 
 
 
@@ -104,8 +113,8 @@ global backward_settings
 
 global Vv
 
-if D==6
-    Vv=SU2Space(0=>1,1/2=>1,1=>1);
+if D==2
+    Vv=SU2Space(1/2=>1);
 elseif D==8
     Vv=SU2Space(0=>1,1/2=>2,1=>1);
 elseif D==12
@@ -139,8 +148,8 @@ starting_time=now();
 # println(∂E./grad)
 
 
-state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise)
-state_vec=normalize_tensor_group(state_vec);
+# state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise)
+# state_vec=normalize_tensor_group(state_vec);
 
 # E0_, grad,CTM_tem=get_grad(state_vec);
 # include("src\\kagome_AD_SU2.jl")
@@ -150,22 +159,17 @@ global E_history
 E_history=[10000];
 
 
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
 
-# ls = StrongWolfe()
-# println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
+D=2
+A_set,A1_set,A2_set,B1_set,B2_set, S_label, Sz_label, virtual_particle, Va, Vb=construct_tensor(D);
 
 
-# #optimize with OptimKit
-# optimkit_op(state_vec)
+ansa=Checkerboard_iPESS(A_set[1],A_set[1],A1_set[1]);
+state_vec=Matrix{Checkerboard_iPESS}(undef,2,2);
+state_vec[1,1]=ansa;
+state_vec[1,2]=ansa;
+state_vec[2,1]=ansa;
+state_vec[2,2]=ansa;
+
+cost_fun_test(state_vec)
+

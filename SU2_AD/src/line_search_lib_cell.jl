@@ -66,8 +66,13 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
         init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
         CTM0=[];
     end
-    E,E_up, E_down,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-    println("E= "*string(E)*", "*"E_up= "*string(E_up[:])*", "*"E_down= "*string(E_down[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    if isa(x[1],Kagome_iPESS)
+        E,E_up, E_down,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+        println("E= "*string(E)*", "*"E_up= "*string(E_up[:])*", "*"E_down= "*string(E_down[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    elseif isa(x[1],Checkerboard_iPESS)
+        E,E_plaquatte_cell,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, init, CTM0); 
+        println("E= "*string(E)*", "*"E_plaquatte_cell= "*string(E_plaquatte_cell[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    end
     global E_history
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
@@ -114,18 +119,29 @@ end
 function normalize_ansatz(x::Matrix{T}) where T<:iPEPS_ansatz
     for cc in eachindex(x)
         ansatz=x[cc];
-        B1=ansatz.B1;
-        B2=ansatz.B2;
-        B3=ansatz.B3;
-        Tup=ansatz.Tup;
-        Tdn=ansatz.Tdn;
+        if isa(x[cc],Kagome_iPESS)
+            B1=ansatz.B1;
+            B2=ansatz.B2;
+            B3=ansatz.B3;
+            Tup=ansatz.Tup;
+            Tdn=ansatz.Tdn;
 
-        B1=B1/norm(B1);
-        B2=B2/norm(B2);
-        B3=B3/norm(B3);
-        Tup=Tup/norm(Tup);
-        Tdn=Tdn/norm(Tdn);
-        ansatz_new=Kagome_iPESS(B1,B2,B3,Tup,Tdn);
+            B1=B1/norm(B1);
+            B2=B2/norm(B2);
+            B3=B3/norm(B3);
+            Tup=Tup/norm(Tup);
+            Tdn=Tdn/norm(Tdn);
+            ansatz_new=Kagome_iPESS(B1,B2,B3,Tup,Tdn);
+        elseif isa(x[cc],Checkerboard_iPESS)
+            BL=ansatz.B_L;
+            BU=ansatz.B_U;
+            Tm=ansatz.Tm;
+
+            BL=BL/norm(BL);
+            BU=BU/norm(BU);
+            Tm=Tm/norm(Tm);
+            ansatz_new=Checkerboard_iPESS(BL,BU,Tm);
+        end
         x[cc]=ansatz_new;
     end
     return x
@@ -135,9 +151,18 @@ function get_grad(x0::Matrix{T}) where T<:iPEPS_ansatz
     global Lx,Ly
     x0=normalize_ansatz(x0);
     #∂E = cost_fun'(x);
-    x=Matrix{Kagome_iPESS_immutable}(undef,size(x0,1),size(x0,2));
+    
+    if isa(x0[1],Kagome_iPESS)
+        x=Matrix{Kagome_iPESS_immutable}(undef,size(x0,1),size(x0,2));
+    elseif isa(x0[1],Checkerboard_iPESS)
+        x=Matrix{Checkerboard_iPESS_immutable}(undef,size(x0,1),size(x0,2));
+    end
     for cc in eachindex(x0)
+        if isa(x0[cc],Kagome_iPESS)
             x[cc]=Kagome_iPESS_convert(x0[cc]);#convert to immutable ansatz
+        elseif isa(x0[cc],Checkerboard_iPESS)
+            x[cc]=Checkerboard_iPESS_convert(x0[cc]);#convert to immutable ansatz
+        end
     end
 
     ∂E=gradient(x ->cost_fun(x), x)[1];#this works when x is a mutable structure. The output is a NamedTuple, not a structure, due to that the cost function takes out some fields of the input structure.

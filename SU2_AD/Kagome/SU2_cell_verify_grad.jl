@@ -86,7 +86,7 @@ optim_setting.init_noise=0.1;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
-energy_setting=Energy_settings()
+energy_setting=Kagome_Energy_settings()
 energy_setting.kagome_method ="E_triangle";#"E_single_triangle", "E_triangle"
 energy_setting.E_up_method = "2x2";#"1x1", "2x2"
 energy_setting.E_dn_method = "simplified";#"open_leg", "simplfied"

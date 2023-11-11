@@ -34,11 +34,11 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
         state=Matrix{Kagome_iPESS}(undef,Lx,Ly);
         for cx=1:Lx
             for cy=1:Ly
-                b1=TensorMap(randn,Vv*Vv,Vp);
-                b2=TensorMap(randn,Vv*Vv,Vp);
-                b3=TensorMap(randn,Vv*Vv,Vp);
-                tup=TensorMap(randn,Vv',Vv*Vv);
-                tdn=TensorMap(randn,Vv',Vv*Vv);
+                b1=TensorMap(randn,Vv*Vv,Vp)*(1+0*im);
+                b2=TensorMap(randn,Vv*Vv,Vp)*(1+0*im);
+                b3=TensorMap(randn,Vv*Vv,Vp)*(1+0*im);
+                tup=TensorMap(randn,Vv',Vv*Vv)*(1+0*im);
+                tdn=TensorMap(randn,Vv',Vv*Vv)*(1+0*im);
                 b1=permute(b1,(1,2,3,));
                 b2=permute(b2,(1,2,3,));
                 b3=permute(b3,(1,2,3,));

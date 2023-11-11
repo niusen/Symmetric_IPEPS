@@ -12,8 +12,8 @@ using Dates
 cd(@__DIR__)
 
 include("src\\iPEPS_ansatz.jl")
-include("src\\kagome_CTMRG.jl")
-include("src\\kagome_CTMRG_unitcell.jl")
+include("src\\CTMRG.jl")
+include("src\\CTMRG_unitcell.jl")
 include("src\\kagome_model.jl")
 include("src\\kagome_model_cell.jl")
 include("src\\kagome_AD_SU2_cell.jl")
@@ -90,7 +90,7 @@ optim_setting.init_noise=0.1;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
-energy_setting=Energy_settings()
+energy_setting=Kagome_Energy_settings()
 energy_setting.kagome_method ="E_triangle";#"E_single_triangle", "E_triangle"
 energy_setting.E_up_method = "2x2";#"1x1", "2x2"
 energy_setting.E_dn_method = "simplified";#"open_leg", "simplfied"

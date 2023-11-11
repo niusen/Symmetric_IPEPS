@@ -34,13 +34,7 @@ Base.@kwdef mutable struct Optim_settings
     linesearch_CTM_method :: String ="restart"; # "restart" or "from_converged_CTM"
 end
 
-Base.@kwdef mutable struct Energy_settings
-    kagome_method :: String = "E_single_triangle";# "E_single_triangle", "E_triangle", "J2J3", "E_bond"
-    E_up_method :: String = "1x1";#"1x1", "2x2"
-    E_dn_method :: String = "simplified";#"open_leg", "simplfied"
-    cal_chiral_order :: Bool = false;
 
-end
 
 
 Base.@kwdef mutable struct Backward_settings

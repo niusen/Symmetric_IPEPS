@@ -128,7 +128,7 @@ state_vec[2,1]=state_vec[1,2];
 ##############
 
 
-global Lx,Ly,U_phy
+global Lx,Ly,U_phy,A_unfused_cell,A_fused_cell
 A_unfused_cell=initial_tuple_cell(Lx,Ly);
 A_fused_cell=initial_tuple_cell(Lx,Ly);
 

@@ -62,9 +62,12 @@ BABA
 "
 
 ###################################
+global Lx,Ly
+Lx=2;
+Ly=2;
+
 #state_vec=plaquatte_empty()
 state_vec=plaquatte_cross()
-
 ###################################
 T_d=state_vec[1,1].Tm;
 B_a=state_vec[1,1].B_L;

@@ -30,32 +30,32 @@ function plaquatte_empty()
 end
 
 function plaquatte_cross()
-        #the four-site plaquatte is around crossed square
-        global Lx,Ly
-        @assert Lx==2;
-        @assert Ly==2;
-    
-        println("Generate crossed plaquatte state");flush(stdout);
-        Vp=SU2Space(1=>1);
-        Vv=SU2Space(1/2=>1);
-        V0=SU2Space(0=>1);
+    #the four-site plaquatte is around crossed square
+    global Lx,Ly
+    @assert Lx==2;
+    @assert Ly==2;
 
-        B1=TensorMap(randn,Vp*V0,Vp)*(1+0*im);
-        B1=B1/norm(B1);
-        B1=permute(B1,(1,2,3,));
-        B2=permute(B1,(2,1,3,));
+    println("Generate crossed plaquatte state");flush(stdout);
+    Vp=SU2Space(1=>1);
+    Vv=SU2Space(1/2=>1);
+    V0=SU2Space(0=>1);
 
-        B=TensorMap(randn,Vv*Vv',Vp)*(1+0*im);
-        B=permute(B,(1,2,3,));
-        @tensor AKLT_loop[:]:=B[1,2,-1]*B[2,3,-2]*B[3,4,-3]*B[4,1,-4];
+    B1=TensorMap(randn,Vp*V0,Vp)*(1+0*im);
+    B1=B1/norm(B1);
+    B1=permute(B1,(1,2,3,));
+    B2=permute(B1,(2,1,3,));
 
-        spin_zero_loop=TensorMap(randn,V0',V0*V0*V0)*(1+0*im);
+    B=TensorMap(randn,Vv*Vv',Vp)*(1+0*im);
+    B=permute(B,(1,2,3,));
+    @tensor AKLT_loop[:]:=B[1,2,-1]*B[2,3,-2]*B[3,4,-3]*B[4,1,-4];
 
-    
-        state=Matrix{Checkerboard_iPESS}(undef,Lx,Ly);
-        state[1,1]=Checkerboard_iPESS(B2,B2,AKLT_loop);
-        state[1,2]=Checkerboard_iPESS(B1,B1,spin_zero_loop);
-        state[2,1]=Checkerboard_iPESS(B1,B1,spin_zero_loop);
-        state[2,2]=Checkerboard_iPESS(B2,B2,AKLT_loop);
-        return state
+    spin_zero_loop=TensorMap(randn,V0',V0*V0*V0)*(1+0*im);
+
+
+    state=Matrix{Checkerboard_iPESS}(undef,Lx,Ly);
+    state[1,1]=Checkerboard_iPESS(B2,B2,AKLT_loop);
+    state[1,2]=Checkerboard_iPESS(B1,B1,spin_zero_loop);
+    state[2,1]=Checkerboard_iPESS(B1,B1,spin_zero_loop);
+    state[2,2]=Checkerboard_iPESS(B2,B2,AKLT_loop);
+    return state
 end

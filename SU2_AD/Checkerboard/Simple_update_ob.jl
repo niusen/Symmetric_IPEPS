@@ -61,29 +61,33 @@ ABAB
 BABA
 "
 
+###################################
+#state_vec=plaquatte_empty()
+state_vec=plaquatte_cross()
 
-state_vec=plaquatte_empty()
-#state_vec=plaquatte_cross()
-
+###################################
 T_d=state_vec[1,1].Tm;
 B_a=state_vec[1,1].B_L;
 B_d=state_vec[1,1].B_U;
+B_a=permute(B_a,(2,1,3));
+B_d=permute(B_d,(2,1,3));
 
 T_u=state_vec[1,2].Tm;
 B_c=state_vec[1,2].B_L;
 B_b=state_vec[1,2].B_U;
 
+
 ######################
 
-lambda_u_a=unitary(space(B_a,1),space(B_a,1));
-lambda_u_b=unitary(space(B_b,1),space(B_b,1));
-lambda_u_c=unitary(space(B_c,1),space(B_c,1));
-lambda_u_d=unitary(space(B_d,1),space(B_d,1));
+lambda_u_a=unitary(space(B_a,2),space(B_a,2));
+lambda_u_b=unitary(space(B_b,2),space(B_b,2));
+lambda_u_c=unitary(space(B_c,2),space(B_c,2));
+lambda_u_d=unitary(space(B_d,2),space(B_d,2));
 
-lambda_d_a=unitary(space(B_a,2),space(B_a,2));
-lambda_d_b=unitary(space(B_b,2),space(B_b,2));
-lambda_d_c=unitary(space(B_c,2),space(B_c,2));
-lambda_d_d=unitary(space(B_d,2),space(B_d,2));
+lambda_d_a=unitary(space(B_a,1),space(B_a,1));
+lambda_d_b=unitary(space(B_b,1),space(B_b,1));
+lambda_d_c=unitary(space(B_c,1),space(B_c,1));
+lambda_d_d=unitary(space(B_d,1),space(B_d,1));
 
 
 
@@ -111,7 +115,9 @@ println(space(T_d))
 
 
 ##############
-state_vec[1,1]=Checkerboard_iPESS(B_a,B_d,T_d);
+B_a_=permute(B_a,(2,1,3));
+B_d_=permute(B_d,(2,1,3));
+state_vec[1,1]=Checkerboard_iPESS(B_a_,B_d_,T_d);
 state_vec[1,2]=Checkerboard_iPESS(B_c,B_b,T_u);
 state_vec[2,2]=state_vec[1,1];
 state_vec[2,1]=state_vec[1,2];

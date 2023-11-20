@@ -67,8 +67,10 @@ function cost_fun(x) #variational parameters are vector of TensorMap
     U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
     @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
-    # norm_A=norm(A_fused)
-    # A_fused= A_fused/norm_A;
+    norm_A=norm(A_fused)
+    A_fused= A_fused/norm_A;
+    A_unfused=A_unfused/norm_A;
+    
     #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 
@@ -105,7 +107,9 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
     U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
     @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
-
+    norm_A=norm(A_fused)
+    A_fused= A_fused/norm_A;
+    A_unfused=A_unfused/norm_A;
 
 
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init, init_CTM, ctm_setting);

@@ -1,7 +1,7 @@
 using Revise, PEPSKit, TensorKit, TensorKitAD, Zygote, MPSKit
 using LinearAlgebra, OptimKit
 #using PEPSKit: NORTH,SOUTH,WEST,EAST,NORTHWEST,NORTHEAST,SOUTHEAST,SOUTHWEST,@diffset
-using JLD2,ChainRulesCore
+using JLD2,ChainRulesCore,MAT
 using KrylovKit
 using JSON
 using Random
@@ -34,6 +34,7 @@ Random.seed!(1234)
 symmetric_initial=false;
 J1=1;
 J2=1;
+parameters=Dict([("J1", J1), ("J2", J2)]);
 D_max=6;
 symmetric_hosvd=false;
 trun_tol=1e-6;
@@ -61,6 +62,29 @@ ABAB
 BABA
 "
 
+algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+dump(algrithm_CTMRG_settings);
+global algrithm_CTMRG_settings
+
+LS_ctm_setting=LS_CTMRG_settings();
+LS_ctm_setting.CTM_conv_tol=1e-6;
+LS_ctm_setting.CTM_ite_nums=50;
+LS_ctm_setting.CTM_trun_tol=1e-8;
+LS_ctm_setting.svd_lanczos_tol=1e-8;
+LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+LS_ctm_setting.conv_check="singular_value";
+LS_ctm_setting.CTM_ite_info=false;
+LS_ctm_setting.CTM_conv_info=true;
+LS_ctm_setting.CTM_trun_svd=false;
+LS_ctm_setting.construct_double_layer=true;
+LS_ctm_setting.grad_checkpoint=true;
+dump(LS_ctm_setting);
+
+
+global chi,multiplet_tol,projector_trun_tol
+multiplet_tol=1e-5;
+projector_trun_tol=LS_ctm_setting.CTM_trun_tol
 ###################################
 global Lx,Ly
 Lx=2;
@@ -134,7 +158,7 @@ A_fused_cell=initial_tuple_cell(Lx,Ly);
 
 for cx=1:Lx
     for cy=1:Ly
-        global U_phy
+        global U_phy,A_unfused_cell,A_fused_cell
         A_unfused,A_fused,U_phy=build_A_checkerboard(state_vec[cx, cy]);
         A_unfused_cell=fill_tuple(A_unfused_cell, A_unfused, cx,cy);
         A_fused_cell=fill_tuple(A_fused_cell, A_fused, cx,cy);

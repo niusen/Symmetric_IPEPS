@@ -51,7 +51,7 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
             B_U=ansatz.B_U;
             T_m=ansatz.Tm;
 
-            @assert space(B_L,1)==Vspace
+            #@assert space(B_L,1)==Vspace
             BL_noise=TensorMap(randn,codomain(B_L),domain(B_L));
             BU_noise=TensorMap(randn,codomain(B_U),domain(B_U));
             Tm_noise=TensorMap(randn,codomain(T_m),domain(T_m));

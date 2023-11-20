@@ -80,6 +80,30 @@ end
 
 # end
 
+##################################################
+
+mutable struct Square_iPEPS <: iPEPS_ansatz #this is for line search. Don't use this for AD, otherwise the grad will be incorrect.
+    T::TensorMap
+end
+
+struct Square_iPEPS_immutable <: iPEPS_ansatz_immutable #this is for AD
+    T::TensorMap
+end
+
+
+
+
+function Square_iPEPS_convert(ansatz::Square_iPEPS)
+    ansatz_new=Square_iPEPS_immutable(ansatz.T);
+    return ansatz_new
+end
+
+
+Base.@kwdef mutable struct Square_Energy_settings
+    model :: String = "triangle_J1_J2_Jchi"
+
+end
+
 
 
 

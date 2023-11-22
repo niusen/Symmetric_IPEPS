@@ -40,18 +40,20 @@ CDCDCDCD
 
 Random.seed!(1234)
 symmetric_initial=false;
-J1=1.78;
-J2=0.84;
-Jchi=0.375*2*2;
+
+
+J1=2*cos(0.06*pi)*cos(0.14*pi);
+J2=2*cos(0.06*pi)*sin(0.14*pi);
+Jchi=2*sin(0.06*pi)*2;
 parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
-D_max=3;
+D_max=16;
 symmetric_hosvd=false;
 trun_tol=1e-6;
 
 
 println("D_max= "*string(D_max))
 
-chi=80;
+chi=40;
 
 "Unit-cell format:
 ABABAB
@@ -162,8 +164,8 @@ println(space(TD))
 ##############
 state_vec=Matrix{Square_iPEPS}(undef,2,2);
 state_vec[1,1]=Square_iPEPS(TA);
-state_vec[1,2]=Square_iPEPS(TB);
-state_vec[2,1]=Square_iPEPS(TC);
+state_vec[1,2]=Square_iPEPS(TC);
+state_vec[2,1]=Square_iPEPS(TB);
 state_vec[2,2]=Square_iPEPS(TD);
 
 ##############
@@ -185,7 +187,7 @@ init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=tru
 
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],LS_ctm_setting);
 
-include("..\\src\\square_model_cell.jl")
+
 E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 
 

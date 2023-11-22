@@ -40,9 +40,10 @@ CDCDCDCD
 
 Random.seed!(1234)
 symmetric_initial=false;
-J1=1.78;
-J2=0.84;
-Jchi=0.375*2*2;
+unit=2*cos(0.06*pi)*cos(0.14*pi);
+J1=2*cos(0.06*pi)*cos(0.14*pi)/unit;
+J2=2*cos(0.06*pi)*sin(0.14*pi)/unit;
+Jchi=2*sin(0.06*pi)*2/unit;
 parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 D_max=3;
 symmetric_hosvd=false;

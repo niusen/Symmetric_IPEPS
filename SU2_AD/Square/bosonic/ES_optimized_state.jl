@@ -29,6 +29,9 @@ include("..\\src\\optimkit_lib.jl")
 include("..\\src\\square_SimpleUpdate_lib.jl")
 include("..\\src\\square_RVB_ansatz.jl")
 
+include("..\\src\\mps_algorithms\\PUMPS_algorithms.jl")
+
+
 ###########################
 """
 ABABABAB
@@ -40,15 +43,16 @@ CDCDCDCD
 
 Random.seed!(1234)
 symmetric_initial=false;
-J1=1.78;
-J2=0.84;
-Jchi=0.375*2*2;
+
+J1=2*cos(0.06*pi)*cos(0.14*pi);
+J2=2*cos(0.06*pi)*sin(0.14*pi);
+Jchi=2*sin(0.06*pi)*2;
 parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 symmetric_hosvd=false;
 trun_tol=1e-6;
 
-D=3;
+D=6;
 chi=40;
 
 
@@ -72,17 +76,45 @@ LS_ctm_setting.grad_checkpoint=true;
 dump(LS_ctm_setting);
 
 
+optim_setting=Optim_settings();
+optim_setting.init_statenm="Optim_LS_D_6_chi_40.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0;
+optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
+dump(optim_setting);
+
 
 
 
 global chi,multiplet_tol,projector_trun_tol
 multiplet_tol=1e-5;
 projector_trun_tol=LS_ctm_setting.CTM_trun_tol
+
+
+##################################
+global Vv
+
+if D==3
+    Vv=SU2Space(0=>1,1/2=>1);
+elseif D==4
+    Vv=SU2Space(0=>2,1/2=>1);
+elseif D==5
+    Vv=SU2Space(0=>1,1/2=>2);
+elseif D==6
+    Vv=SU2Space(0=>1,1/2=>1,1=>1);
+elseif D==8
+    Vv=SU2Space(0=>1,1/2=>2,1=>1);
+elseif D==11
+    Vv=SU2Space(0=>1,1/2=>2,1=>2);
+elseif D==16
+    Vv=SU2Space(0=>1,1/2=>3,1=>3);    
+end
+@assert dim(Vv)==D;
 ###################################
-A=RVB_ansatz(1,1,im);
+#A=RVB_ansatz(1,1,im);
+include("read_json_tensor.jl")
 state=Square_iPEPS(A);
 
-
+@assert space(A,1)==Vv;
 ######################
 
 
@@ -120,11 +152,20 @@ println([real(Ex),real(Ey)])
 println([real(E_LD_RU),real(E_LU_RD)])
 println([real(E_LU_RU_LD), real(E_LD_RU_RD), real(E_LU_LD_RD), real(E_LU_RU_RD)])
 
-Ex*J1+Ey*J1+E_LD_RU*J2*2+E_LU_RU_LD*Jchi*4
+# Ex*J1+Ey*J1+E_LD_RU*J2*2+E_LU_RU_LD*Jchi*4
 
 
 H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians();
 H_triangle=J1/4*(H12+H31)+J2/2*H23+Jchi*H123chiral;
 E_T1, E_T2, E_T3, E_T4=evaluate_triangle(H_triangle, A::TensorMap, AA, U_L,U_D,U_R,U_U, CTM, LS_ctm_setting);
 
-E_T1*4
+println("E= "*string(real(E_T1+E_T2+E_T3+E_T4)))
+
+
+N=8;
+EH_n=50;
+group_index=true;
+vison=false;
+ES_CTMRG_ED_Kprojector(CTM,D,chi,N,EH_n,group_index,vison)
+
+

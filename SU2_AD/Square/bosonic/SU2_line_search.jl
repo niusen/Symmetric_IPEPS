@@ -11,22 +11,22 @@ using Dates
 
 cd(@__DIR__)
 
-include("..\\src\\square_spin_operator.jl")
-include("..\\src\\iPEPS_ansatz.jl")
-include("..\\src\\CTMRG.jl")
-include("..\\src\\square_model.jl")
-include("..\\src\\square_AD_SU2.jl")
-include("..\\src\\Settings.jl")
-include("..\\src\\AD_lib.jl")
-include("..\\src\\line_search_lib.jl")
-include("..\\src\\optimkit_lib.jl")
-# include("..\\src\\square_RVB_ansatz.jl")
+include("..\\..\\src\\square_spin_operator.jl")
+include("..\\..\\src\\iPEPS_ansatz.jl")
+include("..\\..\\src\\CTMRG.jl")
+include("..\\..\\src\\square_model.jl")
+include("..\\..\\src\\square_AD_SU2.jl")
+include("..\\..\\src\\Settings.jl")
+include("..\\..\\src\\AD_lib.jl")
+include("..\\..\\src\\line_search_lib.jl")
+include("..\\..\\src\\optimkit_lib.jl")
+# include("..\\..\\src\\square_RVB_ansatz.jl")
 
 
 Random.seed!(555)
 
 
-D=6;
+D=3;
 chi=40;
 
 
@@ -131,8 +131,10 @@ starting_time=now();
 # println(grad)
 # println(∂E./grad)
 
+init_complex_tensor=true;
+init_C4_symetry=true;
 
-state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise)
+state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor,init_C4_symetry)
 state_vec=normalize_tensor_group(state_vec);
 
 # E0_, grad,CTM_tem=get_grad(state_vec);

@@ -1,9 +1,24 @@
-function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
+function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false,init_C4_symetry=false)
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);
         Vp=SU2Space(1/2=>1);
-        A=TensorMap(randn,Vv*Vv*Vv'*Vv',Vp);
-        A=permute(A,(1,2,3,4,5,));
+        if init_complex_tensor
+            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp)+TensorMap(randn,Vv*Vv*Vv*Vv,Vp)*im;
+        else
+            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp);
+        end
+
+        if init_C4_symetry
+            A=permute(A,(1,2,3,4,5,))+permute(A,(2,3,4,1,5,))+permute(A,(3,4,1,2,5,))+permute(A,(4,1,2,3,5,));
+            A=A/norm(A);
+        else
+            A=permute(A,(1,2,3,4,5,));
+            A=A/norm(A);
+        end
+        U=unitary(Vv',Vv);
+        @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+        
+        
 
         state=Square_iPEPS(A);
         return state

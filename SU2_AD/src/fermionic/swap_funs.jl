@@ -1,56 +1,43 @@
-function QN_str_search(Str)
-    Leftb=Str[1];
-    Rightb=Str[end];
-    left_pos=[];
-    right_pos=[];
-    L=length(Str);
-    for cc=1:L
-        if Str[cc]==Leftb
-            # println(cc)
-            left_pos=vcat(left_pos,cc)
+#U1 symmetry
+function get_Vspace_parity(V1::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+    oddlist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
+
+    for cc in eachindex(Values)
+        if V1.dual
+            Qn=-Keys[cc].charge;
+        else
+            Qn=Keys[cc].charge;
+        end
+        Dim=Values[cc];
+        if mod(Qn,2)==0
+            oddlist1=vcat(oddlist1,Int.(zeros(Dim)));
+        elseif mod(Qn,2)==1
+            oddlist1=vcat(oddlist1,Int.(ones(Dim)));
         end
     end
-
-    for cc=1:L
-        if Str[cc]==Rightb
-            # println(cc)
-            right_pos=vcat(right_pos,cc)
-        end
-    end
-
-    xx=string(Irrep[U₁](1) ⊠ Irrep[SU₂](1/2));
-    Slash=xx[end-3];
-    slash_pos=[];
-    for cc=1:L
-        if Str[cc]==Slash
-            # println(cc)
-            slash_pos=vcat(slash_pos,cc)
-        end
-    end
-
-    return left_pos,right_pos,slash_pos
+    return oddlist1
 end
 
-function get_Vspace_Qn(V1)
-    Qnlist1=[];
-    
-    for s in sectors(V1)
-        st=replace(string(s), "Irrep[U₁]" => "a");
-        st=replace(st, "⊠ Irrep[SU₂]" => "a");
-        #println(st)
-        left_pos,right_pos,slash_pos=QN_str_search(string(st));
 
-        Qn=parse(Int64, st[left_pos[2]+1:right_pos[1]-1])
-        if length(slash_pos)>0
-            @assert length(slash_pos)==1
-            Numerator=parse(Int64, st[left_pos[3]+1:slash_pos[1]-1])
-            Denominator=parse(Int64, st[slash_pos[1]+1:right_pos[2]-1])
-            Spin=Numerator/Denominator
+#U1 x SU2 symmetry
+function get_Vspace_Qn(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+    Qnlist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
+    
+    for cc in eachindex(Values)
+        Sec1=Keys[cc].sectors[1];
+        Sec2=Keys[cc].sectors[2];
+
+        if V1.dual
+            Qn=-Sec1.charge;
         else
-            Spin=Numerator=parse(Int64, st[left_pos[3]+1:right_pos[2]-1])
+            Qn=Sec1.charge;
         end
-        #println(Spin)
-        Dim=dim(V1, s)
+        Dim=Values[cc];
+        Spin=Sec2.j;
         Dim=Int(Dim*(2*Spin+1))
         Qnlist1=vcat(Qnlist1,Int.(ones(Dim))*Qn);
         
@@ -58,26 +45,22 @@ function get_Vspace_Qn(V1)
     return Qnlist1
 end
 
-function get_Vspace_parity(V1)
+function get_Vspace_parity(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
     oddlist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
     
-    for s in sectors(V1)
-        st=replace(string(s), "Irrep[U₁]" => "a");
-        st=replace(st, "⊠ Irrep[SU₂]" => "a");
-        #println(st)
-        left_pos,right_pos,slash_pos=QN_str_search(string(st));
+    for cc in eachindex(Values)
+        Sec1=Keys[cc].sectors[1];
+        Sec2=Keys[cc].sectors[2];
 
-        Qn=parse(Int64, st[left_pos[2]+1:right_pos[1]-1])
-        if length(slash_pos)>0
-            @assert length(slash_pos)==1
-            Numerator=parse(Int64, st[left_pos[3]+1:slash_pos[1]-1])
-            Denominator=parse(Int64, st[slash_pos[1]+1:right_pos[2]-1])
-            Spin=Numerator/Denominator
+        if V1.dual
+            Qn=-Sec1.charge;
         else
-            Spin=Numerator=parse(Int64, st[left_pos[3]+1:right_pos[2]-1])
+            Qn=Sec1.charge;
         end
-        #println(Spin)
-        Dim=dim(V1, s)
+        Dim=Values[cc];
+        Spin=Sec2.j;
         Dim=Int(Dim*(2*Spin+1))
         if mod(Qn,2)==0
             oddlist1=vcat(oddlist1,Int.(zeros(Dim)));
@@ -88,11 +71,12 @@ function get_Vspace_parity(V1)
     return oddlist1
 end
 
+
+
+
 function parity_gate(A,p1)
     V1=space(A,p1);
     S=unitary( V1, V1);
-
-
     S_dense=convert(Array,S);
     oddlist1=get_Vspace_parity(V1);
     for c1=1:length(oddlist1)
@@ -124,18 +108,12 @@ function special_parity_gate(A,p1)
     return S
 end
 
+
+
 function swap_gate(A,p1,p2)
     V1=space(A,p1);
     V2=space(A,p2);
     S=unitary( V1 ⊗ V2, V1 ⊗ V2);
-    # for (a,b) in blocks(S)
-    # println(a)
-    # println(b)
-    # end
-    # for s in sectors(V1)
-    #     println(s)
-    #     println(dim(V, s))
-    # end
 
     S_dense=convert(Array,S);
     oddlist1=get_Vspace_parity(V1);

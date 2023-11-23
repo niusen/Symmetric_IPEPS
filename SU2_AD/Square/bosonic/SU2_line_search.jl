@@ -26,7 +26,7 @@ include("..\\..\\src\\optimkit_lib.jl")
 Random.seed!(555)
 
 
-D=3;
+D=5;
 chi=40;
 
 
@@ -71,7 +71,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_LS_D_3_chi_40.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);

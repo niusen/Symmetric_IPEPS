@@ -6,7 +6,7 @@ cd(@__DIR__)
 
 include("..\\..\\src\\fermionic\\GfPEPS_CTMRG.jl")
 include("..\\..\\src\\fermionic\\correl_funs_GfPEPS.jl")
-include("..\\..\\src\\fermionic\\swap_funs_GfPEPS.jl")
+include("..\\..\\src\\fermionic\\swap_funs.jl")
 
 
 M=1;

@@ -8,7 +8,7 @@ include("..\\..\\src\\fermionic\\parton_CTMRG.jl")
 include("..\\..\\src\\fermionic\\projected_energy.jl")
 include("..\\..\\src\\fermionic\\swap_funs.jl")
 include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
-
+include("..\\..\\src\\fermionic\\double_layer_funs.jl")
 
 M=1;#number of virtual mode
 sublattice_order="RL";

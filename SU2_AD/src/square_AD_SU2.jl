@@ -48,10 +48,23 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_compl
             A=permute(A,(1,2,3,4,5,));
         end
 
-
-        A_noise=TensorMap(randn,codomain(A),domain(A));
+        if init_complex_tensor
+            A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+        else
+            A_noise=TensorMap(randn,codomain(A),domain(A));
+        end
 
         A=A+A_noise*init_noise*norm(A)/norm(A_noise);
+        if init_C4_symetry
+            U=unitary(space(A,3)',space(A,3));
+            @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+
+            A=permute(A,(1,2,3,4,5,))+permute(A,(2,3,4,1,5,))+permute(A,(3,4,1,2,5,))+permute(A,(4,1,2,3,5,));
+            A=A/norm(A);
+
+            U=unitary(space(A,3)',space(A,3));
+            @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+        end
         state=Square_iPEPS(A);
 
         return state

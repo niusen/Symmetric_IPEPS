@@ -375,7 +375,7 @@ function CTM_ite(Cset, Tset, AA_fused, chi, direction, trun_tol,CTM_ite_info)
     M=RMup*RMlow;
 
 
-    uM,sM,vM = tsvd(M; trunc=truncdim(chi));
+    uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
 
 
 

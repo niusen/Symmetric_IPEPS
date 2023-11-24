@@ -174,10 +174,6 @@ function evaluate_ob(O1, O2, A_fused, AA_fused, CTM, direction, is_odd)
     if direction=="x"
         norm=ob_2sites_x(CTM,AA_fused,AA_fused,false);
         ob=ob_2sites_x(CTM,AA1p,AA2p,is_odd);
-        norm=blocks(norm)[U1Irrep(0)][1];
-        ob=blocks(ob)[U1Irrep(0)][1];
-
-
     end
     
     return ob/norm
@@ -186,28 +182,21 @@ end
 
 function ob_2sites_x(CTM,AA1,AA2,is_odd)
 
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
 
 
     if is_odd
-        @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-2]*AA1[-1,2,5,-3,3]*Tset[3][-4,5,4];
-        @tensor envR[:]:=Tset[1][-1,3,1]*AA2[-2,5,2,3,-4]*Tset[3][4,5,-3]*envR[1,2,4];
-        # println(space(envL,1))
-        # println(space(envR,4))
-        # println(space(envL,2))
-        # println(space(envR,1))
-        # println(space(envL,3))
-        # println(space(envR,2))
-        # println(space(envL,4))
-        # println(space(envR,3))
-        @tensor rho[:]:=envL[4,1,2,3]*envR[1,2,3,4];
+        @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-2]*AA1[-1,2,5,-3,3]*Tset.T3[-4,5,4];
+        @tensor envR[:]:=Tset.T1[-1,3,1]*AA2[-2,5,2,3,-4]*Tset.T3[4,5,-3]*envR[1,2,4];
+
+        rho=@tensor envL[4,1,2,3]*envR[1,2,3,4];
     else
-        @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA1[2,5,-2,3]*Tset[3][-3,5,4];
-        @tensor envR[:]:=Tset[1][-1,3,1]*AA2[-2,5,2,3]*Tset[3][4,5,-3]*envR[1,2,4];
-        @tensor rho[:]:=envL[1,2,3]*envR[1,2,3];
+        @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA1[2,5,-2,3]*Tset.T3[-3,5,4];
+        @tensor envR[:]:=Tset.T1[-1,3,1]*AA2[-2,5,2,3]*Tset.T3[4,5,-3]*envR[1,2,4];
+        rho=@tensor envL[1,2,3]*envR[1,2,3];
     end
     return rho;
 end
@@ -216,49 +205,41 @@ end
 
 
 
-
-
-
-
 function evaluate_correl_Cdag_C(direction, AA_fused, AA_op1, AA_op2, CTM, distance,is_odd)
     correl_funs=Vector(undef,distance);
 
-    C1=CTM["Cset"][1];
-    C2=CTM["Cset"][2];
-    C3=CTM["Cset"][3];
-    C4=CTM["Cset"][4];
-    T1=CTM["Tset"][1];
-    T2=CTM["Tset"][2];
-    T3=CTM["Tset"][3];
-    T4=CTM["Tset"][4];
-
-
-
-
+    C1=CTM.Cset.C1;
+    C2=CTM.Cset.C2;
+    C3=CTM.Cset.C3;
+    C4=CTM.Cset.C4;
+    T1=CTM.Tset.T1;
+    T2=CTM.Tset.T2;
+    T3=CTM.Tset.T3;
+    T4=CTM.Tset.T4;
 
     if direction=="x"
         if is_odd
             @tensor va[:]:=C1[1,3]*T4[2,5,1]*C4[7,2]*T1[3,4,-1]*AA_op1[5,6,-2,4]*T3[-3,6,7];
             @tensor vb[:]:=T1[-1,4,3]*AA_op2[-2,6,5,4]*T3[7,6,-3]*C2[3,1]*T2[1,5,2]*C3[2,7];
-            @tensor ov[:]:=va[1,2,3]*vb[1,2,3]
-            correl_funs[1]=blocks(ov)[U1Irrep(0)][1];
+            ov=@tensor va[1,2,3]*vb[1,2,3]
+            correl_funs[1]=ov;
             
             for dis=2:distance
                 @tensor va[:]:=va[1,3,5]*T1[1,2,-1]*AA_fused[3,4,-2,2]*T3[-3,4,5];
-                @tensor ov[:]:=va[1,2,3]*vb[1,2,3]
-                correl_funs[dis]=blocks(ov)[U1Irrep(0)][1];
+                ov=@tensor va[1,2,3]*vb[1,2,3]
+                correl_funs[dis]=ov;
             end
         else
             if direction=="x"
                 @tensor va[:]:=C1[1,3]*T4[2,5,1]*C4[7,2]*T1[3,4,-1]*AA_op1[5,6,-2,4]*T3[-3,6,7];
                 @tensor vb[:]:=T1[-1,4,3]*AA_op2[-2,6,5,4]*T3[7,6,-3]*C2[3,1]*T2[1,5,2]*C3[2,7];
-                @tensor ov[:]:=va[1,2,3]*vb[1,2,3]
-                correl_funs[1]=blocks(ov)[U1Irrep(0)][1];
+                ov=@tensor va[1,2,3]*vb[1,2,3]
+                correl_funs[1]=ov;
                 
                 for dis=2:distance
                     @tensor va[:]:=va[1,3,5]*T1[1,2,-1]*AA_fused[3,4,-2,2]*T3[-3,4,5];
-                    @tensor ov[:]:=va[1,2,3]*vb[1,2,3]
-                    correl_funs[dis]=blocks(ov)[U1Irrep(0)][1];
+                    ov=@tensor va[1,2,3]*vb[1,2,3]
+                    correl_funs[dis]=ov;
                 end
                 return correl_funs
             end
@@ -282,10 +263,10 @@ function correl_TransOp(vl,Tup,Tdown,AAfused)
     return vl
 end
 function solve_correl_length(n_values,AA_fused,CTM,direction)
-    T1=CTM["Tset"][1];
-    T2=CTM["Tset"][2];
-    T3=CTM["Tset"][3];
-    T4=CTM["Tset"][4];
+    T1=CTM.Tset.T1;
+    T2=CTM.Tset.T2;
+    T3=CTM.Tset.T3;
+    T4=CTM.Tset.T4;
     println(fuse(space(T1,1)'⊗space(AA_fused,1)', space(T3,3)))
     if direction=="x"
         correl_TransOp_fx(x)=correl_TransOp(x,T1,T3,AA_fused)
@@ -435,7 +416,7 @@ function cal_correl(M,A_fused, AA_fused,U_phy1,U_phy2, chi,CTM, distance)
     eus_x,  QN_x=solve_correl_length(5,AA_fused/norm_coe,CTM,"x");
 
 
-    _,corner_spec=svd(convert(Array,CTM["Cset"][1]))
+    _,corner_spec=svd(convert(Array,CTM.Cset.C1))
 
 
 
@@ -453,7 +434,7 @@ function cal_correl(M,A_fused, AA_fused,U_phy1,U_phy2, chi,CTM, distance)
         "CBdag_CB_ob" => CBdag_CB_ob,
         "eus_x" => eus_x,
         "QN_x"=> QN_x,
-        "CTM_space"=> string(space(CTM["Cset"][1]))
+        "CTM_space"=> string(space(CTM.Cset.C1))
     ); compress = false)
     return CAdag_CA_ob,CAdag_CB_ob,CBdag_CA_ob,CBdag_CB_ob
 end
@@ -492,7 +473,7 @@ function cal_correl_FP_edge(M, AA_fused,AA_SS,AA_SAL,AA_SBL,AA_SAR,AA_SBR, chi,C
     eus_x, Qspin_x, QN_x=solve_correl_length(5,AA_fused/norm_coe,CTM,"x");
 
 
-    _,corner_spec=svd(convert(Array,CTM["Cset"][1]))
+    _,corner_spec=svd(convert(Array,CTM.Cset.C1))
 
     mat_filenm="correl_FP_edge_M"*string(M)*"_chi"*string(chi)*".mat";
     matwrite(mat_filenm, Dict(
@@ -511,12 +492,11 @@ function cal_correl_FP_edge(M, AA_fused,AA_SS,AA_SAL,AA_SBL,AA_SAR,AA_SBR, chi,C
 end
 
 function ob_1site_closed(CTM,AA_fused)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
-    @tensor Norm[:]:=envL[1,2,3]*envR[1,2,3];
-    Norm=blocks(Norm)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
+    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
+    Norm=@tensor envL[1,2,3]*envR[1,2,3];
     return Norm;
 end

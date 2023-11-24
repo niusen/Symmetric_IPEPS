@@ -1,11 +1,15 @@
 using LinearAlgebra
 using TensorKit
 using JSON
+using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
 using Zygote:@ignore_derivatives
 cd(@__DIR__)
 
-include("..\\..\\src\\fermionic\\parton_CTMRG.jl")
+include("..\\..\\src\\Settings.jl")
+include("..\\..\\src\\AD_lib.jl")
+include("..\\..\\src\\CTMRG.jl")
+include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\projected_energy.jl")
 include("..\\..\\src\\fermionic\\swap_funs.jl")
 include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
@@ -14,13 +18,28 @@ include("..\\..\\src\\fermionic\\double_layer_funs.jl")
 M=1;#number of virtual mode
 sublattice_order="RL";
 chi=100
-tol=1e-6
+
 Guztwiller=true;#add projector
 
 
 
-CTM_ite_nums=10;
-CTM_trun_tol=1e-8;
+grad_ctm_setting=grad_CTMRG_settings();
+grad_ctm_setting.CTM_conv_tol=1e-6;
+grad_ctm_setting.CTM_ite_nums=100;
+grad_ctm_setting.CTM_trun_tol=1e-8;
+grad_ctm_setting.svd_lanczos_tol=1e-8;
+grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+grad_ctm_setting.conv_check="singular_value";
+grad_ctm_setting.CTM_ite_info=true;
+grad_ctm_setting.CTM_conv_info=true;
+grad_ctm_setting.CTM_trun_svd=false;
+grad_ctm_setting.construct_double_layer=true;
+grad_ctm_setting.grad_checkpoint=true;
+dump(grad_ctm_setting);
+
+global chi,multiplet_tol,projector_trun_tol
+multiplet_tol=1e-5;
+projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
 
 data=load("swap_gate_Tensor_M"*string(M)*".jld2")
@@ -108,19 +127,16 @@ A=permute(A,(1,5,4,2,3,));
 A_fused=A;
 
 
-conv_check="singular_value";
-CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
-@time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(AA_fused,chi,conv_check,tol,CTM,CTM_ite_nums,CTM_trun_tol);
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=fermi_CTMRG(A,chi,init,[],grad_ctm_setting);
 
-display(space(CTM["Cset"][1]))
-display(space(CTM["Cset"][2]))
-display(space(CTM["Cset"][3]))
-display(space(CTM["Cset"][4]))
+
+
 
 
 println("construct physical operators");flush(stdout);
 #spin-spin operator act on a single site
-um,sm,vm=tsvd(permute(SS_op,(1,3,),(2,4,)));
+um,sm,vm=@ignore_derivatives tsvd(permute(SS_op,(1,3,),(2,4,)));
 vm=sm*vm;vm=permute(vm,(2,3,),(1,));
 
 @tensor SS_cell[:]:=SS_op[1,2,4,5]*U_phy1[-1,3,1,2]*U_phy1'[3,4,5,-2];#spin-spin operator inside a unitcell
@@ -154,10 +170,10 @@ end
 
 ####################################
 #chiral operator act on a single site: Si Sj Sk
-um,sm,vm=tsvd(Schiral_op,(1,4,),(2,3,5,6,));
+um,sm,vm=@ignore_derivatives tsvd(Schiral_op,(1,4,),(2,3,5,6,));
 vm=sm*vm;
 Si=permute(um,(1,2,3,));#P,P',D1
-um,sm,vm=tsvd(vm,(1,2,4,),(3,5,));
+um,sm,vm=@ignore_derivatives tsvd(vm,(1,2,4,),(3,5,));
 vm=sm*vm;
 Sj=permute(um,(2,3,1,4,));#P,P', D1,D2
 Sk=permute(vm,(2,3,1,))#P,P',D2

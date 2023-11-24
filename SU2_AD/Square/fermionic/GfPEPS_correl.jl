@@ -1,12 +1,15 @@
 using LinearAlgebra
 using TensorKit
 using JSON
+using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
 using Zygote:@ignore_derivatives
 cd(@__DIR__)
 
-
-include("..\\..\\src\\fermionic\\GfPEPS_CTMRG.jl")
+include("..\\..\\src\\Settings.jl")
+include("..\\..\\src\\AD_lib.jl")
+include("..\\..\\src\\CTMRG.jl")
+include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\correl_funs_GfPEPS.jl")
 include("..\\..\\src\\fermionic\\swap_funs.jl")
 include("..\\..\\src\\fermionic\\double_layer_funs.jl")
@@ -20,8 +23,23 @@ distance=40;
 
 
 
-CTM_ite_nums=500;
-CTM_trun_tol=1e-10;
+grad_ctm_setting=grad_CTMRG_settings();
+grad_ctm_setting.CTM_conv_tol=1e-6;
+grad_ctm_setting.CTM_ite_nums=150;
+grad_ctm_setting.CTM_trun_tol=1e-8;
+grad_ctm_setting.svd_lanczos_tol=1e-8;
+grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+grad_ctm_setting.conv_check="singular_value";
+grad_ctm_setting.CTM_ite_info=true;
+grad_ctm_setting.CTM_conv_info=true;
+grad_ctm_setting.CTM_trun_svd=false;
+grad_ctm_setting.construct_double_layer=true;
+grad_ctm_setting.grad_checkpoint=true;
+dump(grad_ctm_setting);
+
+global chi,multiplet_tol,projector_trun_tol
+multiplet_tol=1e-5;
+projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
 
 data=load("GfPEPS_Tensor_M1.jld2")
@@ -83,10 +101,9 @@ A=permute(A,(1,5,4,2,3,));
 A_fused=A;
 
 
-conv_check="singular_value";
-CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true);
-@time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(AA_fused,chi,conv_check,tol,CTM,CTM_ite_nums,CTM_trun_tol);
 
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=fermi_CTMRG(A,chi,init,[],grad_ctm_setting);
 
 
 # display(space(CTM["Cset"][1]))

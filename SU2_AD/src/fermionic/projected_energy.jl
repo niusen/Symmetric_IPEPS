@@ -3,14 +3,14 @@
 
 
 function ob_RU_LD(CTM,AA_fused,AA_RU,AA_LD)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
 
@@ -27,14 +27,14 @@ end
 function evaluate_correl_spinspin(direction, AA_fused, AA_op1, AA_op2, CTM, method, distance)
     correl_funs=Vector(undef,distance);
 
-    C1=CTM["Cset"][1];
-    C2=CTM["Cset"][2];
-    C3=CTM["Cset"][3];
-    C4=CTM["Cset"][4];
-    T1=CTM["Tset"][1];
-    T2=CTM["Tset"][2];
-    T3=CTM["Tset"][3];
-    T4=CTM["Tset"][4];
+    C1=CTM.Cset.C1;
+    C2=CTM.Cset.C2;
+    C3=CTM.Cset.C3;
+    C4=CTM.Cset.C4;
+    T1=CTM.Tset.T1;
+    T2=CTM.Tset.T2;
+    T3=CTM.Tset.T3;
+    T4=CTM.Tset.T4;
     if method=="dimerdimer"#operator on a single site conserves su2 symmetry
         if direction=="x"
             @tensor va[:]:=C1[1,3]*T4[2,5,1]*C4[7,2]*T1[3,4,-1]*AA_op1[5,6,-2,4]*T3[-3,6,7];
@@ -121,80 +121,75 @@ function cal_correl(M, AA_fused,AA_SS,AA_SAL,AA_SBL,AA_SAR,AA_SBR, chi,CTM, dist
         "eus_x" => eus_x,
         "Qspin_x"=> Qspin_x,
         "QN_x"=> QN_x,
-        "CTM_space"=> string(space(CTM["Cset"][1]))
+        "CTM_space"=> string(space(CTM.Cset.C1))
     ); compress = false)
 end
 
 function ob_1site_closed(CTM,AA_fused)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
-    @tensor ob[:]:=envL[1,2,3]*envR[1,2,3];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
+    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
+    ob=@tensor envL[1,2,3]*envR[1,2,3];
     return ob;
 end
 
 function norm_2sites_x(CTM,AA_fused)
 
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
-    @tensor envR[:]:=Tset[1][-1,3,1]*AA_fused[-2,5,2,3]*Tset[3][4,5,-3]*envR[1,2,4];
-    @tensor ob[:]:=envL[1,2,3]*envR[1,2,3];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
+    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
+    @tensor envR[:]:=Tset.T1[-1,3,1]*AA_fused[-2,5,2,3]*Tset.T3[4,5,-3]*envR[1,2,4];
+    ob=@tensor envL[1,2,3]*envR[1,2,3];
     return ob
 end
 
 function ob_2sites_x(CTM,AA1,AA2)
 
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA1[2,5,-2,3,-4]*Tset[3][-3,5,4];
-    @tensor envR[:]:=Tset[1][-1,3,1]*AA2[-2,5,2,3,-4]*Tset[3][4,5,-3]*envR[1,2,4];
-    @tensor ob[:]:=envL[1,2,3,4]*envR[1,2,3,4];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
+    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA1[2,5,-2,3,-4]*Tset.T3[-3,5,4];
+    @tensor envR[:]:=Tset.T1[-1,3,1]*AA2[-2,5,2,3,-4]*Tset.T3[4,5,-3]*envR[1,2,4];
+    ob=@tensor envL[1,2,3,4]*envR[1,2,3,4];
     return ob
 end
 
 function norm_2sites_y(CTM,AA_fused)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
-    @tensor envU[:]:=Cset[2][1,-1]*Tset[1][2,-2,1]*Cset[1][-3,2];
-    @tensor envD[:]:=Cset[3][-1,1]*Tset[3][1,-2,2]*Cset[4][2,-3];
-    @tensor envU[:]:=envU[1,2,4]*Tset[2][1,3,-1]*AA_fused[5,-2,3,2]*Tset[4][-3,5,4];
-    @tensor envD[:]:=Tset[2][-1,3,1]*AA_fused[5,2,3,-2]*Tset[4][4,5,-3]*envD[1,2,4];
-    @tensor ob[:]:=envU[1,2,3]*envD[1,2,3];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+    @tensor envU[:]:=Cset.C2[1,-1]*Tset.T1[2,-2,1]*Cset.C1[-3,2];
+    @tensor envD[:]:=Cset.C3[-1,1]*Tset.T3[1,-2,2]*Cset.C4[2,-3];
+    @tensor envU[:]:=envU[1,2,4]*Tset.T2[1,3,-1]*AA_fused[5,-2,3,2]*Tset.T4[-3,5,4];
+    @tensor envD[:]:=Tset.T2[-1,3,1]*AA_fused[5,2,3,-2]*Tset.T4[4,5,-3]*envD[1,2,4];
+    ob=@tensor envU[1,2,3]*envD[1,2,3];
     return ob
 end
 
 function ob_2sites_y(CTM,AA1,AA2)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
-    @tensor envU[:]:=Cset[2][1,-1]*Tset[1][2,-2,1]*Cset[1][-3,2];
-    @tensor envD[:]:=Cset[3][-1,1]*Tset[3][1,-2,2]*Cset[4][2,-3];
-    @tensor envU[:]:=envU[1,2,4]*Tset[2][1,3,-1]*AA1[5,-2,3,2,-4]*Tset[4][-3,5,4];
-    @tensor envD[:]:=Tset[2][-1,3,1]*AA2[5,2,3,-2,-4]*Tset[4][4,5,-3]*envD[1,2,4];
-    @tensor ob[:]:=envU[1,2,3,4]*envD[1,2,3,4];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+    @tensor envU[:]:=Cset.C2[1,-1]*Tset.T1[2,-2,1]*Cset.C1[-3,2];
+    @tensor envD[:]:=Cset.C3[-1,1]*Tset.T3[1,-2,2]*Cset.C4[2,-3];
+    @tensor envU[:]:=envU[1,2,4]*Tset.T2[1,3,-1]*AA1[5,-2,3,2,-4]*Tset.T4[-3,5,4];
+    @tensor envD[:]:=Tset.T2[-1,3,1]*AA2[5,2,3,-2,-4]*Tset.T4[4,5,-3]*envD[1,2,4];
+    ob=@tensor envU[1,2,3,4]*envD[1,2,3,4];
     return ob
 end
 
 function norm_2x2(CTM,AA_fused)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_fused[3,4,-4,-2]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_fused[3,4,-4,-2]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
     MM_LU=permute(MM_LU,(1,2,),(3,4,));
@@ -204,47 +199,44 @@ function norm_2x2(CTM,AA_fused)
 
     up=MM_LU*MM_RU;
     down=MM_LD*MM_RD;
-    @tensor ob[:]:=up[1,2,3,4]*down[1,2,3,4];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4]*down[1,2,3,4];
     return ob
 end
 
 function ob_LD_LU_RU(CTM,AA_fused,AA_LD,AA_LU,AA_RU,U_chiral)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
 
     @tensor up[:]:=U_chiral'[-5,4,1]*MM_LU[-1,-2,2,3,1]*MM_RU[2,3,-3,-4,4];
     @tensor down[:]:=MM_LD[-1,-2,1,2,-5]*MM_RD[1,2,-3,-4];
-    @tensor ob[:]:=up[1,2,3,4,5]*down[1,2,3,4,5];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
     return ob
 end
 
 
 function ob_LU_RU_RD(CTM,AA_fused,AA_LU,AA_RU,AA_RD,U_chiral)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_fused[3,4,-4,-2]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_fused[3,4,-4,-2]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5]; 
 
 
     @tensor up[:]:=MM_LU[-1,-2,2,3,4]*MM_RU[2,3,-3,-4,1]*U_chiral'[4,-5,1];
     @tensor down[:]:=MM_LD[-1,-2,1,2]*MM_RD[1,2,-3,-4,-5];
-    @tensor ob[:]:=up[1,2,3,4,5]*down[1,2,3,4,5];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
     return ob
 end
 
@@ -252,79 +244,75 @@ end
 
 
 function ob_RU_RD_LD(CTM,AA_fused,AA_RU,AA_RD,AA_LD,U_chiral)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5]; 
 
 
     @tensor up[:]:=MM_LU[-1,-2,1,2]*MM_RU[1,2,-3,-4,-5];
     @tensor down[:]:=MM_LD[-1,-2,2,3,4]*MM_RD[2,3,-3,-4,1]*U_chiral'[-5,4,1];
-    @tensor ob[:]:=up[1,2,3,4,5]*down[1,2,3,4,5];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
     return ob
 end
 
 function ob_RD_LD_LU(CTM,AA_fused,AA_RD,AA_LD,AA_LU,U_chiral)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5];
 
 
     @tensor up[:]:=MM_LU[-1,-2,1,2,-5]*MM_RU[1,2,-3,-4];
     @tensor down[:]:=U_chiral'[4,-5,1]*MM_LD[-1,-2,2,3,1]*MM_RD[2,3,-3,-4,4];
-    @tensor ob[:]:=up[1,2,3,4,5]*down[1,2,3,4,5];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
     return ob
 end
 
 
 function ob_LU_RD(CTM,AA_fused,AA_LU,AA_RD)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_LU[4,-2,-4,3,-5]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_fused[3,4,-4,-2]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_fused[3,4,-4,-2]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5];
 
 
     @tensor up[:]:=MM_LU[-1,-2,1,2,-5]*MM_RU[1,2,-3,-4];
     @tensor down[:]:=MM_LD[-1,-2,1,2]*MM_RD[1,2,-3,-4,-5];
-    @tensor ob[:]:=up[1,2,3,4,5]*down[1,2,3,4,5];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
     return ob
 end
 
 
 function ob_RU_LD(CTM,AA_fused,AA_RU,AA_LD)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
 
     @tensor up[:]:=MM_LU[-1,-2,1,2]*MM_RU[1,2,-3,-4,-5];
     @tensor down[:]:=MM_LD[-1,-2,1,2,-5]*MM_RD[1,2,-3,-4];
-    @tensor ob[:]:=up[1,2,3,4,5]*down[1,2,3,4,5];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
     return ob
 end

@@ -16,8 +16,8 @@ function ob_RU_LD(CTM,AA_fused,AA_RU,AA_LD)
 
     @tensor up[:]:=MM_LU[-1,-2,1,2]*MM_RU[1,2,-3,-4,-5];
     @tensor down[:]:=MM_LD[-1,-2,1,2,-5]*MM_RD[1,2,-3,-4];
-    @tensor ob[:]:=up[1,2,3,4,5]*down[1,2,3,4,5];
-    ob=blocks(ob)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+    ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
+
     return ob
 end
 
@@ -39,13 +39,13 @@ function evaluate_correl_spinspin(direction, AA_fused, AA_op1, AA_op2, CTM, meth
         if direction=="x"
             @tensor va[:]:=C1[1,3]*T4[2,5,1]*C4[7,2]*T1[3,4,-1]*AA_op1[5,6,-2,4]*T3[-3,6,7];
             @tensor vb[:]:=T1[-1,4,3]*AA_op2[-2,6,5,4]*T3[7,6,-3]*C2[3,1]*T2[1,5,2]*C3[2,7];
-            @tensor ov[:]:=va[1,2,3]*vb[1,2,3]
-            correl_funs[1]=blocks(ov)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+            ov=@tensor va[1,2,3]*vb[1,2,3]
+            correl_funs[1]=ov;
             
             for dis=2:distance
                 @tensor va[:]:=va[1,3,5]*T1[1,2,-1]*AA_fused[3,4,-2,2]*T3[-3,4,5];
-                @tensor ov[:]:=va[1,2,3]*vb[1,2,3]
-                correl_funs[dis]=blocks(ov)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+                ov=@tensor va[1,2,3]*vb[1,2,3]
+                correl_funs[dis]=ov;
             end
             return correl_funs
         end
@@ -53,13 +53,13 @@ function evaluate_correl_spinspin(direction, AA_fused, AA_op1, AA_op2, CTM, meth
         if direction=="x"
             @tensor va[:]:=C1[1,3]*T4[2,5,1]*C4[7,2]*T1[3,4,-1]*AA_op1[5,6,-2,4,-4]*T3[-3,6,7];
             @tensor vb[:]:=T1[-1,4,3]*AA_op2[-2,6,5,4,-4]*T3[7,6,-3]*C2[3,1]*T2[1,5,2]*C3[2,7];
-            @tensor ov[:]:=va[1,2,3,4]*vb[1,2,3,4]
-            correl_funs[1]=blocks(ov)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+            ov=@tensor va[1,2,3,4]*vb[1,2,3,4]
+            correl_funs[1]=ov;
             
             for dis=2:distance
                 @tensor va[:]:=va[1,3,5,-4]*T1[1,2,-1]*AA_fused[3,4,-2,2]*T3[-3,4,5];
-                @tensor ov[:]:=va[1,2,3,4]*vb[1,2,3,4]
-                correl_funs[dis]=blocks(ov)[(Irrep[U₁](0) ⊠ Irrep[SU₂](0))][1];
+                ov=@tensor va[1,2,3,4]*vb[1,2,3,4]
+                correl_funs[dis]=ov;
             end
             return correl_funs
         end

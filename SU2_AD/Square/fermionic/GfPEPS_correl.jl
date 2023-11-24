@@ -2,7 +2,9 @@ using LinearAlgebra
 using TensorKit
 using JSON
 using HDF5, JLD2, MAT
+using Zygote:@ignore_derivatives
 cd(@__DIR__)
+
 
 include("..\\..\\src\\fermionic\\GfPEPS_CTMRG.jl")
 include("..\\..\\src\\fermionic\\correl_funs_GfPEPS.jl")

@@ -98,8 +98,13 @@ function f(x::Square_iPEPS)
         init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
         CTM0=[];
     end
-    E, E_T1, E_T2, E_T3, E_T4, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-    println("E= "*string(E)*", "*"E_triangle= "*string(real.([E_T1, E_T2, E_T3, E_T4]))*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    if isa(energy_setting,Square_Energy_settings)
+        E, E_T1, E_T2, E_T3, E_T4, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+        println("E= "*string(E)*", "*"E_triangle= "*string(real.([E_T1, E_T2, E_T3, E_T4]))*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    elseif isa(energy_setting,Square_2site_Energy_settings)
+        E, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+        println("E= "*string(E)*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    end
     global E_history
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
@@ -285,7 +290,7 @@ function dot_tensor_group(Tp1::iPEPS_ansatz, Tp2::iPEPS_ansatz)
     return y
 end
 
-function FD(state_vec)
+function FD(state_vec::Matrix)
 
     dt=0.000001
 
@@ -318,4 +323,41 @@ function FD(state_vec)
     return E0, grad
 end
 
+function FD(state_vec::iPEPS_ansatz) 
 
+    dt=0.000001
+
+    E0=cost_fun(state_vec);
+
+    grad=similar(state_vec)*0;
+
+    Fields=fieldnames(typeof(state_vec));
+
+    for ct in Fields
+        Tensor=getfield(state_vec, ct);
+        for n_block in eachindex(Tensor.data.values)
+            for elem in eachindex(Tensor.data.values[n_block])
+                state_vec_tem=deepcopy(state_vec);
+                Tensor_tem=getfield(state_vec_tem, ct);
+                T=Tensor_tem.data.values[n_block];
+                T[elem]=T[elem]+dt;
+                Tensor_tem.data.values[n_block]=T;
+                setfield!(state_vec_tem,ct,Tensor_tem)
+                real_part=(cost_fun(state_vec_tem)-E0)/dt;
+
+                state_vec_tem=deepcopy(state_vec);
+                Tensor_tem=getfield(state_vec_tem, ct);
+                T=Tensor_tem.data.values[n_block];
+                T[elem]=T[elem]+dt*im;
+                Tensor_tem.data.values[n_block]=T;
+                setfield!(state_vec_tem,ct,Tensor_tem)
+                imag_part=(cost_fun(state_vec_tem)-E0)/dt;
+
+                grad_Tenosr=getfield(grad, ct);
+                grad_Tenosr.data.values[n_block][elem]=real_part+im*imag_part;
+                setfield!(grad,ct,grad_Tenosr);
+            end
+        end
+    end
+    return E0, grad
+end

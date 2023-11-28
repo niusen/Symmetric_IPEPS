@@ -10,7 +10,7 @@ include("..\\..\\src\\Settings.jl")
 include("..\\..\\src\\AD_lib.jl")
 include("..\\..\\src\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\..\\src\\fermionic\\square_model_2site.jl")
+include("..\\..\\src\\fermionic\\square_2site_model.jl")
 include("..\\..\\src\\fermionic\\swap_funs.jl")
 include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\..\\src\\fermionic\\double_layer_funs.jl")
@@ -118,8 +118,8 @@ A=permute(A,(1,5,4,2,3,));
 
 
 
-
-
+filenm="parton_M1.jld2";
+jldsave(filenm;A);
 
 
 

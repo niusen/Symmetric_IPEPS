@@ -95,7 +95,7 @@ function build_double_layer_swap(Ap,A)
 end
 
 
-function init_CTM_swap(chi,AA_fused, U_L,U_D,U_R,U_U,type,CTM_ite_info)
+function init_CTM_swap(chi,A,AA_fused, U_L,U_D,U_R,U_U,type,CTM_ite_info)
     @ignore_derivatives  if CTM_ite_info
         display("initialize CTM")
     end
@@ -164,7 +164,7 @@ function fermi_CTMRG(A,chi,init, CTM0,ctm_setting)
     end
 
     if init.reconstruct_CTM
-        CTM=init_CTM_swap(chi,AA_fused, U_L,U_D,U_R,U_U,init.init_type,CTM_ite_info)
+        CTM=init_CTM_swap(chi,A,AA_fused, U_L,U_D,U_R,U_U,init.init_type,CTM_ite_info)
     else
         CTM=deepcopy(CTM0);
     end

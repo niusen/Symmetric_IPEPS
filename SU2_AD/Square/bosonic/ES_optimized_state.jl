@@ -12,24 +12,25 @@ using Dates
 
 cd(@__DIR__)
 
-include("..\\src\\square_spin_operator.jl")
-include("..\\src\\iPEPS_ansatz.jl")
-include("..\\src\\CTMRG.jl")
-#include("..\\src\\CTMRG_unitcell.jl")
-include("..\\src\\square_model.jl")
-#include("..\\src\\square_model_cell.jl")
-#include("..\\src\\square_AD_SU2_cell.jl")
-include("..\\src\\Settings.jl")
-#include("..\\src\\Settings_cell.jl")
-include("..\\src\\AD_lib.jl")
-include("..\\src\\line_search_lib.jl")
-#include("..\\src\\line_search_lib_cell.jl")
-include("..\\src\\optimkit_lib.jl")
+include("..\\..\\src\\square_spin_operator.jl")
+include("..\\..\\src\\iPEPS_ansatz.jl")
+include("..\\..\\src\\CTMRG.jl")
+#include("..\\..\\src\\CTMRG_unitcell.jl")
+include("..\\..\\src\\square_model.jl")
+#include("..\\..\\src\\square_model_cell.jl")
+#include("..\\..\\src\\square_AD_SU2_cell.jl")
+include("..\\..\\src\\Settings.jl")
+include("..\\..\\src\\square_AD_SU2.jl")
+#include("..\\..\\src\\Settings_cell.jl")
+include("..\\..\\src\\AD_lib.jl")
+include("..\\..\\src\\line_search_lib.jl")
+#include("..\\..\\src\\line_search_lib_cell.jl")
+include("..\\..\\src\\optimkit_lib.jl")
 
-include("..\\src\\square_SimpleUpdate_lib.jl")
-include("..\\src\\square_RVB_ansatz.jl")
+include("..\\..\\src\\square_SimpleUpdate_lib.jl")
+include("..\\..\\src\\square_RVB_ansatz.jl")
 
-include("..\\src\\mps_algorithms\\PUMPS_algorithms.jl")
+include("..\\..\\src\\mps_algorithms\\PUMPS_algorithms.jl")
 
 
 ###########################
@@ -52,7 +53,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 symmetric_hosvd=false;
 trun_tol=1e-6;
 
-D=6;
+D=3;
 chi=40;
 
 
@@ -77,7 +78,7 @@ dump(LS_ctm_setting);
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_6_chi_40.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_LS_D_4_chi_80.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -110,17 +111,16 @@ elseif D==16
 end
 @assert dim(Vv)==D;
 ###################################
-#A=RVB_ansatz(1,1,im);
-include("read_json_tensor.jl")
-state=Square_iPEPS(A);
-
-@assert space(A,1)==Vv;
-######################
 
 
+init_complex_tensor=true;
+init_C4_symetry=false;
+
+state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor,init_C4_symetry)
+state_vec=normalize_tensor_group(state_vec);
 
 
-
+A=state_vec.T;
 
 
 ##############
@@ -167,5 +167,6 @@ EH_n=50;
 group_index=true;
 vison=false;
 ES_CTMRG_ED_Kprojector(CTM,D,chi,N,EH_n,group_index,vison)
+
 
 

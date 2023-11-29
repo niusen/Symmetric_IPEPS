@@ -1,3 +1,59 @@
+function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+    if init_statenm=="nothing" 
+        println("Random initial state");flush(stdout);
+        Vp=SU2Space(0=>1,1=>1);
+        if init_complex_tensor
+            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp)+TensorMap(randn,Vv*Vv*Vv*Vv,Vp)*im;
+        else
+            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp);
+        end
+
+        A=permute(A,(1,2,3,4,5,));
+        A=A/norm(A);
+        
+        U=unitary(Vv',Vv);
+        @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+        
+        
+
+        state=Square_iPEPS(A);
+        return state
+    else
+        Vp=SU2Space(0=>1,1=>1);
+        println("load state: "*init_statenm);flush(stdout);
+        data=load(init_statenm);
+
+        A0=data["A"];
+        if (Vspace==space(A0,1))|(Vspace==space(A0,1)')
+            A=A0;
+        else
+            println("Extend bond dimension of initial state")
+            if space(A0,1)==GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)'
+                if Vspace==SU2Space(0=>2,1/2=>1)
+                    M=convert(Array,A0);
+                    A=TensorMap(M,Vspace'*Vspace*Vspace*Vspace',Vp')
+
+                end
+            elseif space(A0,1)==SU2Space(0=>2,1/2=>1)
+            elseif space(A0,1)==SU2Space(0=>1,1/2=>2)
+            end
+            A=permute(A,(1,2,3,4,5,));
+        end
+
+        if init_complex_tensor
+            A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+        else
+            A_noise=TensorMap(randn,codomain(A),domain(A));
+        end
+
+        A=A+A_noise*init_noise*norm(A)/norm(A_noise);
+
+        state=Square_iPEPS(A);
+
+        return state
+    end
+end
+
 function initial_U1_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);

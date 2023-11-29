@@ -15,7 +15,7 @@ include("..\\..\\..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
 include("..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\..\\..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\..\\..\\src\\bosonic\\square\\square_2site_model.jl")
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_AD_U1_SU2_2site.jl")
+include("..\\..\\..\\..\\src\\bosonic\\square\\square_AD_2site.jl")
 include("..\\..\\..\\..\\src\\bosonic\\Settings.jl")
 include("..\\..\\..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\..\\..\\src\\bosonic\\line_search_lib.jl")
@@ -70,7 +70,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_130.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_LS_D_4_chi_130_SU2.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -96,7 +96,8 @@ global backward_settings
 global Vv
 
 if D==4
-    Vv=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)';  
+    Vv=SU2Space(0=>2,1/2=>1);
+    #Vv=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)';  
 end
 @assert dim(Vv)==D;
 
@@ -119,8 +120,9 @@ starting_time=now();
 
 init_complex_tensor=true;
 
-state_vec=initial_U1_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
+
 
 # E0_, grad,CTM_tem=get_grad(state_vec);
 # include("src\\kagome_AD_SU2.jl")

@@ -1,4 +1,145 @@
-function spin_op()
+function spin_op_SU2()
+    Pm=zeros(4,4)*im;Pm[1,1]=1;Pm[2,4]=1;Pm[3,2]=1;Pm[4,3]=1;
+    #V=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0,0)=>1,(1,1/2)=>1,(2,0)=>1);#element order after converting to dense: <0,0>, <up,down>, <up,0>, <0,down>, 
+    V=SU2Space(0=>2,1/2=>1);
+
+    #spin-spin correlation operator 
+    SS=zeros(2,2,2,2,2,2,2,2)*im;#Aup,Adown, Bup,Bdown
+    SS[2,1,1,2,1,2,2,1]=1/2;#spsm
+    SS[1,2,2,1,2,1,1,2]=1/2;#smmsp
+    SS[2,1,2,1,2,1,2,1]=1/4;#szsz
+    SS[2,1,1,2,2,1,1,2]=-1/4;#szsz
+    SS[1,2,2,1,1,2,2,1]=-1/4;#szsz
+    SS[1,2,1,2,1,2,1,2]=1/4;#szsz
+    SS=reshape(SS,4,4,4,4);
+    @tensor SS[:]:=SS[1,2,3,4]*Pm[-1,1]*Pm[-2,2]*Pm[-3,3]*Pm[-4,4];
+    SS_op_F=TensorMap(SS, V' ⊗ V' ← V' ⊗ V');
+
+    #Si dot Sj cross Sk
+    SS=zeros(2,2,2,2,2,2,2,2,2,2,2,2)*im;#Aup,Adown, Bup,Bdown, Cup,Cdown
+    SS[2,1,1,2,2,1, 2,1,2,1,1,2]=im/4;
+    SS[1,2,2,1,2,1, 2,1,2,1,1,2]=-im/4;
+
+    SS[1,2,2,1,2,1, 2,1,1,2,2,1]=im/4;
+    SS[2,1,2,1,1,2, 2,1,1,2,2,1]=-im/4;
+
+    SS[2,1,2,1,1,2, 1,2,2,1,2,1]=im/4;
+    SS[2,1,1,2,2,1, 1,2,2,1,2,1]=-im/4;
+
+    SS[1,2,2,1,1,2, 1,2,1,2,2,1]=im/4;
+    SS[2,1,1,2,1,2, 1,2,1,2,2,1]=-im/4;
+
+    SS[2,1,1,2,1,2, 1,2,2,1,1,2]=im/4;
+    SS[1,2,1,2,2,1, 1,2,2,1,1,2]=-im/4;
+
+    SS[1,2,1,2,2,1, 2,1,1,2,1,2]=im/4;
+    SS[1,2,2,1,1,2, 2,1,1,2,1,2]=-im/4;
+
+    SS=reshape(SS,4,4,4,4,4,4);
+    @tensor SS[:]:=SS[1,2,3,4,5,6]*Pm[-1,1]*Pm[-2,2]*Pm[-3,3]*Pm[-4,4]*Pm[-5,5]*Pm[-6,6];
+    Schiral_op_F=TensorMap(SS, V' ⊗ V' ⊗ V' ← V' ⊗ V' ⊗ V');
+
+
+    #gutzwiller projector
+    P=zeros(2,2,2)*im;
+    P[1,2,1]=1;
+    P[2,1,2]=1;
+    P=reshape(P,2,4);
+    @tensor P[:]:=P[-1,1]*Pm[-2,1];
+    #Vspin=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((1,1/2)=>1);
+    Vspin=SU2Space(1/2=>1)
+    P_G=TensorMap(P, Vspin'  ←  V');
+
+    @tensor SS_op_S[:]:=P_G[-1,1]*P_G[-2,2]*SS_op_F[1,2,3,4]*P_G'[3,-3]*P_G'[4,-4];
+    SS_op_S=permute(SS_op_S,(1,2,),(3,4,))
+
+    @tensor Schiral_op_S[:]:=P_G[-1,1]*P_G[-2,2]*P_G[-3,3]*Schiral_op_F[1,2,3,4,5,6]*P_G'[4,-4]*P_G'[5,-5]*P_G'[6,-6];
+    Schiral_op_S=permute(Schiral_op_S,(1,2,3,),(4,5,6,));
+    return SS_op_S,Schiral_op_S
+end
+
+function Hamiltonian_terms_2site_SU2()
+    SS_op,Schiral_op=spin_op_SU2();
+
+    #v1=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((6,0)=>1)*GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((1,1/2)=>1)'*GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((1,1/2)=>1)';
+    v1=SU2Space(0=>1)*SU2Space(1/2=>1)'*SU2Space(1/2=>1)';
+    U_phy1=unitary(fuse(v1),v1);
+    #v2=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((4,0)=>1,(4,1)=>1)*GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((-2,0)=>1)*GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((-2,0)=>1);
+    v2=SU2Space(0=>1,1=>1)*SU2Space(0=>1)*SU2Space(0=>1);
+    U_phy2=unitary(fuse(v2),v2);
+
+
+
+    
+    #println("construct physical operators");flush(stdout);
+    #spin-spin operator act on a single site
+    um,sm,vm=@ignore_derivatives tsvd(permute(SS_op,(1,3,),(2,4,)));
+    vm=sm*vm;vm=permute(vm,(2,3,),(1,));
+
+    @tensor SS_cell[:]:=SS_op[1,2,4,5]*U_phy1[-1,3,1,2]*U_phy1'[3,4,5,-2];#spin-spin operator inside a unitcell
+
+    @tensor S_R_a[:]:=um[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];
+    @tensor S_L_a[:]:=um[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];
+    @tensor S_R_b[:]:=vm[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];
+    @tensor S_L_b[:]:=vm[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];
+    
+       
+    @tensor SS_cell[:]:=SS_cell[3,4]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor S_L_a[:]:=S_L_a[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor S_R_a[:]:=S_R_a[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor S_L_b[:]:=S_L_b[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor S_R_b[:]:=S_R_b[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+
+
+
+
+    ####################################
+    #chiral operator act on a single site: Si Sj Sk
+    um,sm,vm=@ignore_derivatives tsvd(Schiral_op,(1,4,),(2,3,5,6,));
+    vm=sm*vm;
+    Si=permute(um,(1,2,3,));#P,P',D1
+    um,sm,vm=@ignore_derivatives tsvd(vm,(1,2,4,),(3,5,));
+    vm=sm*vm;
+    Sj=permute(um,(2,3,1,4,));#P,P', D1,D2
+    Sk=permute(vm,(2,3,1,))#P,P',D2
+    @tensor SiSj[:]:=Si[-1,-3,1]*Sj[-2,-4,1,-5]; 
+    @tensor SjSk[:]:=Sj[-1,-3,-5,1]*Sk[-2,-4,1]; 
+    #@tensor aa[:]:=Si[-1,-4,1]*Sj[-2,-5,1,2]*Sk[-3,-6,2];
+    U_Schiral=unitary(fuse(space(Sj,3)⊗space(Sj,4)), space(Sj,3)⊗space(Sj,4));
+    @tensor Sj[:]:=Sj[-1,-2,1,2]*U_Schiral[-3,1,2];#combine two extra indices of Sj
+
+
+
+    @tensor Si_right[:]:=Si[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];
+    @tensor Si_left[:]:=Si[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];
+    @tensor Sj_right[:]:=Sj[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];
+    @tensor Sj_left[:]:=Sj[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];
+    @tensor Sk_right[:]:=Sk[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];
+    @tensor Sk_left[:]:=Sk[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];
+
+    @tensor SjSi_op[:]:=SiSj[2,3,4,5,-3]*U_phy1[-1,1,2,3]*U_phy1'[1,4,5,-2];
+    @tensor SiSj_op[:]:=SiSj[2,3,4,5,-3]*U_phy1[-1,1,3,2]*U_phy1'[1,5,4,-2];
+    @tensor SkSj_op[:]:=SjSk[2,3,4,5,-3]*U_phy1[-1,1,2,3]*U_phy1'[1,4,5,-2];
+    @tensor SjSk_op[:]:=SjSk[2,3,4,5,-3]*U_phy1[-1,1,3,2]*U_phy1'[1,5,4,-2];
+
+
+
+    @tensor Si_left[:]:=Si_left[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor Si_right[:]:=Si_right[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor Sj_left[:]:=Sj_left[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor Sj_right[:]:=Sj_right[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor Sk_left[:]:=Sk_left[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor Sk_right[:]:=Sk_right[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor SiSj_op[:]:=SiSj_op[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor SjSi_op[:]:=SjSi_op[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor SjSk_op[:]:=SjSk_op[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+    @tensor SkSj_op[:]:=SkSj_op[3,4,-3]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
+
+    return SS_cell, S_L_a, S_R_a, S_L_b, S_R_b, Si_left, Si_right, Sj_left, Sj_right, Sk_left, Sk_right, SiSj_op, SjSi_op, SjSk_op, SkSj_op,U_Schiral
+end
+
+
+function spin_op_U1_SU2()
     Pm=zeros(4,4)*im;Pm[1,1]=1;Pm[2,4]=1;Pm[3,2]=1;Pm[4,3]=1;
     V=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0,0)=>1,(1,1/2)=>1,(2,0)=>1);#element order after converting to dense: <0,0>, <up,down>, <up,0>, <0,down>, 
 
@@ -56,8 +197,8 @@ function spin_op()
     return SS_op_S,Schiral_op_S
 end
 
-function Hamiltonian_terms_2site()
-    SS_op,Schiral_op=spin_op();
+function Hamiltonian_terms_2site_U1_SU2()
+    SS_op,Schiral_op=spin_op_U1_SU2();
 
     v1=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((6,0)=>1)*GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((1,1/2)=>1)'*GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((1,1/2)=>1)';
     U_phy1=unitary(fuse(v1),v1);
@@ -204,7 +345,6 @@ function build_double_layer_op(A1,O1,has_extra_leg)
         @tensor A1_new[:]:= A1[-1,-2,-3,-4,1]*O1[-5,1,-6]#the last index is extra
         A1_double,_,_,_,_=build_double_layer_extra_leg(A1',A1_new)
     else
-        @tensor A1_new[:]:= A1[-1,-2,-3,-4,1]*O1[-5,1]
         A1_double,_,_,_,_=build_double_layer(A1,permute(O1,(2,),(1,)));
     end
 
@@ -212,7 +352,12 @@ function build_double_layer_op(A1,O1,has_extra_leg)
 end
 
 function energy_2site(parameter,A_fused,AA_fused,CTM)
-    SS_cell, S_L_a, S_R_a, S_L_b, S_R_b, Si_left, Si_right, Sj_left, Sj_right, Sk_left, Sk_right, SiSj_op, SjSi_op, SjSk_op, SkSj_op,U_Schiral=@ignore_derivatives Hamiltonian_terms_2site();
+
+    if isa(space(A_fused,1),  GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        SS_cell, S_L_a, S_R_a, S_L_b, S_R_b, Si_left, Si_right, Sj_left, Sj_right, Sk_left, Sk_right, SiSj_op, SjSi_op, SjSk_op, SkSj_op,U_Schiral=@ignore_derivatives Hamiltonian_terms_2site_SU2();
+    elseif isa(space(A_fused,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        SS_cell, S_L_a, S_R_a, S_L_b, S_R_b, Si_left, Si_right, Sj_left, Sj_right, Sk_left, Sk_right, SiSj_op, SjSi_op, SjSk_op, SkSj_op,U_Schiral=@ignore_derivatives Hamiltonian_terms_2site_U1_SU2();
+    end
 
     #println("construct double layer tensor with operator");flush(stdout);
     AA_SS=build_double_layer_op(A_fused,SS_cell,false);

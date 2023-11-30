@@ -30,11 +30,11 @@ Random.seed!(555)
 
 
 D=4;
-chi=40;
+chi=20;
 
 
-Nv=4;
-EH_n=50;
+Nv=8;
+EH_n=30;
 group_index=true;
 vison=true;
 
@@ -139,9 +139,8 @@ CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A,chi,init,[],grad_ctm_setting);
 
 
 
-#ES_CTMRG_ED_Kprojector(CTM,D,chi,Nv,EH_n,group_index,vison);
-
 include("..\\..\\..\\..\\src\\mps_algorithms\\ES_algorithms.jl")
-ES_CTMRG_ED(CTM,D,chi,Nv,EH_n,group_index,vison)
+ES_CTMRG_ED_Kprojector(CTM,D,chi,Nv,EH_n,group_index,vison);
+# ES_CTMRG_ED(CTM,D,chi,Nv,EH_n,group_index,vison)
 
 

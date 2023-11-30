@@ -3,18 +3,13 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_compl
         println("Random initial state");flush(stdout);
         Vp=SU2Space(0=>1,1=>1);
         if init_complex_tensor
-            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp)+TensorMap(randn,Vv*Vv*Vv*Vv,Vp)*im;
+            A=TensorMap(randn,Vv'*Vv*Vv*Vv',Vp')+TensorMap(randn,Vv'*Vv*Vv*Vv',Vp')*im;
         else
-            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp);
+            A=TensorMap(randn,Vv'*Vv*Vv*Vv',Vp');
         end
 
         A=permute(A,(1,2,3,4,5,));
         A=A/norm(A);
-        
-        U=unitary(Vv',Vv);
-        @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
-        
-        
 
         state=Square_iPEPS(A);
         return state

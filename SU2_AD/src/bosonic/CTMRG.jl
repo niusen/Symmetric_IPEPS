@@ -623,7 +623,7 @@ function group_svd_components(U_set,S_set,V_set,spins,VL,VR)
 
     Um=TensorMap(randn,VL,Vtotal)*(0*im);
     Vm=TensorMap(randn,Vtotal,VR)*(0*im);
-    Sm=TensorMap(randn,Vtotal,Vtotal)*(0*im);
+    Sm=TensorMap(randn,Vtotal,Vtotal)*(0);
 
 
     for cs=1:length(allspin)

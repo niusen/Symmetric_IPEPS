@@ -84,10 +84,10 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
                 
             end
         end
-        println(E_LU_RU_LD_set)
-        println(E_LD_RU_RD_set)
-        println(E_LU_LD_RD_set)
-        println(E_LU_RU_RD_set)
+        # println(E_LU_RU_LD_set)
+        # println(E_LD_RU_RD_set)
+        # println(E_LU_LD_RD_set)
+        # println(E_LU_RU_RD_set)
         return E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set
     end
 end

@@ -72,6 +72,9 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
     elseif isa(x[1],Checkerboard_iPESS)
         E,E_plaquatte_cell,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, init, CTM0); 
         println("E= "*string(E)*", "*"E_plaquatte_cell= "*string(E_plaquatte_cell[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    elseif isa(x[1],Square_iPEPS)
+        E,E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+        println("E= "*string(E)*", "*"E_LU_RU_LD= "*string(E_LU_RU_LD_set[:])*", "*"E_LD_RU_RD "*string(E_LD_RU_RD_set[:])*", "*"E_LU_LD_RD= "*string(E_LU_LD_RD_set[:])*", "*"E_LU_RU_RD= "*string(E_LU_RU_RD_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
     end
     global E_history
     if E<minimum(E_history)
@@ -141,6 +144,11 @@ function normalize_ansatz(x::Matrix{T}) where T<:iPEPS_ansatz
             BU=BU/norm(BU);
             Tm=Tm/norm(Tm);
             ansatz_new=Checkerboard_iPESS(BL,BU,Tm);
+        elseif isa(x[cc],Square_iPEPS)
+            A=ansatz.T;
+
+            AL=A/norm(A);
+            ansatz_new=Square_iPEPS(A);
         end
         x[cc]=ansatz_new;
     end
@@ -156,12 +164,16 @@ function get_grad(x0::Matrix{T}) where T<:iPEPS_ansatz
         x=Matrix{Kagome_iPESS_immutable}(undef,size(x0,1),size(x0,2));
     elseif isa(x0[1],Checkerboard_iPESS)
         x=Matrix{Checkerboard_iPESS_immutable}(undef,size(x0,1),size(x0,2));
+    elseif isa(x0[1],Square_iPEPS)
+        x=Matrix{Square_iPEPS_immutable}(undef,size(x0,1),size(x0,2));    
     end
     for cc in eachindex(x0)
         if isa(x0[cc],Kagome_iPESS)
             x[cc]=Kagome_iPESS_convert(x0[cc]);#convert to immutable ansatz
         elseif isa(x0[cc],Checkerboard_iPESS)
             x[cc]=Checkerboard_iPESS_convert(x0[cc]);#convert to immutable ansatz
+        elseif isa(x0[cc],Square_iPEPS)
+            x[cc]=Square_iPEPS_convert(x0[cc]);#convert to immutable ansatz
         end
     end
 

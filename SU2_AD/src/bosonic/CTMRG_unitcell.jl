@@ -7,11 +7,11 @@ function convert_cell_posit(cx,cy,dx,dy,direction)
     if direction==1
         posit=CartesianIndex(mod1(cx+dx,Lx),mod1(cy+dy,Ly));
     elseif direction==2
-        posit=CartesianIndex(mod1(cx-dy,Lx),mod1(cy+dx,Ly));
+        posit=CartesianIndex(mod1(cy-dy,Lx),mod1(cx+dx,Ly));
     elseif direction==3
         posit=CartesianIndex(mod1(cx-dx,Lx),mod1(cy-dy,Ly));
     elseif direction==4
-        posit=CartesianIndex(mod1(cx+dy,Lx),mod1(cy-dx,Ly));
+        posit=CartesianIndex(mod1(cy+dy,Lx),mod1(cx-dx,Ly));
     end
     return posit
 end
@@ -19,6 +19,34 @@ end
 function rotate_AA_cell(AA_fused_cell,construct_double_layer)
     if (Lx==1)&(Ly==1)
         AA_rotated_cell=rotate_AA(AA_fused_cell[1][1],construct_double_layer); 
+    elseif (Lx==2)&(Ly==1)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
+        
+        direction=1;
+        AA_set1=((AA_11.T1,), (AA_21.T1,));
+        direction=2;
+        AA_set2=((AA_11.T2,), (AA_21.T2,));
+        direction=3;
+        AA_set3=((AA_11.T3,), (AA_21.T3,));
+        direction=4;
+        AA_set4=((AA_11.T4,), (AA_21.T4,));
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    elseif (Lx==1)&(Ly==2)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+        
+        direction=1;
+        AA_set1=((AA_11.T1, AA_12.T1),);
+        direction=2;
+        AA_set2=((AA_11.T2, AA_12.T2),);
+        direction=3;
+        AA_set3=((AA_11.T3, AA_12.T3),);
+        direction=4;
+        AA_set4=((AA_11.T4, AA_12.T4),);
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
     elseif (Lx==2)&(Ly==2)
         AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
         AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
@@ -294,7 +322,15 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
 
     coordinate of C1 tensor: (cx,cy)
     """
-    for cx=1:Lx
+    if direction in [1,3]
+        cx_max=Lx;
+        cy_max=Ly;
+    elseif direction in [2,4]
+        cx_max=Ly;
+        cy_max=Lx;
+    end
+
+    for cx=1:cx_max
 
         PM_cell=initial_tuple_cell(Lx,Ly);
         PM_inv_cell=initial_tuple_cell(Lx,Ly);
@@ -302,12 +338,8 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
         M5tem_cell=initial_tuple_cell(Lx,Ly);
         M7tem_cell=initial_tuple_cell(Lx,Ly);
 
-        for cy=1:Ly
-            if direction in [1,3]
-                coord=[cx,cy];
-            elseif direction in [2,4]
-                coord=[cy,cx];
-            end
+        for cy=1:cy_max
+            coord=[cx,cy];
 
             Pos=convert_cell_posit(coord[1],coord[2],1,1,direction);
             AA=AA_cell[Pos[1]][Pos[2]];
@@ -391,16 +423,10 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
             #PM_inv_cell[Pos[1]][Pos[2]]=PM_inv;
             PM_inv_cell=fill_tuple(PM_inv_cell,PM_inv, Pos[1],Pos[2])
 
-
         end
 
-        for cy=1:Ly
-
-            if direction in [1,3]
-                coord=[cx,cy];
-            elseif direction in [2,4]
-                coord=[cy,cx];
-            end
+        for cy=1:cy_max
+            coord=[cx,cy];
 
             Pos=convert_cell_posit(coord[1],coord[2],1,2,direction);
             AA=AA_cell[Pos[1]][Pos[2]];
@@ -418,7 +444,7 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
 
             Posa=convert_cell_posit(coord[1],coord[2],0,2,direction);
             Posb=convert_cell_posit(coord[1],coord[2],0,2,direction);
-            @tensor M5tem[:]:=T4[4,3,1]*AA[3,5,-2,2]* PM_inv_cell[Posa[1]][Posa[2]][4,5,-1]* PM_cell[Posb[1]][Posb[2]][1,2,-3];
+            @tensor M5tem[:]:=T4[4,3,1]*AA[3,5,-2,2]*PM_inv_cell[Posa[1]][Posa[2]][4,5,-1]*PM_cell[Posb[1]][Posb[2]][1,2,-3];
             Pos=convert_cell_posit(coord[1],coord[2],0,0,direction);
             @tensor M1tem[:]:=C1[1,2]*T1[2,3,-2]*PM_inv_cell[Pos[1]][Pos[2]][1,3,-1];
             Pos=convert_cell_posit(coord[1],coord[2],0,3,direction);
@@ -441,15 +467,8 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
         end
 
 
-
-
-        for cy=1:Ly
-
-            if direction in [1,3]
-                coord=[cx,cy];
-            elseif direction in [2,4]
-                coord=[cy,cx];
-            end
+        for cy=1:cy_max
+            coord=[cx,cy];
 
             Pos=convert_cell_posit(coord[1],coord[2],1,0,direction);
             #Cset_cell[Pos[1]][Pos[2]][mod1(direction,4)]=M1tem_cell[Pos[1]][Pos[2]];
@@ -490,13 +509,18 @@ function CTM_ite_cell_together_update(Cset_cell, Tset_cell, AA_cell, chi, direct
     M1tem_cell=initial_tuple_cell(Lx,Ly);
     M5tem_cell=initial_tuple_cell(Lx,Ly);
     M7tem_cell=initial_tuple_cell(Lx,Ly);
-    for cx=1:Lx
-        for cy=1:Ly
-            if direction in [1,3]
-                coord=[cx,cy];
-            elseif direction in [2,4]
-                coord=[cy,cx];
-            end
+
+    if direction in [1,3]
+        cx_max=Lx;
+        cy_max=Ly;
+    elseif direction in [2,4]
+        cx_max=Ly;
+        cy_max=Lx;
+    end
+
+    for cx=1:cx_max
+        for cy=1:cy_max
+            coord=[cx,cy];
 
             Pos=convert_cell_posit(coord[1],coord[2],1,1,direction);
             AA=AA_cell[Pos[1]][Pos[2]];
@@ -583,14 +607,9 @@ function CTM_ite_cell_together_update(Cset_cell, Tset_cell, AA_cell, chi, direct
 
         end
     end
-    for cx=1:Lx
-        for cy=1:Ly
-
-            if direction in [1,3]
-                coord=[cx,cy];
-            elseif direction in [2,4]
-                coord=[cy,cx];
-            end
+    for cx=1:cx_max
+        for cy=1:cy_max
+            coord=[cx,cy];
 
             Pos=convert_cell_posit(coord[1],coord[2],1,2,direction);
             AA=AA_cell[Pos[1]][Pos[2]];
@@ -632,14 +651,9 @@ function CTM_ite_cell_together_update(Cset_cell, Tset_cell, AA_cell, chi, direct
     end
 
 
-    for cx=1:Lx
-        for cy=1:Ly
-
-            if direction in [1,3]
-                coord=[cx,cy];
-            elseif direction in [2,4]
-                coord=[cy,cx];
-            end
+    for cx=1:cx_max
+        for cy=1:cy_max
+            coord=[cx,cy];
 
             Pos=convert_cell_posit(coord[1],coord[2],1,0,direction);
             #Cset_cell[Pos[1]][Pos[2]][mod1(direction,4)]=M1tem_cell[Pos[1]][Pos[2]];

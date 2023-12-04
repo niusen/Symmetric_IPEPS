@@ -102,8 +102,8 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         end
     end
 
-    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],ctm_setting);
+
+    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init, init_CTM,ctm_setting);
     E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
     E=real(E_total)/(Lx*Ly);
 

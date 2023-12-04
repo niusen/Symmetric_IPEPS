@@ -47,17 +47,13 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
     end
 end
 
-function cost_fun(x) #variational parameters are vector of TensorMap
-    # B1=x[1];
-    # B2=x[2];
-    # B3=x[3];
-    # Tup=x[4];
-    # Tdn=x[5];
-    B1=x.B1;
-    B2=x.B2;
-    B3=x.B3;
-    Tup=x.Tup;
-    Tdn=x.Tdn;
+function cost_fun(x0) #variational parameters are vector of TensorMap
+
+    B1=x0.B1;
+    B2=x0.B2;
+    B3=x0.B3;
+    Tup=x0.Tup;
+    Tdn=x0.Tdn;
 
     global chi, parameters, energy_setting, grad_ctm_setting
 
@@ -70,12 +66,13 @@ function cost_fun(x) #variational parameters are vector of TensorMap
     norm_A=norm(A_fused)
     A_fused= A_fused/norm_A;
     A_unfused=A_unfused/norm_A;
+    x_new=Kagome_iPESS(B1/norm_A,B2,B3,Tup,Tdn);
     
     #CTM, AA_fused, U_L,U_D,U_R,U_U=init_CTM(chi,A_fused,"PBC",true,true);
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,[],grad_ctm_setting)
-    E_up, E_down=evaluate_ob(parameters, U_phy, x, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, grad_ctm_setting, energy_setting.kagome_method, energy_setting.E_up_method, energy_setting.E_dn_method);
+    E_up, E_down=evaluate_ob(parameters, U_phy, x_new, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, grad_ctm_setting, energy_setting.kagome_method, energy_setting.E_up_method, energy_setting.E_dn_method);
     E=real(E_up+E_down)/3;
     #println(E)
     println("E0= "*string(E));flush(stdout);
@@ -89,17 +86,13 @@ end
 
 
 
-function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
-    # B1=x[1];
-    # B2=x[2];
-    # B3=x[3];
-    # Tup=x[4];
-    # Tdn=x[5];
-    B1=x.B1;
-    B2=x.B2;
-    B3=x.B3;
-    Tup=x.Tup;
-    Tdn=x.Tdn;
+function energy_CTM(x0, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
+
+    B1=x0.B1;
+    B2=x0.B2;
+    B3=x0.B3;
+    Tup=x0.Tup;
+    Tdn=x0.Tdn;
 
     @tensor PEPS_tensor[:] := B1[-1,1,-5]*B2[4,3,-6]*B3[-4,2,-7]*Tup[1,3,2]*Tdn[-3,4,-2];
     A_unfused=PEPS_tensor;
@@ -110,6 +103,7 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
     norm_A=norm(A_fused)
     A_fused= A_fused/norm_A;
     A_unfused=A_unfused/norm_A;
+    x_new=Kagome_iPESS(B1/norm_A,B2,B3,Tup,Tdn);
 
 
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init, init_CTM, ctm_setting);
@@ -118,11 +112,11 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
 
     if (parameters["J2"]==0) & (parameters["J3"]==0)
         #kagome_method="E_single_triangle"
-        E_up, E_down=evaluate_ob(parameters, U_phy, x, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method, energy_setting.E_up_method, energy_setting.E_dn_method);
+        E_up, E_down=evaluate_ob(parameters, U_phy, x_new, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method, energy_setting.E_up_method, energy_setting.E_dn_method);
         energy=(E_up+E_down)/3;
     elseif parameters["Jtrip"]==0
         #kagome_method="E_bond"
-        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, x, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
+        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, x_new, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
         E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
         E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
         E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
@@ -132,9 +126,9 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         println(real([E_NNNN_11,E_NNNN_22,E_NNNN_33]))
     else
         #kagome_method="E_triangle";
-        E_up, E_down=evaluate_ob(parameters, U_phy, x, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
+        E_up, E_down=evaluate_ob(parameters, U_phy, x_new, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
         #kagome_method="E_bond";
-        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, x, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
+        E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33=evaluate_ob(parameters, U_phy, x_new, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method);
         E_NN=parameters["J1"]*(E_up_12+E_up_31+E_up_23+E_down_12+E_down_31+E_down_23);
         E_NNN=parameters["J2"]*(E_NNN_23a+E_NNN_12a+E_NNN_31a+E_NNN_23b+E_NNN_12b+E_NNN_31b);
         E_NNNN=parameters["J3"]*(E_NNNN_11+E_NNNN_22+E_NNNN_33);
@@ -145,7 +139,7 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
     #return energy,CTM,U_L,U_D,U_R,U_U
     if energy_setting.cal_chiral_order
         chiral_order_parameters=Dict([("J1", 0), ("J2", 0), ("J3", 0), ("Jchi", 0), ("Jtrip", 1)]);
-        chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, x, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM,  ctm_setting, "E_triangle");
+        chiral_order_up, chiral_order_down=evaluate_ob(chiral_order_parameters, U_phy, x_new, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM,  ctm_setting, "E_triangle");
         return real(energy),chiral_order_up, chiral_order_down,ite_num,ite_err,CTM
     else
         chiral_order_up=[];

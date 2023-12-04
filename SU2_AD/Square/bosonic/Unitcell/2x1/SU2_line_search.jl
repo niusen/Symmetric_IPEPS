@@ -83,6 +83,10 @@ energy_setting=Square_Energy_settings();
 energy_setting.model = "triangle_J1_J2_Jchi";
 dump(energy_setting);
 
+algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+dump(algrithm_CTMRG_settings);
+global algrithm_CTMRG_settings
 
 
 ##################################

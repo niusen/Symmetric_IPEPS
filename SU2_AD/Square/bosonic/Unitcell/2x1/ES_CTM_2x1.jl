@@ -11,18 +11,16 @@ using Dates
 
 cd(@__DIR__)
 
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
+
 include("..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\..\\..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_2site_model.jl")
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_AD_2site.jl")
+include("..\\..\\..\\..\\src\\bosonic\\CTMRG_unitcell.jl")
+include("..\\..\\..\\..\\src\\bosonic\\square\\square_AD_SU2_cell.jl")
 include("..\\..\\..\\..\\src\\bosonic\\Settings.jl")
+include("..\\..\\..\\..\\src\\bosonic\\Settings_cell.jl")
 include("..\\..\\..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\..\\..\\src\\bosonic\\line_search_lib.jl")
 include("..\\..\\..\\..\\src\\bosonic\\optimkit_lib.jl")
-# include("..\\..\\..\\..\\src\\mps_algorithms\\ES_CTM_algorithms_SU2.jl")
-# include("..\\..\\..\\..\\src\\mps_algorithms\\parity_funs.jl")
-# include("..\\..\\..\\..\\src\\mps_algorithms\\position_permute.jl")
 
 include("..\\..\\..\\..\\src\\mps_algorithms\\ES_algorithms.jl")
 
@@ -30,13 +28,13 @@ Random.seed!(555)
 
 
 D=4;
-chi=40;
+chi=20;
 
 
 Nv=4;
 EH_n=30;
 group_index=true;
-vison=false;
+vison=true;
 
 
 #permute_neighbour_ind=bosonic_permute_neighbour_ind;
@@ -44,15 +42,11 @@ vison=false;
 
 
 
-J1=2*cos(0.06*pi)*cos(0.14*pi);
-J2=2*cos(0.06*pi)*sin(0.14*pi);
-Jchi=2*sin(0.06*pi)*2;
-parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=50;
+grad_ctm_setting.CTM_ite_nums=10;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -73,14 +67,10 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_100.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_cell_LS_D_4_chi_100.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
-
-energy_setting=Square_2site_Energy_settings();
-energy_setting.model = "triangle_J1_J2_Jchi";
-dump(energy_setting);
 
 
 
@@ -104,40 +94,48 @@ if D==4
 end
 @assert dim(Vv)==D;
 
-global starting_time
-starting_time=now();
 
 
-#E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));
-#run_FiniteDiff(parameters, Vv, chi, LS_ctm_setting, optim_setting, energy_setting)
+global Lx,Ly
+Lx=2;
+Ly=1;
 
-#fun(state_vec)
-# global E_tem, CTM_tem
-# E,∂E,CTM_tem=get_grad(state_vec);
-# println(E,∂E)
-
-
-# E0, grad=FD(state_vec)
-# println(grad)
-# println(∂E./grad)
 
 init_complex_tensor=true;
 
 state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
-A=state_vec.T;
 
 
 
+A_cell=initial_tuple_cell(Lx,Ly);
+for cx=1:Lx
+    for cy=1:Ly
+        A=state_vec[cx,cy].T;
+        norm_A=norm(A)
+        A=A/norm_A;
 
-
+        A_cell=fill_tuple(A_cell, A, cx,cy);
+    end
+end
 
 #############################
 
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A,chi,init,[],grad_ctm_setting);
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
 
 
+
+
+T2=CTM_cell.Tset[2][1].T2;
+T4=CTM_cell.Tset[1][1].T4;
+
+Tset=(T2=T2,T4=T4);
+CTM=(Tset=Tset,);
+
+global U_L,U_R
+U_L=U_L_cell[1][1];
+U_R=U_R_cell[1][1];
 
 
 #ES_CTMRG_ED_Kprojector(CTM,D,chi,Nv,EH_n,group_index,vison);

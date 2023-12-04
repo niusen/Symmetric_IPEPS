@@ -106,6 +106,7 @@ end
 
 Base.@kwdef mutable struct Square_2site_Energy_settings
     model :: String = "triangle_J1_J2_Jchi"
+    print_all_terms :: Bool=false
 
 end
 

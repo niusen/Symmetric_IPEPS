@@ -105,12 +105,12 @@ function f(x::Square_iPEPS)
         E, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
         println("E= "*string(E)*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
     end
-    global E_history
+    global E_history,save_filenm
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
-        filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+        #save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 
-        jldsave(filenm; A=x.T);
+        jldsave(save_filenm; A=x.T);
         global starting_time
         Now=now();
         Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
@@ -175,6 +175,15 @@ function NamedTuple_to_Struc(∂E,x)
 end
 function get_grad(x)
     #∂E = cost_fun'(x);
+    # if isa(x0,Kagome_iPESS)
+    #     x=Kagome_iPESS_convert(x0);#convert to immutable ansatz
+    # elseif isa(x0,Checkerboard_iPESS)
+    #     x=Checkerboard_iPESS_convert(x0);#convert to immutable ansatz
+    # elseif isa(x0[1],Square_iPEPS)
+    #     x=Square_iPEPS_convert(x0);#convert to immutable ansatz 
+    # end
+
+
     ∂E=gradient(x ->cost_fun(x), x)[1];#this works when x is a mutable structure. The output is a NamedTuple, not a structure, due to that the cost function takes out some fields of the input structure.
     ∂E=NamedTuple_to_Struc(∂E,x);
     #E=fun(state_vec)

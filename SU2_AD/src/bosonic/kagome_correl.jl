@@ -83,14 +83,14 @@ end
 function evaluate_correl_spinspin(direction, AA_fused, AA_op1, AA_op2, CTM, method, distance)
     correl_funs=Vector(undef,distance);
 
-    C1=CTM["Cset"][1];
-    C2=CTM["Cset"][2];
-    C3=CTM["Cset"][3];
-    C4=CTM["Cset"][4];
-    T1=CTM["Tset"][1];
-    T2=CTM["Tset"][2];
-    T3=CTM["Tset"][3];
-    T4=CTM["Tset"][4];
+    C1=CTM.Cset.T1;
+    C2=CTM.Cset.T2;
+    C3=CTM.Cset.T3;
+    C4=CTM.Cset.T4;
+    T1=CTM.Tset.T1;
+    T2=CTM.Tset.T2;
+    T3=CTM.Tset.T3;
+    T4=CTM.Tset.T4;
     if method=="dimerdimer"#operator on a single site conserves su2 symmetry
         if direction=="x"
             @tensor va[:]:=C1[1,3]*T4[2,5,1]*C4[7,2]*T1[3,4,-1]*AA_op1[5,6,-2,4]*T3[-3,6,7];
@@ -144,10 +144,10 @@ end
 function solve_correl_length(n_values,AA_fused,CTM,direction,ctm_setting)
     construct_double_layer=ctm_setting.construct_double_layer;
 
-    T1=CTM["Tset"][1];
-    T2=CTM["Tset"][2];
-    T3=CTM["Tset"][3];
-    T4=CTM["Tset"][4];
+    T1=CTM.Tset.T1;
+    T2=CTM.Tset.T2;
+    T3=CTM.Tset.T3;
+    T4=CTM.Tset.T4;
     if direction=="x"
         correl_TransOp_fx(x)=correl_TransOp(x,T1,T3,AA_fused,construct_double_layer);
         eu_allspin=[];
@@ -258,10 +258,10 @@ function cal_correl(filenm,D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_t
 
 
 
-    println("spcae of C1: "*string(space(CTM["Cset"][1])))
-    println("spcae of C2: "*string(space(CTM["Cset"][2])))
-    println("spcae of C3: "*string(space(CTM["Cset"][3])))
-    println("spcae of C4: "*string(space(CTM["Cset"][4])))
+    println("spcae of C1: "*string(space(CTM.Cset.C1)))
+    println("spcae of C2: "*string(space(CTM.Cset.C2)))
+    println("spcae of C3: "*string(space(CTM.Cset.C3)))
+    println("spcae of C4: "*string(space(CTM.Cset.C4)))
     flush(stdout);
 
 
@@ -328,6 +328,6 @@ function cal_correl(filenm,D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_t
         "allspin_x"=> allspin_x,
         "eu_allspin_y" => eu_allspin_y,
         "allspin_y"=> allspin_y,
-        "CTM_space"=> string(space(CTM["Cset"][1]))
+        "CTM_space"=> string(space(CTM.Cset.C1))
     ); compress = false)
 end

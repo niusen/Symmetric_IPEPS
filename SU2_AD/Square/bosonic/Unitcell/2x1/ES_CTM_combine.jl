@@ -14,8 +14,7 @@ cd(@__DIR__)
 include("..\\..\\..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
 include("..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\..\\..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_2site_model.jl")
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_AD_2site.jl")
+include("..\\..\\..\\..\\src\\bosonic\\square\\square_AD_SU2_cell.jl")
 include("..\\..\\..\\..\\src\\bosonic\\Settings.jl")
 include("..\\..\\..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\..\\..\\src\\bosonic\\line_search_lib.jl")
@@ -33,7 +32,7 @@ D=4;
 chi=40;
 
 
-Nv=4;
+Nv=6;
 EH_n=30;
 group_index=true;
 vison=false;
@@ -73,7 +72,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_100.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_cell_LS_D_4_chi_100.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -108,24 +107,22 @@ global starting_time
 starting_time=now();
 
 
-#E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));
-#run_FiniteDiff(parameters, Vv, chi, LS_ctm_setting, optim_setting, energy_setting)
 
-#fun(state_vec)
-# global E_tem, CTM_tem
-# E,∂E,CTM_tem=get_grad(state_vec);
-# println(E,∂E)
-
-
-# E0, grad=FD(state_vec)
-# println(grad)
-# println(∂E./grad)
 
 init_complex_tensor=true;
 
 state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
-A=state_vec.T;
+A1=state_vec[1,1].T;
+A2=state_vec[2,1].T;
+
+U1=unitary(fuse(space(A1,4)*space(A1,4)), space(A1,4)*space(A1,4));
+@tensor A1A2[:]:=A1[-1,2,3,1,-5]*U1[-4,1,4]*U1'[2,5,-2]*A2[3,5,-3,4,-6];
+
+
+A=A1A2/norm(A1A2);
+U_p=unitary(fuse(space(A,5)*space(A,6)),space(A,5)*space(A,6));
+@tensor A[:]:=A[-1,-2,-3,-4,1,2]*U_p[-5,1,2];
 
 
 

@@ -78,10 +78,10 @@ function Hamiltonian_terms_2site_SU2()
 
     @tensor SS_cell[:]:=SS_op[1,2,4,5]*U_phy1[-1,3,1,2]*U_phy1'[3,4,5,-2];#spin-spin operator inside a unitcell
 
-    @tensor S_R_a[:]:=um[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];
-    @tensor S_L_a[:]:=um[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];
-    @tensor S_R_b[:]:=vm[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];
-    @tensor S_L_b[:]:=vm[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];
+    @tensor S_R_a[:]:=um[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];#second physical site
+    @tensor S_L_a[:]:=um[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];#first physical site
+    @tensor S_R_b[:]:=vm[1,4,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,4,2,-2];#second physical site
+    @tensor S_L_b[:]:=vm[2,5,-3]*U_phy1[-1,3,1,2]*U_phy1'[3,1,5,-2];#first physical site
     
        
     @tensor SS_cell[:]:=SS_cell[3,4]*U_phy2[-1,3,1,2]*U_phy2'[4,1,2,-2];
@@ -97,11 +97,11 @@ function Hamiltonian_terms_2site_SU2()
     #chiral operator act on a single site: Si Sj Sk
     um,sm,vm=@ignore_derivatives tsvd(Schiral_op,(1,4,),(2,3,5,6,));
     vm=sm*vm;
-    Si=permute(um,(1,2,3,));#P,P',D1
-    um,sm,vm=@ignore_derivatives tsvd(vm,(1,2,4,),(3,5,));
+    Si=permute(um,(1,2,3,));#P1,P1',D1
+    um,sm,vm=@ignore_derivatives tsvd(vm,(1,2,4,),(3,5,));#D1,P2,P2',P3,P3'
     vm=sm*vm;
-    Sj=permute(um,(2,3,1,4,));#P,P', D1,D2
-    Sk=permute(vm,(2,3,1,))#P,P',D2
+    Sj=permute(um,(2,3,1,4,));#P2,P2', D1,D2
+    Sk=permute(vm,(2,3,1,))#P3,P3',D2
     @tensor SiSj[:]:=Si[-1,-3,1]*Sj[-2,-4,1,-5]; 
     @tensor SjSk[:]:=Sj[-1,-3,-5,1]*Sk[-2,-4,1]; 
     #@tensor aa[:]:=Si[-1,-4,1]*Sj[-2,-5,1,2]*Sk[-3,-6,2];
@@ -380,56 +380,89 @@ function energy_2site(parameter,A_fused,AA_fused,CTM)
 
     #println("Calculate energy terms:");flush(stdout);
 
+    #############################################################
+    # Norm_1=ob_1site_closed(CTM,AA_fused)
+    # Norm_2x=norm_2sites_x(CTM,AA_fused)
+    # Norm_2y=norm_2sites_y(CTM,AA_fused)
+    # Norm_4=norm_2x2(CTM,AA_fused);
 
-    Norm_1=ob_1site_closed(CTM,AA_fused)
-    Norm_2x=norm_2sites_x(CTM,AA_fused)
-    Norm_2y=norm_2sites_y(CTM,AA_fused)
+    # #J1 term
+    # E_1_a=ob_1site_closed(CTM,AA_SS)/Norm_1
+    # E_1_b=ob_2sites_x(CTM,AA_SRa,AA_SLb)/Norm_2x
+    # E_1_c=ob_2sites_y(CTM,AA_SLa,AA_SLb)/Norm_2y
+    # E_1_d=ob_2sites_y(CTM,AA_SRa,AA_SRb)/Norm_2y
+
+    # #J2 term
+    # E_2_a=ob_2sites_y(CTM,AA_SLa,AA_SRb)/Norm_2y
+    # E_2_b=ob_2sites_y(CTM,AA_SRa,AA_SLb)/Norm_2y
+    # E_2_c=ob_LU_RD(CTM,AA_fused,AA_SRa,AA_SLb)/Norm_4
+    # E_2_d=ob_RU_LD(CTM,AA_fused,AA_SLa,AA_SRb)/Norm_4
+
+
+
+    # #chiral term
+    # E_C_a=ob_2sites_y(CTM,AA_SiSj,AA_SkR)/Norm_2y
+    # E_C_b=ob_2sites_y(CTM,AA_SiR,AA_SkSj)/Norm_2y
+    # E_C_c=ob_2sites_y(CTM,AA_SjSk,AA_SiL)/Norm_2y
+    # E_C_d=ob_2sites_y(CTM,AA_SiSj,AA_SkL)/Norm_2y
+
+    # E_C_e=ob_LD_LU_RU(CTM,AA_fused,AA_SiR,AA_SjR,AA_SkL,U_Schiral)/Norm_4
+    # E_C_f=ob_LU_RU_RD(CTM,AA_fused,AA_SiR,AA_SjL,AA_SkL,U_Schiral)/Norm_4
+    # E_C_g=ob_RU_RD_LD(CTM,AA_fused,AA_SiL,AA_SjL,AA_SkR,U_Schiral)/Norm_4
+    # E_C_h=ob_RD_LD_LU(CTM,AA_fused,AA_SiL,AA_SjR,AA_SkR,U_Schiral)/Norm_4
+
+    #############################################################
+
     Norm_4=norm_2x2(CTM,AA_fused);
 
     #J1 term
-    E_1_a=ob_1site_closed(CTM,AA_SS)/Norm_1
-    E_1_b=ob_2sites_x(CTM,AA_SRa,AA_SLb)/Norm_2x
-    E_1_c=ob_2sites_y(CTM,AA_SLa,AA_SLb)/Norm_2y
-    E_1_d=ob_2sites_y(CTM,AA_SRa,AA_SRb)/Norm_2y
+    E_1_a=ob_1site_closed(CTM,AA_fused,AA_SS)/Norm_4
+    E_1_b=ob_2sites_x(CTM,AA_fused,AA_SRa,AA_SLb)/Norm_4
+    E_1_c=ob_2sites_y(CTM,AA_fused,AA_SLa,AA_SLb)/Norm_4
+    E_1_d=ob_2sites_y(CTM,AA_fused,AA_SRa,AA_SRb)/Norm_4
 
     #J2 term
-    E_2_a=ob_2sites_y(CTM,AA_SLa,AA_SRb)/Norm_2y
-    E_2_b=ob_2sites_y(CTM,AA_SRa,AA_SLb)/Norm_2y
+    E_2_a=ob_2sites_y(CTM,AA_fused,AA_SLa,AA_SRb)/Norm_4
+    E_2_b=ob_2sites_y(CTM,AA_fused,AA_SRa,AA_SLb)/Norm_4
     E_2_c=ob_LU_RD(CTM,AA_fused,AA_SRa,AA_SLb)/Norm_4
     E_2_d=ob_RU_LD(CTM,AA_fused,AA_SLa,AA_SRb)/Norm_4
 
 
 
     #chiral term
-    E_C_a=ob_2sites_y(CTM,AA_SiSj,AA_SkR)/Norm_2y
-    E_C_b=ob_2sites_y(CTM,AA_SiR,AA_SkSj)/Norm_2y
-    E_C_c=ob_2sites_y(CTM,AA_SjSk,AA_SiL)/Norm_2y
-    E_C_d=ob_2sites_y(CTM,AA_SiSj,AA_SkL)/Norm_2y
+    E_C_a=ob_2sites_y(CTM,AA_fused,AA_SiSj,AA_SkR)/Norm_4
+    E_C_b=ob_2sites_y(CTM,AA_fused,AA_SiR,AA_SkSj)/Norm_4
+    E_C_c=ob_2sites_y(CTM,AA_fused,AA_SiSj,AA_SkL)/Norm_4
+    E_C_d=ob_2sites_y(CTM,AA_fused,AA_SiL,AA_SkSj)/Norm_4
 
     E_C_e=ob_LD_LU_RU(CTM,AA_fused,AA_SiR,AA_SjR,AA_SkL,U_Schiral)/Norm_4
     E_C_f=ob_LU_RU_RD(CTM,AA_fused,AA_SiR,AA_SjL,AA_SkL,U_Schiral)/Norm_4
     E_C_g=ob_RU_RD_LD(CTM,AA_fused,AA_SiL,AA_SjL,AA_SkR,U_Schiral)/Norm_4
     E_C_h=ob_RD_LD_LU(CTM,AA_fused,AA_SiL,AA_SjR,AA_SkR,U_Schiral)/Norm_4
 
-    # println("J1 terms:")
-    # println(E_1_a)
-    # println(E_1_b)
-    # println(E_1_c)
-    # println(E_1_d)
-    # println("J2 terms:")
-    # println(E_2_a)
-    # println(E_2_b)
-    # println(E_2_c)
-    # println(E_2_d)
-    # println("Jchi terms:")
-    # println(E_C_a)
-    # println(E_C_b)
-    # println(E_C_c)
-    # println(E_C_d)
-    # println(E_C_e)
-    # println(E_C_f)
-    # println(E_C_g)
-    # println(E_C_h)
+    #############################################################
+    global energy_setting
+    if energy_setting.ptrint_all_terms
+        println("J1 terms:")
+        println(E_1_a)
+        println(E_1_b)
+        println(E_1_c)
+        println(E_1_d)
+        println("J2 terms:")
+        println(E_2_a)
+        println(E_2_b)
+        println(E_2_c)
+        println(E_2_d)
+        println("Jchi terms:")
+        println(E_C_a)
+        println(E_C_b)
+        println(E_C_c)
+        println(E_C_d)
+        println(E_C_e)
+        println(E_C_f)
+        println(E_C_g)
+        println(E_C_h)
+    end
 
 
     E1=E_1_a+E_1_b+E_1_c+E_1_d;
@@ -447,80 +480,79 @@ function energy_2site(parameter,A_fused,AA_fused,CTM)
     return E
 end
 
-function ob_RU_LD(CTM,AA_fused,AA_RU,AA_LD)
+
+
+
+function ob_1site_closed(CTM,AA_fused,AA_op)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_op[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_fused[3,4,-4,-2]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
     @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
+    MM_LU=permute(MM_LU,(1,2,),(3,4,));
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
 
-    @tensor up[:]:=MM_LU[-1,-2,1,2]*MM_RU[1,2,-3,-4,-5];
-    @tensor down[:]:=MM_LD[-1,-2,1,2,-5]*MM_RD[1,2,-3,-4];
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
+    ob=@tensor up[1,2,3,4]*down[1,2,3,4];
+    return ob
+end
+
+
+
+function ob_2sites_x(CTM,AA_fused,AA1,AA2)
+
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA1[4,-2,-4,3,-5]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA2[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
+
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_fused[3,4,-4,-2]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
+
+    MM_LU=permute(MM_LU,(1,2,),(3,4,5,));
+    MM_RU=permute(MM_RU,(1,2,5,),(3,4,));
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
+    ob=@tensor up[1,2,3,4]*down[1,2,3,4];
+    return ob
+end
+
+
+
+function ob_2sites_y(CTM,AA_fused,AA1,AA2)
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA1[4,-2,-4,3,-5]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
+
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA2[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
+
+    MM_LU=permute(MM_LU,(5,1,2,),(3,4,));
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    MM_LD=permute(MM_LD,(5,1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
     ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
-
     return ob
-end
 
-
-function ob_1site_closed(CTM,AA_fused)
-    Cset=CTM.Cset;
-    Tset=CTM.Tset;
-    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
-    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
-    ob=@tensor envL[1,2,3]*envR[1,2,3];
-    return ob;
-end
-
-function norm_2sites_x(CTM,AA_fused)
-
-    Cset=CTM.Cset;
-    Tset=CTM.Tset;
-    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
-    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
-    @tensor envR[:]:=Tset.T1[-1,3,1]*AA_fused[-2,5,2,3]*Tset.T3[4,5,-3]*envR[1,2,4];
-    ob=@tensor envL[1,2,3]*envR[1,2,3];
-    return ob
-end
-
-function ob_2sites_x(CTM,AA1,AA2)
-
-    Cset=CTM.Cset;
-    Tset=CTM.Tset;
-    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
-    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA1[2,5,-2,3,-4]*Tset.T3[-3,5,4];
-    @tensor envR[:]:=Tset.T1[-1,3,1]*AA2[-2,5,2,3,-4]*Tset.T3[4,5,-3]*envR[1,2,4];
-    ob=@tensor envL[1,2,3,4]*envR[1,2,3,4];
-    return ob
-end
-
-function norm_2sites_y(CTM,AA_fused)
-    Cset=CTM.Cset;
-    Tset=CTM.Tset;
-    @tensor envU[:]:=Cset.C2[1,-1]*Tset.T1[2,-2,1]*Cset.C1[-3,2];
-    @tensor envD[:]:=Cset.C3[-1,1]*Tset.T3[1,-2,2]*Cset.C4[2,-3];
-    @tensor envU[:]:=envU[1,2,4]*Tset.T2[1,3,-1]*AA_fused[5,-2,3,2]*Tset.T4[-3,5,4];
-    @tensor envD[:]:=Tset.T2[-1,3,1]*AA_fused[5,2,3,-2]*Tset.T4[4,5,-3]*envD[1,2,4];
-    ob=@tensor envU[1,2,3]*envD[1,2,3];
-    return ob
-end
-
-function ob_2sites_y(CTM,AA1,AA2)
-    Cset=CTM.Cset;
-    Tset=CTM.Tset;
-    @tensor envU[:]:=Cset.C2[1,-1]*Tset.T1[2,-2,1]*Cset.C1[-3,2];
-    @tensor envD[:]:=Cset.C3[-1,1]*Tset.T3[1,-2,2]*Cset.C4[2,-3];
-    @tensor envU[:]:=envU[1,2,4]*Tset.T2[1,3,-1]*AA1[5,-2,3,2,-4]*Tset.T4[-3,5,4];
-    @tensor envD[:]:=Tset.T2[-1,3,1]*AA2[5,2,3,-2,-4]*Tset.T4[4,5,-3]*envD[1,2,4];
-    ob=@tensor envU[1,2,3,4]*envD[1,2,3,4];
-    return ob
 end
 
 function norm_2x2(CTM,AA_fused)
@@ -656,5 +688,4 @@ function ob_RU_LD(CTM,AA_fused,AA_RU,AA_LD)
     ob=@tensor up[1,2,3,4,5]*down[1,2,3,4,5];
     return ob
 end
-
 

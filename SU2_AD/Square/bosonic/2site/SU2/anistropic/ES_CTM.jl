@@ -11,29 +11,29 @@ using Dates
 
 cd(@__DIR__)
 
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
-include("..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\..\\..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_2site_model.jl")
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_AD_2site.jl")
-include("..\\..\\..\\..\\src\\bosonic\\Settings.jl")
-include("..\\..\\..\\..\\src\\bosonic\\AD_lib.jl")
-include("..\\..\\..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\..\\..\\src\\bosonic\\optimkit_lib.jl")
-# include("..\\..\\..\\..\\src\\mps_algorithms\\ES_CTM_algorithms_SU2.jl")
-# include("..\\..\\..\\..\\src\\mps_algorithms\\parity_funs.jl")
-# include("..\\..\\..\\..\\src\\mps_algorithms\\position_permute.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\CTMRG.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\square\\square_2site_model.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\square\\square_AD_2site.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\Settings.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\AD_lib.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\line_search_lib.jl")
+include("..\\..\\..\\..\\..\\src\\bosonic\\optimkit_lib.jl")
+# include("..\\..\\..\\..\\..\\src\\mps_algorithms\\ES_CTM_algorithms_SU2.jl")
+# include("..\\..\\..\\..\\..\\src\\mps_algorithms\\parity_funs.jl")
+# include("..\\..\\..\\..\\..\\src\\mps_algorithms\\position_permute.jl")
 
-include("..\\..\\..\\..\\src\\mps_algorithms\\ES_algorithms.jl")
+include("..\\..\\..\\..\\..\\src\\mps_algorithms\\ES_algorithms.jl")
 
 Random.seed!(555)
 
 
 D=4;
-chi=40;
+chi=30;
 
 
-Nv=4;
+Nv=5;
 EH_n=30;
 group_index=true;
 vison=false;
@@ -52,7 +52,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=50;
+grad_ctm_setting.CTM_ite_nums=20;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -73,7 +73,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_100.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_LS_Dx_4_Dy_13_chi_80.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -108,24 +108,9 @@ global starting_time
 starting_time=now();
 
 
-#E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));
-#run_FiniteDiff(parameters, Vv, chi, LS_ctm_setting, optim_setting, energy_setting)
+data=load(optim_setting.init_statenm);
 
-#fun(state_vec)
-# global E_tem, CTM_tem
-# E,∂E,CTM_tem=get_grad(state_vec);
-# println(E,∂E)
-
-
-# E0, grad=FD(state_vec)
-# println(grad)
-# println(∂E./grad)
-
-init_complex_tensor=true;
-
-state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
-state_vec=normalize_tensor_group(state_vec);
-A=state_vec.T;
+A=data["A"];
 
 
 
@@ -139,6 +124,7 @@ CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A,chi,init,[],grad_ctm_setting);
 
 
 
+include("..\\..\\..\\..\\..\\src\\mps_algorithms\\ES_algorithms.jl")
 
 #ES_CTMRG_ED_Kprojector(CTM,D,chi,Nv,EH_n,group_index,vison);
 ES_CTMRG_ED(CTM,D,chi,Nv,EH_n,group_index,vison)

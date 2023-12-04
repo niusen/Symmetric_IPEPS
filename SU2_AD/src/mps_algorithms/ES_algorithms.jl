@@ -1,15 +1,17 @@
-function ES_CTMRG_ED(CTM::CTM_struc,D,chi,N,EH_n,group_index,vison)
+function ES_CTMRG_ED(CTM,D,chi,N,EH_n,group_index,vison)
 
     println("D="*string(D));
     println("chi="*string(chi));
     println("N="*string(N));flush(stdout);
 
-
+    global U_L,U_R
 
     Tleft=CTM.Tset.T4;
     Tright=CTM.Tset.T2;
     @tensor O1[:]:=Tleft[-3,1,-1]*U_L[1,-2,-4];
     @tensor O2[:]:=Tright[-1,1,-3]*U_R[-4,-2,1];
+
+    global O1,O2
 
     @tensor OO[:]:=O1[-2,-3,-5,1]*O2[-1,1,-4,-6];
     U_fuse_chichi=unitary(fuse(space(OO,1)⊗ space(OO,2)),space(OO,1)⊗ space(OO,2));
@@ -42,13 +44,12 @@ function ES_CTMRG_ED(CTM::CTM_struc,D,chi,N,EH_n,group_index,vison)
         a_bcd_To_abc_d=nothing;
     end
 
-
     println("calculate ES for N="*string(N));
     Sectors=[0,1/2,1,3/2,2,5/2];
 
     eu_set=Vector(undef,length(Sectors));
     ks_set=Vector(undef,length(Sectors));
-
+  
     for sps in eachindex(Sectors)
         if N==4
             v_init=TensorMap(randn, space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)',SU₂Space(Sectors[sps]=>1));
@@ -56,6 +57,13 @@ function ES_CTMRG_ED(CTM::CTM_struc,D,chi,N,EH_n,group_index,vison)
             # v_init=k_projection(v_init,vison,N,Ks[kk],U_fuse_DD,U_fuse_DD_D,a_bcd_To_abc_d);
             if group_index
                 @tensor v_init[:]:=v_init[1,2,3,4,-3]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4];
+            end
+        elseif N==5
+            v_init=TensorMap(randn, space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)',SU₂Space(Sectors[sps]=>1));
+            v_init=permute(v_init,(1,2,3,4,5,6,),());
+            # v_init=k_projection(v_init,vison,N,Ks[kk],U_fuse_DD,U_fuse_DD_D,a_bcd_To_abc_d);
+            if group_index
+                @tensor v_init[:]:=v_init[1,2,3,4,-3,-4]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4];
             end
         elseif N==6
             v_init=TensorMap(randn, space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)',SU₂Space(Sectors[sps]=>1));
@@ -109,13 +117,13 @@ function ES_CTMRG_ED(CTM::CTM_struc,D,chi,N,EH_n,group_index,vison)
     ); compress = false)
 end
 
-function ES_CTMRG_ED_Kprojector(CTM::CTM_struc,D,chi,N,EH_n,group_index,vison)
+function ES_CTMRG_ED_Kprojector(CTM,D,chi,N,EH_n,group_index,vison)
 
     println("D="*string(D));
     println("chi="*string(chi));
     println("N="*string(N));flush(stdout);
 
-
+    global U_L,U_R
 
     Tleft=CTM.Tset.T4;
     Tright=CTM.Tset.T2;
@@ -168,6 +176,13 @@ function ES_CTMRG_ED_Kprojector(CTM::CTM_struc,D,chi,N,EH_n,group_index,vison)
                 v_init=k_projection(v_init,vison,N,Ks[kk],U_fuse_DD,U_fuse_DD_D,a_bcd_To_abc_d);
                 if group_index
                     @tensor v_init[:]:=v_init[1,2,3,4,-3]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4];
+                end
+            elseif N==5
+                v_init=TensorMap(randn, space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)',SU₂Space(Sectors[sps]=>1));
+                v_init=permute(v_init,(1,2,3,4,5,6,),());
+                v_init=k_projection(v_init,vison,N,Ks[kk],U_fuse_DD,U_fuse_DD_D,a_bcd_To_abc_d);
+                if group_index
+                    @tensor v_init[:]:=v_init[1,2,3,4,-3,-4]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4];
                 end
             elseif N==6
                 v_init=TensorMap(randn, space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)'*space(OO,2)',SU₂Space(Sectors[sps]=>1));
@@ -240,6 +255,7 @@ function vison_op(V)
 end
 
 function CTM_T_group_action(U_fuse_DD,O1_O1,O2_O2,U_fuse_DD_D,O1_O1_O1,O2_O2_O2,a_bcd_To_abc_d,v0,N,kn,vison)
+    global O1,O2
     if N==4
         if vison
             op=vison_op(space(O1_O1,3));
@@ -258,6 +274,24 @@ function CTM_T_group_action(U_fuse_DD,O1_O1,O2_O2,U_fuse_DD_D,O1_O1_O1,O2_O2_O2,
             v_new=k_projection(v_new,vison,N,kn,U_fuse_DD,U_fuse_DD_D,a_bcd_To_abc_d);
         end
         @tensor v_new[:]:=v_new[1,2,3,4,-3]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4];
+    elseif N==5
+        if vison
+            op=vison_op(space(O1,3));
+            @tensor v_new[:]:=O1_O1[7,1,2,-1]*O1_O1[2,3,4,-2]*O1[4,5,6,-3]*op[7,6]*v0[1,3,5,-4];
+            op=vison_op(space(O2,3));
+            @tensor v_new[:]:=O2_O2[7,1,2,-1]*O2_O2[2,3,4,-2]*O2[4,5,6,-3]*op[7,6]*v_new[1,3,5,-4];
+        else
+            @tensor v_new[:]:=O1_O1[6,1,2,-1]*O1_O1[2,3,4,-2]*O1[4,5,6,-3]*v0[1,3,5,-4];
+            @tensor v_new[:]:=O2_O2[6,1,2,-1]*O2_O2[2,3,4,-2]*O2[4,5,6,-3]*v_new[1,3,5,-4];
+        end
+
+        #momentum projector
+        @tensor v_new[:]:=v_new[1,2,-5,-6]*U_fuse_DD'[-1,-2,1]*U_fuse_DD'[-3,-4,2];
+        if kn==[]
+        else
+            v_new=k_projection(v_new,vison,N,kn,U_fuse_DD,U_fuse_DD_D,a_bcd_To_abc_d);
+        end
+        @tensor v_new[:]:=v_new[1,2,3,4,-3,-4]*U_fuse_DD[-1,1,2]*U_fuse_DD[-2,3,4];
     elseif N==6
         if vison
             op=vison_op(space(O1_O1,3));
@@ -312,7 +346,19 @@ function k_projection(v_unprojected,vison,N,kn,U_fuse_DD,U_fuse_DD_D,a_bcd_To_ab
             else
                 v_projected=v_projected+exp(-im*((2*pi*kn)/N)*cc)*v_unprojected;
             end
+        elseif N==5
+            if vison #translation operator modified with existence of string
+                op=vison_op(space(v_unprojected,1));
+                @tensor v_unprojected[:]:=v_unprojected[1,-2,-3,-4,-5,-6]*op[-1,1];
+            end
+            v_unprojected=permute(v_unprojected,(2,3,4,5,1,6),())
 
+            sspin=space(v_unprojected,6).dims.keys[1].j;
+            if (vison)&(mod(sspin,1)==1/2) #T^N=-1, where T is generalized translation operator
+                v_projected=v_projected+exp(-im*((2*pi*kn+pi)/N)*cc)*v_unprojected;
+            else
+                v_projected=v_projected+exp(-im*((2*pi*kn)/N)*cc)*v_unprojected;
+            end
 
         elseif N==6
             if vison #translation operator modified with existence of string
@@ -387,6 +433,25 @@ function calculate_k(ev,N,vison,group_index,U_fuse_DD,a_bcd_To_abc_d)
 
             ks[cc]=phase;
         end
+    elseif N==5
+        for cc=1:length(ev)
+            v=ev[cc];
+            if group_index
+                @tensor v[:]:=v[1,2,-5,-6]*U_fuse_DD'[-1,-2,1]*U_fuse_DD'[-3,-4,2];
+            end
+            if vison #translation operator modified with existence of string
+                op=vison_op(space(v,1));
+                @tensor vp[:]:=v[1,-2,-3,-4,-5,-6]*op[-1,1];
+                vp=permute(vp,(2,3,4,5,1,6),());
+            else
+                vp=permute(v,(2,3,4,5,1,6),());
+            end
+            
+            phase=dot(vp,v)/dot(v,v);
+            #println(phase)
+
+            ks[cc]=phase;
+        end
     elseif N==6
         for cc=1:length(ev)
             v=ev[cc];
@@ -431,9 +496,9 @@ function calculate_k(ev,N,vison,group_index,U_fuse_DD,a_bcd_To_abc_d)
             
             phase=dot(vp,v)/dot(v,v);
             #println(phase)
-            if (N==4)|(N==6)
+            if (N==4)|(N==6)|(N==5)
                 ks[cc]=phase;
-            elseif (N==8) #definition of translation is opposite
+            elseif (N==8)|(N==7) #definition of translation is opposite
                 ks[cc]=phase';
             end
         end

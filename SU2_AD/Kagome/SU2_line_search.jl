@@ -11,14 +11,14 @@ using Dates
 
 cd(@__DIR__)
 
-include("src\\iPEPS_ansatz.jl")
-include("src\\kagome_CTMRG.jl")
-include("src\\kagome_model.jl")
-include("src\\kagome_AD_SU2.jl")
-include("src\\Settings.jl")
-include("src\\AD_lib.jl")
-include("src\\line_search_lib.jl")
-include("src\\optimkit_lib.jl")
+include("..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\src\\bosonic\\CTMRG.jl")
+include("..\\src\\bosonic\\kagome_model.jl")
+include("..\\src\\bosonic\\kagome_AD_SU2.jl")
+include("..\\src\\bosonic\\Settings.jl")
+include("..\\src\\bosonic\\AD_lib.jl")
+include("..\\src\\bosonic\\line_search_lib.jl")
+include("..\\src\\bosonic\\optimkit_lib.jl")
 
 
 

@@ -82,6 +82,76 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_compl
                     A=TensorMap(M,Vspace'*Vspace*Vspace*Vspace',Vp')
 
                 end
+            elseif space(A0,1)==GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1,(-1,1/2)=>2,(-3,1/2)=>2,(-2,1)=>1)
+                if Vspace==SU2Space(0=>5,1/2=>4,1=>1)
+                    # M=convert(Array,A0);
+                    # A=TensorMap(M,Vspace'*Vspace,Vspace'*Vspace*Vp')
+
+                    #if convert directly, outofmemory error will occur
+                    Va=space(A0,1);
+                    Vb=SU2Space(0=>5,1/2=>4,1=>1);
+
+                    V0_a=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1);
+                    Vhalf_a=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((-1,1/2)=>2,(-3,1/2)=>2);
+                    V1_a=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((-2,1)=>1);
+
+                    P0_a=TensorMap(randn,V0_a,Va)*0;
+                    P0_a.data.values[1][1]=1;
+                    P0_a.data.values[2]=[1 0 0;0 1 0;0 0 1];
+                    P0_a.data.values[3][1]=1;
+
+                    Phalf_a=TensorMap(randn,Vhalf_a,Va)*0;
+                    Phalf_a.data.values[1]=[1 0;0 1];
+                    Phalf_a.data.values[2]=[1 0;0 1];
+
+                    P1_a=TensorMap(randn,V1_a,Va)*0;
+                    P1_a.data.values[1][1]=1;
+
+                    spaces_a=(V0_a,Vhalf_a,V1_a);
+                    Projectors_a=(P0_a,Phalf_a,P1_a);
+
+                    V0_b=SU2Space(0=>5);
+                    Vhalf_b=SU2Space(1/2=>4);
+                    V1_b=SU2Space(1=>1);
+
+                    P0_b=TensorMap(randn,V0_b,Vb)*0;
+                    P0_b.data.values[1]=Matrix(I,5,5);
+
+                    Phalf_b=TensorMap(randn,Vhalf_b,Vb)*0;
+                    Phalf_b.data.values[1]=Matrix(I,4,4);
+
+                    P1_b=TensorMap(randn,V1_b,Vb)*0;
+                    P1_b.data.values[1][1]=1;
+
+                    spaces_b=(V0_b,Vhalf_b,V1_b);
+                    Projectors_b=(P0_b,Phalf_b,P1_b);
+
+                    A=TensorMap(randn,Vb*Vb'*Vb'*Vb,Vp')*0*im;
+                    A=permute(A,(1,2,3,4,5,));
+                    global A_comp
+                    for c1=1:3
+                        for c2=1:3
+                            for c3=1:3
+                                for c4=1:3
+                                    #println([c1,c2,c3,c4])
+                                    @tensor A_comp[:]:=Projectors_a[c1][-1,1]*Projectors_a[c2]'[2,-2]*Projectors_a[c3]'[3,-3]*Projectors_a[c4][-4,4]*A0[1,2,3,4,-5];
+                                    if norm(A_comp)==0
+                                        continue;
+                                    end
+                                    A_comp_dense=convert(Array,permute(A_comp,(1,2,3,4,),(5,)));
+                                    A_comp_=TensorMap(A_comp_dense,spaces_b[c1]*spaces_b[c2]'*spaces_b[c3]'*spaces_b[c4],Vp');
+                                    # println(space(Projectors_b[c1]'))
+                                    # println(space(Projectors_b[c2]))
+                                    # println(space(Projectors_b[c3]))
+                                    # println(space(Projectors_b[c4]'))
+                                    # println(space(A_comp_))
+                                    @tensor A_comp__[:]:=Projectors_b[c1]'[-1,1]*Projectors_b[c2][2,-2]*Projectors_b[c3][3,-3]*Projectors_b[c4]'[-4,4]*A_comp_[1,2,3,4,-5];
+                                    A=A+A_comp__
+                                end
+                            end
+                        end
+                    end
+                end
             elseif space(A0,1)==SU2Space(0=>2,1/2=>1)'#initial D=4
                 if Vv==SU2Space(0=>3,1/2=>2,1=>1);
                     M=convert(Array,A0);
@@ -114,19 +184,14 @@ function initial_U1_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_co
         println("Random initial state");flush(stdout);
         Vp=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0,0)=>1,(0,1)=>1)';
         if init_complex_tensor
-            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp)+TensorMap(randn,Vv*Vv*Vv*Vv,Vp)*im;
+            A=TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)+TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)*im;
         else
-            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp);
+            A=TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp);
         end
 
         A=permute(A,(1,2,3,4,5,));
         A=A/norm(A);
-        
-        U=unitary(Vv',Vv);
-        @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
-        
-        
-
+                
         state=Square_iPEPS(A);
         return state
     else
@@ -139,7 +204,15 @@ function initial_U1_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_co
             A=A0;
         else
             println("Extend bond dimension of initial state")
-            if space(A0,1)==SU2Space(0=>1,1/2=>1)
+            if space(A0,1)==GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)';
+                if Vspace==GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (2, 0)=>2, (1, 1/2)=>1,(3, 1/2)=>1,(2,1)=>1)';
+                    M=zeros(10,10,10,10,4)*im;
+                    pos=[1,2,4,5];
+                    M[pos,pos,pos,pos,1:4]=convert(Array,A0);
+                    A=TensorMap(M,Vspace*Vspace',Vspace*Vspace'*GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0,0)=>1,(0,1)=>1)');
+
+                end
+            elseif space(A0,1)==SU2Space(0=>1,1/2=>1)
                 if Vspace==SU2Space(0=>2,1/2=>1)
                     M=zeros(4,4,4,4,2)*im;
                     M[2:4,2:4,2:4,2:4,1:2]=convert(Array,A0);

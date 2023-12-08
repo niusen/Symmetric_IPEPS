@@ -36,7 +36,7 @@ chi=40;
 Nv=4;
 EH_n=30;
 group_index=true;
-vison=false;
+vison=true;
 
 
 #permute_neighbour_ind=bosonic_permute_neighbour_ind;
@@ -73,7 +73,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_100.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="parton_M1.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);

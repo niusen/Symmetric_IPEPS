@@ -442,7 +442,7 @@ function energy_2site(parameter,A_fused,AA_fused,CTM)
 
     #############################################################
     global energy_setting
-    if energy_setting.ptrint_all_terms
+    if energy_setting.print_all_terms
         println("J1 terms:")
         println(E_1_a)
         println(E_1_b)

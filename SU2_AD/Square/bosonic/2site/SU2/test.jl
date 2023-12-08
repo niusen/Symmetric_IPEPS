@@ -25,7 +25,7 @@ include("..\\..\\..\\..\\src\\bosonic\\optimkit_lib.jl")
 Random.seed!(555)
 
 
-D=4;
+D=16;
 chi=80;
 
 
@@ -70,7 +70,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_120.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="parton_M2_SU2.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -117,17 +117,6 @@ init_complex_tensor=true;
 state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
 
-
-include("..\\..\\..\\..\\src\\bosonic\\square\\square_2site_model.jl")
-chi=40;
-println(chi);
-E=cost_fun(state_vec);
-println(E);
-
-chi=80;
-println(chi);
-E=cost_fun(state_vec);
-println(E);
 
 
 

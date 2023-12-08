@@ -181,8 +181,8 @@ function energy_2site(parameter,A_fused,AA_fused,CTM)
     #chiral term
     E_C_a=ob_2sites_y(CTM,AA_SiSj,AA_SkR)/Norm_2y
     E_C_b=ob_2sites_y(CTM,AA_SiR,AA_SkSj)/Norm_2y
-    E_C_c=ob_2sites_y(CTM,AA_SjSk,AA_SiL)/Norm_2y
-    E_C_d=ob_2sites_y(CTM,AA_SiSj,AA_SkL)/Norm_2y
+    E_C_c=ob_2sites_y(CTM,AA_SiSj,AA_SkL)/Norm_2y
+    E_C_d=ob_2sites_y(CTM,AA_SiL,AA_SkSj)/Norm_2y
 
     E_C_e=ob_LD_LU_RU(CTM,AA_fused,AA_SiR,AA_SjR,AA_SkL,U_Schiral)/Norm_4
     E_C_f=ob_LU_RU_RD(CTM,AA_fused,AA_SiR,AA_SjL,AA_SkL,U_Schiral)/Norm_4

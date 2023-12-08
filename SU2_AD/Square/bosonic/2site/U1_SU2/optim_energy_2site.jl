@@ -25,7 +25,7 @@ include("..\\..\\..\\..\\src\\bosonic\\optimkit_lib.jl")
 Random.seed!(555)
 
 
-D=4;
+D=10;
 chi=40;
 
 
@@ -70,7 +70,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_130.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="parton_M1.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -97,12 +97,19 @@ global Vv
 
 if D==4
     Vv=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)';  
+elseif D==10
+    Vv=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (2, 0)=>2, (1, 1/2)=>1,(3, 1/2)=>1,(2,1)=>1)';
+elseif D==16
+    Vv=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1,(-1,1/2)=>2,(-3,1/2)=>2,(-2,1)=>1);
 end
 @assert dim(Vv)==D;
 
 global starting_time
 starting_time=now();
 
+
+save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+global save_filenm
 
 #E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));
 #run_FiniteDiff(parameters, Vv, chi, LS_ctm_setting, optim_setting, energy_setting)

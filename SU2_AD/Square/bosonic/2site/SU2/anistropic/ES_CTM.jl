@@ -30,10 +30,10 @@ Random.seed!(555)
 
 
 D=4;
-chi=30;
+chi=40;
 
 
-Nv=5;
+Nv=8;
 EH_n=30;
 group_index=true;
 vison=false;
@@ -52,7 +52,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=20;
+grad_ctm_setting.CTM_ite_nums=10;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -124,7 +124,6 @@ CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A,chi,init,[],grad_ctm_setting);
 
 
 
-include("..\\..\\..\\..\\..\\src\\mps_algorithms\\ES_algorithms.jl")
 
 #ES_CTMRG_ED_Kprojector(CTM,D,chi,Nv,EH_n,group_index,vison);
 ES_CTMRG_ED(CTM,D,chi,Nv,EH_n,group_index,vison)

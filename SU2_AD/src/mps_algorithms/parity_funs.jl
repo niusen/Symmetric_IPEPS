@@ -1,4 +1,35 @@
+#SU2 symmetry
+function get_Vspace_parity(V1::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    oddlist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
 
+    for cc in eachindex(Values)
+        Spin=Keys[cc].j;
+        Dim=Int(Values[cc]*(2*Spin+1));
+        if mod(Spin*2,2)==0
+            oddlist1=vcat(oddlist1,Int.(zeros(Dim)));
+        elseif mod(Spin*2,2)==1
+            oddlist1=vcat(oddlist1,Int.(ones(Dim)));
+        end
+    end
+    return oddlist1
+end
+
+#SU2 symmetry
+function get_Vspace_Spin(V1::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    oddlist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
+
+    for cc in eachindex(Values)
+        Spin=Keys[cc].j;
+        Dim=Int(Values[cc]*(2*Spin+1));
+        oddlist1=vcat(oddlist1,Spin*Int.(ones(Dim)));
+
+    end
+    return oddlist1
+end
 
 #U1 x SU2 symmetry
 function get_Vspace_Qn(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})

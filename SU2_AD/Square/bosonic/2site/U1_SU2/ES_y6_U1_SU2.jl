@@ -26,11 +26,11 @@ Random.seed!(555)
 
 D=4;
 Nv=6;
-y_anti_pbc=true;
+y_anti_pbc=false;
 
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="parton_M1.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_LS_D_4_chi_110.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -79,7 +79,7 @@ function vl_M(AAAA,vl0,y_anti_pbc)
     return vl;
 end
 
-v_init=TensorMap(randn, space(AAAA,1)*space(AAAA,1)*space(AAAA,1),GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((2,0)=>1));
+v_init=TensorMap(randn, space(AAAA,1)*space(AAAA,1)*space(AAAA,1),GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0,0)=>1));
 v_init=permute(v_init,(1,2,3,4,),());#L1,L2,L3,L4,dummy
 contraction_fun_R(x)=M_vr(AAAA,x,y_anti_pbc);
 @time eur,evr=eigsolve(contraction_fun_R, v_init, 6,:LM,Arnoldi(krylovdim=20));
@@ -99,7 +99,7 @@ println(eul)
 
 
 
-fixpoint_ind=3;
+fixpoint_ind=1;
 
 VR=evr[fixpoint_ind];#L1,L2,L3,L4,dummy
 VL=evl[fixpoint_ind];#dummy,R1,R2,R3,R4

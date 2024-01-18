@@ -1,3 +1,12 @@
+function read_json_state(filenm)
+    json_dict = Dict()
+    open(filenm, "r") do f
+        json_dict
+        dicttxt = read(f,String)  # file information to string
+        json_dict=JSON.parse(dicttxt)  # parse and transform data
+    end
+    return json_dict
+end
 function find_space(str,c)
     pos=[];
     for cc=1:length(str)

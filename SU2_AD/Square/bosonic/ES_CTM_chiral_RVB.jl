@@ -12,27 +12,24 @@ using Dates
 
 cd(@__DIR__)
 
-include("..\\..\\src\\square_spin_operator.jl")
-include("..\\..\\src\\iPEPS_ansatz.jl")
-include("..\\..\\src\\CTMRG.jl")
-#include("..\\..\\src\\CTMRG_unitcell.jl")
-include("..\\..\\src\\square_model.jl")
-#include("..\\..\\src\\square_model_cell.jl")
-#include("..\\..\\src\\square_AD_SU2_cell.jl")
-include("..\\..\\src\\Settings.jl")
-include("..\\..\\src\\square_AD_SU2.jl")
-#include("..\\..\\src\\Settings_cell.jl")
-include("..\\..\\src\\AD_lib.jl")
-include("..\\..\\src\\line_search_lib.jl")
-#include("..\\..\\src\\line_search_lib_cell.jl")
-include("..\\..\\src\\optimkit_lib.jl")
+include("..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
+include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\..\\src\\bosonic\\CTMRG.jl")
+#include("..\\..\\src\\bosonic\\CTMRG_unitcell.jl")
+include("..\\..\\src\\bosonic\\square\\square_model.jl")
+#include("..\\..\\src\\bosonic\\square_model_cell.jl")
+#include("..\\..\\src\\bosonic\\square_AD_SU2_cell.jl")
+include("..\\..\\src\\bosonic\\Settings.jl")
+#include("..\\..\\src\\bosonic\\Settings_cell.jl")
+include("..\\..\\src\\bosonic\\AD_lib.jl")
+include("..\\..\\src\\bosonic\\line_search_lib.jl")
+#include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
+include("..\\..\\src\\bosonic\\optimkit_lib.jl")
 
-include("..\\..\\src\\square_SimpleUpdate_lib.jl")
-include("..\\..\\src\\square_RVB_ansatz.jl")
+include("..\\..\\src\\bosonic\\square\\square_SimpleUpdate_lib.jl")
+include("..\\..\\src\\bosonic\\square\\square_RVB_ansatz.jl")
 
-include("..\\..\\src\\mps_algorithms\\PUMPS_algorithms.jl")
-
-
+include("..\\..\\src\\mps_algorithms\\ES_algorithms.jl")
 ###########################
 """
 ABABABAB
@@ -77,50 +74,24 @@ LS_ctm_setting.grad_checkpoint=true;
 dump(LS_ctm_setting);
 
 
-optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_4_chi_80.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0;
-optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
-dump(optim_setting);
-
 
 
 
 global chi,multiplet_tol,projector_trun_tol
 multiplet_tol=1e-5;
 projector_trun_tol=LS_ctm_setting.CTM_trun_tol
-
-
-##################################
-global Vv
-
-if D==3
-    Vv=SU2Space(0=>1,1/2=>1);
-elseif D==4
-    Vv=SU2Space(0=>2,1/2=>1);
-elseif D==5
-    Vv=SU2Space(0=>1,1/2=>2);
-elseif D==6
-    Vv=SU2Space(0=>1,1/2=>1,1=>1);
-elseif D==8
-    Vv=SU2Space(0=>1,1/2=>2,1=>1);
-elseif D==11
-    Vv=SU2Space(0=>1,1/2=>2,1=>2);
-elseif D==16
-    Vv=SU2Space(0=>1,1/2=>3,1=>3);    
-end
-@assert dim(Vv)==D;
 ###################################
+# A=RVB_ansatz(1,1,im);
+# # include("read_json_tensor.jl")
+# state=Square_iPEPS(A);
 
 
-init_complex_tensor=true;
-init_C4_symetry=false;
-
-state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor,init_C4_symetry)
-state_vec=normalize_tensor_group(state_vec);
+######################
+data=load("didier.jld2");
+A=data["A"];
 
 
-A=state_vec.T;
+
 
 
 ##############
@@ -161,12 +132,11 @@ E_T1, E_T2, E_T3, E_T4=evaluate_triangle(H_triangle, A::TensorMap, AA, U_L,U_D,U
 
 println("E= "*string(real(E_T1+E_T2+E_T3+E_T4)))
 
-
-N=8;
-EH_n=50;
+Nv=8;
+EH_n=30;
 group_index=true;
 vison=false;
-ES_CTMRG_ED_Kprojector(CTM,D,chi,N,EH_n,group_index,vison)
 
+#ES_CTMRG_ED_Kprojector(CTM,D,chi,Nv,EH_n,group_index,vison)
 
-
+ES_CTMRG_ED(CTM,D,chi,Nv,EH_n,group_index,vison)

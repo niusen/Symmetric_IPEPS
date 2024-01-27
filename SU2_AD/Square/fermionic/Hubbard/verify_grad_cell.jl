@@ -27,7 +27,7 @@ include("..\\..\\..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 
 
-D=4;
+D=2;
 chi=10
 
 t1=1;
@@ -107,16 +107,7 @@ end
 @assert dim(Vv)==D;
 
 
-M_convert2=[0 1;1 0];
-M_convert4=[0 0 1 0;0 0 0 1;1 0 0 0; 0 1 0 0];
 
-@tensor A[:]:=A[1,2,3,4,5]*M_convert4[-1,1]*M_convert4[-2,2]*M_convert4[-3,3]*M_convert4[-4,4]*M_convert2[-5,5];
-@tensor B[:]:=B[1,2,3,4,5]*M_convert4[-1,1]*M_convert4[-2,2]*M_convert4[-3,3]*M_convert4[-4,4]*M_convert2[-5,5];
-
-A=TensorMap(A,Vv*Vv'*Vv'*Vv,Rep[ℤ₂](0=>1, 1=>1)');
-B=TensorMap(B,Vv*Vv'*Vv'*Vv,Rep[ℤ₂](0=>1, 1=>1)');
-A=permute(A,(1,2,3,4,5,));
-B=permute(B,(1,2,3,4,5,));
 
 
 
@@ -125,34 +116,14 @@ Lx=2;
 Ly=2;
 
 
-state=Matrix{Square_iPEPS}(undef,Lx,Ly);
-state[1,1]=Square_iPEPS(A);
-state[1,2]=Square_iPEPS(B);
-state[2,1]=Square_iPEPS(B);
-state[2,2]=Square_iPEPS(A);
-
-A_cell=initial_tuple_cell(Lx,Ly);
-for cx=1:Lx
-    for cy=1:Ly
-        A=state[cx,cy].T;
-        norm_A=norm(A)
-        A=A/norm_A;
-
-        A_cell=fill_tuple(A_cell, A, cx,cy);
-    end
-end
-
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
-E_total,  ex_set, ey_set, px_set, py_set, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-#E_total,  ex_set, ey_set, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 
 
 
-# init_complex_tensor=true;
 
-# state_vec=initial_fPEPS_state_spinless_Z2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
-# state_vec=normalize_tensor_group(state_vec);
+init_complex_tensor=true;
+
+state_vec=initial_fPEPS_state_spinless_Z2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=normalize_tensor_group(state_vec);
 
 
 global save_filenm
@@ -169,22 +140,6 @@ global E_history
 E_history=[10000];
 
 
-# ls = BackTracking(order=3)
-# println(ls)
-# fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
+E_tem,∂E,CTM_tem=get_grad(state_vec);
 
-# ls = StrongWolfe()
-# println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
-
-
-# #optimize with OptimKit
-# optimkit_op(state_vec)
+E0, grad=FD(state_vec);

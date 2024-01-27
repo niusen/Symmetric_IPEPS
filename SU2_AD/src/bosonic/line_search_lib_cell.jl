@@ -246,7 +246,7 @@ function FD(state_vec::Matrix{TT}) where TT<:iPEPS_ansatz
 
     dt=0.000001
 
-    E0=cost_fun_test(state_vec);
+    E0=cost_fun_testt(state_vec);
 
     grad=similar(state_vec);
     for ct in eachindex(state_vec)
@@ -264,7 +264,7 @@ function FD(state_vec::Matrix{TT}) where TT<:iPEPS_ansatz
                     T[elem]=T[elem]+dt;
                     tensor_.data.values[n_block]=T;
                     setfield!(state_vec_tem[ct],fi,tensor_);
-                    real_part=(cost_fun_test(state_vec_tem)-E0)/dt;
+                    real_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
 
                     state_vec_tem=deepcopy(state_vec);
                     tensor_=getfield(state_vec_tem[ct], fi);
@@ -272,7 +272,7 @@ function FD(state_vec::Matrix{TT}) where TT<:iPEPS_ansatz
                     T[elem]=T[elem]+dt*im;
                     tensor_.data.values[n_block]=T;
                     setfield!(state_vec_tem[ct],fi,tensor_);
-                    imag_part=(cost_fun_test(state_vec_tem)-E0)/dt;
+                    imag_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
 
                     tensor__=getfield(grad[ct],fi);
                     tensor__.data.values[n_block][elem]=real_part+im*imag_part;

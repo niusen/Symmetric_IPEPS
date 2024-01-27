@@ -27,21 +27,21 @@ function initial_fPEPS_state_spinless_Z2(Vspace,init_statenm="nothing",init_nois
             if space(A0,1)==Vspace
                 A=A0;
             else
-                println("Extend bond dimension of initial state")
-                if space(A0,1)==SU2Space(0=>1,1/2=>1)
-                    if Vspace==SU2Space(0=>2,1/2=>1)
-                        M=zeros(4,4,4,4,2)*im;
-                        M[2:4,2:4,2:4,2:4,1:2]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
-                    elseif Vspace==SU2Space(0=>1,1/2=>2)
-                        M=zeros(5,5,5,5,2)*im;
-                        M[1:3,1:3,1:3,1:3,1:2]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
-                    end
-                elseif space(A0,1)==SU2Space(0=>2,1/2=>1)
-                elseif space(A0,1)==SU2Space(0=>1,1/2=>2)
-                end
-                A=permute(A,(1,2,3,4,5,));
+                # println("Extend bond dimension of initial state")
+                # if space(A0,1)==SU2Space(0=>1,1/2=>1)
+                #     if Vspace==SU2Space(0=>2,1/2=>1)
+                #         M=zeros(4,4,4,4,2)*im;
+                #         M[2:4,2:4,2:4,2:4,1:2]=convert(Array,A0);
+                #         A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
+                #     elseif Vspace==SU2Space(0=>1,1/2=>2)
+                #         M=zeros(5,5,5,5,2)*im;
+                #         M[1:3,1:3,1:3,1:3,1:2]=convert(Array,A0);
+                #         A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
+                #     end
+                # elseif space(A0,1)==SU2Space(0=>2,1/2=>1)
+                # elseif space(A0,1)==SU2Space(0=>1,1/2=>2)
+                # end
+                # A=permute(A,(1,2,3,4,5,));
             end
 
             if init_complex_tensor
@@ -77,7 +77,7 @@ function cost_fun(x::Matrix{T})  where T<:iPEPS_ansatz_immutable #variational pa
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
     E_total,  ex_set, ey_set, px_set, py_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-    E=real(E_total)/(Lx*Ly);
+    E=real(E_total);
 
     println("E0= "*string(E));flush(stdout);
     global E_tem, CTM_tem
@@ -106,7 +106,7 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
 
     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,ctm_setting);
     E_total,  ex_set, ey_set, px_set, py_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-    E=real(E_total)/(Lx*Ly);
+    E=real(E_total);
 
 
     if energy_setting.model=="spinless_Hubbard_pairing"
@@ -120,3 +120,29 @@ end
 
 
 
+function cost_fun_testt(x::Matrix{T})  where T<:iPEPS_ansatz #variational parameters are vector of TensorMap
+    global Lx,Ly
+    global chi, parameters, energy_setting, grad_ctm_setting
+
+    A_cell=initial_tuple_cell(Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            A=x[cx,cy].T;
+            norm_A=norm(A)
+            A=A/norm_A;
+
+            A_cell=fill_tuple(A_cell, A, cx,cy);
+        end
+    end
+    
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
+    E_total,  ex_set, ey_set, px_set, py_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+    E=real(E_total);
+
+    println("E0= "*string(E));flush(stdout);
+    global E_tem, CTM_tem
+    CTM_tem=deepcopy(CTM_cell);
+    E_tem=deepcopy(E)
+    return E
+end

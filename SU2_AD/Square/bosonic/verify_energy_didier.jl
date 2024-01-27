@@ -1,4 +1,4 @@
-using Revise, TensorKit, Zygote
+using Revise,  TensorKit, Zygote
 using LinearAlgebra, OptimKit
 #using PEPSKit: NORTH,SOUTH,WEST,EAST,NORTHWEST,NORTHEAST,SOUTHEAST,SOUTHWEST,@diffset
 using JLD2,ChainRulesCore
@@ -20,19 +20,14 @@ include("..\\..\\src\\bosonic\\Settings.jl")
 include("..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\src\\bosonic\\line_search_lib.jl")
 include("..\\..\\src\\bosonic\\optimkit_lib.jl")
-# include("..\\..\\src\\square_RVB_ansatz.jl")
 
 
 Random.seed!(555)
 
 
 D=3;
-chi=54;
 
 
-J1=2*cos(0.06*pi)*cos(0.14*pi);
-J2=2*cos(0.06*pi)*sin(0.14*pi);
-Jchi=2*sin(0.06*pi)*2;
 
 J1=2;
 J2=0;
@@ -42,7 +37,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=10;
+grad_ctm_setting.CTM_ite_nums=150;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -56,12 +51,12 @@ dump(grad_ctm_setting);
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=50;
+LS_ctm_setting.CTM_ite_nums=250;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
 LS_ctm_setting.conv_check="singular_value";
-LS_ctm_setting.CTM_ite_info=false;
+LS_ctm_setting.CTM_ite_info=true;
 LS_ctm_setting.CTM_conv_info=true;
 LS_ctm_setting.CTM_trun_svd=false;
 LS_ctm_setting.construct_double_layer=true;
@@ -75,15 +70,14 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0.5;
+optim_setting.init_statenm="Optim_LS_D_4_chi_87.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
 energy_setting=Square_Energy_settings();
 energy_setting.model = "triangle_J1_J2_Jchi";
 dump(energy_setting);
-
 
 
 
@@ -101,70 +95,63 @@ global backward_settings
 
 global Vv
 
-if D==3
-    Vv=SU2Space(0=>1,1/2=>1);
-elseif D==4
-    Vv=SU2Space(0=>2,1/2=>1);
-elseif D==5
-    Vv=SU2Space(0=>1,1/2=>2);
-elseif D==6
-    Vv=SU2Space(0=>1,1/2=>1,1=>1);
-elseif D==8
-    Vv=SU2Space(0=>1,1/2=>2,1=>1);
-elseif D==11
-    Vv=SU2Space(0=>1,1/2=>2,1=>2);
-elseif D==16
-    Vv=SU2Space(0=>1,1/2=>3,1=>3);    
-end
-@assert dim(Vv)==D;
+data=load("elementary_tensors.jld2");
+A1=data["A1"];
+A2=data["A2"];
+Achiral=data["Achiral"];
+
+A1=A1/norm(A1);
+A2=A2/norm(A2);
+Achiral=Achiral/norm(Achiral);
+
+lamda1=-0.520724601304734;        
+lamda2=1.70735449077426;
+lamda_chiral=-im*0.668655573111120
+
+chi=54;
+
+
+
+
+A=lamda1*A1+lamda2*A2+lamda_chiral*Achiral;
+
+
+U=unitary(space(A,1)',space(A,1));
+@tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+
+state_vec=Square_iPEPS(A);
 
 global starting_time
 starting_time=now();
 
 
-#E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));
-#run_FiniteDiff(parameters, Vv, chi, LS_ctm_setting, optim_setting, energy_setting)
-
-#fun(state_vec)
-# global E_tem, CTM_tem
-# E,∂E,CTM_tem=get_grad(state_vec);
-# println(E,∂E)
-
-
-# E0, grad=FD(state_vec)
-# println(grad)
-# println(∂E./grad)
 
 init_complex_tensor=true;
 init_C4_symetry=true;
 
-state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor,init_C4_symetry)
-state_vec=normalize_tensor_group(state_vec);
-
-# E0_, grad,CTM_tem=get_grad(state_vec);
-# include("src\\kagome_AD_SU2.jl")
-# E0,grad_=FD(state_vec)
-
-global E_history
-E_history=[10000];
 
 
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = StrongWolfe()
-# println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
 
 
-# #optimize with OptimKit
-# optimkit_op(state_vec)
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+
+
+
+
+println("chi="*string(chi));
+E, E_T1, E_T2, E_T3, E_T4, ite_num,ite_err,Init_CTM=energy_CTM(state_vec, chi, parameters, LS_ctm_setting, energy_setting, init, Init_CTM);
+#E=cost_fun(state_vec);
+println(E);
+
+
+
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+
+CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A,chi,init,[],grad_ctm_setting);
+E_LU_RU_LD, E_LD_RU_RD, E_LU_LD_RD, E_LU_RU_RD=evaluate_chirality(A, AA, U_L,U_D,U_R,U_U, CTM, LS_ctm_setting);
+
+Ex,Ey=evaluate_NN(A, AA, U_L,U_D,U_R,U_U, CTM, LS_ctm_setting);
+
+
+
+

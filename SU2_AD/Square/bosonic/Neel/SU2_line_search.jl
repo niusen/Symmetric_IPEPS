@@ -11,38 +11,36 @@ using Dates
 
 cd(@__DIR__)
 
-include("..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
-include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\src\\bosonic\\square\\square_model.jl")
-include("..\\..\\src\\bosonic\\square\\square_AD_SU2.jl")
-include("..\\..\\src\\bosonic\\Settings.jl")
-include("..\\..\\src\\bosonic\\AD_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\src\\bosonic\\optimkit_lib.jl")
-# include("..\\..\\src\\square_RVB_ansatz.jl")
+include("..\\..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
+include("..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\..\\..\\src\\bosonic\\CTMRG.jl")
+include("..\\..\\..\\src\\bosonic\\square\\square_model.jl")
+include("..\\..\\..\\src\\bosonic\\square\\square_AD_SU2.jl")
+include("..\\..\\..\\src\\bosonic\\Settings.jl")
+include("..\\..\\..\\src\\bosonic\\AD_lib.jl")
+include("..\\..\\..\\src\\bosonic\\line_search_lib.jl")
+include("..\\..\\..\\src\\bosonic\\optimkit_lib.jl")
+# include("..\\..\\..\\src\\square_RVB_ansatz.jl")
 
 
-Random.seed!(555)
+Random.seed!(666)
 
 
-D=3;
-chi=54;
+D=7;
+chi=50;
 
 
-J1=2*cos(0.06*pi)*cos(0.14*pi);
-J2=2*cos(0.06*pi)*sin(0.14*pi);
-Jchi=2*sin(0.06*pi)*2;
 
-J1=2;
+
+J1=1;
 J2=0;
-Jchi=2;
+Jchi=0;
 parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=10;
+grad_ctm_setting.CTM_ite_nums=50;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -56,7 +54,7 @@ dump(grad_ctm_setting);
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=50;
+LS_ctm_setting.CTM_ite_nums=150;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -76,7 +74,7 @@ dump(backward_settings);
 
 optim_setting=Optim_settings();
 optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0.5;
+optim_setting.init_noise=0.2;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
@@ -109,6 +107,8 @@ elseif D==5
     Vv=SU2Space(0=>1,1/2=>2);
 elseif D==6
     Vv=SU2Space(0=>1,1/2=>1,1=>1);
+elseif D==7
+    Vv=SU2Space(0=>1,1/2=>3);
 elseif D==8
     Vv=SU2Space(0=>1,1/2=>2,1=>1);
 elseif D==11
@@ -120,6 +120,10 @@ end
 
 global starting_time
 starting_time=now();
+
+
+global save_filenm
+save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 
 
 #E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));

@@ -99,6 +99,12 @@ function Square_iPEPS_convert(ansatz::Square_iPEPS)
 end
 
 
+
+Base.@kwdef mutable struct Square_Hubbard_Energy_settings
+    model :: String = "spinless_Hubbard"
+
+end
+
 Base.@kwdef mutable struct Square_Energy_settings
     model :: String = "triangle_J1_J2_Jchi"
 

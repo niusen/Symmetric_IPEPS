@@ -1,3 +1,10 @@
+#Z2 symmetry
+function get_Vspace_parity(V1::GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+    dm=V1.dims;
+    oddlist1=vcat(0*ones(dm[1]),1*ones(dm[2]));
+    return oddlist1
+end
+
 #U1 symmetry
 function get_Vspace_parity(V1::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
     oddlist1=[];

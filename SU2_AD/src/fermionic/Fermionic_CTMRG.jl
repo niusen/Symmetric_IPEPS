@@ -3,8 +3,9 @@ using TensorKit
 using Zygote:@ignore_derivatives
 
 function build_double_layer_swap(Ap,A)
-    #display(space(A))
-
+    # println(space(Ap))
+    # println(space(A))
+    
 
     gate=@ignore_derivatives swap_gate(Ap,1,4); 
     @tensor Ap[:]:=Ap[1,-2,-3,2,-5]*gate[-1,-4,1,2];  

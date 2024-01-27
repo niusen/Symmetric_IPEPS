@@ -104,6 +104,14 @@ function f(x::Square_iPEPS)
     elseif isa(energy_setting,Square_2site_Energy_settings)
         E, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
         println("E= "*string(E)*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    elseif isa(energy_setting,Square_Hubbard_Energy_settings)
+        if energy_setting.model=="spinless_Hubbard"
+            E, ex,ey,e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex,ey,e0= "*string([ex,ey,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        elseif energy_setting.model=="spinless_Hubbard_pairing"
+            E, ex,ey,px,py, e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex,ey,px,py,e0= "*string([ex,ey,px,py,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        end
     end
     global E_history,save_filenm
     if E<minimum(E_history)

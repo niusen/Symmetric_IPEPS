@@ -111,6 +111,9 @@ function f(x::Square_iPEPS)
         elseif energy_setting.model=="spinless_Hubbard_pairing"
             E, ex,ey,px,py, e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
             println("E= "*string(E)*", "*"ex,ey,px,py,e0= "*string([ex,ey,px,py,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        elseif energy_setting.model=="spinless_t1_t2"
+            E, ex,ey,e_right_top,e_right_bot, e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex,ey,e_right_top,e_right_bot,e0= "*string([ex,ey,e_right_top,e_right_bot,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         end
     end
     global E_history,save_filenm

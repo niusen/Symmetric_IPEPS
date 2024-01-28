@@ -53,7 +53,7 @@ function ob_2x2(CTM,AA_LU,AA_RU,AA_LD,AA_RD)
 end
 
 
-function hopping_x(CTM,O1,O2,A,AA)
+function hopping_x(CTM,O1,O2,A,AA,ctm_setting)
 
     @tensor A_LU[:]:= A[-1,-2,-3,-4,1]*O1[-6,-5,1]
     @tensor A_RU[:]:= A[-1,-2,-3,-4,1]*O2[-6,-5,1]
@@ -77,8 +77,14 @@ function hopping_x(CTM,O1,O2,A,AA)
     @tensor A_LU[:]:=A_LU[-1,-2,1,-4,-5,2]*U[-3,1,2];
     @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,2]*U'[1,2,-1];
 
-    AA_LU_double,_,_,_,_=build_double_layer_swap(A',A_LU);
-    AA_RU_double,_,_,_,_=build_double_layer_swap(A',A_RU);
+    if ctm_setting.grad_checkpoint
+        AA_LU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_LU);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_RU);
+    else
+        AA_LU_double,_,_,_,_=build_double_layer_swap(A',A_LU);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A',A_RU);
+    end
+    
 
 
     ob=ob_2x2(CTM,AA_LU_double,AA_RU_double,AA,AA);
@@ -87,7 +93,7 @@ function hopping_x(CTM,O1,O2,A,AA)
     return ob
 end
 
-function hopping_y(CTM,O1,O2,A,AA)
+function hopping_y(CTM,O1,O2,A,AA,ctm_setting)
 
 
     #the first index of O is dummy
@@ -108,9 +114,13 @@ function hopping_y(CTM,O1,O2,A,AA)
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U1[-2,1,2];
     @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,2]*U1'[1,2,-4];
 
-
-    AA_RU_double,_,_,_,_=build_double_layer_swap(A',A_RU);
-    AA_RD_double,_,_,_,_=build_double_layer_swap(A',A_RD);
+    if ctm_setting.grad_checkpoint
+        AA_RD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_RD);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_RU);
+    else
+        AA_RD_double,_,_,_,_=build_double_layer_swap(A',A_RD);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A',A_RU);
+    end
 
     
     ob=ob_2x2(CTM,AA,AA_RU_double,AA,AA_RD_double);
@@ -120,15 +130,117 @@ function hopping_y(CTM,O1,O2,A,AA)
 end
 
 
+function hopping_right_top(CTM,O1,O2,A,AA,ctm_setting)
+
+    # @tensor A_LU[:]:= A_cell[pos_LU[1]][pos_LU[2]][-1,-2,-3,-4,1]*O1[-5,1]
+    # @tensor A_RD[:]:= A_cell[pos_RD[1]][pos_RD[2]][-1,-2,-3,-4,1]*O2[-5,1]
+    @tensor A_LU[:]:= A[-1,-2,-3,-4,1]*O1[-6,-5,1]
+    @tensor A_RD[:]:= A[-1,-2,-3,-4,1]*O2[-6,-5,1]
+    O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+    
+
+
+    gate=@ignore_derivatives parity_gate(A_LU,1); 
+    @tensor A_LU[:]:=A_LU[1,-2,-3,-4,-5,-6]*gate[-1,1];
+    gate=@ignore_derivatives parity_gate(A_LU,2); 
+    @tensor A_LU[:]:=A_LU[-1,1,-3,-4,-5,-6]*gate[-2,1];
+    gate=@ignore_derivatives parity_gate(A_LU,4); 
+    @tensor A_LU[:]:=A_LU[-1,-2,-3,1,-5,-6]*gate[-4,1];
+
+    gate=@ignore_derivatives parity_gate(A_RD,4); 
+    @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,-6]*gate[-4,1];
+
+
+        
+    U1=@ignore_derivatives unitary(fuse(space(A_LU,3)⊗space(A_LU,6)), space(A_LU,3)⊗space(A_LU,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RD,4)⊗space(A_RD,6)), space(A_RD,4)⊗space(A_RD,6)); 
+    @tensor A_LU[:]:=A_LU[-1,-2,1,-4,-5,2]*U1[-3,1,2];
+    @tensor A_RU[:]:=A[1,3,-3,-4,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-2];
+    @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,2]*U2[-4,1,2];
 
 
 
-function ob_onsite(CTM,O1,A,AA)
+    if ctm_setting.grad_checkpoint
+        AA_LU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_LU);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_RU);
+        AA_RD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_RD);
+    else
+        AA_LU_double,_,_,_,_=build_double_layer_swap(A',A_LU);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A',A_RU);
+        AA_RD_double,_,_,_,_=build_double_layer_swap(A',A_RD);
+    end
+
+
+    ob=ob_2x2(CTM,AA_LU_double,AA_RU_double,AA,AA_RD_double);
+    Norm=ob_2x2(CTM,AA,AA,AA,AA);
+    ob=ob/Norm;
+    return ob    
+end
+
+
+function hopping_right_bot(CTM,O1,O2,A,AA,ctm_setting)
+
+    @tensor A_LD[:]:= A[-1,-2,-3,-4,1]*O1[-6,-5,1]
+    @tensor A_RU[:]:= A[-1,-2,-3,-4,1]*O2[-6,-5,1]
+    # @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*O1[-5,1]
+    # @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-5,1]
+    O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+
+
+    gate=@ignore_derivatives parity_gate(A_LD,1); 
+    @tensor A_LD[:]:=A_LD[1,-2,-3,-4,-5,-6]*gate[-1,1];
+    gate=@ignore_derivatives parity_gate(A_LD,2); 
+    @tensor A_LD[:]:=A_LD[-1,1,-3,-4,-5,-6]*gate[-2,1];
+    gate=@ignore_derivatives parity_gate(A_LD,4); 
+    @tensor A_LD[:]:=A_LD[-1,-2,-3,1,-5,-6]*gate[-4,1];
+
+    gate=@ignore_derivatives parity_gate(A,2); 
+    @tensor A_RD[:]:=A[-1,1,-3,-4,-5]*gate[-2,1];
+    gate=@ignore_derivatives parity_gate(A_RD,3); 
+    @tensor A_RD[:]:=A_RD[-1,-2,1,-4,-5]*gate[-3,1];
+    gate=@ignore_derivatives parity_gate(A_RD,5); 
+    @tensor A_RD[:]:=A_RD[-1,-2,-3,-4,1]*gate[-5,1];
+
+    gate=@ignore_derivatives parity_gate(A_RU,3); 
+    @tensor A_RU[:]:=A_RU[-1,-2,1,-4,-5,-6]*gate[-3,1];
+    gate=@ignore_derivatives parity_gate(A_RU,5); 
+    @tensor A_RU[:]:=A_RU[-1,-2,-3,-4,1,-6]*gate[-5,1];
+
+
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
+    @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
+    @tensor A_RD[:]:=A_RD[1,-2,-3,3,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-4];
+
+
+    if ctm_setting.grad_checkpoint
+        AA_LD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_LD);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_RU);
+        AA_RD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A_RD);
+    else
+        AA_LD_double,_,_,_,_=build_double_layer_swap(A',A_LD);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A',A_RU);
+        AA_RD_double,_,_,_,_=build_double_layer_swap(A',A_RD);
+    end
+
+    ob=ob_2x2(CTM,AA,AA_RU_double,AA_LD_double,AA_RD_double);
+    Norm=ob_2x2(CTM,AA,AA,AA,AA);
+    ob=ob/Norm;
+    return ob        
+end
+
+
+function ob_onsite(CTM,O1,A,AA,ctm_setting)
     
     @tensor A1[:]:= A[-1,-2,-3,-4,1]*O1[-5,1]
 
-
-    A1_double,_,_,_,_=build_double_layer_swap(A',A1);
+    if ctm_setting.grad_checkpoint
+        A1_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A',A1);
+    else
+        A1_double,_,_,_,_=build_double_layer_swap(A',A1);
+    end
+    
 
     ob=ob_2x2(CTM,AA,A1_double,AA,AA);
     Norm=ob_2x2(CTM,AA,AA,AA,AA);

@@ -31,7 +31,7 @@ t1=-1;
 t2=0;
 γ=0;
 μ=1;
-parameters=Dict([("t1", t1),("t1", t1), ("γ", γ), ("μ",  μ)]);
+parameters=Dict([("t1", t1),("t2", t2), ("γ", γ), ("μ",  μ)]);
 
 
 grad_ctm_setting=grad_CTMRG_settings();
@@ -69,15 +69,15 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_LS_D_2_chi_20_2.11402.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0.2;
+optim_setting.init_statenm="Optim_LS_D_4_chi_20_2.14664.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinless_Hubbard_pairing";
 #energy_setting.model = "spinless_Hubbard_pairing";
-#energy_setting.model = "spinless_t1_t2";
+#energy_setting.model = "spinless_Hubbard_pairing";
+energy_setting.model = "spinless_t1_t2";
 dump(energy_setting);
 
 
@@ -113,16 +113,7 @@ starting_time=now();
 
 ################################################
 
-
-
-global E_history
-E_history=[10000];
-
-
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
-
+f(state_vec)
 # ls = StrongWolfe()
 # println(ls)
 # fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)

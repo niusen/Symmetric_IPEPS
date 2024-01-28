@@ -27,13 +27,13 @@ include("..\\..\\..\\..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\..\\..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 
 
-D=4;
-chi=10
+D=2;
+chi=20
 
 t1=1;
 t2=1;
-γ=-2.0;
-μ=3.0;
+γ=0;
+μ=1.0;
 parameters=Dict([("t1", t1),("t2", t2), ("γ", γ), ("μ",  μ)]);
 
 file = matopen("tensors.mat")
@@ -42,7 +42,7 @@ B=read(file, "B");
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=10;
+grad_ctm_setting.CTM_ite_nums=50;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -75,7 +75,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_cell_LS_D_2_chi_20_2.1419.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -109,16 +109,7 @@ end
 @assert dim(Vv)==D;
 
 
-M_convert2=[0 1;1 0];
-M_convert4=[0 0 1 0;0 0 0 1;1 0 0 0; 0 1 0 0];
 
-@tensor A[:]:=A[1,2,3,4,5]*M_convert4[-1,1]*M_convert4[-2,2]*M_convert4[-3,3]*M_convert4[-4,4]*M_convert2[-5,5];
-@tensor B[:]:=B[1,2,3,4,5]*M_convert4[-1,1]*M_convert4[-2,2]*M_convert4[-3,3]*M_convert4[-4,4]*M_convert2[-5,5];
-
-A=TensorMap(A,Vv*Vv'*Vv'*Vv,Rep[ℤ₂](0=>1, 1=>1)');
-B=TensorMap(B,Vv*Vv'*Vv'*Vv,Rep[ℤ₂](0=>1, 1=>1)');
-A=permute(A,(1,2,3,4,5,));
-B=permute(B,(1,2,3,4,5,));
 
 
 
@@ -127,22 +118,23 @@ Lx=2;
 Ly=2;
 
 
-state=Matrix{Square_iPEPS}(undef,Lx,Ly);
-state[1,1]=Square_iPEPS(A);
-state[1,2]=Square_iPEPS(B);
-state[2,1]=Square_iPEPS(B);
-state[2,2]=Square_iPEPS(A);
+
+init_complex_tensor=true;
+
+state_vec=initial_fPEPS_state_spinless_Z2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=normalize_tensor_group(state_vec);
 
 A_cell=initial_tuple_cell(Lx,Ly);
 for cx=1:Lx
     for cy=1:Ly
-        A=state[cx,cy].T;
+        A=state_vec[cx,cy].T;
         norm_A=norm(A)
         A=A/norm_A;
 
         A_cell=fill_tuple(A_cell, A, cx,cy);
     end
 end
+
 
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);

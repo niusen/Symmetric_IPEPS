@@ -1,7 +1,8 @@
 function initial_fPEPS_state_spinless_Z2(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+    Vp=Rep[ℤ₂](0=>1,1=>1)';
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);
-        Vp=Rep[ℤ₂](0=>1,1=>1)';
+        
         if init_complex_tensor
             A=TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)+TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)*im;
         else
@@ -22,21 +23,21 @@ function initial_fPEPS_state_spinless_Z2(Vspace,init_statenm="nothing",init_nois
         if Vspace==space(A0,1)
             A=A0;
         else
-            # println("Extend bond dimension of initial state")
-            # if space(A0,1)==SU2Space(0=>1,1/2=>1)
-            #     if Vspace==SU2Space(0=>2,1/2=>1)
-            #         M=zeros(4,4,4,4,2)*im;
-            #         M[2:4,2:4,2:4,2:4,1:2]=convert(Array,A0);
-            #         A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
-            #     elseif Vspace==SU2Space(0=>1,1/2=>2)
-            #         M=zeros(5,5,5,5,2)*im;
-            #         M[1:3,1:3,1:3,1:3,1:2]=convert(Array,A0);
-            #         A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
-            #     end
-            # elseif space(A0,1)==SU2Space(0=>2,1/2=>1)
-            # elseif space(A0,1)==SU2Space(0=>1,1/2=>2)
-            # end
-            # A=permute(A,(1,2,3,4,5,));
+            println("Extend bond dimension of initial state")
+            if space(A0,1)==Rep[ℤ₂](0=>1, 1=>1)
+                if Vspace==Rep[ℤ₂](0=>2, 1=>2)
+                    M=zeros(4,4,4,4,2)*im;
+                    M[[1,3],[1,3],[1,3],[1,3],1:2]=convert(Array,A0);
+                    A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                elseif Vspace==SU2Space(0=>1,1/2=>2)
+                    M=zeros(5,5,5,5,2)*im;
+                    M[1:3,1:3,1:3,1:3,1:2]=convert(Array,A0);
+                    A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
+                end
+            elseif space(A0,1)==SU2Space(0=>2,1/2=>1)
+            elseif space(A0,1)==SU2Space(0=>1,1/2=>2)
+            end
+            A=permute(A,(1,2,3,4,5,));
         end
 
         if init_complex_tensor
@@ -67,9 +68,9 @@ function cost_fun(x) #variational parameters are vector of TensorMap
         Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
         t1 =parameters["t1"];
         μ=parameters["μ"];
-        ex=hopping_x(CTM,Cdag,C,A,AA);
-        ey=hopping_y(CTM,Cdag,C,A,AA);
-        e0=ob_onsite(CTM,occu,A,AA);
+        ex=hopping_x(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        ey=hopping_y(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        e0=ob_onsite(CTM,occu,A,AA,grad_ctm_setting);
 
         E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'-2*μ*e0);
 
@@ -78,17 +79,28 @@ function cost_fun(x) #variational parameters are vector of TensorMap
         t1 =parameters["t1"];
         γ=parameters["γ"];
         μ=parameters["μ"];
-        ex=hopping_x(CTM,Cdag,C,A,AA);
-        ey=hopping_y(CTM,Cdag,C,A,AA);
-        px=hopping_x(CTM,Cdag,Cdag_,A,AA);
-        py=hopping_y(CTM,Cdag,Cdag_,A,AA);
-        e0=ob_onsite(CTM,occu,A,AA);
+        ex=hopping_x(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        ey=hopping_y(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        px=hopping_x(CTM,Cdag,Cdag_,A,AA,grad_ctm_setting);
+        py=hopping_y(CTM,Cdag,Cdag_,A,AA,grad_ctm_setting);
+        e0=ob_onsite(CTM,occu,A,AA,grad_ctm_setting);
 
         E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'+ -2*μ*e0   +γ*px+γ'px'+ γ*py+γ'py');
+    elseif energy_setting.model=="spinless_t1_t2"
+        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
+        t1 =parameters["t1"];
+        t2=parameters["t2"];
+        μ=parameters["μ"];
+
+        ex=hopping_x(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        ey=hopping_y(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        e_right_top=hopping_right_top(CTM,Cdag,-1*C,A,AA,grad_ctm_setting);#compared with exact result, here a minus sign to ensure correct result
+        e_right_bot=hopping_right_bot(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        e0=ob_onsite(CTM,occu,A,AA,grad_ctm_setting);
+
+        E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'+ -2*μ*e0   +t2*e_right_top+t2'e_right_top'+ t2*e_right_bot+t2'e_right_bot');
     end
 
-
-    #println(E)
     println("E0= "*string(E));flush(stdout);
     global E_tem, CTM_tem
     CTM_tem=deepcopy(CTM);
@@ -114,9 +126,9 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         t1 =parameters["t1"];
         μ=parameters["μ"];
         
-        ex=hopping_x(CTM,Cdag,C,A,AA);
-        ey=hopping_y(CTM,Cdag,C,A,AA);
-        e0=ob_onsite(CTM,occu,A,AA);
+        ex=hopping_x(CTM,Cdag,C,A,AA,ctm_setting);
+        ey=hopping_y(CTM,Cdag,C,A,AA,ctm_setting);
+        e0=ob_onsite(CTM,occu,A,AA,ctm_setting);
 
         E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey' -2*μ*e0);
 
@@ -127,15 +139,28 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         γ=parameters["γ"];
         μ=parameters["μ"];
         
-        ex=hopping_x(CTM,Cdag,C,A,AA);
-        ey=hopping_y(CTM,Cdag,C,A,AA);
-        px=hopping_x(CTM,Cdag,Cdag_,A,AA);
-        py=hopping_y(CTM,Cdag,Cdag_,A,AA);
-        e0=ob_onsite(CTM,occu,A,AA);
+        ex=hopping_x(CTM,Cdag,C,A,AA,ctm_setting);
+        ey=hopping_y(CTM,Cdag,C,A,AA,ctm_setting);
+        px=hopping_x(CTM,Cdag,Cdag_,A,AA,ctm_setting);
+        py=hopping_y(CTM,Cdag,Cdag_,A,AA,ctm_setting);
+        e0=ob_onsite(CTM,occu,A,AA,ctm_setting);
 
         E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey' -2*μ*e0   +γ*px+γ'px'+ γ*py+γ'py');
+    elseif energy_setting.model=="spinless_t1_t2"
+        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
+        t1 =parameters["t1"];
+        t2=parameters["t2"];
+        μ=parameters["μ"];
+        
+        ex=hopping_x(CTM,Cdag,C,A,AA,ctm_setting);
+        ey=hopping_y(CTM,Cdag,C,A,AA,ctm_setting);
+        e_right_top=hopping_right_top(CTM,Cdag,-1*C,A,AA,ctm_setting);#compared with exact result, here a minus sign to ensure correct result
+        e_right_bot=hopping_right_bot(CTM,Cdag,C,A,AA,ctm_setting);
+        e0=ob_onsite(CTM,occu,A,AA,ctm_setting);
 
-        return E, ex,ey,px,py, e0, ite_num,ite_err,CTM
+        E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'+ -2*μ*e0   +t2*e_right_top+t2'e_right_top'+ t2*e_right_bot+t2'e_right_bot');
+
+        return E, ex,ey,e_right_top,e_right_bot, e0, ite_num,ite_err,CTM
     end
 end
 

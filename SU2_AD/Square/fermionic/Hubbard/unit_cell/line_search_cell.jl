@@ -26,21 +26,22 @@ include("..\\..\\..\\..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\..\\..\\..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\..\\..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 
-Random.seed!(555)
+Random.seed!(444)
 
-D=4;
+D=2;
 chi=20
 
 t1=-1;
-γ=0;
-μ=0;
-parameters=Dict([("t1", t1), ("γ", γ), ("μ",  μ)]);
+t2=0;
+γ=1;
+μ=1;
+parameters=Dict([("t1", t1),("t2", t2), ("γ", γ), ("μ",  μ)]);
 
 
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=10;
+grad_ctm_setting.CTM_ite_nums=20;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -73,14 +74,14 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_2_chi_20_0.76877.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0.1;
+optim_setting.init_statenm="Optim_cell_LS_D_2_chi_20_2.51593.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0.3;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinless_Hubbard";
-#energy_setting.model = "spinless_Hubbard_pairing";
+#energy_setting.model = "spinless_Hubbard";
+energy_setting.model = "spinless_Hubbard_pairing";
 dump(energy_setting);
 
 algrithm_CTMRG_settings=Algrithm_CTMRG_settings()

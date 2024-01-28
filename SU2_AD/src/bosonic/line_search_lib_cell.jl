@@ -58,7 +58,7 @@ function gdoptimize(f, g!, fg!, x0::Matrix{T}, linesearch, maxiter::Int = 20, g_
 end
 
 function f(x::Matrix{T}) where T<:iPEPS_ansatz
-    global CTM_tem,LS_ctm_setting
+    global CTM_tem,LS_ctm_setting,energy_setting
     if optim_setting.linesearch_CTM_method=="from_converged_CTM"
         init=initial_condition(init_type="PBC", reconstruct_CTM=false, reconstruct_AA=true);
         CTM0=deepcopy(CTM_tem);
@@ -73,8 +73,16 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
         E,E_plaquatte_cell,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, init, CTM0); 
         println("E= "*string(E)*", "*"E_plaquatte_cell= "*string(E_plaquatte_cell[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
     elseif isa(x[1],Square_iPEPS)
-        E,E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-        println("E= "*string(E)*", "*"E_LU_RU_LD= "*string(E_LU_RU_LD_set[:])*", "*"E_LD_RU_RD "*string(E_LD_RU_RD_set[:])*", "*"E_LU_LD_RD= "*string(E_LU_LD_RD_set[:])*", "*"E_LU_RU_RD= "*string(E_LU_RU_RD_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        if energy_setting.model =="triangle_J1_J2_Jchi"
+            E,E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"E_LU_RU_LD= "*string(E_LU_RU_LD_set[:])*", "*"E_LD_RU_RD "*string(E_LD_RU_RD_set[:])*", "*"E_LU_LD_RD= "*string(E_LU_LD_RD_set[:])*", "*"E_LU_RU_RD= "*string(E_LU_RU_RD_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        elseif energy_setting.model == "spinless_Hubbard";
+            E, ex_set, ey_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        elseif energy_setting.model == "spinless_Hubbard_pairing";
+            E, ex_set, ey_set, px_set, py_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"px_set= "*string(px_set[:])*", "*"py_set= "*string(py_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        end
     end
     global E_history
     if E<minimum(E_history)
@@ -98,6 +106,7 @@ function g!(gvec::Matrix{T}, x) where T<:iPEPS_ansatz# this function changes the
     for cc in eachindex(gvec)
         setindex!(gvec,∂E[cc],cc);#this will change the input variable
     end
+    println("norm of grad: "*string(norm(gvec)))
     return gvec
 end
 

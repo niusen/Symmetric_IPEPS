@@ -375,17 +375,28 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     #M=show_grad(M);
     
     #jldsave("hard_tensor.jld2"; M)
+    
+    if isa(space(M,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+        chi_extra=3;
+    elseif isa(space(M,1), GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}) #U1 symmetry
+        chi_extra=4;
+    elseif isa(space(M,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}) #SU(2) symmetry
+        chi_extra=20;
+    elseif isa(space(M,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}) #U1 x SU(2)
+        chi_extra=20;
+    end
+
 
     if CTM_trun_svd
-        uM,sM,vM, M=truncated_svd_method(M,chi+20,svd_lanczos_tol,construct_double_layer);
+        uM,sM,vM, M=truncated_svd_method(M,chi+chi_extra,svd_lanczos_tol,construct_double_layer);
 
         # TT_=uM*sM*vM;
-        # uM0,sM0,vM0 = tsvd(M; trunc=truncdim(chi+20));
+        # uM0,sM0,vM0 = tsvd(M; trunc=truncdim(chi+chi_extra));
         # TT=uM0*sM0*vM0;
         # println("error of truncated svd: "*string(norm(TT_-TT)/norm(TT)))
     else
         #uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
-        uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+20));
+        uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
         #uM,sM,vM = tsvd(M);
     end
 

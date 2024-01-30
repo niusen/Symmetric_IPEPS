@@ -117,6 +117,10 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         E_total,  ex_set, ey_set, px_set, py_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
         E=real(E_total);
         return E, ex_set, ey_set, px_set, py_set, e0_set, ite_num,ite_err,CTM_cell
+    elseif energy_setting.model=="spinless_triangle_lattice"
+        E_total,  ex_set, ey_set, e_right_bot_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+        E=real(E_total);
+        return E, ex_set, ey_set, e_right_bot_set, e0_set, ite_num,ite_err,CTM_cell
     end
 end
 
@@ -142,7 +146,7 @@ function cost_fun_testt(x::Matrix{T})  where T<:iPEPS_ansatz #variational parame
     
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
-    E_total,  ex_set, ey_set, px_set, py_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+    E_total,  _=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
     E=real(E_total);
 
     println("E0= "*string(E));flush(stdout);

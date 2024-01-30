@@ -389,6 +389,49 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         # println(E_LU_LD_RD_set)
         # println(E_LU_RU_RD_set)
         return E_total,  ex_set, ey_set, e_right_top_set, e_right_bot_set, e0_set
+    elseif energy_setting.model=="spinless_triangle_lattice"
+        if (Lx==2) & (Ly==1) #2x1 cell
+            Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
+            t1=parameters["t1"];
+            t2=parameters["t2"];
+            ϕ=parameters["ϕ"];
+            μ=parameters["μ"];
+
+            ex_set=zeros(Lx,Ly)*im;
+            ey_set=zeros(Lx,Ly)*im;
+            e_right_bot_set=zeros(Lx,Ly)*im;
+            e0_set=zeros(Lx,Ly)*im;
+
+            
+            E_total=0;
+
+            cx=1;cy=1;
+            ex=hopping_x(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e_right_bot=hopping_right_bot(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e0=ob_onsite(CTM_cell,occu,A_cell,AA_cell,cx,cy,ctm_setting);
+            @ignore_derivatives ex_set[cx,cy]=ex;
+            @ignore_derivatives ey_set[cx,cy]=ey;
+            @ignore_derivatives e_right_bot_set[cx,cy]=e_right_bot;
+            @ignore_derivatives e0_set[cx,cy]=e0;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_right_bot+e_right_bot') -μ*e0);
+
+            cx=2;cy=1;
+            ex=hopping_x(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e_right_bot=hopping_right_bot(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e0=ob_onsite(CTM_cell,occu,A_cell,AA_cell,cx,cy,ctm_setting);
+            @ignore_derivatives ex_set[cx,cy]=ex;
+            @ignore_derivatives ey_set[cx,cy]=ey;
+            @ignore_derivatives e_right_bot_set[cx,cy]=e_right_bot;
+            @ignore_derivatives e0_set[cx,cy]=e0;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_right_bot+e_right_bot') -μ*e0);
+            
+                
+            
+            E_total=E_total/(Lx*Ly);
+            return E_total,  ex_set, ey_set, e_right_bot_set, e0_set
+        end
     end
 end
 

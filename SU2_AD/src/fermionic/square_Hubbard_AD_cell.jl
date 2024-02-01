@@ -36,12 +36,16 @@ function initial_fPEPS_state_spinless_Z2(Vspace,init_statenm="nothing",init_nois
                         M[[1,3],[1,3],[1,3],[1,3],1:2]=convert(Array,A0);
                         A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
                     elseif Rep[ℤ₂](0=>3, 1=>3)
-                        M=zeros(4,4,4,4,2)*im;
+                        M=zeros(6,6,6,6,2)*im;
                         M[[1,4],[1,4],[1,4],[1,4],1:2]=convert(Array,A0);
                         A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
                     end
-                elseif space(A0,1)==SU2Space(0=>2,1/2=>1)
-                elseif space(A0,1)==SU2Space(0=>1,1/2=>2)
+                elseif space(A0,1)==Rep[ℤ₂](0=>2, 1=>2)
+                    if Vspace==Rep[ℤ₂](0=>3, 1=>3)
+                        M=zeros(6,6,6,6,2)*im;
+                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],1:2]=convert(Array,A0);
+                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                    end
                 end
                 A=permute(A,(1,2,3,4,5,));
             end

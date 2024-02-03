@@ -1,3 +1,5 @@
+using HalfIntegers
+
 #Z2 symmetry
 function get_Vspace_parity(V1::GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
     dm=V1.dims;
@@ -18,10 +20,28 @@ function get_Vspace_parity(V1::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U
             Qn=Keys[cc].charge;
         end
         Dim=Values[cc];
-        if mod(Qn,2)==0
-            oddlist1=vcat(oddlist1,Int.(zeros(Dim)));
-        elseif mod(Qn,2)==1
-            oddlist1=vcat(oddlist1,Int.(ones(Dim)));
+
+        if mod(Qn,1)==0 #integer Qn
+            if mod(Qn,2)==0
+                oddlist1=vcat(oddlist1,Int.(zeros(Dim)));
+            elseif mod(Qn,2)==1
+                oddlist1=vcat(oddlist1,Int.(ones(Dim)));
+            end
+        elseif mod(Qn,1)==1/2 #half integer Qn
+            error("Qn not identified")
+            # if V1.dual
+            #     Qn_U1=-Qn+1/2;
+            # else
+            #     Qn_U1=Qn+1/2;
+            # end
+
+            # if mod(Qn_U1,2)==0
+            #     oddlist1=vcat(oddlist1,Int.(zeros(Dim)));
+            # elseif mod(Qn_U1,2)==1
+            #     oddlist1=vcat(oddlist1,Int.(ones(Dim)));
+            # end
+        else
+            error("Qn not identified")
         end
     end
     return oddlist1

@@ -108,15 +108,16 @@ function init_CTM_swap(chi,A,AA_fused, U_L,U_D,U_R,U_U,type,CTM_ite_info)
 
     
     if type=="PBC"
-        @tensor C1[:]:=AA_fused[1,-1,-2,3]*U_R[2,2,1]*U_D[3,4,4];
-        @tensor C2[:]:=AA_fused[-1,-2,3,1]*U_D[1,2,2]*U_L[3,4,4];
-        @tensor C3[:]:=AA_fused[-2,3,1,-1]*U_L[1,2,2]*U_U[4,4,3];
-        @tensor C4[:]:=AA_fused[1,3,-1,-2]*U_R[2,2,1]*U_U[4,4,3];
 
-        @tensor T4[:]:=AA_fused[1,-1,-2,-3]*U_R[2,2,1];
-        @tensor T1[:]:=AA_fused[-1,-2,-3,1]*U_D[1,2,2];
-        @tensor T2[:]:=AA_fused[-2,-3,1,-1]*U_L[1,2,2];
-        @tensor T3[:]:=AA_fused[-3,1,-1,-2]*U_U[2,2,1];
+        @tensor C1[:]:=AA_fused[1,-1,-2,3]*U_L'[2,2,1]*U_U'[3,4,4];
+        @tensor C2[:]:=AA_fused[-1,-2,3,1]*U_U'[1,2,2]*U_R'[3,4,4];
+        @tensor C3[:]:=AA_fused[-2,3,1,-1]*U_R'[1,2,2]*U_D'[4,4,3];
+        @tensor C4[:]:=AA_fused[1,3,-1,-2]*U_L'[2,2,1]*U_D'[4,4,3];
+
+        @tensor T4[:]:=AA_fused[1,-1,-2,-3]*U_L'[2,2,1];
+        @tensor T1[:]:=AA_fused[-1,-2,-3,1]*U_U'[1,2,2];
+        @tensor T2[:]:=AA_fused[-2,-3,1,-1]*U_R'[1,2,2];
+        @tensor T3[:]:=AA_fused[-3,1,-1,-2]*U_D'[2,2,1];
 
         Cset=Cset_struc(C1,C2,C3,C4);
         Tset=Tset_struc(T1,T2,T3,T4);

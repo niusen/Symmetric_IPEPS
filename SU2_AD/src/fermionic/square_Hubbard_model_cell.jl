@@ -33,6 +33,99 @@ function Hamiltonians_spinless_Z2()
 end
 
 
+function Hamiltonians_spinless_U1()
+    
+
+    #Vdummy=ℂ[U1Irrep](-1=>1);
+    #V=ℂ[U1Irrep](0=>1,1=>1);
+
+    Vdummy=Rep[U₁](1=>1);
+    V=Rep[U₁](-1/2=>1,1/2=>1);
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    Ident=TensorMap(Id,  V  ←  V);
+
+    occu=TensorMap(occu,  V ←  V);
+    
+
+    Cdag=zeros(1,2,2);
+    Cdag[1,:,:]=sp;
+    Cdag=TensorMap(Cdag, Vdummy ⊗ V ← V);
+
+
+    C=zeros(1,2,2);
+    C[1,:,:]=sm;
+    C=TensorMap(C, Vdummy' ⊗ V ← V);
+
+    Cdag_=nothing
+
+
+    return Ident, occu, Cdag, C, Cdag_ 
+end
+
+function Hamiltonians_spinful_SU2()
+    
+
+    Vdummy=SU2Space(1/2=>1);
+    V=SU2Space(0=>2,1/2=>1);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order: (0,0), (0,1), (1,0), (1,1)
+    
+    Ident=kron(Id,Id);
+    Ident=TensorMap(Ident[[1,4,3,2],[1,4,3,2]],  V  ←  V);
+
+    N_occu=kron(occu,Id)+kron(Id,occu);
+    N_occu=TensorMap(N_occu[[1,4,3,2],[1,4,3,2]],  V ←  V);
+    n_double=kron(occu,occu)
+    n_double=TensorMap(n_double[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+    # method 1
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,sz);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(Id,sp);
+    Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
+
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+    C=TensorMap(Cup+Cdn, Vdummy ⊗ V ← V);
+
+
+
+    # # method 2
+    # order=[1,4,3,2];
+    # Cdagup=kron(sp,sz);
+    # Cdagup=Cdagup[order,order];
+    # Cup=kron(sm,Id);
+    # Cup=Cup[order,order];
+    # Cdagdn=kron(Id,sp);
+    # Cdagdn=Cdagdn[order,order];
+    # Cdn=kron(sz,sm);
+    # Cdn=Cdn[order,order];
+    # @tensor hop_up[:]:=Cdagup[-1,-2]*Cup[-3,-4];
+    # @tensor hop_dn[:]:=Cdagdn[-1,-2]*Cdn[-3,-4];
+    # Hop=TensorMap(hop_up+hop_dn,V*V' ← V'*V);
+    # u,s,v=tsvd(Hop,trunc=truncdim(2));
+    # u=u*s;
+    # @assert norm(u*v-Hop)/norm(Hop)<1e-12;
+
+    # #compare two methods
+    # @tensor hop1[:]:=Cdag[-1,-2,1]*C[1,-3,-4];
+    # hop1=permute(hop1,(1,2,),(3,4,));
+    # @assert norm(hop1-Hop)<1e-12;
+
+
+    Cdag=permute(Cdag,(3,1,),(2,))
+    return Ident, N_occu, n_double, Cdag, C
+end
 
 
 
@@ -275,9 +368,17 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
 
     global Lx,Ly
 
+    if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_Z2;
+    elseif isa(space(A_cell[1][1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(A_cell[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_SU2;
+    end
+
 
     if energy_setting.model=="spinless_Hubbard";
-        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
+        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonian_terms();
         t1=parameters["t1"];
         γ=parameters["γ"];
         μ=parameters["μ"];
@@ -312,7 +413,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         # println(E_LU_RU_RD_set)
         return E_total,  ex_set, ey_set, e0_set
     elseif energy_setting.model=="spinless_Hubbard_pairing";
-        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
+        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonian_terms();
         t1=parameters["t1"];
         γ=parameters["γ"];
         μ=parameters["μ"];
@@ -351,7 +452,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         # println(E_LU_RU_RD_set)
         return E_total,  ex_set, ey_set, px_set, py_set, e0_set
     elseif energy_setting.model=="spinless_t1_t2";
-        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
+        Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonian_terms();
         t1=parameters["t1"];
         t2=parameters["t2"];
         μ=parameters["μ"];
@@ -391,7 +492,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         return E_total,  ex_set, ey_set, e_right_top_set, e_right_bot_set, e0_set
     elseif energy_setting.model=="spinless_triangle_lattice"
         if (Lx==2) & (Ly==1) #2x1 cell
-            Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonians_spinless_Z2();
+            Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonian_terms();
             t1=parameters["t1"];
             t2=parameters["t2"];
             ϕ=parameters["ϕ"];
@@ -421,6 +522,50 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
             e_right_bot=hopping_right_bot(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
             e0=ob_onsite(CTM_cell,occu,A_cell,AA_cell,cx,cy,ctm_setting);
+            @ignore_derivatives ex_set[cx,cy]=ex;
+            @ignore_derivatives ey_set[cx,cy]=ey;
+            @ignore_derivatives e_right_bot_set[cx,cy]=e_right_bot;
+            @ignore_derivatives e0_set[cx,cy]=e0;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_right_bot+e_right_bot') -μ*e0);
+            
+                
+            
+            E_total=E_total/(Lx*Ly);
+            return E_total,  ex_set, ey_set, e_right_bot_set, e0_set
+            
+        end
+    elseif energy_setting.model=="spinful_triangle_lattice"
+        if (Lx==2) & (Ly==1) #2x1 cell
+            Ident, N_occu, n_double, Cdag, C =@ignore_derivatives Hamiltonian_terms();
+            t1=parameters["t1"];
+            t2=parameters["t2"];
+            ϕ=parameters["ϕ"];
+            μ=parameters["μ"];
+
+            ex_set=zeros(Lx,Ly)*im;
+            ey_set=zeros(Lx,Ly)*im;
+            e_right_bot_set=zeros(Lx,Ly)*im;
+            e0_set=zeros(Lx,Ly)*im;
+
+            
+            E_total=0;
+
+            cx=1;cy=1;
+            ex=hopping_x(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e_right_bot=hopping_right_bot(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e0=ob_onsite(CTM_cell,N_occu,A_cell,AA_cell,cx,cy,ctm_setting);
+            @ignore_derivatives ex_set[cx,cy]=ex;
+            @ignore_derivatives ey_set[cx,cy]=ey;
+            @ignore_derivatives e_right_bot_set[cx,cy]=e_right_bot;
+            @ignore_derivatives e0_set[cx,cy]=e0;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_right_bot+e_right_bot') -μ*e0);
+
+            cx=2;cy=1;
+            ex=hopping_x(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e_right_bot=hopping_right_bot(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+            e0=ob_onsite(CTM_cell,N_occu,A_cell,AA_cell,cx,cy,ctm_setting);
             @ignore_derivatives ex_set[cx,cy]=ex;
             @ignore_derivatives ey_set[cx,cy]=ey;
             @ignore_derivatives e_right_bot_set[cx,cy]=e_right_bot;

@@ -101,6 +101,8 @@ if D==2
     Vv=Rep[ℤ₂](0=>1, 1=>1);
 elseif D==4
     Vv=Rep[ℤ₂](0=>2, 1=>2); 
+elseif D==6
+    Vv=Rep[ℤ₂](0=>3, 1=>3); 
 end
 @assert dim(Vv)==D;
 

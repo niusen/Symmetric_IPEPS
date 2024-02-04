@@ -28,7 +28,7 @@ include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 
 Random.seed!(888)
 
-D=4;
+D=6;
 chi=40
 
 t=1;
@@ -99,10 +99,10 @@ global Vv
 
 if D==4
     Vv=SU2Space(0=>2,1/2=>1);
-elseif D==4
-   
+elseif D==5
+    Vv=SU2Space(0=>3,1/2=>1);
 elseif D==6
-     
+    Vv=SU2Space(0=>2,1/2=>2);
 end
 @assert dim(Vv)==D;
 

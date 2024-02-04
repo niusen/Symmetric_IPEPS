@@ -171,6 +171,7 @@ A2_new=construct_spin(A2);
 Vv=SU2Space(0=>2,1/2=>1);
 A1_new=TensorMap(convert(Array,A1_new),Vv*Vv'*Vv'*Vv,SU2Space(0=>2,1/2=>1)');
 
+#remark: I don't know how to construct su2 tensor. The direct tensor product seems to be not su2 invariant.
 
 
 A_cell=initial_tuple_cell(Lx,Ly);

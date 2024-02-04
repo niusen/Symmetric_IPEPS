@@ -87,9 +87,9 @@ function Hamiltonians_spinful_SU2()
 
     # method 1
     Cdagup=zeros(4,4,2);
-    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,sz);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,Id);
     Cdagdn=zeros(4,4,2);
-    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(Id,sp);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
     Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
 
     Cup=zeros(2,4,4);
@@ -102,11 +102,11 @@ function Hamiltonians_spinful_SU2()
 
     # # method 2
     # order=[1,4,3,2];
-    # Cdagup=kron(sp,sz);
+    # Cdagup=kron(sp,Id);
     # Cdagup=Cdagup[order,order];
     # Cup=kron(sm,Id);
     # Cup=Cup[order,order];
-    # Cdagdn=kron(Id,sp);
+    # Cdagdn=kron(sz,sp);
     # Cdagdn=Cdagdn[order,order];
     # Cdn=kron(sz,sm);
     # Cdn=Cdn[order,order];
@@ -127,6 +127,46 @@ function Hamiltonians_spinful_SU2()
     return Ident, N_occu, n_double, Cdag, C
 end
 
+function Hamiltonians_spinful_Z2()
+    
+
+    Vdummy=Rep[ℤ₂](1=>1);
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order of kron() command: (0,0), (0,1), (1,0), (1,1)
+    order=[1,4,3,2];
+
+    Ident=kron(Id,Id);
+    Ident=TensorMap(Ident[order,order],  V  ←  V);
+
+    N_occu=kron(occu,Id)+kron(Id,occu);
+    N_occu=TensorMap(N_occu[order,order],  V ←  V);
+    n_double=kron(occu,occu)
+    n_double=TensorMap(n_double[order,order],  V ←  V);
+
+    # method 1
+    Cdagup=zeros(4,4,1);
+    Cdagup[order,order,1]=kron(sp,Id);
+    Cdagdn=zeros(4,4,1);
+    Cdagdn[order,order,1]=kron(sz,sp);
+    Cdagup=TensorMap(Cdagup,  V ← V ⊗Vdummy);Cdagup=permute(Cdagup,(3,1,),(2,))
+    Cdagdn=TensorMap(Cdagdn,  V ← V ⊗Vdummy);Cdagdn=permute(Cdagdn,(3,1,),(2,))
+
+    Cup=zeros(1,4,4);
+    Cup[1,order,order]=kron(sm,Id);
+    Cdn=zeros(1,4,4);
+    Cdn[1,order,order]=kron(sz,sm);
+    Cup=TensorMap(Cup, Vdummy ⊗ V ← V);
+    Cdn=TensorMap(Cdn, Vdummy ⊗ V ← V);
+
+
+
+    return Ident, N_occu, n_double, Cdagup, Cup, Cdagdn, Cdn
+end
 
 
 function hopping_x(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)

@@ -40,7 +40,7 @@ parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ)]);
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=50;
+grad_ctm_setting.CTM_ite_nums=0;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -73,7 +73,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_2_chi_20_1.349870.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_cell_LS_D_2_chi_20_1.081059.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -98,17 +98,7 @@ global backward_settings
 global Vv_set
 
 if D==2
-    global Vv_set
-    Vv1=Rep[U₁](0=>1, 1=>1);
-    Vv2=Rep[U₁](0=>1, 1=>1)';
-    Vv3=Rep[U₁](-1/2=>1, 1/2=>1,3/2=>1)';
-    Vv4=Rep[U₁](0=>1, 1=>1);
-    Vv5=Rep[U₁](-1/2=>1, 1/2=>1,3/2=>1);
-    Vv6=Rep[U₁](0=>1, 1=>1)';
-    Vv7=Rep[U₁](0=>1, 1=>1)';
-    Vv8=Rep[U₁](0=>1, 1=>1);
-
-    Vv_set=(Vv1,Vv2,Vv3,Vv4,Vv5,Vv6,Vv7,Vv8,);
+    Vv=Rep[ℤ₂](0=>1, 1=>1); 
 elseif D==4
     Vv=Rep[ℤ₂](0=>2, 1=>2); 
 elseif D==6
@@ -132,33 +122,15 @@ Ly=1;
 
 init_complex_tensor=true;
 
-state_vec=initial_fPEPS_state_spinless_U1(Vv_set, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=initial_fPEPS_state_spinless_Z2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
 
 A1=state_vec[1].T;
 A2=state_vec[2].T;
 
-A1_dense=convert(Array,A1);
-A2_dense=convert(Array,A2);
-A1_dense[:,:,:,:,:]=A1_dense[:,:,[2,3,1],:,[2,1]];
-A2_dense[:,:,:,:,:]=A2_dense[[2,3,1],:,:,:,[2,1]];
 
-
-
-
-
-Vv1=Rep[ℤ₂](0=>1, 1=>1);
-Vv2=Rep[ℤ₂](0=>1, 1=>1)';
-Vv3=Rep[ℤ₂](0=>2, 1=>1)';
-Vv4=Rep[ℤ₂](0=>1, 1=>1);
-Vv5=Rep[ℤ₂](0=>2, 1=>1);
-Vv6=Rep[ℤ₂](0=>1, 1=>1)';
-Vv7=Rep[ℤ₂](0=>1, 1=>1)';
-Vv8=Rep[ℤ₂](0=>1, 1=>1);
 U_phy=Rep[ℤ₂](0=>1, 1=>1)';
 
-A1=TensorMap(A1_dense,Vv1*Vv2*Vv3*Vv4,U_phy);
-A2=TensorMap(A2_dense,Vv5*Vv6*Vv7*Vv8,U_phy);
 
 global save_filenm
 save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"

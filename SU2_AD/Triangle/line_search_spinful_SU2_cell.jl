@@ -26,10 +26,10 @@ include("..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 
-Random.seed!(666)
+Random.seed!(888)
 
 D=4;
-chi=20
+chi=40
 
 t=1;
 ϕ=pi/2;
@@ -73,8 +73,8 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_4_chi_20_1.31941.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0.2;
+optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_2.18518.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 

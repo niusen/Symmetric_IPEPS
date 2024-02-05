@@ -103,6 +103,8 @@ elseif D==5
     Vv=SU2Space(0=>3,1/2=>1);
 elseif D==6
     Vv=SU2Space(0=>2,1/2=>2);
+elseif D==10
+    Vv=SU2Space(0=>3,1/2=>2,1=>1);
 end
 @assert dim(Vv)==D;
 

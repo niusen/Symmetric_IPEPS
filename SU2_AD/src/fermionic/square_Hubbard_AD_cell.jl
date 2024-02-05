@@ -39,6 +39,10 @@ function initial_fPEPS_state_spinful_SU2(Vspace,init_statenm="nothing",init_nois
                         M=zeros(6,6,6,6,4)*im;
                         M[[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],:]=convert(Array,A0);
                         A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                    elseif Vspace==SU2Space(0=>3,1/2=>2,1=>1)
+                        M=zeros(10,10,10,10,4)*im;
+                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
+                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
                     end
                 elseif space(A0,1)==Rep[ℤ₂](0=>2, 1=>2)
                     if Vspace==Rep[ℤ₂](0=>3, 1=>3)

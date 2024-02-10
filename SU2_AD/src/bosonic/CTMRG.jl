@@ -1,4 +1,4 @@
-using LinearAlgebra
+using LinearAlgebra:diag,diagm,I 
 using TensorKit
 using Zygote:@ignore_derivatives
 
@@ -828,7 +828,7 @@ function sdiag_inv_sqrt(S::AbstractTensorMap)
     else
         for (k,b) in blocks(S)
             
-            copyto!(blocks(toret)[k],(LinearAlgebra.diagm(LinearAlgebra.diag(b).^(-1/2))).*(LinearAlgebra.diagm(LinearAlgebra.diag(b).>=(s_min))));
+            copyto!(blocks(toret)[k],(diagm(diag(b).^(-1/2))).*(diagm(diag(b).>=(s_min))));
         end
     end
     toret

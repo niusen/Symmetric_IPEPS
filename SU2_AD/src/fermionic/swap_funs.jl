@@ -91,6 +91,24 @@ function get_Vspace_Qn(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU
     end
     return Qnlist1
 end
+function get_Vspace_Spin(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+    Slist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
+    
+    for cc in eachindex(Values)
+        Sec1=Keys[cc].sectors[1];
+        Sec2=Keys[cc].sectors[2];
+
+
+        Dim=Values[cc];
+        Spin=Sec2.j;
+        Dim=Int(Dim*(2*Spin+1))
+        Slist1=vcat(Slist1,Int.(ones(Dim))*Spin);
+        
+    end
+    return Slist1
+end
 
 function get_Vspace_parity(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
     oddlist1=[];
@@ -173,6 +191,22 @@ function swap_gate(A,p1,p2)
         end
     end
     S=TensorMap(S_dense,V1 ⊗ V2 ← V1 ⊗ V2);
+    return S
+end
+
+function gauge_gate(A,p1,phase)
+    V1=space(A,p1);
+    S=unitary( V1, V1);
+
+    println(V1)
+    S_dense=convert(Array,S)*(1+0*im);
+    Qnlist1=get_Vspace_Qn(V1);
+    for c1=1:length(Qnlist1)
+
+        S_dense[c1,c1]=exp(Qnlist1[c1]*im*phase);
+ 
+    end
+    S=TensorMap(S_dense,V1 ← V1);
     return S
 end
 

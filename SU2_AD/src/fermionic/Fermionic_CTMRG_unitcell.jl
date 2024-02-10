@@ -1,4 +1,4 @@
-using LinearAlgebra
+using LinearAlgebra:diag,I 
 using TensorKit
 using Statistics
 

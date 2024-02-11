@@ -95,10 +95,10 @@ global backward_settings
 
 ################################################
 if M==1
-    data=load("parton_tensor_M1.jld2")
+    data=load("parton_state_M1.jld2")
     A=data["A"];   #P1,P2,L,R,D,U
 elseif M==2
-    data=load("parton_tensor_M2.jld2")
+    data=load("parton_state_M2.jld2")
     A=data["A"];   #P1,P2,L,R,D,U
 end
 
@@ -108,14 +108,15 @@ println("to get correct energy the following gauge transformation is required")
 gauge_gate1=gauge_gate(A,4,-pi/4);
 @tensor A[:]:=A[-1,-2,-3,1,-5]*gauge_gate1[-4,1];
 ################################################
-
+jldsave("parton_tensor_M"*string(M)*".jld2";A)
+################################################
 
 
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=fermi_CTMRG(A,chi,init,[],grad_ctm_setting);
 
 
-Ident4, NA, NB, n_double_A, CdagA_CB, Cdag_A, C_A, Cdag_B, C_B = @ignore_derivatives Hamiltonians_spinless_U1_SU2_2site(M);
+Ident4, NA, NB, n_double_A, n_double_B,  CdagA_CB, Cdag_A, C_A, Cdag_B, C_B = @ignore_derivatives Hamiltonians_spinless_U1_SU2_2site(M);
 ex1=hopping_x(CTM,Cdag_B,C_A,A,AA,grad_ctm_setting);
 ex2=ob_onsite(CTM,CdagA_CB,A,AA,grad_ctm_setting);
 

@@ -20,8 +20,12 @@ dot(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=dot_tensor_group(tt1,tt2);
 
 #function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
 function gdoptimize(f, g!, fg!, x0::iPEPS_ansatz, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
-    global chi,D
-    println("D="*string(D));flush(stdout);
+    global chi,D,Dx,Dy
+    if @isdefined(D)
+        println("D="*string(D));flush(stdout);
+    elseif @isdefined(Dx)&@isdefined(Dy)
+        println("Dx,Dy="*string([Dx,Dy]));flush(stdout);
+    end
     println("chi="*string(chi));flush(stdout);
     x = deepcopy(x0)
     gvec = similar(x)
@@ -114,6 +118,9 @@ function f(x::Square_iPEPS)
         elseif energy_setting.model=="spinless_t1_t2"
             E, ex,ey,e_right_top,e_right_bot, e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
             println("E= "*string(E)*", "*"ex,ey,e_right_top,e_right_bot,e0= "*string([ex,ey,e_right_top,e_right_bot,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        elseif energy_setting.model=="spinful_triangle_lattice_2site"
+            E, ex1,ex2,ey1,ey2,e_right_top1,e_right_top2, e01,e02, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex1,ex1,ey1,ey2,e_right_top1,e_right_top2,e01,e02= "*string([ex1,ex2,ey1,ey2,e_right_top1,e_right_top2,e01,e02])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         end
     end
     global E_history,save_filenm
@@ -138,7 +145,7 @@ function g!(gvec::Vector{TensorMap}, x)# this function changes the value of gvec
     for cc=1:length(gvec)
         setindex!(gvec,∂E[cc],cc);#this will change the input variable
     end
-    println("norm of grad: "*string(norm(gvec)))
+    # println("norm of grad: "*string(norm(gvec)))
     return gvec
 end
 function g!(gvec::iPEPS_ansatz, x)# this function changes the value of gvec
@@ -151,7 +158,7 @@ function g!(gvec::iPEPS_ansatz, x)# this function changes the value of gvec
         Value=getfield(∂E, i)
         setfield!(gvec,i,Value)
     end
-    println("norm of grad: "*string(norm(gvec)))
+    # println("norm of grad: "*string(norm(gvec)))
     return gvec
 end
 function fg!(gvec, x)

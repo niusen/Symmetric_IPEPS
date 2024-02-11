@@ -137,7 +137,7 @@ function Hamiltonians_spinless_U1_SU2_2site(M)
     end
 
 
-    return Ident4, NA, NB, n_double_A, CdagA_CB, Cdag_A, C_A, Cdag_B, C_B 
+    return Ident4, NA, NB, n_double_A, n_double_B, CdagA_CB, Cdag_A, C_A, Cdag_B, C_B 
 end
 
 function Hamiltonians_spinless_U1_2site(M)

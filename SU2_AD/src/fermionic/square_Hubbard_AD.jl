@@ -25,10 +25,10 @@ function initial_fPEPS_spinful_U1_SU2_2site(Vx,Vy,init_statenm="nothing",init_no
         else
             println("Extend bond dimension of initial state")
             if (space(A0,1)==Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)') & (space(A0,2)==Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1))
-                if Vspace==Rep[ℤ₂](0=>2, 1=>2)
-                    M=zeros(4,4,4,4,2)*im;
-                    M[[1,3],[1,3],[1,3],[1,3],1:2]=convert(Array,A0);
-                    A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                if (Vx==Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)') & (Vy==Rep[U₁ × SU₂]((0, 0)=>2, (2, 0)=>2, (1, 1/2)=>2))
+                    M=zeros(4,8,4,8,16)*im;
+                    M[:,[1,3,5,6],:,[1,3,5,6],:]=convert(Array,A0);
+                    A=TensorMap(M,Vx*Vy*Vx'*Vy',Vp);
                 elseif Vspace==SU2Space(0=>1,1/2=>2)
                     M=zeros(5,5,5,5,2)*im;
                     M[1:3,1:3,1:3,1:3,1:2]=convert(Array,A0);

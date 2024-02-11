@@ -120,7 +120,7 @@ function f(x::Square_iPEPS)
             println("E= "*string(E)*", "*"ex,ey,e_right_top,e_right_bot,e0= "*string([ex,ey,e_right_top,e_right_bot,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         elseif energy_setting.model=="spinful_triangle_lattice_2site"
             E, ex1,ex2,ey1,ey2,e_right_top1,e_right_top2, e01,e02, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-            println("E= "*string(E)*", "*"ex1,ex1,ey1,ey2,e_right_top1,e_right_top2,e01,e02= "*string([ex1,ex2,ey1,ey2,e_right_top1,e_right_top2,e01,e02])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            println("E= "*string(E)*", "*"ex1,ex2,ey1,ey2,e_right_top1,e_right_top2,e01,e02= "*string([ex1,ex2,ey1,ey2,e_right_top1,e_right_top2,e01,e02])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         end
     end
     global E_history,save_filenm

@@ -19,7 +19,7 @@ dot(tt1 :: iPEPS_ansatz, tt2 :: iPEPS_ansatz)=dot_tensor_group(tt1,tt2);
 
 
 #function gdoptimize(f, g!, fg!, x0::Vector{TensorMap}, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
-function gdoptimize(f, g!, fg!, x0::iPEPS_ansatz, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
+function gdoptimize(f, g!, fg!, x0::iPEPS_ansatz, linesearch, maxiter::Int = 500, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) 
     global chi,D,Dx,Dy
     if @isdefined(D)
         println("D="*string(D));flush(stdout);
@@ -116,11 +116,11 @@ function f(x::Square_iPEPS)
             E, ex,ey,px,py, e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
             println("E= "*string(E)*", "*"ex,ey,px,py,e0= "*string([ex,ey,px,py,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         elseif energy_setting.model=="spinless_t1_t2"
-            E, ex,ey,e_right_top,e_right_bot, e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-            println("E= "*string(E)*", "*"ex,ey,e_right_top,e_right_bot,e0= "*string([ex,ey,e_right_top,e_right_bot,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            E, ex,ey,e_diagonal2,e_diagonal1, e0, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex,ey,e_diagonal2,e_diagonal1,e0= "*string([ex,ey,e_diagonal2,e_diagonal1,e0])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         elseif energy_setting.model=="spinful_triangle_lattice_2site"
-            E, ex1,ex2,ey1,ey2,e_right_top1,e_right_top2, e01,e02, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-            println("E= "*string(E)*", "*"ex1,ex2,ey1,ey2,e_right_top1,e_right_top2,e01,e02= "*string([ex1,ex2,ey1,ey2,e_right_top1,e_right_top2,e01,e02])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            E, ex1,ex2,ey1,ey2,e_diagonal21,e_diagonal22, e01,e02, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex1,ex2,ey1,ey2,e_diagonal21,e_diagonal22,e01,e02= "*string([ex1,ex2,ey1,ey2,e_diagonal21,e_diagonal22,e01,e02])*", ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         end
     end
     global E_history,save_filenm

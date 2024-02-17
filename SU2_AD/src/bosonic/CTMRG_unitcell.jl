@@ -413,6 +413,8 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
                 chi_extra=20;
             elseif isa(space(M,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}) #U1 x SU(2)
                 chi_extra=20;
+            elseif isa(space(M,1), ComplexSpace)
+                chi_extra=1;
             end
             uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
 
@@ -603,6 +605,8 @@ function CTM_ite_cell_together_update(Cset_cell, Tset_cell, AA_cell, chi, direct
                 chi_extra=20;
             elseif isa(space(M,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}) #U1 x SU(2)
                 chi_extra=20;
+            elseif isa(space(M,1), ComplexSpace)
+                chi_extra=1;
             end
             uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
 

@@ -1,12 +1,12 @@
-using Revise, TensorKit
-using LinearAlgebra, OptimKit
+using Revise
+using LinearAlgebra:diag,I,diagm 
 using TensorKit
 using JSON
 using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
 using Zygote:@ignore_derivatives
 using Random
-using LineSearches
+using LineSearches,OptimKit
 using Dates
 cd(@__DIR__)
 
@@ -26,10 +26,11 @@ include("..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 
-Random.seed!(555)
+Random.seed!(888)
 
+VDummytype=2;
 D=4;
-chi=20
+chi=40
 
 t=1;
 ϕ=pi/2;
@@ -40,7 +41,7 @@ parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ)]);
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=50;
+grad_ctm_setting.CTM_ite_nums=10;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -73,8 +74,8 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0;
+optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_2.36933.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
@@ -94,19 +95,39 @@ projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
 global backward_settings
 
+Vphy=Rep[U₁ × SU₂]((0,0)=>1,(2,0)=>1,(1, 1/2)=>1);
 
 
+global VDummy_set, Vv_set
 
-if D==4
-    Vv=SU2Space(0=>2,1/2=>1);
-elseif D==4
-   
-elseif D==6
-     
+if VDummytype==1
+    VDummy1=Rep[U₁ × SU₂]((-1, 1/2)=>1);
+    VDummy2=Rep[U₁ × SU₂]((-1, 1/2)=>1);
+    VDummy_set=(VDummy1,VDummy2,);
+elseif VDummytype==2
+    VDummy1=Rep[U₁ × SU₂]((-2, 0)=>1);
+    VDummy2=ProductSpace{GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}, 0}();
+    VDummy_set=(VDummy1,VDummy2,);
 end
-@assert dim(Vv)==D;
 
-
+if VDummytype==1
+    if D==4
+        Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
+        Vv_set=((Vv1,Vv1',Vv1',Vv1,),(Vv1,Vv1',Vv1',Vv1,),);
+    elseif D==5
+    elseif D==6
+    elseif D==10
+    end
+elseif VDummytype==2
+    if D==4
+        Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
+        Vv3=Rep[U₁ × SU₂]((-1, 1/2)=>1, (0, 0)=>2, (1, 1/2)=>1)';
+        Vv_set=((Vv1,Vv1',Vv3,Vv1,),(Vv3',Vv1',Vv1',Vv1,),);
+    elseif D==5
+    elseif D==6
+    elseif D==10
+    end
+end
 
 
 
@@ -121,11 +142,8 @@ Ly=1;
 
 init_complex_tensor=true;
 
-state_vec=initial_fPEPS_state_spinful_SU2(Vv_set, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=initial_fPEPS_state_spinful_U1_SU2(Vphy,Vv_set, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
-
-A1=state_vec[1].T;
-A2=state_vec[2].T;
 
 
 global save_filenm
@@ -138,22 +156,29 @@ starting_time=now();
 
 
 
-
-A_cell=initial_tuple_cell(Lx,Ly);
-A1=A1/norm(A1);
-A2=A2/norm(A2);
-A_cell=fill_tuple(A_cell, A1, 1,1);
-A_cell=fill_tuple(A_cell, A2, 2,1);
+global E_history
+E_history=[10000];
 
 
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
+ls = BackTracking(order=3)
+println(ls)
+fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# ls = StrongWolfe()
+# println(ls)
+# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# ls = LineSearches.HagerZhang()
+# println(ls)
+# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# ls = MoreThuente()
+# println(ls)
+# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
 
 
-E_total,  ex_set, ey_set, e_diagonala, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-#E_total,  ex_set, ey_set, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# #optimize with OptimKit
+# optimkit_op(state_vec)
 
 
-
-
-
+println(E_tem)

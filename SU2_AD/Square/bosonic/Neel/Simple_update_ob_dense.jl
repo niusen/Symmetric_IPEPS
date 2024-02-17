@@ -45,6 +45,7 @@ J2=0.9;
 Jchi=0;
 parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 D_max=6;
+D_init=2;
 symmetric_hosvd=false;
 trun_tol=1e-6;
 
@@ -78,7 +79,7 @@ global algrithm_CTMRG_settings
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=50;
+LS_ctm_setting.CTM_ite_nums=20;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -107,6 +108,11 @@ dump(energy_setting);
 H_Heisenberg, H123chiral, H12, H31, H23 =Hamiltonians();
 H_triangle=(J1/4)*H31+(J1/4)*H12+(J2/2)*H23+Jchi*H123chiral;
 
+H_triangle=convert(Array,H_triangle);
+H_triangle=TensorMap(H_triangle, (ℂ^2)'*(ℂ^2)'*(ℂ^2)',(ℂ^2)'*(ℂ^2)'*(ℂ^2)');
+
+D_init
+
 
 ##################################
 global chi,multiplet_tol,projector_trun_tol
@@ -117,7 +123,8 @@ global Lx,Ly
 Lx=2;
 Ly=2;
 
-A=RVB_ansatz(1,1,im);
+A=TensorMap(randn,(ℂ^D_init)*(ℂ^D_init)*(ℂ^D_init)'*(ℂ^D_init)',(ℂ^2));
+A=permute(A,(1,2,3,4,5,));
 state=Square_iPEPS(A);
 
 TA=deepcopy(A);

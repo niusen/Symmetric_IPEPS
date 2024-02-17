@@ -1,7 +1,7 @@
 function Rank(T::TensorMap)
     return length(space(T).domain)+length(space(T).codomain)
 end
-function Hamiltonians_spinless_U1_SU2_2site(M)
+function Hamiltonians_spinful_U1_SU2_2site(M)
     global U_phy1,U_phy2
     if M==1
         U_phy1=unitary(Rep[U₁ × SU₂]((2, 0)=>1, (4, 0)=>3, (6, 0)=>1, (3, 1/2)=>2, (5, 1/2)=>2, (4, 1)=>1) ← (Rep[U₁ × SU₂]((6, 0)=>1) ⊗ Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)' ⊗ Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)'));
@@ -405,7 +405,7 @@ function hopping_y(CTM,O1,O2,A,AA,ctm_setting)
 end
 
 
-function hopping_right_top(CTM,O1,O2,A,AA,ctm_setting)
+function hopping_diagonalb(CTM,O1,O2,A,AA,ctm_setting)
 
     if (Rank(O1)==2)&(Rank(O2)==2)
         @tensor A_LU[:]:= A[-1,-2,-3,-4,1]*O1[-5,1]
@@ -457,7 +457,7 @@ function hopping_right_top(CTM,O1,O2,A,AA,ctm_setting)
 end
 
 
-function hopping_right_bot(CTM,O1,O2,A,AA,ctm_setting)
+function hopping_diagonala(CTM,O1,O2,A,AA,ctm_setting)
 
     if (Rank(O1)==2)&(Rank(O2)==2)
         @tensor A_LD[:]:= A[-1,-2,-3,-4,1]*O1[-5,1]

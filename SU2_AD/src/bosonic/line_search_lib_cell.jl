@@ -12,7 +12,7 @@ dot(tt1 :: Matrix{T}, tt2 :: Matrix{T}) where T<:iPEPS_ansatz=dot_tensor_group(t
 
 
 
-function gdoptimize(f, g!, fg!, x0::Matrix{T}, linesearch, maxiter::Int = 20, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) where T<:iPEPS_ansatz
+function gdoptimize(f, g!, fg!, x0::Matrix{T}, linesearch, maxiter::Int = 500, g_rtol::Float64 = 1e-8, g_atol::Float64 = 1e-16) where T<:iPEPS_ansatz
     global chi,D
     println("D="*string(D));flush(stdout);
     println("chi="*string(chi));flush(stdout);
@@ -83,11 +83,11 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
             E, ex_set, ey_set, px_set, py_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
             println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"px_set= "*string(px_set[:])*", "*"py_set= "*string(py_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         elseif energy_setting.model == "spinless_triangle_lattice";
-            E, ex_set, ey_set, e_right_bot_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_right_bot_set= "*string(e_right_bot_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            E, ex_set, ey_set, e_diagonal1_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonal1_set= "*string(e_diagonal1_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         elseif energy_setting.model == "spinful_triangle_lattice";
-            E, ex_set, ey_set, e_right_bot_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_right_bot_set= "*string(e_right_bot_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            E, ex_set, ey_set, e_diagonal1_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonal1_set= "*string(e_diagonal1_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
         end
 
     end

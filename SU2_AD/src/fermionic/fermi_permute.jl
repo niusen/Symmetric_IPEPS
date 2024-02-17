@@ -166,3 +166,23 @@ function permute_neighbour_ind(A,ind1,ind2,total_ind)
 
     return A
 end
+
+
+
+
+function fermi_rotate(T::TensorMap,deg)
+    #original index: L,D,R,U,d
+
+end
+
+
+function LUdRD_to_LDRUd(T::TensorMap)
+    #only apply swap gate
+    T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
+    T=permute_neighbour_ind(T,4,5,5);#L,U,d,D,R,
+    T=permute_neighbour_ind(T,3,4,5);#L,U,D,d,R,
+    T=permute_neighbour_ind(T,2,3,5);#L,D,U,d,R,
+    T=permute_neighbour_ind(T,4,5,5);#L,D,U,R,d,
+    T=permute_neighbour_ind(T,3,4,5);#L,D,R,U,d,
+    return T
+end

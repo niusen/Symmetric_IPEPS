@@ -6,7 +6,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
 
     coordinate of C1 tensor: (cx,cy)
     """
-    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians();
+    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians(space(A_cell[1][1],1));
     J1=parameters["J1"];
     J2=parameters["J2"];
     Jchi=parameters["Jchi"];

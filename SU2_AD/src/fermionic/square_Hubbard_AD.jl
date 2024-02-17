@@ -150,13 +150,13 @@ function cost_fun(x) #variational parameters are vector of TensorMap
 
         ex=hopping_x(CTM,Cdag,C,A,AA,grad_ctm_setting);
         ey=hopping_y(CTM,Cdag,C,A,AA,grad_ctm_setting);
-        e_right_top=hopping_right_top(CTM,Cdag,-1*C,A,AA,grad_ctm_setting);#compared with exact result, here a minus sign to ensure correct result
-        e_right_bot=hopping_right_bot(CTM,Cdag,C,A,AA,grad_ctm_setting);
+        e_diagonalb=hopping_diagonalb(CTM,Cdag,-1*C,A,AA,grad_ctm_setting);#compared with exact result, here a minus sign to ensure correct result
+        e_diagonala=hopping_diagonala(CTM,Cdag,C,A,AA,grad_ctm_setting);
         e0=ob_onsite(CTM,occu,A,AA,grad_ctm_setting);
 
-        E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'+ -2*μ*e0   +t2*e_right_top+t2'e_right_top'+ t2*e_right_bot+t2'e_right_bot');
+        E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'+ -2*μ*e0   +t2*e_diagonalb+t2'e_diagonalb'+ t2*e_diagonala+t2'e_diagonala');
     elseif energy_setting.model=="spinful_triangle_lattice_2site"
-        Ident4, NA, NB, n_double_A, n_double_B, CdagA_CB, Cdag_A, C_A, Cdag_B, C_B = @ignore_derivatives Hamiltonians_spinless_U1_SU2_2site(M);
+        Ident4, NA, NB, n_double_A, n_double_B, CdagA_CB, Cdag_A, C_A, Cdag_B, C_B = @ignore_derivatives Hamiltonians_spinful_U1_SU2_2site(M);
         t1 =parameters["t1"];
         t2=parameters["t2"];
         ϕ=parameters["ϕ"]
@@ -168,10 +168,10 @@ function cost_fun(x) #variational parameters are vector of TensorMap
         ey1=hopping_y(CTM,Cdag_A,C_A,A,AA,grad_ctm_setting);
         ey2=hopping_y(CTM,Cdag_B,C_B,A,AA,grad_ctm_setting);
 
-        e_right_top1=hopping_right_top(CTM,Cdag_B,C_A,A,AA,grad_ctm_setting);
-        e_right_top2=hopping_y(CTM,Cdag_A,C_B,A,AA,grad_ctm_setting);
+        e_diagonalb1=hopping_diagonalb(CTM,Cdag_B,C_A,A,AA,grad_ctm_setting);
+        e_diagonalb2=hopping_y(CTM,Cdag_A,C_B,A,AA,grad_ctm_setting);
 
-        E=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_right_top1-t2*e_right_top2;
+        E=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_diagonalb1-t2*e_diagonalb2;
         E=real((E+E')/2);
     end
 
@@ -228,17 +228,17 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         
         ex=hopping_x(CTM,Cdag,C,A,AA,ctm_setting);
         ey=hopping_y(CTM,Cdag,C,A,AA,ctm_setting);
-        e_right_top=hopping_right_top(CTM,Cdag,-1*C,A,AA,ctm_setting);#compared with exact result, here a minus sign to ensure correct result
-        e_right_bot=hopping_right_bot(CTM,Cdag,C,A,AA,ctm_setting);
+        e_diagonalb=hopping_diagonalb(CTM,Cdag,-1*C,A,AA,ctm_setting);#compared with exact result, here a minus sign to ensure correct result
+        e_diagonala=hopping_diagonala(CTM,Cdag,C,A,AA,ctm_setting);
         e0=ob_onsite(CTM,occu,A,AA,ctm_setting);
 
-        E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'+ -2*μ*e0   +t2*e_right_top+t2'e_right_top'+ t2*e_right_bot+t2'e_right_bot');
+        E=real(t1*ex+t1'*ex' +t1*ey+t1'*ey'+ -2*μ*e0   +t2*e_diagonalb+t2'e_diagonalb'+ t2*e_diagonala+t2'e_diagonala');
 
-        return E, ex,ey,e_right_top,e_right_bot, e0, ite_num,ite_err,CTM
+        return E, ex,ey,e_diagonalb,e_diagonala, e0, ite_num,ite_err,CTM
 
 
     elseif energy_setting.model=="spinful_triangle_lattice_2site"
-        Ident4, NA, NB, n_double_A,n_double_B, CdagA_CB, Cdag_A, C_A, Cdag_B, C_B = @ignore_derivatives Hamiltonians_spinless_U1_SU2_2site(M);
+        Ident4, NA, NB, n_double_A,n_double_B, CdagA_CB, Cdag_A, C_A, Cdag_B, C_B = @ignore_derivatives Hamiltonians_spinful_U1_SU2_2site(M);
         t1 =parameters["t1"];
         t2=parameters["t2"];
         ϕ=parameters["ϕ"]
@@ -250,15 +250,15 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         ey1=hopping_y(CTM,Cdag_A,C_A,A,AA,ctm_setting);
         ey2=hopping_y(CTM,Cdag_B,C_B,A,AA,ctm_setting);
 
-        e_right_top1=hopping_right_top(CTM,Cdag_B,C_A,A,AA,ctm_setting);
-        e_right_top2=hopping_y(CTM,Cdag_A,C_B,A,AA,ctm_setting);
+        e_diagonalb1=hopping_diagonalb(CTM,Cdag_B,C_A,A,AA,ctm_setting);
+        e_diagonalb2=hopping_y(CTM,Cdag_A,C_B,A,AA,ctm_setting);
 
         e01=ob_onsite(CTM,NA,A,AA,ctm_setting);
         e02=ob_onsite(CTM,NB,A,AA,ctm_setting);
 
-        E=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_right_top1-t2*e_right_top2;
+        E=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_diagonalb1-t2*e_diagonalb2;
         E=real((E+E'))/2;
-        return E, ex1,ex2,ey1,ey2,e_right_top1,e_right_top2, e01,e02, ite_num,ite_err,CTM
+        return E, ex1,ex2,ey1,ey2,e_diagonalb1,e_diagonalb2, e01,e02, ite_num,ite_err,CTM
     end
 end
 

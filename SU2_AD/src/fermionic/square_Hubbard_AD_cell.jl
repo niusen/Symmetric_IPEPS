@@ -1,3 +1,76 @@
+function initial_fPEPS_state_spinful_U1_SU2(Vphy,Vv_set,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+   
+    global Lx,Ly
+    global VDummy_set
+    if init_statenm=="nothing" 
+        
+        println("Random initial state");flush(stdout);
+        
+        state=Matrix{Square_iPEPS}(undef,Lx,Ly);
+        for cx=1:Lx
+            Vp=fuse(VDummy_set[cx]*Vphy)';
+            for cy=1:Ly
+                if init_complex_tensor
+                    A=TensorMap(randn,Vv_set[cx][1]*Vv_set[cx][2]*Vv_set[cx][3]*Vv_set[cx][4],Vp)+TensorMap(randn,Vv_set[cx][1]*Vv_set[cx][2]*Vv_set[cx][3]*Vv_set[cx][4],Vp)*im;
+                else
+                    A=TensorMap(randn,Vv_set[cx][1]*Vv_set[cx][2]*Vv_set[cx][3]*Vv_set[cx][4],Vp);
+                end
+                A=permute(A,(1,2,3,4,5,));
+                A=A/norm(A);
+                state[cx,cy]=Square_iPEPS(A);
+            end
+        end
+        return state
+    else
+        println("load state: "*init_statenm);flush(stdout);
+        x=load(init_statenm)["x"];
+        state=similar(x);
+        for cc in eachindex(x)
+            ansatz=x[cc];
+            A0=ansatz.T;
+            if (space(A0,1)==Vv_set[cc][1])&(space(A0,2)==Vv_set[cc][2])&(space(A0,3)==Vv_set[cc][3])&(space(A0,4)==Vv_set[cc][4])
+                A=A0;
+            else
+                println("Extend bond dimension of initial state")
+                if space(A0,1)==Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
+                    if Vspace==SU2Space(0=>3,1/2=>1)
+                        M=zeros(5,5,5,5,4)*im;
+                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
+                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                    elseif Vspace==SU2Space(0=>2,1/2=>2)
+                        M=zeros(6,6,6,6,4)*im;
+                        M[[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],:]=convert(Array,A0);
+                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                    elseif Vspace==SU2Space(0=>3,1/2=>2,1=>1)
+                        M=zeros(10,10,10,10,4)*im;
+                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
+                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                    end
+                elseif space(A0,1)==Rep[ℤ₂](0=>2, 1=>2)
+                    if Vspace==Rep[ℤ₂](0=>3, 1=>3)
+                        M=zeros(6,6,6,6,2)*im;
+                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],1:2]=convert(Array,A0);
+                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                    end
+                end
+                A=permute(A,(1,2,3,4,5,));
+            end
+
+            if init_complex_tensor
+                A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+            else
+                A_noise=TensorMap(randn,codomain(A),domain(A));
+            end
+
+            A_new=A+A_noise*init_noise*norm(A)/norm(A_noise);
+            A_new=permute(A_new,(1,2,3,4,5,));
+            ansatz_new=Square_iPEPS(A_new);
+            state[cc]=ansatz_new;
+        end
+        return state
+    end
+end
+
 function initial_fPEPS_state_spinful_SU2(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
     Vp=SU2Space(0=>2,1/2=>1)';
     global Lx,Ly
@@ -270,13 +343,13 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         E=real(E_total);
         return E, ex_set, ey_set, px_set, py_set, e0_set, ite_num,ite_err,CTM_cell
     elseif energy_setting.model=="spinless_triangle_lattice"
-        E_total,  ex_set, ey_set, e_right_bot_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+        E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
         E=real(E_total);
-        return E, ex_set, ey_set, e_right_bot_set, e0_set, ite_num,ite_err,CTM_cell
+        return E, ex_set, ey_set, e_diagonala_set, e0_set, ite_num,ite_err,CTM_cell
     elseif energy_setting.model=="spinful_triangle_lattice"
-        E_total,  ex_set, ey_set, e_right_bot_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+        E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
         E=real(E_total);
-        return E, ex_set, ey_set, e_right_bot_set, e0_set, ite_num,ite_err,CTM_cell
+        return E, ex_set, ey_set, e_diagonala_set, e0_set, ite_num,ite_err,CTM_cell
     end
 end
 

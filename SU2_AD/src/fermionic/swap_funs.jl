@@ -65,6 +65,18 @@ function get_Vspace_parity(V1::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{
     return oddlist1
 end
 
+function get_Vspace_Spin(V1::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    Slist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
+    
+    for cc in eachindex(Values)
+        Spin=Keys[cc].j;
+        Dim=Int(Values[cc]*(2*Spin+1))
+        Slist1=vcat(Slist1,Int.(ones(Dim))*Spin);    
+    end
+    return Slist1
+end
 
 
 

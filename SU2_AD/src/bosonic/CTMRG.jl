@@ -384,6 +384,8 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
         chi_extra=20;
     elseif isa(space(M,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}) #U1 x SU(2)
         chi_extra=20;
+    elseif isa(space(M,1), ComplexSpace)
+        chi_extra=1;
     end
 
 
@@ -824,7 +826,9 @@ function sdiag_inv_sqrt(S::AbstractTensorMap)
     global chi,multiplet_tol,projector_trun_tol
     s_min=truncate_multiplet(S,chi,multiplet_tol,projector_trun_tol);
     if sectortype(S) == Trivial
-        copyto!(toret.data,LinearAlgebra.(diagm(LinearAlgebra.diag(S.data).^(-1/2))).*(LinearAlgebra.diagm(LinearAlgebra.diag(b).>=(s_min))));
+        b=S.data;
+        newdata=(diagm(diag(b).^(-1/2))).*(diagm(diag(b).>=(s_min)));
+        copyto!(toret.data,newdata);
     else
         for (k,b) in blocks(S)
             

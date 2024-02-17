@@ -134,7 +134,7 @@ init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=tru
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
 
 
-E_total,  ex_set, ey_set, e_right_bot, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+E_total,  ex_set, ey_set, e_diagonala, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 #E_total,  ex_set, ey_set, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 
 

@@ -6,7 +6,7 @@ function evaluate_NN(A::TensorMap, AA, U_L,U_D,U_R,U_U, CTM, ctm_setting)
 
     AA_open, U_s_s=build_double_layer_open(A);
 
-    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians();
+    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians(space(A,1));
 
     rhox=ob_2sites_x(CTM,AA_open,AA_open);
     @tensor rhox[:]:=rhox[1,2]*U_s_s[-1,-3,1]*U_s_s[-2,-4,2];#s1',s2',s1,s2
@@ -27,7 +27,7 @@ function evaluate_NNN(A::TensorMap, AA, U_L,U_D,U_R,U_U, CTM, ctm_setting)
 
     AA_open, U_s_s=build_double_layer_open(A);
 
-    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians();
+    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians(space(A,1));
 
     
     rho_LD_RU=ob_LD_RU(CTM,AA,AA_open,AA_open);  
@@ -50,7 +50,7 @@ function evaluate_chirality(A::TensorMap, AA, U_L,U_D,U_R,U_U, CTM, ctm_setting)
 
     AA_open, U_s_s=build_double_layer_open(A);
 
-    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians();
+    H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians(space(A,1));
 
     rho_LU_RU_LD=ob_LU_RU_LD(CTM,AA,AA_open,AA_open,AA_open);  #clockwise
     @tensor rho_LU_RU_LD[:]:=rho_LU_RU_LD[1,2,3]*U_s_s[-1,-4,1]*U_s_s[-2,-5,2]*U_s_s[-3,-6,3];#s1',s2',s1,s2

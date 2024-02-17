@@ -107,12 +107,13 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fu
             # norm(AA_new2-permute(AA_fused,(1,2,3,4,)))/norm(AA_new2)
         end
         return E_up, E_down   
-    elseif kagome_method=="E_bond"
+    elseif kagome_method=="E_NN_bond"
         if construct_double_layer
             AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
             AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
             AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
         end
+
 
 
         #calculate single unit-cell observable (up triangle)
@@ -128,13 +129,11 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fu
 
         AA_12_fused, _,_,_,_=build_double_layer(A_fused,H12_tensorkit);
         E_up_12=ob_RD(CTM,AA_12_fused,AA_fused)/ob_RD(CTM,AA_fused,AA_fused);
-        E_up_12=blocks(E_up_12)[Irrep[SU₂](0)][1];
         AA_31_fused, _,_,_,_=build_double_layer(A_fused,H31_tensorkit);
         E_up_31=ob_RD(CTM,AA_31_fused,AA_fused)/ob_RD(CTM,AA_fused,AA_fused);
-        E_up_31=blocks(E_up_31)[Irrep[SU₂](0)][1];
         AA_23_fused, _,_,_,_=build_double_layer(A_fused,H23_tensorkit);
         E_up_23=ob_RD(CTM,AA_23_fused,AA_fused)/ob_RD(CTM,AA_fused,AA_fused);
-        E_up_23=blocks(E_up_23)[Irrep[SU₂](0)][1];
+
 
         #down triangle
         H_bond=H_Heisenberg;
@@ -159,7 +158,15 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fu
         @tensor norm_LD_RU[:]:=rho_LD_RU[1,2,1,2];
         @tensor E_down_31[:]:=rho_LD_RU[1,2,3,4]*H_bond[3,4,1,2];
         E_down_31=E_down_31[1]/norm_LD_RU[1];
-        
+
+        return E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23
+
+    elseif kagome_method=="E_NNN_bond"
+        if construct_double_layer
+            AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
+            AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
+            AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
+        end
 
         #NNN Bonds 2-3
         rho_LD_RU=ob_LD_RU(CTM,AA_fused,AA3,AA2);
@@ -270,7 +277,7 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fu
         @tensor E_NNNN_33[:]:=rho_LD_RD[1,2,3,4]*H_bond[3,4,1,2];
         E_NNNN_33=E_NNNN_33[1]/norm_LD_RD[1];
 
-        return E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23,   E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33
+        return E_NNN_23a, E_NNN_12a, E_NNN_31a,E_NNN_23b, E_NNN_12b, E_NNN_31b,  E_NNNN_11,E_NNNN_22,E_NNNN_33
     end
 end
 
@@ -364,54 +371,55 @@ function build_double_layer_open(A_unfused0,inds,U_phy,U_L,U_D,U_R,U_U)
         elseif inds=="3"
             A_unfused=permute(A_unfused0,(1,2,3,4,7,5,6,),());
         end
+
+        # println("aaaaaa");flush(stdout);
+
         fuse_spin=@ignore_derivatives unitary(fuse(V_s ⊗ V_s), V_s ⊗ V_s);
         @tensor A_fused[:]:=A_unfused[-1,-2,-3,-4,-5,1,2]*fuse_spin[-6,1,2];
         V_ss=@ignore_derivatives fuse(V_s' ⊗ V_s);
 
+        # println("bbbbbb");flush(stdout);
+
         # uM_dag,sM_dag,vM_dag=tsvd(permute(A_fused',(1,2,3,),(4,5,6,)));
         # uM_dag=uM_dag*sM_dag;
-        Ap=permute(A_fused',(1,2,3,),(4,5,6,));
-        Up_tem=@ignore_derivatives unitary(fuse(space(Ap,1)*space(Ap,2)*space(Ap,3)), space(Ap,1)*space(Ap,2)*space(Ap,3))*(1+0*im);
+        Ap=permute(A_fused',(1,2,),(3,4,5,6,));
+        Up_tem=@ignore_derivatives unitary(fuse(space(Ap,1)*space(Ap,2)), space(Ap,1)*space(Ap,2))*(1+0*im);
         vM_dag=Up_tem*Ap;
         uM_dag=Up_tem';
 
+        # println("cccccc");flush(stdout);
 
-        # uM,sM,vM=tsvd(permute(A_fused,(1,2,),(3,4,5,6,)));
-        # uM=uM*sM;
+
         U_tem=@ignore_derivatives unitary(fuse(space(A_fused,1)*space(A_fused,2)), space(A_fused,1)*space(A_fused,2))*(1+0*im);
         vM=U_tem*permute(A_fused,(1,2,),(3,4,5,6,));
         uM=U_tem';
 
-        
-        uM_dag=permute(uM_dag,(1,2,3,4,),());
-        uM=permute(uM,(1,2,3,),());
-        Vp=space(vM_dag,1);
-        V=space(vM,1);
-        U=@ignore_derivatives unitary(fuse(Vp ⊗ V), Vp ⊗ V);
-        @tensor double_LD[:]:=uM_dag[-1,-2,-3,1]*U'[1,-4,-5];
-        @tensor double_LD[:]:=double_LD[-1,-3,-5,1,-6]*uM[-2,-4,1];
+        # println("dddddd");flush(stdout);
 
-        vM_dag=permute(vM_dag,(1,2,3,4,),());
-        vM=permute(vM,(1,2,3,4,5,),());
-        @tensor double_RU[:]:=U[-1,-2,1]*vM[1,-3,-4,-5,-6];
-        @tensor double_RU[:]:=vM_dag[1,-3,-5,2]*double_RU[-1,1,-2,-4,-6,2];
-
-        double_LD=permute(double_LD,(1,2,),(3,4,5,6,));
-        double_LD=U_L*double_LD;
-        double_LD=permute(double_LD,(2,3,),(1,4,5,));
-        double_LD=U_D*double_LD;
-        double_LD=permute(double_LD,(2,1,3,4),());
-    
-        double_RU=permute(double_RU,(1,2,5,6,),(3,4,));
-        double_RU=double_RU*U_U;
         U_s_s=@ignore_derivatives unitary(V_ss, V_s' ⊗ V_s);
-        @tensor double_RU[:]:=double_RU[-1,-2,1,2,-3]*U_s_s[-4,1,2];
 
-        @tensor double_RU[:]:=double_RU[-1,1,-4,-5]*U_R[-2,1,-3];
 
-        @tensor AA_open_fused[:]:=double_LD[-1,-2,2,1]*double_RU[1,2,-3,-4,-5];
+        uM_dag=permute(uM_dag,(1,2,3,),());
+        uM=permute(uM,(1,2,3,),());
+
+        @tensor double_LD[:]:=U_L[-1,1,2]*U_D[-2,3,4]*uM_dag[1,3,-3]*uM[2,4,-4];
+
+        # println("eeeeee");flush(stdout);
+
+
+        vM_dag=permute(vM_dag,(1,2,3,4,5,),());
+        vM=permute(vM,(1,2,3,4,5,),());
+        @tensor double_RU[:]:=vM_dag[-1,1,6,5,3]*vM[-2,4,7,2,3]*U_R[1,4,-3]*U_U[6,7,-4]*U_s_s[-5,5,2];
+
+        # println("ffffff");flush(stdout);
+
+    
+
+        @tensor AA_open_fused[:]:=double_LD[-1,-2,1,2]*double_RU[1,2,-3,-4,-5];
 
         U_s_s=U_s_s';
+
+        # println("hhhhhh");flush(stdout);
 
         return AA_open_fused, U_s_s 
 
@@ -445,10 +453,10 @@ end
 function ob_2sites_x(CTM,AA1,AA2)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA1[2,5,-2,3,-4]*Tset[3][-3,5,4];
-    @tensor envR[:]:=Tset[1][-1,3,1]*AA2[-2,5,2,3,-4]*Tset[3][4,5,-3]*envR[1,2,4];
+    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
+    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA1[2,5,-2,3,-4]*Tset.T3[-3,5,4];
+    @tensor envR[:]:=Tset.T1[-1,3,1]*AA2[-2,5,2,3,-4]*Tset.T3[4,5,-3]*envR[1,2,4];
     @tensor rho[:]:=envL[1,2,3,-1]*envR[1,2,3,-2];
     return rho;
 end
@@ -457,10 +465,10 @@ end
 function ob_2sites_y(CTM,AA1,AA2)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
-    @tensor envU[:]:=Cset[2][1,-1]*Tset[1][2,-2,1]*Cset[1][-3,2];
-    @tensor envD[:]:=Cset[3][-1,1]*Tset[3][1,-2,2]*Cset[4][2,-3];
-    @tensor envU[:]:=envU[1,2,4]*Tset[2][1,3,-1]*AA1[5,-2,3,2,-4]*Tset[4][-3,5,4];
-    @tensor envD[:]:=Tset[2][-1,3,1]*AA2[5,2,3,-2,-4]*Tset[4][4,5,-3]*envD[1,2,4];
+    @tensor envU[:]:=Cset.C2[1,-1]*Tset.T1[2,-2,1]*Cset.C1[-3,2];
+    @tensor envD[:]:=Cset.C3[-1,1]*Tset.T3[1,-2,2]*Cset.C4[2,-3];
+    @tensor envU[:]:=envU[1,2,4]*Tset.T2[1,3,-1]*AA1[5,-2,3,2,-4]*Tset.T4[-3,5,4];
+    @tensor envD[:]:=Tset.T2[-1,3,1]*AA2[5,2,3,-2,-4]*Tset.T4[4,5,-3]*envD[1,2,4];
     @tensor rho[:]:=envU[1,2,3,-1]*envD[1,2,3,-2];
     return rho;
 end
@@ -469,11 +477,11 @@ function ob_LU(CTM,AA_LU,AA_fused)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_LU[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_LU[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-2]*AA_fused[3,4,-5,-3]*Cset[4][2,1]*Tset[3][-4,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-2]*AA_fused[3,4,-5,-3]*Cset.C4[2,1]*Tset.T3[-4,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
     MM_LU=permute(MM_LU,(1,2,),(3,4,));
@@ -514,11 +522,11 @@ function ob_LD_RU(CTM,AA_fused,AA_LD,AA_RU)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-2]*AA_LD[3,4,-5,-3,-1]*Cset[4][2,1]*Tset[3][-4,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-2]*AA_LD[3,4,-5,-3,-1]*Cset.C4[2,1]*Tset.T3[-4,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_fused[-2,1,2,-4]; 
 
     MM_LU=permute(MM_LU,(1,2,),(3,4,));
@@ -528,7 +536,7 @@ function ob_LD_RU(CTM,AA_fused,AA_LD,AA_RU)
 
     up=MM_LU*MM_RU;
     down=MM_LD*MM_RD;
-    rho=@tensor up[1,2,3,4,-1]*down[-2,1,2,3,4];
+    @tensor rho[:]:=up[1,2,3,4,-1]*down[-2,1,2,3,4];
     return rho
 end
 
@@ -536,11 +544,11 @@ function ob_LU_RD(CTM,AA_fused,AA_LU,AA_RD)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-4]*Tset[4][-2,4,1]*AA_LU[4,-3,-5,3,-1]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-4]*Tset.T4[-2,4,1]*AA_LU[4,-3,-5,3,-1]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_fused[3,4,-4,-2]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_fused[3,4,-4,-2]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5]; 
 
     MM_LU=permute(MM_LU,(1,2,3,),(4,5,));
@@ -550,7 +558,7 @@ function ob_LU_RD(CTM,AA_fused,AA_LU,AA_RD)
 
     up=MM_LU*MM_RU;
     down=MM_LD*MM_RD;
-    rho=@tensor up[-1,1,2,3,4]*down[1,2,3,4,-2];
+    @tensor rho[:]:=up[-1,1,2,3,4]*down[1,2,3,4,-2];
     return rho
 end
 
@@ -604,11 +612,11 @@ function ob_LD_RU_RD(CTM,AA_fused,AA_LD,AA_RU,AA_RD)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-2]*AA_LD[3,4,-5,-3,-1]*Cset[4][2,1]*Tset[3][-4,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-2]*AA_LD[3,4,-5,-3,-1]*Cset.C4[2,1]*Tset.T3[-4,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5]; 
 
     MM_LU=permute(MM_LU,(1,2,),(3,4,));
@@ -618,7 +626,7 @@ function ob_LD_RU_RD(CTM,AA_fused,AA_LD,AA_RU,AA_RD)
 
     up=MM_LU*MM_RU;
     down=MM_LD*MM_RD;
-    rho=@tensor up[1,2,3,4,-2]*down[-1,1,2,3,4,-3];
+    @tensor rho[:]:=up[1,2,3,4,-2]*down[-1,1,2,3,4,-3];
     return rho
 end
 
@@ -629,11 +637,11 @@ function ob_LD_RD(CTM,AA_fused,AA_LD,AA_RD)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_fused[-2,-4,4,3]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_fused[-2,-4,4,3]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_LD[3,4,-4,-2,-5]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5]; 
 
     MM_LU=permute(MM_LU,(3,4,),(1,2,));
@@ -643,7 +651,7 @@ function ob_LD_RD(CTM,AA_fused,AA_LD,AA_RD)
 
     left=MM_LU*MM_LD;
     right=MM_RU*MM_RD;
-    rho=@tensor left[1,2,3,4,-1]*right[1,2,3,4,-2];
+    @tensor rho[:]:=left[1,2,3,4,-1]*right[1,2,3,4,-2];
     return rho
 end
 
@@ -651,11 +659,11 @@ function ob_RU_RD(CTM,AA_fused,AA_RU,AA_RD)
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[1][1,2]*Tset[1][2,3,-3]*Tset[4][-1,4,1]*AA_fused[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[1][-1,3,1]* Cset[2][1,2]* AA_RU[-2,-4,4,3,-5]* Tset[2][2,4,-3];
+    @tensor MM_LU[:]:=Cset.C1[1,2]*Tset.T1[2,3,-3]*Tset.T4[-1,4,1]*AA_fused[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset.T1[-1,3,1]* Cset.C2[1,2]* AA_RU[-2,-4,4,3,-5]* Tset.T2[2,4,-3];
 
-    @tensor MM_LD[:]:=Tset[4][1,3,-1]*AA_fused[3,4,-4,-2]*Cset[4][2,1]*Tset[3][-3,4,2]; 
-    @tensor MM_RD[:]:=Tset[2][-4,-3,2]*Tset[3][1,-2,-1]*Cset[3][2,1]; 
+    @tensor MM_LD[:]:=Tset.T4[1,3,-1]*AA_fused[3,4,-4,-2]*Cset.C4[2,1]*Tset.T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset.T2[-4,-3,2]*Tset.T3[1,-2,-1]*Cset.C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD[-2,1,2,-4,-5]; 
 
     MM_LU=permute(MM_LU,(1,2,),(3,4,));
@@ -665,6 +673,6 @@ function ob_RU_RD(CTM,AA_fused,AA_RU,AA_RD)
 
     up=MM_LU*MM_RU;
     down=MM_LD*MM_RD;
-    rho=@tensor up[1,2,3,4,-1]*down[1,2,3,4,-2];
+    @tensor rho[:]:=up[1,2,3,4,-1]*down[1,2,3,4,-2];
     return rho
 end

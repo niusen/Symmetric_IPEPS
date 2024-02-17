@@ -83,10 +83,10 @@ end
 function evaluate_correl_spinspin(direction, AA_fused, AA_op1, AA_op2, CTM, method, distance)
     correl_funs=Vector(undef,distance);
 
-    C1=CTM.Cset.T1;
-    C2=CTM.Cset.T2;
-    C3=CTM.Cset.T3;
-    C4=CTM.Cset.T4;
+    C1=CTM.Cset.C1;
+    C2=CTM.Cset.C2;
+    C3=CTM.Cset.C3;
+    C4=CTM.Cset.C4;
     T1=CTM.Tset.T1;
     T2=CTM.Tset.T2;
     T3=CTM.Tset.T3;
@@ -228,34 +228,9 @@ function solve_correl_length(n_values,AA_fused,CTM,direction,ctm_setting)
     end
 end
 
-
-function cal_correl(filenm,D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_tol,distance)
-
-    global A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb  
-
-    json_dict=read_json_state(filenm);
-
-    bond_tensor,triangle_tensor=construct_su2_PG_IPESS(json_dict,A_set,B_set,A1_set,A2_set, A_set_occu,B_set_occu,A1_set_occu,A2_set_occu, S_label, Sz_label, virtual_particle, Va, Vb);
-
-    PEPS_tensor=bond_tensor;
-    @tensor PEPS_tensor[:] := bond_tensor[-1,1,-5]*bond_tensor[4,3,-6]*bond_tensor[-4,2,-7]*triangle_tensor[1,3,2]*triangle_tensor[4,-2,-3];
-    A_unfused=PEPS_tensor;
-
-    U_phy=@ignore_derivatives unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
-    @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
-
-
-    CTM=[];
-    U_L=[];
-    U_D=[];
-    U_R=[];
-    U_U=[];
-
-    init=Dict([("CTM", []), ("init_type", "PBC")]);
-    conv_check="singular_value";
-    @time CTM, AA_fused, U_L,U_D,U_R,U_U=CTMRG(A_fused,chi,conv_check,CTM_conv_tol,init,CTM_ite_nums,CTM_trun_tol);
-
-
+function cal_correl(iPESS_tensors, A_unfused, A_fused, AA_fused,U_phy,CTM,D,chi,parameters,distance)
+    global ctm_setting,backward_settings,energy_setting
+    global U_L,U_D,U_R,U_U
 
 
     println("spcae of C1: "*string(space(CTM.Cset.C1)))
@@ -267,9 +242,8 @@ function cal_correl(filenm,D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_t
 
 
 
-
-    @time E_up, E_down=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_triangle");
-    @time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, "E_bond");
+    @time E_up, E_down=evaluate_ob(parameters, U_phy, iPESS_tensors, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting.kagome_method, energy_setting.E_up_method, energy_setting.E_dn_method)
+    @time E_up_12, E_up_31, E_up_23, E_down_12, E_down_31, E_down_23=evaluate_ob(parameters, U_phy, iPESS_tensors, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, "E_NN_bond", nothing,nothing);
     println((E_up+E_down)/3);flush(stdout);
 
 
@@ -311,13 +285,21 @@ function cal_correl(filenm,D,chi,parameters,CTM_conv_tol,CTM_ite_nums,CTM_trun_t
     S3_ob=S3_ob./norms;
 
 
-    eu_allspin_x,allspin_x=solve_correl_length(5,AA_fused/norm_coe,CTM,"x");
-    eu_allspin_y,allspin_y=solve_correl_length(5,AA_fused/norm_coe,CTM,"y");
+    eu_allspin_x,allspin_x=solve_correl_length(5,AA_fused/norm_coe,CTM,"x",ctm_setting);
+    eu_allspin_y,allspin_y=solve_correl_length(5,AA_fused/norm_coe,CTM,"y",ctm_setting);
 
 
 
-    mat_filenm="correl_julia_D"*string(D)*"_chi"*string(chi)*".mat";
+    mat_filenm="correl_D"*string(D)*"_chi"*string(chi)*".mat";
     matwrite(mat_filenm, Dict(
+        "E_up"=>E_up,
+        "E_down"=>E_down,
+        "E_up_12"=>E_up_12,
+        "E_up_31"=>E_up_31,
+        "E_up_23"=>E_up_23,
+        "E_down_12"=>E_down_12,
+        "E_down_31"=>E_down_31,
+        "E_down_23"=>E_down_23,
         "SS12_ob" => SS12_ob,
         "SS23_ob" => SS23_ob,
         "SS31_ob" => SS31_ob,

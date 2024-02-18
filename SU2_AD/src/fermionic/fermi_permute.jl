@@ -170,19 +170,52 @@ end
 
 
 
-function fermi_rotate(T::TensorMap,deg)
-    #original index: L,D,R,U,d
 
-end
 
 
 function LUdRD_to_LDRUd(T::TensorMap)
-    #only apply swap gate
     T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
     T=permute_neighbour_ind(T,4,5,5);#L,U,d,D,R,
     T=permute_neighbour_ind(T,3,4,5);#L,U,D,d,R,
     T=permute_neighbour_ind(T,2,3,5);#L,D,U,d,R,
     T=permute_neighbour_ind(T,4,5,5);#L,D,U,R,d,
     T=permute_neighbour_ind(T,3,4,5);#L,D,R,U,d,
+    return T
+end
+
+function LDRUd_to_LUdRD(T::TensorMap)
+    #L,D,R,U,d,
+    T=permute_neighbour_ind(T,3,4,5);#L,D,U,R,d,
+    T=permute_neighbour_ind(T,2,3,5);#L,U,D,R,d,
+    T=permute_neighbour_ind(T,4,5,5);#L,U,D,d,R,
+    T=permute_neighbour_ind(T,3,4,5);#L,U,d,D,R,
+    T=permute_neighbour_ind(T,4,5,5);#L,U,d,R,D,
+    T=permute(T,(1,5,4,2,3,));#L,D,R,U,d
+    return T
+end
+
+
+
+function fermi_rotate(T::TensorMap,deg)
+    #anti-clockwise
+    if deg==90
+        #LDRUd=>DRULd
+        T=permute_neighbour_ind(T,1,2,5);#D,L,R,U,d,
+        T=permute_neighbour_ind(T,2,3,5);#D,R,L,U,d,
+        T=permute_neighbour_ind(T,3,4,5);#D,R,U,L,d,
+    elseif deg==180
+        #LDRUd=>RULDd
+        T=permute_neighbour_ind(T,1,2,5);#D,L,R,U,d,
+        T=permute_neighbour_ind(T,2,3,5);#D,R,L,U,d,
+        T=permute_neighbour_ind(T,3,4,5);#D,R,U,L,d,
+        T=permute_neighbour_ind(T,1,2,5);#R,D,U,L,d,
+        T=permute_neighbour_ind(T,2,3,5);#R,U,D,L,d,
+        T=permute_neighbour_ind(T,3,4,5);#R,U,L,D,d,
+    elseif deg==270
+        #LDRUd=>ULDRd
+        T=permute_neighbour_ind(T,3,4,5);#L,D,U,R,d,
+        T=permute_neighbour_ind(T,2,3,5);#L,U,D,R,d,
+        T=permute_neighbour_ind(T,1,2,5);#U,L,D,R,d,
+    end
     return T
 end

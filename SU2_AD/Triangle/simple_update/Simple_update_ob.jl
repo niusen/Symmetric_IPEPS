@@ -1,12 +1,8 @@
 using Revise, TensorKit, Zygote
-
-using LinearAlgebra, OptimKit
-#using PEPSKit: NORTH,SOUTH,WEST,EAST,NORTHWEST,NORTHEAST,SOUTHEAST,SOUTHWEST,@diffset
 using JLD2,ChainRulesCore,MAT
 using KrylovKit
 using JSON
 using Random
-using LineSearches
 using Zygote:@ignore_derivatives
 using Dates
 
@@ -26,11 +22,12 @@ include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
 include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
+include("..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 include("..\\..\\src\\fermionic\\swap_funs.jl")
+include("..\\..\\src\\fermionic\\fermi_permute.jl")
 include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
-include("..\\..\\src\\fermionic\\simple_update\\fermionic_square_SimpleUpdate_lib.jl")
+include("..\\..\\src\\fermionic\\simple_update\\fermionic_triangle_SimpleUpdate_lib.jl")
 
 ###########################
 """
@@ -45,15 +42,17 @@ Random.seed!(1234)
 symmetric_initial=false;
 
 
-J1=1;
-J2=0.9;
-Jchi=0;
-parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
+t=1;
+ϕ=pi/2;
+μ=0;
+parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ)]);
+
 D_max=6;
 symmetric_hosvd=false;
-trun_tol=1e-6;
 
 
+global D_max, SU_trun_tol
+SU_trun_tol=1e-8;
 println("D_max= "*string(D_max))
 
 chi=40;
@@ -81,6 +80,13 @@ algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_up
 dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
+optim_setting=Optim_settings();
+optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_2.36933.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_noise=0.0;
+optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
+dump(optim_setting);
+
+
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
 LS_ctm_setting.CTM_ite_nums=50;
@@ -95,9 +101,10 @@ LS_ctm_setting.construct_double_layer=true;
 LS_ctm_setting.grad_checkpoint=true;
 dump(LS_ctm_setting);
 
-energy_setting=Square_Energy_settings();
-energy_setting.model = "triangle_J1_J2_Jchi";
+energy_setting=Square_Hubbard_Energy_settings();
+energy_setting.model = "spinful_triangle_lattice";
 dump(energy_setting);
+
 
 
 ##################################
@@ -109,8 +116,10 @@ dump(energy_setting);
  s2 ----- s1
 """
 
-H_Heisenberg, H123chiral, H12, H31, H23 =Hamiltonians();
-H_triangle=(J1/4)*H31+(J1/4)*H12+(J2/2)*H23+Jchi*H123chiral;
+(Ident1,Ident2,), (N_occu1,N_occu2), (n_double1,n_double2,), (Cdag1,Cdag2,), (C1,C2,)=Hamiltonians_spinful_U1_SU2();
+
+# H_Heisenberg, H123chiral, H12, H31, H23 =Hamiltonians();
+# H_triangle=(J1/4)*H31+(J1/4)*H12+(J2/2)*H23+Jchi*H123chiral;
 
 
 ##################################
@@ -122,37 +131,55 @@ global Lx,Ly
 Lx=2;
 Ly=2;
 
-A=RVB_ansatz(1,1,im);
-state=Square_iPEPS(A);
+data=load(optim_setting.init_statenm);
+x=data["x"];
+function init_x(x)
+    if size(x)==(2,1)
+        TA=deepcopy(x[1].T);
+        TB=deepcopy(x[2].T);
+        TC=deepcopy(x[1].T);
+        TD=deepcopy(x[2].T);
+    elseif size(x)==(2,2)
+        TA=deepcopy(x[1][1].T);
+        TB=deepcopy(x[2][1].T);
+        TC=deepcopy(x[1][2].T);
+        TD=deepcopy(x[2][2].T);
+    end
+    return TA,TB,TC,TD
+end
 
-TA=deepcopy(A);
-TB=deepcopy(A);
-TC=deepcopy(A);
-TD=deepcopy(A);
-λ_A_L=unitary(space(A,1)',space(A,1)');
-λ_A_D=unitary(space(A,2)',space(A,2)'); 
-λ_A_R=unitary(space(A,3)',space(A,3)');
-λ_A_U=unitary(space(A,4)',space(A,4)');
-λ_D_L=unitary(space(A,1)',space(A,1)');
-λ_D_D=unitary(space(A,2)',space(A,2)'); 
-λ_D_R=unitary(space(A,3)',space(A,3)');
-λ_D_U=unitary(space(A,4)',space(A,4)');
+TA,TB,TC,TD=init_x(x);
+
+# TA=LUdRD_to_LDRUd(TA);
+# TB=LUdRD_to_LDRUd(TB);
+# TC=LUdRD_to_LDRUd(TC);
+# TD=LUdRD_to_LDRUd(TD);
+
+
+λ_A_L=unitary(space(TA,1)',space(TA,1)');
+λ_A_D=unitary(space(TA,2)',space(TA,2)'); 
+λ_A_R=unitary(space(TA,3)',space(TA,3)');
+λ_A_U=unitary(space(TA,4)',space(TA,4)');
+λ_D_L=unitary(space(TD,1)',space(TD,1)');
+λ_D_D=unitary(space(TD,2)',space(TD,2)'); 
+λ_D_R=unitary(space(TD,3)',space(TD,3)');
+λ_D_U=unitary(space(TD,4)',space(TD,4)');
 
 
 
 ######################
 
-tau=5;
-dt=0.1;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, H_triangle, trun_tol, tau, dt, D_max);
+# tau=5;
+# dt=0.1;
+# TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, H_triangle, trun_tol, tau, dt, D_max);
 
-tau=2;
-dt=0.05;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, H_triangle, trun_tol, tau, dt, D_max);
+# tau=2;
+# dt=0.05;
+# TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, H_triangle, trun_tol, tau, dt, D_max);
 
-tau=0.2;
-dt=0.01;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, H_triangle, trun_tol, tau, dt, D_max);
+# tau=0.2;
+# dt=0.01;
+# TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, H_triangle, trun_tol, tau, dt, D_max);
 
 
 println(space(TA))
@@ -164,6 +191,10 @@ println(space(TD))
 @tensor TA[:]:=TA[1,2,3,4,-5]*λ_A_L[1,-1]*λ_A_D[2,-2]*λ_A_R[3,-3]*λ_A_U[4,-4];
 @tensor TD[:]:=TD[1,2,3,4,-5]*λ_D_L[1,-1]*λ_D_D[2,-2]*λ_D_R[3,-3]*λ_D_U[4,-4];
 
+# TA=LDRUd_to_LUdRD(TA);
+# TB=LDRUd_to_LUdRD(TB);
+# TC=LDRUd_to_LUdRD(TC);
+# TD=LDRUd_to_LUdRD(TD);
 ##############
 state_vec=Matrix{Square_iPEPS}(undef,2,2);
 state_vec[1,1]=Square_iPEPS(TA);
@@ -188,15 +219,35 @@ end
 global chi, parameters, energy_setting, grad_ctm_setting
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],LS_ctm_setting);
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
 
 
-E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
 
-println(E_total/(Lx*Ly))
 
-filenm="SU_D_"*string(D_max)*".jld2"
-jldsave(filenm;x=state_vec);
+dt=-0.02;
+include("..\\..\\src\\fermionic\\simple_update\\fermionic_triangle_SimpleUpdate_lib.jl")
+D_max=20;
+hopping_coe_set=zeros(Lx,Ly)*im;
+hopping_coe_set[1,1]=-1;
+hopping_coe_set[2,1]=1;
+hopping_coe_set[1,2]=-1;
+hopping_coe_set[2,2]=1;
+ob_set=zeros(Lx,Ly)*im;
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)], C_set[mod1(cx+1,Lx)]);
+        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)], Cdag_set[mod1(cx+2,Lx)]);
+        ob=verify_evo_hopping_diagonala(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_diagonala_set)))
+println(ob_set)
+
+# filenm="SU_D_"*string(D_max)*".jld2"
+# jldsave(filenm;x=state_vec);
 
 # mat_filenm="SU_D_"*string(D_max)*".mat"
 # matwrite(mat_filenm, Dict(

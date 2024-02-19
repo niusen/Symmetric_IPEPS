@@ -347,9 +347,9 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         E=real(E_total);
         return E, ex_set, ey_set, e_diagonala_set, e0_set, ite_num,ite_err,CTM_cell
     elseif energy_setting.model=="spinful_triangle_lattice"
-        E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
         E=real(E_total);
-        return E, ex_set, ey_set, e_diagonala_set, e0_set, ite_num,ite_err,CTM_cell
+        return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, ite_num,ite_err,CTM_cell
     end
 end
 

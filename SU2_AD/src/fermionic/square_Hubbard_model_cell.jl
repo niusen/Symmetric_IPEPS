@@ -669,11 +669,15 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             t2=parameters["t2"];
             ϕ=parameters["ϕ"];
             μ=parameters["μ"];
+            U=parameters["U"];
+
+            
 
             ex_set=zeros(Lx,Ly)*im;
             ey_set=zeros(Lx,Ly)*im;
             e_diagonala_set=zeros(Lx,Ly)*im;
             e0_set=zeros(Lx,Ly)*im;
+            eU_set=zeros(Lx,Ly)*im;
 
             
             E_total=0;
@@ -683,38 +687,46 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             ey=hopping_y(CTM_cell,Cdag_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e0=ob_onsite(CTM_cell,N_occu_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+            eU=ob_onsite(CTM_cell,n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+            
             @ignore_derivatives ex_set[cx,cy]=ex;
             @ignore_derivatives ey_set[cx,cy]=ey;
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala') -μ*e0);
+            @ignore_derivatives eU_set[cx,cy]=eU;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
 
             cx=2;cy=1;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             ey=hopping_y(CTM_cell,Cdag_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e0=ob_onsite(CTM_cell,N_occu_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+            eU=ob_onsite(CTM_cell,n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+
             @ignore_derivatives ex_set[cx,cy]=ex;
             @ignore_derivatives ey_set[cx,cy]=ey;
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala') -μ*e0);
+            @ignore_derivatives eU_set[cx,cy]=eU;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
             
                 
             
             E_total=E_total/(Lx*Ly);
-            return E_total,  ex_set, ey_set, e_diagonala_set, e0_set
+            return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
         elseif (Lx==2) & (Ly==2) 
             Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
             t1=parameters["t1"];
             t2=parameters["t2"];
             ϕ=parameters["ϕ"];
             μ=parameters["μ"];
+            U=parameters["U"];
 
             ex_set=zeros(Lx,Ly)*im;
             ey_set=zeros(Lx,Ly)*im;
             e_diagonala_set=zeros(Lx,Ly)*im;
             e0_set=zeros(Lx,Ly)*im;
+            eU_set=zeros(Lx,Ly)*im;
 
             
             E_total=0;
@@ -724,49 +736,57 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             ey=hopping_y(CTM_cell,Cdag_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e0=ob_onsite(CTM_cell,N_occu_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+            eU=ob_onsite(CTM_cell,n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             @ignore_derivatives ex_set[cx,cy]=ex;
             @ignore_derivatives ey_set[cx,cy]=ey;
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala') -μ*e0);
+            @ignore_derivatives eU_set[cx,cy]=eU;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
 
             cx=1;cy=2;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             ey=hopping_y(CTM_cell,Cdag_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e0=ob_onsite(CTM_cell,N_occu_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+            eU=ob_onsite(CTM_cell,n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             @ignore_derivatives ex_set[cx,cy]=ex;
             @ignore_derivatives ey_set[cx,cy]=ey;
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala') -μ*e0);
+            @ignore_derivatives eU_set[cx,cy]=eU;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
 
             cx=2;cy=1;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             ey=hopping_y(CTM_cell,Cdag_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e0=ob_onsite(CTM_cell,N_occu_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+            eU=ob_onsite(CTM_cell,n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             @ignore_derivatives ex_set[cx,cy]=ex;
             @ignore_derivatives ey_set[cx,cy]=ey;
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala') -μ*e0);
+            @ignore_derivatives eU_set[cx,cy]=eU;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
 
             cx=2;cy=2;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             ey=hopping_y(CTM_cell,Cdag_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             e0=ob_onsite(CTM_cell,N_occu_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
+            eU=ob_onsite(CTM_cell,n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
             @ignore_derivatives ex_set[cx,cy]=ex;
             @ignore_derivatives ey_set[cx,cy]=ey;
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala') -μ*e0);
+            @ignore_derivatives eU_set[cx,cy]=eU;
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
             
                 
             
             E_total=E_total/(Lx*Ly);
-            return E_total,  ex_set, ey_set, e_diagonala_set, e0_set
+            return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
         end
     end
 end

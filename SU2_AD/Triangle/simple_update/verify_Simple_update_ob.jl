@@ -27,7 +27,7 @@ include("..\\..\\src\\fermionic\\swap_funs.jl")
 include("..\\..\\src\\fermionic\\fermi_permute.jl")
 include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\..\\src\\fermionic\\simple_update\\fermionic_triangle_SimpleUpdate_lib.jl")
+include("..\\..\\src\\fermionic\\simple_update\\verify_fermionic_triangle_SimpleUpdate_lib.jl")
 
 ###########################
 """
@@ -49,6 +49,7 @@ U=0;
 parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
 D_max=6;
+symmetric_hosvd=false;
 
 
 global D_max, SU_trun_tol
@@ -226,12 +227,98 @@ E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(param
 Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
 
 
+dt=-0.02;
+D_max=20;
+hopping_coe_set=zeros(Lx,Ly)*im;
+hopping_coe_set[1,1]=-1;
+hopping_coe_set[2,1]=1;
+hopping_coe_set[1,2]=-1;
+hopping_coe_set[2,2]=1;
+ob_set=zeros(Lx,Ly)*im;
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)], C_set[mod1(cx+1,Lx)]);
+        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)], Cdag_set[mod1(cx+2,Lx)]);
+        ob=verify_evo_hopping_diagonala(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_diagonala_set)))
+println(ob_set)
+
+
+
+
+dt=-1;
+D_max=30;
+hopping_coe_set=zeros(Lx,Ly)*im;
+hopping_coe_set[1,1]=im;
+hopping_coe_set[2,1]=im;
+hopping_coe_set[1,2]=im;
+hopping_coe_set[2,2]=im;
+ob_set=zeros(Lx,Ly)*im;
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)], C_set[mod1(cx+1,Lx)]);
+        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)], Cdag_set[mod1(cx+2,Lx)]);
+        ob=verify_evo_hopping_x(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*hopping_coe_set.*ex_set+dt*conj(hopping_coe_set.*ex_set)))
+println(ob_set)
+
+
+
+
+dt=-1;
+D_max=20;
+hopping_coe_set=zeros(Lx,Ly)*im;
+hopping_coe_set[1,1]=-1;
+hopping_coe_set[2,1]=1;
+hopping_coe_set[1,2]=-1;
+hopping_coe_set[2,2]=1;
+ob_set=zeros(Lx,Ly)*im;
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+2,Lx)],Cdag_set[mod1(cx+2,Lx)], C_set[mod1(cx+2,Lx)]);
+        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)], Cdag_set[mod1(cx+2,Lx)]);
+        ob=verify_evo_hopping_y(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*hopping_coe_set.*ey_set+dt*conj(hopping_coe_set.*ey_set)))
+println(ob_set)
+
+
+
+
+dt=-1;
 D_max=6;
-include("..\\..\\src\\fermionic\\simple_update\\fermionic_triangle_SimpleUpdate_lib.jl")
-tau=5;
-dt=0.1;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
+h_coe_set=zeros(Lx,Ly)*im;
+h_coe_set[1,1]=U;
+h_coe_set[2,1]=U;
+h_coe_set[1,2]=U;
+h_coe_set[2,2]=U;
+ob_set=zeros(Lx,Ly)*im;
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+1,Lx)],n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)]);
+        ob=verify_evo_onsite(CTM_cell,O1_set,A_cell,AA_cell,cx,cy,h_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*h_coe_set.*eU_set))
+println(ob_set)
 
+# filenm="SU_D_"*string(D_max)*".jld2"
+# jldsave(filenm;x=state_vec);
 
+# mat_filenm="SU_D_"*string(D_max)*".mat"
+# matwrite(mat_filenm, Dict(
+#     "E_plaquatte_cell" => E_plaquatte_cell,
+#     "space_Tu" => string(codomain(T_u)),
+#     "space_Td" => string(codomain(T_d))
+# ); compress = false)
 
 

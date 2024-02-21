@@ -187,9 +187,30 @@ end
 
 
 
-function swap_gate(A,p1,p2)
+# function swap_gate(A,p1,p2)
+#     V1=space(A,p1);
+#     V2=space(A,p2);
+#     S=unitary( V1 ⊗ V2, V1 ⊗ V2);
+
+#     S_dense=convert(Array,S);
+#     oddlist1=get_Vspace_parity(V1);
+#     oddlist2=get_Vspace_parity(V2);
+#     for c1=1:length(oddlist1)
+#         for c2=1:length(oddlist2)
+#             if (oddlist1[c1]==1)&(oddlist2[c2]==1)
+#                 S_dense[c1,c2,c1,c2]=-1;
+#             end
+#         end
+#     end
+#     S=TensorMap(S_dense,V1 ⊗ V2 ← V1 ⊗ V2);
+#     return S
+# end
+
+
+function swap_gate(A,p1,p2) #faster
     V1=space(A,p1);
     V2=space(A,p2);
+    UU=unitary(fuse(V1*V2),V1*V2);
     S=unitary( V1 ⊗ V2, V1 ⊗ V2);
 
     S_dense=convert(Array,S);
@@ -202,7 +223,12 @@ function swap_gate(A,p1,p2)
             end
         end
     end
-    S=TensorMap(S_dense,V1 ⊗ V2 ← V1 ⊗ V2);
+    UU_dense=convert(Array,UU);
+    @tensor S_dense[:]:=UU_dense[-1,1,2]*S_dense[1,2,3,4]*conj(UU_dense)[-2,3,4];
+    # S=TensorMap(S_dense,V1 ⊗ V2 ← V1 ⊗ V2);
+    S=TensorMap(S_dense,fuse(V1 ⊗ V2) ← fuse(V1 ⊗ V2));
+    @tensor S[:]:=UU'[-1,-2,1]*S[1,2]*UU[2,-3,-4];
+    S=permute(S,(1,2,),(3,4,));
     return S
 end
 

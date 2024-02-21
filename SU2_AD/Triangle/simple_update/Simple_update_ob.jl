@@ -116,6 +116,20 @@ dump(energy_setting);
  s2 ----- s1
 """
 
+VDummytype=2;
+global VDummy_set
+
+if VDummytype==1
+    VDummy1=Rep[U₁ × SU₂]((-1, 1/2)=>1);
+    VDummy2=Rep[U₁ × SU₂]((-1, 1/2)=>1);
+    VDummy_set=(VDummy1,VDummy2,);
+elseif VDummytype==2
+    VDummy1=Rep[U₁ × SU₂]((-2, 0)=>1);
+    VDummy2=ProductSpace{GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}, 0}();
+    VDummy_set=(VDummy1,VDummy2,);
+end
+
+
 (Ident1,Ident2,), (N_occu1,N_occu2), (n_double1,n_double2,), (Cdag1,Cdag2,), (C1,C2,)=Hamiltonians_spinful_U1_SU2();
 
 # H_Heisenberg, H123chiral, H12, H31, H23 =Hamiltonians();
@@ -216,22 +230,37 @@ for cx=1:Lx
     end
 end
 
-global chi, parameters, energy_setting, grad_ctm_setting
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# global chi, parameters, energy_setting, grad_ctm_setting
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
-
-
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
 
 
-D_max=6;
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
+
+
+D_max=10;
 include("..\\..\\src\\fermionic\\simple_update\\fermionic_triangle_SimpleUpdate_lib.jl")
-tau=5;
-dt=0.1;
+tau=0.05;
+dt=0.01;
 TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
 
 
+Lx=2;
+Ly=2;
+@tensor A_D[:]:=TD[1,2,3,4,-5]*λ_D_L[1,-1]*λ_D_D[2,-2]*λ_D_R[3,-3]*λ_D_U[4,-4];
+@tensor A_A[:]:=TA[1,2,3,4,-5]*λ_A_L[1,-1]*λ_A_D[2,-2]*λ_A_R[3,-3]*λ_A_U[4,-4];
+A_B=TB;
+A_C=TC;
+A_cell=initial_tuple_cell(2,2);
+A_cell=fill_tuple(A_cell, A_A, 1,1);
+A_cell=fill_tuple(A_cell, A_B, 2,1);
+A_cell=fill_tuple(A_cell, A_C, 1,2);
+A_cell=fill_tuple(A_cell, A_D, 2,2);
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# LS_ctm_setting.CTM_ite_nums=10;
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 
 

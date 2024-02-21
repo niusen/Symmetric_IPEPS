@@ -13,18 +13,21 @@ function Rank(T::TensorMap)
 end
 
 function mypinv(T)
-    epsilon0 = 1e-12
-    epsilon=epsilon0*maximum(diag(convert(Array,T)))
-    T_new=deepcopy(T);
-
-    for (k,dst) in blocks(T_new)
-        src = blocks(T_new)[k]
-        @inbounds for i in 1:size(dst,1)
-            dst[i,i] = dst[i,i]/(dst[i,i]^2+epsilon)
-        end
-    end
-    return T_new
+    return pinv(T)
 end
+# function mypinv(T)
+#     epsilon0 = 1e-16
+#     epsilon=epsilon0*maximum(diag(convert(Array,T)))
+#     T_new=deepcopy(T);
+
+#     for (k,dst) in blocks(T_new)
+#         src = blocks(T_new)[k]
+#         @inbounds for i in 1:size(dst,1)
+#             dst[i,i] = dst[i,i]/(dst[i,i]^2+epsilon)
+#         end
+#     end
+#     return T_new
+# end
 
 function truncate_multiplet_origin(s,chi,multiplet_tol,trun_tol)
     #the multiplet is not due to su(2) symmetry
@@ -209,7 +212,7 @@ function evo_hopping_diagonala(O1,O2,A_RU0,A_LD0,A_RD0,hopping_coe,dt)
         end
     end
 
-    function update_RD(T_RU,Ua,T_LD,Ub, T_RD)
+    function update_RD(T_RU,Ua,T_LD,Ub, T_RD)#most expensive part
         RU_res, RU_keep,Ua=move_RU(T_RU,Ua);
         LD_res,LD_keep,Ub=move_LD(T_LD,Ub);
 
@@ -224,7 +227,7 @@ function evo_hopping_diagonala(O1,O2,A_RU0,A_LD0,A_RD0,hopping_coe,dt)
         gate=parity_gate(RU_keep,1);
         @tensor RU_keep[:]:=RU_keep[1,-2,-3]*gate[-1,1];
         Unita=unitary(fuse(space(T_LD_RD,1)*space(T_LD_RD,2)*space(T_LD_RD,3)), space(T_LD_RD,1)*space(T_LD_RD,2)*space(T_LD_RD,3));
-        # @tensor T_RU_LD_RD[:]:=T_LD_RD[-1,-2,-3,-4,-5,1]*RU_keep[1,-6,-7];# (virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd,)    (D_ru, virtual_ru,  d_ru)
+        ## @tensor T_RU_LD_RD[:]:=T_LD_RD[-1,-2,-3,-4,-5,1]*RU_keep[1,-6,-7];# (virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd,)    (D_ru, virtual_ru,  d_ru)
         @tensor T_RU_LD_RD[:]:=Unita[-1,1,2,3]*T_LD_RD[1,2,3,-4,-5,4]*RU_keep[4,-6,-7];# (virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd,)    (D_ru, virtual_ru,  d_ru)
 
         return RU_res,LD_res,T_RU_LD_RD,Ua,Ub,Unita
@@ -235,8 +238,10 @@ function evo_hopping_diagonala(O1,O2,A_RU0,A_LD0,A_RD0,hopping_coe,dt)
         #######################
         # U1,S1,V1=tsvd(permute(T_RU_LD_RD,(1,2,3,4,5,),(6,7,)); trunc=truncdim(D_max));#(virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd_new),  (D_ru_new, virtual_ru,  d_ru) 
         U1,S1,V1=tsvd(permute(T_RU_LD_RD,(1,2,3,),(4,5,)); trunc=truncdim(D_max));#(virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd_new),  (D_ru_new, virtual_ru,  d_ru) 
+        S1=S1/norm(S1);
         @tensor U1[:]:=U1[1,-4,-5,-6]*Unita'[-1,-2,-3,1];
         U1=permute(U1,(1,2,3,4,5,),(6,));
+
         #######################
         RU_keep=permute(V1,(1,2,3,));#(D_ru_new, virtual_ru,  d_ru)
         gate=parity_gate(RU_keep,1);
@@ -250,6 +255,8 @@ function evo_hopping_diagonala(O1,O2,A_RU0,A_LD0,A_RD0,hopping_coe,dt)
         T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,6);#(virtual_ld, d_ld,   U_rd_new,d_rd,R_rd,D_rd,) 
         ###################
         U2,S2,V2=tsvd(permute(T_LD_RD,(1,2,),(3,4,5,6,)); trunc=truncdim(D_max));
+        S2=S2/norm(S2);
+
         ###################
         LD_keep=permute(U2,(1,2,3,));#(virtual_ld, d_ld, R_ld)
         T_RD=permute(V2,(1,2,3,4,5,));#(L_rd, U_rd,d_rd,R_rd,D_rd,) 
@@ -280,7 +287,7 @@ function evo_hopping_diagonala(O1,O2,A_RU0,A_LD0,A_RD0,hopping_coe,dt)
         return T_RU
     end
 
-
+    
     A_LD,A_RU,A_RD=update_hopping_diagonala(O1[1],O2[1],A_RU0,A_LD0,A_RD0);
     RU_res,LD_res,A_RU_LD_RD,Ua,Ub,Unita=update_RD(A_RU,nothing,A_LD,nothing, A_RD);
 
@@ -291,8 +298,6 @@ function evo_hopping_diagonala(O1,O2,A_RU0,A_LD0,A_RD0,hopping_coe,dt)
     A_LD_tem,A_RU_tem,A_RD_tem=update_hopping_diagonala(dt*(-hopping_coe')*O1[3],O2[3],A_RU0,A_LD0,A_RD0);
     RU_res_tem,LD_res_tem,A_RU_LD_RD_tem,_=update_RD(A_RU_tem,Ua,A_LD_tem,Ub, A_RD_tem);
     A_RU_LD_RD=A_RU_LD_RD+A_RU_LD_RD_tem;
-
-
 
     RU_keep,LD_keep, A_RD, lambda_RU_RD, lambda_LD_RD=back_RD(A_RU_LD_RD,Unita);
     A_LD=back_LD(LD_res,LD_keep);

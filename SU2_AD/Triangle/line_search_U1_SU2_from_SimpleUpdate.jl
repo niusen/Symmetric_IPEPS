@@ -29,7 +29,7 @@ include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 Random.seed!(888)
 
 VDummytype=2;
-D=8;
+D=6;
 chi=40
 
 t=1;
@@ -75,7 +75,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_2.36933.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_statenm="SU_D6.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -112,13 +112,13 @@ elseif VDummytype==2
 end
 
 if VDummytype==1
-    # if D==4
-    #     Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
-    #     Vv_set=((Vv1,Vv1',Vv1',Vv1,),(Vv1,Vv1',Vv1',Vv1,),);
-    # elseif D==5
-    # elseif D==6
-    # elseif D==10
-    # end
+    if D==4
+        Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
+        Vv_set=((Vv1,Vv1',Vv1',Vv1,),(Vv1,Vv1',Vv1',Vv1,),);
+    elseif D==5
+    elseif D==6
+    elseif D==10
+    end
 elseif VDummytype==2
     if D==4
         Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
@@ -126,34 +126,6 @@ elseif VDummytype==2
         Vv_set=((Vv1,Vv1',Vv3,Vv1,),(Vv3',Vv1',Vv1',Vv1,),);
     elseif D==5
     elseif D==6
-        Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(-1, 1/2)=>1);
-        Vv2=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(3, 1/2)=>1)';
-        Vv3=Rep[U₁ × SU₂]((-1, 1/2)=>1, (0, 0)=>2, (1, 1/2)=>1)';
-        Vv4=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(3, 1/2)=>1);
-        Vv5=Rep[U₁ × SU₂]((-1, 1/2)=>1, (0, 0)=>2, (1, 1/2)=>1);
-        Vv6=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(-1, 1/2)=>1)';
-        Vv7=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(-1, 1/2)=>1)';
-        Vv8=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(-1, 1/2)=>1);
-        Vv_set=((Vv1,Vv2,Vv3,Vv4,),(Vv5,Vv6,Vv7,Vv8,),);
-    elseif D==8
-        # Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>2,(-1, 1/2)=>1);
-        # Vv2=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1, (3, 1/2)=>1)';
-        # Vv3=Rep[U₁ × SU₂]((-1, 1/2)=>1, (0, 0)=>2, (1, 1/2)=>2)';
-        # Vv4=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>2,(3, 1/2)=>1);
-        # Vv5=Rep[U₁ × SU₂]((-1, 1/2)=>1, (0, 0)=>2, (1, 1/2)=>2);
-        # Vv6=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(-1, 1/2)=>1)';
-        # Vv7=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>2,(-1, 1/2)=>1)';
-        # Vv8=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(-1, 1/2)=>1);
-
-        Vv1=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(2, 1)=>1);
-        Vv2=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1, (3, 1/2)=>1)';
-        Vv3=Rep[U₁ × SU₂]((-1, 1/2)=>1, (0, 0)=>2, (1, 1/2)=>1, (2,0)=>1)';
-        Vv4=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1,(3, 1/2)=>1);
-        Vv5=Rep[U₁ × SU₂]((-1, 1/2)=>1, (0, 0)=>2, (1, 1/2)=>1, (2,0)=>1);
-        Vv6=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1, (-1, 1/2)=>1)';
-        Vv7=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1, (2, 1)=>1)';
-        Vv8=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1, (-1, 1/2)=>1);
-        Vv_set=((Vv1,Vv2,Vv3,Vv4,),(Vv5,Vv6,Vv7,Vv8,),);
     elseif D==10
     end
 end
@@ -162,7 +134,7 @@ end
 
 global Lx,Ly
 Lx=2;
-Ly=1;
+Ly=2;
 
 
 
@@ -171,7 +143,7 @@ Ly=1;
 
 init_complex_tensor=true;
 
-state_vec=initial_fPEPS_state_spinful_U1_SU2(Vphy,Vv_set, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=initial_fPEPS_state_SimpleUpdate_U1_SU2(Vphy, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
 
 
@@ -182,12 +154,6 @@ global starting_time
 starting_time=now();
 
 ################################################
-
-
-
-
-
-
 
 
 

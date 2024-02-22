@@ -752,7 +752,9 @@ function itebd(parameters, T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_
     O_onsite_set=[O1_set,O2_set];
     for ct=1:Int(round(tau/abs(dt)))
         println("iteration "*string(ct));flush(stdout)
-        T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_diagnala_set, h_diagnala_set,dt);
+        if abs(t2)>0
+            T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_diagnala_set, h_diagnala_set,dt);
+        end
         T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= hopping_x_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_hopx_set, hopping_x_set,dt);
         T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= hopping_y_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_hopy_set, hopping_y_set,dt);
         T_A, T_B, T_C, T_D = onsite_update(T_A, T_B, T_C, T_D, O_onsite_set, U_set,dt);

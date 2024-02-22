@@ -42,11 +42,12 @@ Random.seed!(1234)
 symmetric_initial=false;
 
 
-t=1;
+t1=1;
+t2=0;
 ϕ=pi/2;
 μ=0;
 U=0;
-parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
 D_max=6;
 
@@ -240,9 +241,16 @@ end
 # Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
 
 
-D_max=10;
-include("..\\..\\src\\fermionic\\simple_update\\fermionic_triangle_SimpleUpdate_lib.jl")
-tau=0.05;
+tau=5;
+dt=0.1;
+TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
+
+tau=1;
+dt=0.05;
+TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
+
+
+tau=0.2;
 dt=0.01;
 TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
 
@@ -258,9 +266,16 @@ A_cell=fill_tuple(A_cell, A_A, 1,1);
 A_cell=fill_tuple(A_cell, A_B, 2,1);
 A_cell=fill_tuple(A_cell, A_C, 1,2);
 A_cell=fill_tuple(A_cell, A_D, 2,2);
-# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-# LS_ctm_setting.CTM_ite_nums=10;
-# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
-# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+state=Matrix{Square_iPEPS}(undef,Lx,Ly);
+state[1,1]=Square_iPEPS(A_A);
+state[2,1]=Square_iPEPS(A_B);
+state[1,2]=Square_iPEPS(A_C);
+state[2,2]=Square_iPEPS(A_D);
 
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+LS_ctm_setting.CTM_ite_nums=10;
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 
+filenm="SU_dirac_D"*string(D_max)*".jld2";
+jldsave(filenm;x=state)

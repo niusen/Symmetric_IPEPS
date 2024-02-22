@@ -1,6 +1,41 @@
 function Rank(T::TensorMap)
     return length(domain(T))+length(codomain(T))
 end
+
+
+function Gutzwiller_U1_SU2(coe)
+    global VDummy_set
+    VDummy1=VDummy_set[1];
+    VDummy2=VDummy_set[2];
+
+    V=Rep[U₁ × SU₂]((0,0)=>1,(2,0)=>1,(1, 1/2)=>1);
+
+
+
+ 
+
+
+    PG=zeros(4,4);
+    PG[1,1]=coe;
+    PG[2,2]=coe;
+    PG[3,3]=1;
+    PG[4,4]=1;
+    PG=TensorMap(PG,  V ← V);
+
+############################################
+    U_phy1=unitary(fuse(VDummy1*V), VDummy1*V);
+    U_phy2=unitary(fuse(VDummy2*V), VDummy2*V);
+
+    @tensor PG1[:]:=U_phy1[-1,1,2]*PG[2,3]*U_phy1'[1,3,-2];
+    if Rank(U_phy2)==3
+        @tensor PG2[:]:=U_phy2[-1,1,2]*PG[2,3]*U_phy2'[1,3,-2];
+    elseif Rank(U_phy2)==2
+        @tensor PG2[:]:=U_phy2[-1,2]*PG[2,3]*U_phy2'[3,-2];
+    end
+    
+    return (PG1,PG2,)
+end
+
 function Hamiltonians_spinless_Z2()
     
 

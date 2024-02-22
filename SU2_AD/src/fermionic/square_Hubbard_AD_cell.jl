@@ -1,3 +1,41 @@
+function create_isometry(V1,V2)
+    #V1 is larger than V2
+    @assert dim(V1)>=dim(V2)
+    tt=TensorMap(randn,V1,V2);
+    for cc=1:length(tt.data.values)
+        mm=tt.data.values[cc];
+        tt.data.values[cc]=Matrix(I, size(mm,1), size(mm,2));
+    end
+    return tt
+end
+function initial_fPEPS_state_SimpleUpdate_U1_SU2(Vphy,init_statenm,init_noise=0,init_complex_tensor=false)
+   
+    global Lx,Ly
+    global VDummy_set
+
+    
+    println("load state: "*init_statenm);flush(stdout);
+    x=load(init_statenm)["x"];
+    state=similar(x);
+    for cc in eachindex(x)
+        ansatz=x[cc];
+        A=ansatz.T;
+
+        if init_complex_tensor
+            A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+        else
+            A_noise=TensorMap(randn,codomain(A),domain(A));
+        end
+
+        A_new=A+A_noise*init_noise*norm(A)/norm(A_noise);
+        A_new=permute(A_new,(1,2,3,4,5,));
+        ansatz_new=Square_iPEPS(A_new);
+        state[cc]=ansatz_new;
+    end
+    return state
+    
+end
+
 function initial_fPEPS_state_spinful_U1_SU2(Vphy,Vv_set,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
    
     global Lx,Ly
@@ -32,27 +70,12 @@ function initial_fPEPS_state_spinful_U1_SU2(Vphy,Vv_set,init_statenm="nothing",i
                 A=A0;
             else
                 println("Extend bond dimension of initial state")
-                if space(A0,1)==Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
-                    if Vspace==SU2Space(0=>3,1/2=>1)
-                        M=zeros(5,5,5,5,4)*im;
-                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    elseif Vspace==SU2Space(0=>2,1/2=>2)
-                        M=zeros(6,6,6,6,4)*im;
-                        M[[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],:]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    elseif Vspace==SU2Space(0=>3,1/2=>2,1=>1)
-                        M=zeros(10,10,10,10,4)*im;
-                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    end
-                elseif space(A0,1)==Rep[ℤ₂](0=>2, 1=>2)
-                    if Vspace==Rep[ℤ₂](0=>3, 1=>3)
-                        M=zeros(6,6,6,6,2)*im;
-                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],1:2]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    end
-                end
+                uul=create_isometry(Vv_set[cc][1],space(A0,1));
+                uud=create_isometry(Vv_set[cc][2],space(A0,2));
+                uur=create_isometry(Vv_set[cc][3],space(A0,3));
+                uuu=create_isometry(Vv_set[cc][4],space(A0,4));
+                @tensor A[:]:=A0[1,2,3,4,-5]*uul[-1,1]*uud[-2,2]*uur[-3,3]*uuu[-4,4];
+
                 A=permute(A,(1,2,3,4,5,));
             end
 

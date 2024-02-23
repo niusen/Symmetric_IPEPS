@@ -118,6 +118,283 @@ end
 
 
 
+function verify_evo_hopping_RU_LD_RD(CTM,O1,O2,A_cell,AA_cell,cx,cy,hopping_coe,dt)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+    
+
+    function move_RU(T)
+        T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
+        T=permute_neighbour_ind(T,3,4,5);#L,U,R,  d,D,
+
+        U,S,V=tsvd(T,(1,2,3,),(4,5,));
+        RU_res=U;#(L_ru,U_ru,R_ru, virtual_ru)
+        RU_keep=S*V; #(virtual_ru, d_ru,D_ru)
+        return RU_res, RU_keep
+
+    end
+    function move_LD(T)
+        T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
+        T=permute_neighbour_ind(T,4,5,5);#L,U,d,D,R,
+        T=permute_neighbour_ind(T,3,4,5);#L,U,D,  d,R,
+
+        U,S,V=tsvd(T,(1,2,3,),(4,5,));
+        LD_res=U;#(L_ld,U_ld,D_ld, virtual_ld)
+        LD_keep=S*V;#(virtual_ld, d_ld,R_ld)
+        return LD_res,LD_keep
+
+    end
+
+    function update_RD(T_RU,T_LD, T_RD, op)
+        RU_res, RU_keep=move_RU(T_RU);
+        LD_res,LD_keep=move_LD(T_LD);
+
+        T_RD=permute(T_RD,(1,4,5,3,2,));#L_rd,U_rd,d_rd,R_rd,D_rd,
+        @tensor T_LD_RD[:]:=LD_keep[-1,-2,1]*T_RD[1,-3,-4,-5,-6];#(virtual_ld, d_ld,     U_rd,d_rd,R_rd,D_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,6);#(virtual_ld, d_ld,   d_rd,U_rd,R_rd,D_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,4,5,6);#(virtual_ld, d_ld,   d_rd,R_rd,U_rd,D_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,5,6,6);#(virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd,)
+        U_RD=unitary(fuse(space(T_LD_RD,4)*space(T_LD_RD,5)), space(T_LD_RD,4)*space(T_LD_RD,5));
+        @tensor T_LD_RD[:]:=T_LD_RD[-1,-2,-3,1,2,-5]*U_RD[-4,1,2];#(virtual_ld, d_ld,   d_rd,R_D_rd,U_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,5);#(virtual_ld, d_ld,   R_D_rd,d_rd,U_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,2,3,5);#(virtual_ld,  R_D_rd, d_ld, d_rd, U_rd,)
+
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(virtual_ru, D_ru, d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,1,2,3);#(D_ru, virtual_ru,  d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(D_ru, d_ru, virtual_ru)
+        gate=parity_gate(RU_keep,1);
+        @tensor RU_keep[:]:=RU_keep[1,-2,-3]*gate[-1,1];
+        @tensor T_RU_LD_RD[:]:=T_LD_RD[-1,-2,-3,-4,1]*RU_keep[1,-5,-6];# (virtual_ld,  R_D_rd, d_ld, d_rd, U_rd,)    (D_ru, d_ru, virtual_ru)
+        T_RU_LD_RD=permute_neighbour_ind(T_RU_LD_RD,3,4,6);# (virtual_ld,  R_D_rd, d_rd, d_ld,  d_ru, virtual_ru)
+
+        @tensor T_RU_LD_RD[:]:=T_RU_LD_RD[-1,-2,-3,1,2,-6]*op[-4,-5,1,2];# (virtual_ld,  R_D_rd, d_rd, d_ld,  d_ru, virtual_ru)
+
+        T_RU_LD_RD=permute_neighbour_ind(T_RU_LD_RD,3,4,6);# (virtual_ld,  R_D_rd, d_ld, d_rd,   d_ru, virtual_ru)
+        return RU_res,LD_res,T_RU_LD_RD, U_RD
+    end
+
+    function back_RD(T_RU_LD_RD, U_RD)
+        global D_max
+        #######################
+        U1,S1,V1=tsvd(permute(T_RU_LD_RD,(1,2,3,4,),(5,6,)); trunc=truncdim(D_max));#(virtual_ld,  R_D_rd, d_ld, d_rd, U_rd_new),  (D_ru_new, d_ru, virtual_ru) 
+        #######################
+        RU_keep=permute(V1,(1,2,3,));#(D_ru_new, d_ru, virtual_ru)
+        gate=parity_gate(RU_keep,1);
+        @tensor RU_keep[:]:=RU_keep[1,-2,-3]*gate[-1,1];
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(D_ru_new,  virtual_ru, d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,1,2,3);#(virtual_ru, D_ru_new, d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(virtual_ru, d_ru, D_ru_new)
+
+        T_LD_RD=permute(U1*S1,(1,2,3,4,5,));#(virtual_ld,  R_D_rd, d_ld, d_rd, U_rd_new) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,2,3,5);#(virtual_ld,  d_ld, R_D_rd,  d_rd, U_rd_new) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,5);#(virtual_ld,  d_ld, d_rd, R_D_rd,  U_rd_new) 
+        @tensor T_LD_RD[:]:=T_LD_RD[-1,-2,-3,1,-6]*U_RD'[-4,-5,1];#(virtual_ld, d_ld,  d_rd, R_rd, D_rd,U_rd_new,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,5,6,6);#(virtual_ld, d_ld,  d_rd,R_rd,U_rd_new,D_rd,) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,4,5,6);#(virtual_ld, d_ld,  d_rd,U_rd_new,R_rd,D_rd,) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,6);#(virtual_ld, d_ld,  U_rd_new,d_rd,R_rd,D_rd,) 
+        ###################
+        U2,S2,V2=tsvd(permute(T_LD_RD,(1,2,),(3,4,5,6,)); trunc=truncdim(D_max));
+        ###################
+        LD_keep=permute(U2*S2,(1,2,3,));#(virtual_ld, d_ld, R_ld)
+        T_RD=permute(V2,(1,2,3,4,5,));#(L_rd, U_rd,d_rd,R_rd,D_rd,) 
+        T_RD=permute(T_RD,(1,5,4,2,3,));
+        return RU_keep,LD_keep, T_RD
+    end
+
+    function back_LD(LD_res,LD_keep)
+        #(L_ld,U_ld,D_ld, virtual_ld)
+        #(virtual_ld, d_ld, R_ld)
+        @tensor T_LD[:]:=LD_res[-1,-2,-3,1]*LD_keep[1,-4,-5];#(L_ld,U_ld,D_ld, d_ld, R_ld)
+        T_LD=permute_neighbour_ind(T_LD,3,4,5);#(L,U, d,D, R)
+        T_LD=permute_neighbour_ind(T_LD,4,5,5);#(L,U, d,R, D)
+        T_LD=permute(T_LD,(1,5,4,2,3,));
+        return T_LD
+    end
+
+    function back_RU(RU_res,RU_keep)
+        #(L_ru,U_ru,R_ru, virtual_ru)
+        #(virtual_ru, d_ru, D_ru)
+        @tensor T_RU[:]:=RU_res[-1,-2,-3,1]*RU_keep[1,-4,-5];#(L_ru,U_ru,R_ru,  d_ru, D_ru)
+        T_RU=permute_neighbour_ind(T_RU,3,4,5);#(L,U,d, R, D)
+        T_RU=permute(T_RU,(1,5,4,2,3,));
+        return T_RU
+    end
+
+
+    # A_LD,A_RU,A_RD=update_hopping_diagonala(O1[1],O2[1],A_cell,cx,cy);
+    A_RU0=A_cell[pos_RU[1]][pos_RU[2]];
+    A_LD0=A_cell[pos_LD[1]][pos_LD[2]];
+    A_RD0=A_cell[pos_RD[1]][pos_RD[2]];
+
+    @tensor op1[:]:=O1[1][-1,-3]*O2[1][-2,-4];
+    op1=permute(op1,(1,2,),(3,4,))
+    @tensor op2[:]:=O1[2][1,-1,-3]*O2[2][1,-2,-4];
+    op2=-op2;#!!!!!!! somehow this minus sign is required
+    op2=permute(op2*dt*hopping_coe,(1,2,),(3,4,));
+    op3=op2';
+
+    RU_res,LD_res,A_RU_LD_RD, U_RD=update_RD(A_RU0,A_LD0, A_RD0, op1+op2+op3);
+
+
+    RU_keep,LD_keep, A_RD=back_RD(A_RU_LD_RD, U_RD);
+    A_LD=back_LD(LD_res,LD_keep);
+    A_RU=back_RU(RU_res,RU_keep);
+
+    AA_LD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+    AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+    AA_RD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+
+
+    ob=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_RU_double,AA_LD_double,AA_RD_double,cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob   
+end
+
+
+
+
+
+function verify_evo_hopping_LU_RU_LD(CTM,O1,O2,A_cell,AA_cell,cx,cy,hopping_coe,dt)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+    
+
+    function move_RU(T)
+        T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
+        T=permute_neighbour_ind(T,2,3,5);#L,d,U,R,D,
+
+        U,S,V=tsvd(T,(1,2,),(3,4,5,));
+        RU_res=V;#(virtual_ru, U_ru,R_ru,D_ru)
+        RU_keep=U*S; #(L_ru,d_ru, virtual_ru)
+        return RU_res, RU_keep
+    end
+    function move_LD(T)
+        T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
+        T=permute_neighbour_ind(T,3,4,5);#L,U,R,d,D,
+        T=permute_neighbour_ind(T,4,5,5);#L,U,R,D,d,
+        T=permute_neighbour_ind(T,2,3,5);#L,R,U,D,d,
+        T=permute_neighbour_ind(T,3,4,5);#L,R,D,U,d,
+        T=permute_neighbour_ind(T,4,5,5);#L,R,D,  d,U,
+
+        U,S,V=tsvd(T,(1,2,3,),(4,5,));
+        LD_res=U;#(L_ld,R_ld,D_ld, virtual_ld)
+        LD_keep=S*V;#(virtual_ld, d_ld,U_ld)
+        return LD_res,LD_keep
+
+    end
+
+    function update_LU(T_RU,T_LD, T_LU, op)
+        RU_res, RU_keep=move_RU(T_RU);
+        LD_res,LD_keep=move_LD(T_LD);
+
+        T_RD=permute(T_LU,(1,4,5,3,2,));#L_lu,U_lu,d_lu,R_lu,D_lu,
+        @tensor T_LD_RD[:]:=LD_keep[-1,-2,1]*T_RD[1,-3,-4,-5,-6];#(virtual_ld, d_ld,     U_rd,d_rd,R_rd,D_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,6);#(virtual_ld, d_ld,   d_rd,U_rd,R_rd,D_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,4,5,6);#(virtual_ld, d_ld,   d_rd,R_rd,U_rd,D_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,5,6,6);#(virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd,)
+        U_RD=unitary(fuse(space(T_LD_RD,4)*space(T_LD_RD,5)), space(T_LD_RD,4)*space(T_LD_RD,5));
+        @tensor T_LD_RD[:]:=T_LD_RD[-1,-2,-3,1,2,-5]*U_RD[-4,1,2];#(virtual_ld, d_ld,   d_rd,R_D_rd,U_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,5);#(virtual_ld, d_ld,   R_D_rd,d_rd,U_rd,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,2,3,5);#(virtual_ld,  R_D_rd, d_ld, d_rd, U_rd,)
+
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(virtual_ru, D_ru, d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,1,2,3);#(D_ru, virtual_ru,  d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(D_ru, d_ru, virtual_ru)
+        gate=parity_gate(RU_keep,1);
+        @tensor RU_keep[:]:=RU_keep[1,-2,-3]*gate[-1,1];
+        @tensor T_RU_LD_RD[:]:=T_LD_RD[-1,-2,-3,-4,1]*RU_keep[1,-5,-6];# (virtual_ld,  R_D_rd, d_ld, d_rd, U_rd,)    (D_ru, d_ru, virtual_ru)
+        T_RU_LD_RD=permute_neighbour_ind(T_RU_LD_RD,3,4,6);# (virtual_ld,  R_D_rd, d_rd, d_ld,  d_ru, virtual_ru)
+
+        @tensor T_RU_LD_RD[:]:=T_RU_LD_RD[-1,-2,-3,1,2,-6]*op[-4,-5,1,2];# (virtual_ld,  R_D_rd, d_rd, d_ld,  d_ru, virtual_ru)
+
+        T_RU_LD_RD=permute_neighbour_ind(T_RU_LD_RD,3,4,6);# (virtual_ld,  R_D_rd, d_ld, d_rd,   d_ru, virtual_ru)
+        return RU_res,LD_res,T_RU_LD_RD, U_LU
+    end
+
+    function back_LU(T_RU_LD_RD, U_LU)
+        global D_max
+        #######################
+        U1,S1,V1=tsvd(permute(T_RU_LD_RD,(1,2,3,4,),(5,6,)); trunc=truncdim(D_max));#(virtual_ld,  R_D_rd, d_ld, d_rd, U_rd_new),  (D_ru_new, d_ru, virtual_ru) 
+        #######################
+        RU_keep=permute(V1,(1,2,3,));#(D_ru_new, d_ru, virtual_ru)
+        gate=parity_gate(RU_keep,1);
+        @tensor RU_keep[:]:=RU_keep[1,-2,-3]*gate[-1,1];
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(D_ru_new,  virtual_ru, d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,1,2,3);#(virtual_ru, D_ru_new, d_ru)
+        RU_keep=permute_neighbour_ind(RU_keep,2,3,3);#(virtual_ru, d_ru, D_ru_new)
+
+        T_LD_RD=permute(U1*S1,(1,2,3,4,5,));#(virtual_ld,  R_D_rd, d_ld, d_rd, U_rd_new) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,2,3,5);#(virtual_ld,  d_ld, R_D_rd,  d_rd, U_rd_new) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,5);#(virtual_ld,  d_ld, d_rd, R_D_rd,  U_rd_new) 
+        @tensor T_LD_RD[:]:=T_LD_RD[-1,-2,-3,1,-6]*U_RD'[-4,-5,1];#(virtual_ld, d_ld,  d_rd, R_rd, D_rd,U_rd_new,)
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,5,6,6);#(virtual_ld, d_ld,  d_rd,R_rd,U_rd_new,D_rd,) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,4,5,6);#(virtual_ld, d_ld,  d_rd,U_rd_new,R_rd,D_rd,) 
+        T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,6);#(virtual_ld, d_ld,  U_rd_new,d_rd,R_rd,D_rd,) 
+        ###################
+        U2,S2,V2=tsvd(permute(T_LD_RD,(1,2,),(3,4,5,6,)); trunc=truncdim(D_max));
+        ###################
+        LD_keep=permute(U2*S2,(1,2,3,));#(virtual_ld, d_ld, R_ld)
+        T_RD=permute(V2,(1,2,3,4,5,));#(L_rd, U_rd,d_rd,R_rd,D_rd,) 
+        T_RD=permute(T_RD,(1,5,4,2,3,));
+        return RU_keep,LD_keep, T_LU
+    end
+
+    function back_LD(LD_res,LD_keep)
+        #(L_ld,U_ld,D_ld, virtual_ld)
+        #(virtual_ld, d_ld, R_ld)
+        @tensor T_LD[:]:=LD_res[-1,-2,-3,1]*LD_keep[1,-4,-5];#(L_ld,U_ld,D_ld, d_ld, R_ld)
+        T_LD=permute_neighbour_ind(T_LD,3,4,5);#(L,U, d,D, R)
+        T_LD=permute_neighbour_ind(T_LD,4,5,5);#(L,U, d,R, D)
+        T_LD=permute(T_LD,(1,5,4,2,3,));
+        return T_LD
+    end
+
+    function back_RU(RU_res,RU_keep)
+        #(L_ru,U_ru,R_ru, virtual_ru)
+        #(virtual_ru, d_ru, D_ru)
+        @tensor T_RU[:]:=RU_res[-1,-2,-3,1]*RU_keep[1,-4,-5];#(L_ru,U_ru,R_ru,  d_ru, D_ru)
+        T_RU=permute_neighbour_ind(T_RU,3,4,5);#(L,U,d, R, D)
+        T_RU=permute(T_RU,(1,5,4,2,3,));
+        return T_RU
+    end
+
+
+    # A_LD,A_RU,A_RD=update_hopping_diagonala(O1[1],O2[1],A_cell,cx,cy);
+    A_RU0=A_cell[pos_RU[1]][pos_RU[2]];
+    A_LD0=A_cell[pos_LD[1]][pos_LD[2]];
+    A_RD0=A_cell[pos_RD[1]][pos_RD[2]];
+
+    @tensor op1[:]:=O1[1][-1,-3]*O2[1][-2,-4];
+    op1=permute(op1,(1,2,),(3,4,))
+    @tensor op2[:]:=O1[2][1,-1,-3]*O2[2][1,-2,-4];
+    op2=-op2;#!!!!!!! somehow this minus sign is required
+    op2=permute(op2*dt*hopping_coe,(1,2,),(3,4,));
+    op3=op2';
+
+    RU_res,LD_res,A_RU_LD_RD, U_LU=update_LU(A_RU0,A_LD0, A_RD0, op1+op2+op3);
+
+
+    RU_keep,LD_keep, A_RD=back_LU(A_RU_LD_RD, U_RD);
+    A_LD=back_LD(LD_res,LD_keep);
+    A_RU=back_RU(RU_res,RU_keep);
+
+    AA_LD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+    AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+    AA_RD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+
+
+    ob=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_RU_double,AA_LD_double,AA_RD_double,cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob   
+end
 
 
 
@@ -298,7 +575,83 @@ function verify_evo_hopping_diagonala(CTM,O1,O2,A_cell,AA_cell,cx,cy,hopping_coe
     return ob   
 end
 
+function verify_evo_hopping_LU_RU(CTM,O1,O2,A_cell,AA_cell,cx,cy,hopping_coe,dt)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
 
+    function move_LU(T)
+        T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
+        T=permute_neighbour_ind(T,4,5,5);#L,U,d,D,R,
+        T=permute_neighbour_ind(T,3,4,5);#L,U,D,  d,R,
+
+        U,S,V=tsvd(T,(1,2,3,),(4,5,));
+        LU_res=U;#(L_lu,U_lu,D_lu, virtual_lu)
+        LU_keep=S*V;#(virtual_lu, d_lu,R_lu)
+        return LU_res,LU_keep,U
+
+    end
+
+    
+    function update_RU(T_LU,T_RU,op)
+        LU_res, LU_keep=move_LU(T_LU);
+    
+        T_RU=permute(T_RU,(1,4,5,3,2,));#L_ru,U_ru,d_ru,R_ru,D_ru,
+        @tensor T_LU_RU[:]:=LU_keep[-1,-2,1]*T_RU[1,-3,-4,-5,-6];#(virtual_lu, d_lu,     U_ru,d_ru,R_ru,D_ru,)
+        T_LU_RU=permute_neighbour_ind(T_LU_RU,3,4,6);#(virtual_lu, d_lu, d_ru, U_ru,R_ru,D_ru,)
+        @tensor T_LU_RU[:]:=T_LU_RU[-1,1,2,-4,-5,-6]*op[-2,-3,1,2];
+        T_LU_RU=permute_neighbour_ind(T_LU_RU,3,4,6);#(virtual_lu, d_lu, U_ru, d_ru, R_ru,D_ru,)
+        return LU_res,T_LU_RU
+    end
+
+    function back_RU(T_LU_RU)
+        global D_max
+        ###################
+        U,S,V=tsvd(permute(T_LU_RU,(1,2,),(3,4,5,6,)); trunc=truncdim(D_max));#(virtual_lu, d_lu,R_lu_new,    L_ru_new, U_ru,d_ru,R_ru,D_ru,)
+        ###################
+        LU_keep=permute(U*S,(1,2,3,));#(virtual_lu, d_lu,R_lu_new,)
+        T_RU=permute(V,(1,2,3,4,5,));#(L_ru_new, U_ru,d_ru,R_ru,D_ru,) 
+        T_RU=permute(T_RU,(1,5,4,2,3,));
+        return LU_keep, T_RU
+    end
+
+    function back_LU(LU_res,LU_keep)
+        #(L_lu,U_lu,D_lu, virtual_lu)
+        #(virtual_lu, d_lu, R_lu)
+        @tensor T_LU[:]:=LU_res[-1,-2,-3,1]*LU_keep[1,-4,-5];#(L_lu,U_lu,D_lu, d_lu, R_lu)
+        T_LU=permute_neighbour_ind(T_LU,3,4,5);#(L,U, d,D, R)
+        T_LU=permute_neighbour_ind(T_LU,4,5,5);#(L,U, d,R, D)
+        T_LU=permute(T_LU,(1,5,4,2,3,));
+        return T_LU
+    end
+
+    A_LU0=A_cell[pos_LU[1]][pos_LU[2]];
+    A_RU0=A_cell[pos_RU[1]][pos_RU[2]];
+
+    @tensor op1[:]:=O1[1][-1,-3]*O2[1][-2,-4];
+    op1=permute(op1,(1,2,),(3,4,))
+    @tensor op2[:]:=O1[2][1,-1,-3]*O2[2][1,-2,-4];
+    op2=permute(op2*dt*hopping_coe,(1,2,),(3,4,));
+    op3=op2';
+
+    LU_res,A_LU_RU=update_RU(A_LU0, A_RU0,op1+op2+op3);
+
+ 
+
+    LU_keep, A_RU=back_RU(A_LU_RU);
+    A_LU=back_LU(LU_res,LU_keep);
+
+    ###############################################
+    AA_LU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LU[1]][pos_LU[2]]',A_LU);
+    AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+
+    ob=ob_2x2(CTM,AA_LU_double,AA_RU_double,AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob
+end
 
 function verify_evo_hopping_x(CTM,O1,O2,A_cell,AA_cell,cx,cy,hopping_coe,dt)
     global Lx,Ly

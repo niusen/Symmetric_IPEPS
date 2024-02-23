@@ -235,6 +235,7 @@ hopping_coe_set[2,1]=1;
 hopping_coe_set[1,2]=-1;
 hopping_coe_set[2,2]=1;
 ob_set=zeros(Lx,Ly)*im;
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=Hamiltonians_spinful_U1_SU2();
 for cx=1:Lx;
     for cy=1:Ly;
         O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)], C_set[mod1(cx+1,Lx)]);
@@ -247,6 +248,52 @@ println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_dia
 println(ob_set)
 
 
+dt=-0.1;
+D_max=20;
+hopping_coe_set=zeros(Lx,Ly)*im;
+hopping_coe_set[1,1]=-1;
+hopping_coe_set[2,1]=1;
+hopping_coe_set[1,2]=-1;
+hopping_coe_set[2,2]=1;
+ob_set=zeros(Lx,Ly)*im;
+include("..\\..\\src\\fermionic\\simple_update\\verify_fermionic_triangle_SimpleUpdate_lib.jl")
+include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)],);
+        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],);
+        ob=verify_evo_hopping_RU_LD_RD(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_diagonala_set)))
+println(ob_set)
+
+
+
+dt=-0.1;
+D_max=20;
+hopping_coe_set=zeros(Lx,Ly)*im;
+hopping_coe_set[1,1]=-1;
+hopping_coe_set[2,1]=1;
+hopping_coe_set[1,2]=-1;
+hopping_coe_set[2,2]=1;
+ob_set=zeros(Lx,Ly)*im;
+include("..\\..\\src\\fermionic\\simple_update\\verify_fermionic_triangle_SimpleUpdate_lib.jl")
+include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)],);
+        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],);
+        ob=verify_evo_hopping_LU_RU_LD(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_diagonala_set)))
+println(ob_set)
+
 
 
 dt=-1;
@@ -257,11 +304,35 @@ hopping_coe_set[2,1]=im;
 hopping_coe_set[1,2]=im;
 hopping_coe_set[2,2]=im;
 ob_set=zeros(Lx,Ly)*im;
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=Hamiltonians_spinful_U1_SU2();
 for cx=1:Lx;
     for cy=1:Ly;
         O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)], C_set[mod1(cx+1,Lx)]);
         O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)], Cdag_set[mod1(cx+2,Lx)]);
         ob=verify_evo_hopping_x(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        ob_set[cx,cy]=ob;
+    end
+end
+println(1.0.+(dt*hopping_coe_set.*ex_set+dt*conj(hopping_coe_set.*ex_set)))
+println(ob_set)
+
+
+dt=-1;
+D_max=30;
+hopping_coe_set=zeros(Lx,Ly)*im;
+hopping_coe_set[1,1]=im;
+hopping_coe_set[2,1]=im;
+hopping_coe_set[1,2]=im;
+hopping_coe_set[2,2]=im;
+ob_set=zeros(Lx,Ly)*im;
+include("..\\..\\src\\fermionic\\simple_update\\verify_fermionic_triangle_SimpleUpdate_lib.jl")
+include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
+for cx=1:Lx;
+    for cy=1:Ly;
+        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)],);
+        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],);
+        ob=verify_evo_hopping_LU_RU(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
         ob_set[cx,cy]=ob;
     end
 end
@@ -279,6 +350,7 @@ hopping_coe_set[2,1]=1;
 hopping_coe_set[1,2]=-1;
 hopping_coe_set[2,2]=1;
 ob_set=zeros(Lx,Ly)*im;
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=Hamiltonians_spinful_U1_SU2();
 for cx=1:Lx;
     for cy=1:Ly;
         O1_set=(Ident_set[mod1(cx+2,Lx)],Cdag_set[mod1(cx+2,Lx)], C_set[mod1(cx+2,Lx)]);
@@ -301,6 +373,7 @@ h_coe_set[2,1]=U;
 h_coe_set[1,2]=U;
 h_coe_set[2,2]=U;
 ob_set=zeros(Lx,Ly)*im;
+Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=Hamiltonians_spinful_U1_SU2();
 for cx=1:Lx;
     for cy=1:Ly;
         O1_set=(Ident_set[mod1(cx+1,Lx)],n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)]);

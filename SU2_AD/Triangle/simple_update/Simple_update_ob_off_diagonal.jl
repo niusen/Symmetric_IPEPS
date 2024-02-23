@@ -42,14 +42,14 @@ Random.seed!(1234)
 symmetric_initial=false;
 
 
-t1=1;
+t1=0;
 t2=1;
 ϕ=pi/2;
 μ=0;
 U=0;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
-D_max=6;
+D_max=4;
 
 
 global D_max, SU_trun_tol
@@ -240,10 +240,6 @@ end
 # E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 # Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
 
-tau=5;
-dt=0.5;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
-
 
 tau=5;
 dt=0.1;
@@ -281,10 +277,5 @@ LS_ctm_setting.CTM_ite_nums=10;
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
 E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 println(E_total)
-println(ex_set)
-println(ey_set)
-println(e_diagonala_set)
-println(e0_set)
-println(eU_set)
-filenm="SU_csl_D"*string(D_max)*".jld2";
+filenm="SU_offdiagonal_D"*string(D_max)*".jld2";
 jldsave(filenm;x=state)

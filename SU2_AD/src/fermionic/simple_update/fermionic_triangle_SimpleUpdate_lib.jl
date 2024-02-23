@@ -536,7 +536,7 @@ function diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_RU[:]:=T_A[1,-2,3,4,-5]*lambda_A_L[1,-1]*lambda_A_R[3,-3]*lambda_A_U[4,-4];
     @tensor A_LD[:]:=T_D[1,2,-3,4,-5]*lambda_D_L[1,-1]*lambda_D_D[2,-2]*lambda_D_U[4,-4];
     @tensor A_RD[:]:=T_C[1,2,3,4,-5]*lambda_D_R[-1,1]*lambda_A_U[-2,2]*lambda_D_L[-3,3]*lambda_A_D[-4,4];
-    A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[2], O_set_set[1], A_RU,A_LD,A_RD, hopping_coe_set[2], -dt);
+    A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[3], O_set_set[4], A_RU,A_LD,A_RD, hopping_coe_set[2], -dt);
     @tensor T_A[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_A_L)[1,-1]*mypinv(lambda_A_R)[3,-3]*mypinv(lambda_A_U)[4,-4];
     @tensor T_D[:]:=A_LD[1,2,-3,4,-5]*mypinv(lambda_D_L)[1,-1]*mypinv(lambda_D_D)[2,-2]*mypinv(lambda_D_U)[4,-4];
     @tensor T_C[:]:=A_RD[-1,2,3,-4,-5]*mypinv(lambda_A_U)[-2,2]*mypinv(lambda_D_L)[-3,3];
@@ -558,7 +558,7 @@ function diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_RU[:]:=T_C[1,-2,3,4,-5]*lambda_D_R[-1,1]*lambda_D_L[-3,3]*lambda_A_D[-4,4];
     @tensor A_LD[:]:=T_B[1,2,-3,4,-5]*lambda_A_R[-1,1]*lambda_D_U[-2,2]*lambda_D_D[-4,4];
     @tensor A_RD[:]:=T_A[1,2,3,4,-5]*lambda_A_L[1,-1]*lambda_A_D[2,-2]*lambda_A_R[3,-3]*lambda_A_U[4,-4];
-    A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[2], O_set_set[1], A_RU,A_LD,A_RD, hopping_coe_set[2], -dt);
+    A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[3], O_set_set[4], A_RU,A_LD,A_RD, hopping_coe_set[2], -dt);
     @tensor T_C[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_D_R)[-1,1]*mypinv(lambda_D_L)[-3,3]*mypinv(lambda_A_D)[-4,4];
     @tensor T_B[:]:=A_LD[1,2,-3,4,-5]*mypinv(lambda_A_R)[-1,1]*mypinv(lambda_D_U)[-2,2]*mypinv(lambda_D_D)[-4,4];
     @tensor T_A[:]:=A_RD[-1,2,3,-4,-5]*mypinv(lambda_A_D)[2,-2]*mypinv(lambda_A_R)[3,-3];
@@ -735,7 +735,9 @@ function itebd(parameters, T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_
 
     O1_set=(Ident_set[1],Cdag_set[1], C_set[1]);
     O2_set=(Ident_set[2],C_set[2], Cdag_set[2]);
-    O_diagnala_set=[O1_set,O2_set];
+    O3_set=(Ident_set[2],Cdag_set[2], C_set[2]);
+    O4_set=(Ident_set[1],C_set[1], Cdag_set[1]);
+    O_diagnala_set=[O1_set,O2_set,O3_set,O4_set];
 
     O1_set=(Ident_set[1],Cdag_set[1], C_set[1]);
     O2_set=(Ident_set[2],C_set[2], Cdag_set[2]);
@@ -755,9 +757,13 @@ function itebd(parameters, T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_
         if abs(t2)>0
             T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_diagnala_set, h_diagnala_set,dt);
         end
-        T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= hopping_x_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_hopx_set, hopping_x_set,dt);
-        T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= hopping_y_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_hopy_set, hopping_y_set,dt);
-        T_A, T_B, T_C, T_D = onsite_update(T_A, T_B, T_C, T_D, O_onsite_set, U_set,dt);
+        if abs(t1)>0
+            T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= hopping_x_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_hopx_set, hopping_x_set,dt);
+            T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U= hopping_y_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U, O_hopy_set, hopping_y_set,dt);
+        end
+        if abs(U)>0
+            T_A, T_B, T_C, T_D = onsite_update(T_A, T_B, T_C, T_D, O_onsite_set, U_set,dt);
+        end
     end
     return T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R, lambda_A_U, lambda_D_L, lambda_D_D, lambda_D_R, lambda_D_U
 end

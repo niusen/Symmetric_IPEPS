@@ -186,6 +186,89 @@ function Hamiltonians_spinful_U1_SU2()
     return (Ident1,Ident2,), (N_occu1,N_occu2), (n_double1,n_double2,), (Cdag1,Cdag2,), (C1,C2,)
 end
 
+
+
+function special_Hamiltonians_spinful_U1_SU2()
+    global VDummy_set
+    VDummy1=VDummy_set[1];
+    VDummy2=VDummy_set[2];
+
+    Vdummy=Rep[U₁ × SU₂]((1, 1/2)=>1);
+    V=Rep[U₁ × SU₂]((0,0)=>1,(2,0)=>1,(1, 1/2)=>1);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order: (0,0), (0,1), (1,0), (1,1)
+    
+    Ident=kron(Id,Id);
+    Ident=TensorMap(Ident[[1,4,3,2],[1,4,3,2]],  V  ←  V);
+
+    N_occu=kron(occu,Id)+kron(Id,occu);
+    N_occu=TensorMap(N_occu[[1,4,3,2],[1,4,3,2]],  V ←  V);
+    n_double=kron(occu,occu)
+    n_double=TensorMap(n_double[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,sz);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(Id,sp);
+    Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
+    Cdag=permute(Cdag,(3,1,),(2,))
+
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+    C=TensorMap(Cup+Cdn, Vdummy ⊗ V ← V);
+
+############################################
+    U_phy1=unitary(fuse(VDummy1*V), VDummy1*V);
+    U_phy2=unitary(fuse(VDummy2*V), VDummy2*V);
+
+    @tensor Ident1[:]:=U_phy1[-1,1,2]*Ident[2,3]*U_phy1'[1,3,-2];
+    if Rank(U_phy2)==3
+        @tensor Ident2[:]:=U_phy2[-1,1,2]*Ident[2,3]*U_phy2'[1,3,-2];
+    elseif Rank(U_phy2)==2
+        @tensor Ident2[:]:=U_phy2[-1,2]*Ident[2,3]*U_phy2'[3,-2];
+    end
+
+    @tensor N_occu1[:]:=U_phy1[-1,1,2]*N_occu[2,3]*U_phy1'[1,3,-2];
+    if Rank(U_phy2)==3
+        @tensor N_occu2[:]:=U_phy2[-1,1,2]*N_occu[2,3]*U_phy2'[1,3,-2];
+    elseif Rank(U_phy2)==2
+        @tensor N_occu2[:]:=U_phy2[-1,2]*N_occu[2,3]*U_phy2'[3,-2];
+    end
+
+    @tensor n_double1[:]:=U_phy1[-1,1,2]*n_double[2,3]*U_phy1'[1,3,-2];
+    if Rank(U_phy2)==3
+        @tensor n_double2[:]:=U_phy2[-1,1,2]*n_double[2,3]*U_phy2'[1,3,-2];
+    elseif Rank(U_phy2)==2
+        @tensor n_double2[:]:=U_phy2[-1,2]*n_double[2,3]*U_phy2'[3,-2];
+    end
+
+    @tensor Cdag1[:]:=U_phy1[-2,1,2]*Cdag[-1,2,3]*U_phy1'[1,3,-3];
+    if Rank(U_phy2)==3
+        @tensor Cdag2[:]:=U_phy2[-2,1,2]*Cdag[-1,2,3]*U_phy2'[1,3,-3];
+    elseif Rank(U_phy2)==2
+        @tensor Cdag2[:]:=U_phy2[-2,2]*Cdag[-1,2,3]*U_phy2'[3,-3];
+    end
+
+    @tensor C1[:]:=U_phy1[-2,1,2]*C[-1,2,3]*U_phy1'[1,3,-3];
+    if Rank(U_phy2)==3
+        @tensor C2[:]:=U_phy2[-2,1,2]*C[-1,2,3]*U_phy2'[1,3,-3];
+    elseif Rank(U_phy2)==2
+        @tensor C2[:]:=U_phy2[-2,2]*C[-1,2,3]*U_phy2'[3,-3];
+    end
+ 
+
+
+    
+    return (Ident1,Ident2,), (N_occu1,N_occu2), (n_double1,n_double2,), (Cdag1,Cdag2,), (C1,C2,)
+end
+
 function Hamiltonians_spinful_SU2()
     
 

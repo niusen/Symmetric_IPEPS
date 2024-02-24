@@ -315,8 +315,8 @@ end
 m_ex=(-dt*tx_coe_set.*ex_set-dt*conj(tx_coe_set.*ex_set))
 m_ey=(-dt*ty_coe_set.*ey_set-dt*conj(ty_coe_set.*ey_set))
 m_e_t2=(-dt*t2_coe_set.*e_diagonala_set-dt*conj(t2_coe_set.*e_diagonala_set))
-m_U=exp.(-dt*eU_set)
-println(exp.(m_ex+m_ey+m_e_t2+m_U))
+m_U=(-dt*eU_set)
+println(exp.(m_ex+m_ey+m_e_t2+m_U*3))
 println(ob_set)
 
 
@@ -375,9 +375,7 @@ for cx=1:Lx;
         @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_LU[-2,-5]*Id_RU[-3,-6];
         @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_LU[-2,-5]*OU_RU[-3,-6];
         @tensor hh_LU[:]:=Id_LD[-1,-4]*OU_LU[-2,-5]*Id_RU[-3,-6];
-        # hh_U=(hh_LD+hh_RU+hh_LU)*U_coe;
-        hh_U=(hh_LU)*U_coe;
-                
+        hh_U=(hh_LD+hh_RU+hh_LU)*U_coe;
 
         ###############################
         hh=permute(hh_tx+hh_ty+hh_t2+hh_U,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
@@ -391,7 +389,7 @@ m_ex=(-dt*tx_coe_set.*ex_set-dt*conj(tx_coe_set.*ex_set))
 m_ey=(-dt*ty_coe_set.*ey_set[2:-1:1,:]-dt*conj(ty_coe_set.*ey_set[2:-1:1,:]));
 m_e_t2=(-dt*t2_coe_set.*e_diagonala_set-dt*conj(t2_coe_set.*e_diagonala_set))
 m_U=(-dt*eU_set)
-println(exp.(m_ex+m_ey+m_e_t2+m_U))
+println(exp.(m_ex+m_ey+m_e_t2+m_U*3))
 println(ob_set)
 
 

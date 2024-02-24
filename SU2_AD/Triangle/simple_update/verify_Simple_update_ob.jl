@@ -82,7 +82,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_2.36933.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_statenm="Gutzwiller.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -227,7 +227,7 @@ E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(param
 Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
 
 
-dt=-0.02;
+dt=-0.1;
 D_max=20;
 hopping_coe_set=zeros(Lx,Ly)*im;
 hopping_coe_set[1,1]=-1;
@@ -248,50 +248,150 @@ println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_dia
 println(ob_set)
 
 
-dt=-0.1;
+#RU_LD_RD, t2 term
+dt=0.1;
 D_max=20;
-hopping_coe_set=zeros(Lx,Ly)*im;
-hopping_coe_set[1,1]=-1;
-hopping_coe_set[2,1]=1;
-hopping_coe_set[1,2]=-1;
-hopping_coe_set[2,2]=1;
+tx_coe_set=[im,im];
+ty_coe_set=[-1,1];
+t2_coe_set=[-1,1];
+U_coe=1;
 ob_set=zeros(Lx,Ly)*im;
 include("..\\..\\src\\fermionic\\simple_update\\verify_fermionic_triangle_SimpleUpdate_lib.jl")
 include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
 for cx=1:Lx;
     for cy=1:Ly;
-        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)],);
-        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],);
-        ob=verify_evo_hopping_RU_LD_RD(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+
+        ####################
+        O1=Cdag_set[mod1(cx+1,Lx)];
+        O2=C_set[mod1(cx+2,Lx)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=op*tx_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(hh,2),space(hh,2));
+        @tensor hh_tx[:]:=hh[-1,-2,-4,-5]*Id[-3,-6];
+        ######################
+        O1=Cdag_set[mod1(cx+2,Lx)];
+        O2=C_set[mod1(cx+2,Lx)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=op*ty_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(Cdag_set[mod1(cx+1,Lx)],2),space(Cdag_set[mod1(cx+1,Lx)],2));
+        @tensor hh_ty[:]:=hh[-2,-3,-5,-6]*Id[-1,-4];
+        #####################
+        O1=Cdag_set[mod1(cx+1,Lx)];
+        O2=C_set[mod1(cx+2,Lx)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=-op;#!!!!!!! somehow this minus sign is required
+        op=op*t2_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(hh,2),space(hh,2));
+        @tensor hh[:]:=hh[-1,-3,-4,-6]*Id[-2,-5];
+        sgate=swap_gate(hh,2,3);
+        @tensor hh_t2[:]:=sgate[-2,-3,1,2]*hh[-1,1,2,-4,3,4]*sgate'[3,4,-5,-6];
+        #################
+        OU_LD=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
+        OU_RU=n_double_set[mod1(cx+2,Lx)]-(1/2)*N_occu_set[mod1(cx+2,Lx)]+(1/4)*Ident_set[mod1(cx+2,Lx)];
+        OU_RD=n_double_set[mod1(cx+2,Lx)]-(1/2)*N_occu_set[mod1(cx+2,Lx)]+(1/4)*Ident_set[mod1(cx+2,Lx)];
+        Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
+        Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
+        Id_RD=unitary(space(OU_RD,1),space(OU_RD,1));
+        @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_RD[-2,-5]*Id_RU[-3,-6];
+        @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_RD[-2,-5]*OU_RU[-3,-6];
+        @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
+        hh_U=(hh_LD+hh_RU+hh_RD)*U_coe;
+        
+        #################
+        hh=permute(hh_tx+hh_ty+hh_t2+hh_U,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
+        eu,ev=eigh(hh);
+        gate=ev*exp(-dt*eu)*ev';
+        ob=verify_evo_hopping_RU_LD_RD(CTM_cell,gate,A_cell,AA_cell,cx,cy);#op_LD_RD_RU
         ob_set[cx,cy]=ob;
     end
 end
-println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_diagonala_set)))
+m_ex=(-dt*tx_coe_set.*ex_set-dt*conj(tx_coe_set.*ex_set))
+m_ey=(-dt*ty_coe_set.*ey_set-dt*conj(ty_coe_set.*ey_set))
+m_e_t2=(-dt*t2_coe_set.*e_diagonala_set-dt*conj(t2_coe_set.*e_diagonala_set))
+m_U=exp.(-dt*eU_set)
+println(exp.(m_ex+m_ey+m_e_t2+m_U))
 println(ob_set)
 
 
 
-dt=-0.1;
+#LU_RU_LD, t2 term
+dt=0.1;
 D_max=20;
-hopping_coe_set=zeros(Lx,Ly)*im;
-hopping_coe_set[1,1]=-1;
-hopping_coe_set[2,1]=1;
-hopping_coe_set[1,2]=-1;
-hopping_coe_set[2,2]=1;
+tx_coe_set=[im,im];
+ty_coe_set=[1,-1];
+t2_coe_set=[-1,1];
+U_coe=1;
 ob_set=zeros(Lx,Ly)*im;
 include("..\\..\\src\\fermionic\\simple_update\\verify_fermionic_triangle_SimpleUpdate_lib.jl")
 include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
 for cx=1:Lx;
     for cy=1:Ly;
-        O1_set=(Ident_set[mod1(cx+1,Lx)],Cdag_set[mod1(cx+1,Lx)],);
-        O2_set=(Ident_set[mod1(cx+2,Lx)],C_set[mod1(cx+2,Lx)],);
-        ob=verify_evo_hopping_LU_RU_LD(CTM_cell,O1_set,O2_set,A_cell,AA_cell,cx,cy,hopping_coe_set[cx,cy],dt);
+        
+        ####################
+        O1=Cdag_set[mod1(cx+1,Lx)];
+        O2=C_set[mod1(cx+2,Lx)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=op*tx_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(hh,1),space(hh,1));
+        @tensor hh_tx[:]:=hh[-2,-3,-5,-6]*Id[-1,-4];
+        ######################
+        O1=Cdag_set[mod1(cx+1,Lx)];
+        O2=C_set[mod1(cx+1,Lx)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=op*ty_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(Cdag_set[mod1(cx+2,Lx)],2),space(Cdag_set[mod1(cx+2,Lx)],2));
+        @tensor hh_ty[:]:=hh[-1,-2,-4,-5]*Id[-3,-6];
+        #####################
+        O1=Cdag_set[mod1(cx+1,Lx)];
+        O2=C_set[mod1(cx+2,Lx)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=-op;#!!!!!!! somehow this minus sign is required
+        op=op*t2_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(hh,1),space(hh,1));
+        @tensor hh[:]:=hh[-1,-3,-4,-6]*Id[-2,-5];
+        sgate=swap_gate(hh,2,3);
+        @tensor hh_t2[:]:=sgate[-2,-3,1,2]*hh[-1,1,2,-4,3,4]*sgate'[3,4,-5,-6];##op_LD_LU_RU
+        #################
+        OU_LD=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
+        OU_RU=n_double_set[mod1(cx+2,Lx)]-(1/2)*N_occu_set[mod1(cx+2,Lx)]+(1/4)*Ident_set[mod1(cx+2,Lx)];
+        OU_LU=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
+        Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
+        Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
+        Id_LU=unitary(space(OU_LU,1),space(OU_LU,1));
+        @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_LU[-2,-5]*Id_RU[-3,-6];
+        @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_LU[-2,-5]*OU_RU[-3,-6];
+        @tensor hh_LU[:]:=Id_LD[-1,-4]*OU_LU[-2,-5]*Id_RU[-3,-6];
+        # hh_U=(hh_LD+hh_RU+hh_LU)*U_coe;
+        hh_U=(hh_LU)*U_coe;
+                
+
+        ###############################
+        hh=permute(hh_tx+hh_ty+hh_t2+hh_U,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
+        eu,ev=eigh(hh);
+        gate=ev*exp(-dt*eu)*ev';
+        ob=verify_evo_hopping_LU_RU_LD(CTM_cell,gate,A_cell,AA_cell,cx,cy);#op_LD_LU_RU
         ob_set[cx,cy]=ob;
     end
 end
-println(1.0.+(dt*hopping_coe_set.*e_diagonala_set+dt*conj(hopping_coe_set.*e_diagonala_set)))
+m_ex=(-dt*tx_coe_set.*ex_set-dt*conj(tx_coe_set.*ex_set))
+m_ey=(-dt*ty_coe_set.*ey_set[2:-1:1,:]-dt*conj(ty_coe_set.*ey_set[2:-1:1,:]));
+m_e_t2=(-dt*t2_coe_set.*e_diagonala_set-dt*conj(t2_coe_set.*e_diagonala_set))
+m_U=(-dt*eU_set)
+println(exp.(m_ex+m_ey+m_e_t2+m_U))
 println(ob_set)
 
 
@@ -368,6 +468,7 @@ println(ob_set)
 dt=-1;
 D_max=6;
 h_coe_set=zeros(Lx,Ly)*im;
+U=1;
 h_coe_set[1,1]=U;
 h_coe_set[2,1]=U;
 h_coe_set[1,2]=U;

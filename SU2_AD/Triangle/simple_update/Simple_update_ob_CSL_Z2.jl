@@ -41,7 +41,7 @@ CDCDCDCD
 Random.seed!(1234)
 symmetric_initial=false;
 
-
+D_max=6;
 t1=1;
 t2=1;
 ϕ=pi/2;
@@ -55,7 +55,12 @@ println(parameters)
 println("parameters_evolve:")
 println(parameters_evolve)
 
-D_max=4;
+global update_triangle1, update_triangle2
+update_triangle1=true;
+update_triangle2=false;
+println("update_triangle1: "*string(update_triangle1));
+println("update_triangle2: "*string(update_triangle2));
+
 
 
 global D_max, SU_trun_tol
@@ -88,7 +93,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU2_cell_LS_D_4_chi_40_2.368055.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -136,20 +141,14 @@ global Lx,Ly
 Lx=2;
 Ly=2;
 
-data=load(optim_setting.init_statenm);
-x=data["x"];
+
 function init_x(x)
-    if size(x)==(2,1)
-        TA=deepcopy(x[1].T);
-        TB=deepcopy(x[2].T);
-        TC=deepcopy(x[1].T);
-        TD=deepcopy(x[2].T);
-    elseif size(x)==(2,2)
-        TA=deepcopy(x[1][1].T);
-        TB=deepcopy(x[2][1].T);
-        TC=deepcopy(x[1][2].T);
-        TD=deepcopy(x[2][2].T);
-    end
+    Vp=Rep[ℤ₂](0=>2,1=>2);
+    V=Rep[ℤ₂](0=>2,1=>2);
+    TA=TensorMap(randn,V*V',V*V'*Vp');
+    TB=TensorMap(randn,V*V',V*V'*Vp');
+    TC=TensorMap(randn,V*V',V*V'*Vp');
+    TD=TensorMap(randn,V*V',V*V'*Vp');
     return TA,TB,TC,TD
 end
 
@@ -216,8 +215,13 @@ dt=0.05;
 TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters_evolve, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
 
 
-tau=0.2;
+tau=5;
 dt=0.01;
+TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters_evolve, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
+
+
+tau=0.5;
+dt=0.002;
 TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters_evolve, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
 
 

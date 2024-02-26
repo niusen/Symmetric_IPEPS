@@ -82,6 +82,26 @@ end
 
 ##################################################
 
+mutable struct Triangle_iPESS <: iPEPS_ansatz #this is for line search. Don't use this for AD, otherwise the grad will be incorrect.
+    Bm::TensorMap
+    Tm::TensorMap
+end
+
+struct Triangle_iPESS_immutable <: iPEPS_ansatz_immutable #this is for AD
+    Bm::TensorMap
+    Tm::TensorMap
+end
+
+
+
+
+function Triangle_iPESS_convert(ansatz::Triangle_iPESS)
+    ansatz_new=Triangle_iPESS_immutable(ansatz.Bm,ansatz.Tm);
+    return ansatz_new
+end
+
+##################################################
+
 mutable struct Square_iPEPS <: iPEPS_ansatz #this is for line search. Don't use this for AD, otherwise the grad will be incorrect.
     T::TensorMap
 end

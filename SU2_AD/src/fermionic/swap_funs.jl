@@ -1,6 +1,71 @@
 using HalfIntegers
 
 #Z2 symmetry
+function sector_projector(V::GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+    V_odd=Rep[ℤ₂](1=>V.dims[2]);;
+    V_even=Rep[ℤ₂](0=>V.dims[1]);
+
+    if V.dual
+        return V_odd',V_even'
+    else
+        return V_odd,V_even
+    end
+end
+
+#SU2 symmetry
+function sector_projector(V::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    L=length(V.dims.keys);
+    Spin_odd_set=[];
+    dim_odd_set=[];
+    Spin_even_set=[];
+    dim_even_set=[];
+    for cc=1:L
+        Spin=V.dims.keys[cc].j;
+        if mod(Spin,1)==1/2
+            Spin_odd_set=vcat(Spin_odd_set,Spin);
+            dim_odd_set=vcat(dim_odd_set,V.dims.values[cc]);
+        elseif mod(Spin,1)==0
+            Spin_even_set=vcat(Spin_even_set,Spin);
+            dim_even_set=vcat(dim_even_set,V.dims.values[cc]);
+        end
+    end
+
+    V_odd=Rep[SU₂](Spin_odd_set[1]=>dim_odd_set[1]);
+    for cc=2:length(Spin_odd_set)
+        V_odd=V_odd ⊕ Rep[SU₂](Spin_odd_set[cc]=>dim_odd_set[cc]);
+    end
+    V_even=Rep[SU₂](Spin_even_set[1]=>dim_even_set[1]);
+    for cc=2:length(Spin_even_set)
+        V_even=V_even ⊕ Rep[SU₂](Spin_even_set[cc]=>dim_even_set[cc]);
+    end
+
+    if V.dual
+        return V_odd',V_even'
+    else
+        return V_odd,V_even
+    end
+end
+
+function projector_parity(V)
+    V_odd,V_even=sector_projector(V);
+    P_odd=TensorMap(randn,V_odd,V);
+    P_even=TensorMap(randn,V_even,V);
+    function become_isometry(T::TensorMap)
+        for cc=1:length(T.data.values)
+            mm=T.data.values[cc];
+            mm_new=Matrix(I,size(mm,1),size(mm,2));
+            T.data.values[cc]=mm_new;
+        end
+        return T
+    end
+    P_odd=become_isometry(P_odd);
+    P_even=become_isometry(P_even);
+    return P_odd,P_even
+end
+
+
+
+#Z2 symmetry
 function get_Vspace_parity(V1::GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
     dm=V1.dims;
     oddlist1=vcat(0*ones(dm[1]),1*ones(dm[2]));
@@ -151,19 +216,28 @@ end
 
 
 
+# function parity_gate(A,p1)
+#     V1=space(A,p1);
+#     S=unitary( V1, V1);
+#     S_dense=convert(Array,S);
+#     oddlist1=get_Vspace_parity(V1);
+#     for c1=1:length(oddlist1)
+#         if (oddlist1[c1]==1)
+#             S_dense[c1,c1]=-1;
+#         end
+#     end
+#     S=TensorMap(S_dense,V1 ← V1);
+#     return S
+# end
+
 function parity_gate(A,p1)
     V1=space(A,p1);
-    S=unitary( V1, V1);
-    S_dense=convert(Array,S);
-    oddlist1=get_Vspace_parity(V1);
-    for c1=1:length(oddlist1)
-        if (oddlist1[c1]==1)
-            S_dense[c1,c1]=-1;
-        end
-    end
-    S=TensorMap(S_dense,V1 ← V1);
+    P_odd,P_even=projector_parity(V1);
+    S=-P_odd'*P_odd+P_even'*P_even;
     return S
 end
+
+
 
 function special_parity_gate(A,p1)
     #parity gate for fused space: V=GradedSpace[Irrep[U₁]⊠Irrep[SU₂]]((0,0)=>1,(1,1/2)=>1,(2,0)=>1)
@@ -207,28 +281,40 @@ end
 # end
 
 
-function swap_gate(A,p1,p2) #faster
+# function swap_gate(A,p1,p2) #faster
+#     V1=space(A,p1);
+#     V2=space(A,p2);
+#     UU=unitary(fuse(V1*V2),V1*V2);
+#     S=unitary( V1 ⊗ V2, V1 ⊗ V2);
+
+#     S_dense=convert(Array,S);
+#     oddlist1=get_Vspace_parity(V1);
+#     oddlist2=get_Vspace_parity(V2);
+#     for c1=1:length(oddlist1)
+#         for c2=1:length(oddlist2)
+#             if (oddlist1[c1]==1)&(oddlist2[c2]==1)
+#                 S_dense[c1,c2,c1,c2]=-1;
+#             end
+#         end
+#     end
+#     UU_dense=convert(Array,UU);
+#     @tensor S_dense[:]:=UU_dense[-1,1,2]*S_dense[1,2,3,4]*conj(UU_dense)[-2,3,4];
+#     # S=TensorMap(S_dense,V1 ⊗ V2 ← V1 ⊗ V2);
+#     S=TensorMap(S_dense,fuse(V1 ⊗ V2) ← fuse(V1 ⊗ V2));
+#     @tensor S[:]:=UU'[-1,-2,1]*S[1,2]*UU[2,-3,-4];
+#     S=permute(S,(1,2,),(3,4,));
+#     return S
+# end
+
+function swap_gate(A,p1,p2) #much faster
     V1=space(A,p1);
     V2=space(A,p2);
-    UU=unitary(fuse(V1*V2),V1*V2);
     S=unitary( V1 ⊗ V2, V1 ⊗ V2);
-
-    S_dense=convert(Array,S);
-    oddlist1=get_Vspace_parity(V1);
-    oddlist2=get_Vspace_parity(V2);
-    for c1=1:length(oddlist1)
-        for c2=1:length(oddlist2)
-            if (oddlist1[c1]==1)&(oddlist2[c2]==1)
-                S_dense[c1,c2,c1,c2]=-1;
-            end
-        end
-    end
-    UU_dense=convert(Array,UU);
-    @tensor S_dense[:]:=UU_dense[-1,1,2]*S_dense[1,2,3,4]*conj(UU_dense)[-2,3,4];
-    # S=TensorMap(S_dense,V1 ⊗ V2 ← V1 ⊗ V2);
-    S=TensorMap(S_dense,fuse(V1 ⊗ V2) ← fuse(V1 ⊗ V2));
-    @tensor S[:]:=UU'[-1,-2,1]*S[1,2]*UU[2,-3,-4];
-    S=permute(S,(1,2,),(3,4,));
+    P1_odd,P1_even=projector_parity(V1);
+    P2_odd,P2_even=projector_parity(V2);
+    @tensor S_minus[:]:=P1_odd'[-1,1]*P1_odd[1,3]*P2_odd'[-2,2]*P2_odd[2,4]*S[3,4,-3,-4];
+    S_minus=permute(S_minus,(1,2,),(3,4,));
+    S=S-2*S_minus;
     return S
 end
 

@@ -74,7 +74,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU2_cell_LS_D_4_chi_40_2.368055.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0.1;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -99,13 +99,11 @@ global backward_settings
 global Vv
 
 if D==4
-    Vv=SU2Space(0=>2,1/2=>1);
-elseif D==5
-    Vv=SU2Space(0=>3,1/2=>1);
+    Vv=Rep[ℤ₂](0=>2,1=>2);
 elseif D==6
-    Vv=SU2Space(0=>2,1/2=>2);
-elseif D==10
-    Vv=SU2Space(0=>3,1/2=>2,1=>1);
+    Vv=Rep[ℤ₂](0=>3,1=>3);
+elseif D==8
+    Vv=Rep[ℤ₂](0=>4,1=>4);
 end
 @assert dim(Vv)==D;
 
@@ -125,7 +123,7 @@ Ly=1;
 
 init_complex_tensor=true;
 
-state_vec=initial_fPEPS_state_spinful_SU2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=initial_fPEPS_state_spinful_Z2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
 
 

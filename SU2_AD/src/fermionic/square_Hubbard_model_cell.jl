@@ -295,39 +295,14 @@ function Hamiltonians_spinful_SU2()
     Cdagdn=zeros(4,4,2);
     Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
     Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
+    Cdag=permute(Cdag,(3,1,),(2,))
 
     Cup=zeros(2,4,4);
     Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
     Cdn=zeros(2,4,4);
     Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
     C=TensorMap(Cup+Cdn, Vdummy ⊗ V ← V);
-
-
-
-    # # method 2
-    # order=[1,4,3,2];
-    # Cdagup=kron(sp,Id);
-    # Cdagup=Cdagup[order,order];
-    # Cup=kron(sm,Id);
-    # Cup=Cup[order,order];
-    # Cdagdn=kron(sz,sp);
-    # Cdagdn=Cdagdn[order,order];
-    # Cdn=kron(sz,sm);
-    # Cdn=Cdn[order,order];
-    # @tensor hop_up[:]:=Cdagup[-1,-2]*Cup[-3,-4];
-    # @tensor hop_dn[:]:=Cdagdn[-1,-2]*Cdn[-3,-4];
-    # Hop=TensorMap(hop_up+hop_dn,V*V' ← V'*V);
-    # u,s,v=tsvd(Hop,trunc=truncdim(2));
-    # u=u*s;
-    # @assert norm(u*v-Hop)/norm(Hop)<1e-12;
-
-    # #compare two methods
-    # @tensor hop1[:]:=Cdag[-1,-2,1]*C[1,-3,-4];
-    # hop1=permute(hop1,(1,2,),(3,4,));
-    # @assert norm(hop1-Hop)<1e-12;
-
-
-    Cdag=permute(Cdag,(3,1,),(2,))
+   
     return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
 end
 
@@ -372,7 +347,8 @@ end
 function Hamiltonians_spinful_Z2()
     
 
-    Vdummy=Rep[ℤ₂](1=>1);
+    # Vdummy=Rep[ℤ₂](1=>1);
+    Vdummy=Rep[ℤ₂](1=>2);
     V=Rep[ℤ₂](0=>2,1=>2);
 
 
@@ -382,32 +358,122 @@ function Hamiltonians_spinful_Z2()
     #order of kron() command: (0,0), (0,1), (1,0), (1,1)
     order=[1,4,3,2];
 
+    # Ident=kron(Id,Id);
+    # Ident=TensorMap(Ident[order,order],  V  ←  V);
+
+    # N_occu=kron(occu,Id)+kron(Id,occu);
+    # N_occu=TensorMap(N_occu[order,order],  V ←  V);
+    # n_double=kron(occu,occu)
+    # n_double=TensorMap(n_double[order,order],  V ←  V);
+
+    # # method 1
+    # Cdagup=zeros(4,4,1);
+    # Cdagup[order,order,1]=kron(sp,Id);
+    # Cdagdn=zeros(4,4,1);
+    # Cdagdn[order,order,1]=kron(sz,sp);
+    # Cdagup=TensorMap(Cdagup,  V ← V ⊗Vdummy);Cdagup=permute(Cdagup,(3,1,),(2,))
+    # Cdagdn=TensorMap(Cdagdn,  V ← V ⊗Vdummy);Cdagdn=permute(Cdagdn,(3,1,),(2,))
+
+    # Cup=zeros(1,4,4);
+    # Cup[1,order,order]=kron(sm,Id);
+    # Cdn=zeros(1,4,4);
+    # Cdn[1,order,order]=kron(sz,sm);
+    # Cup=TensorMap(Cup, Vdummy ⊗ V ← V);
+    # Cdn=TensorMap(Cdn, Vdummy ⊗ V ← V);
+
+    # return Ident, N_occu, n_double, Cdagup, Cup, Cdagdn, Cdn
+
     Ident=kron(Id,Id);
-    Ident=TensorMap(Ident[order,order],  V  ←  V);
+    Ident=TensorMap(Ident[[1,4,3,2],[1,4,3,2]],  V  ←  V);
 
     N_occu=kron(occu,Id)+kron(Id,occu);
-    N_occu=TensorMap(N_occu[order,order],  V ←  V);
+    N_occu=TensorMap(N_occu[[1,4,3,2],[1,4,3,2]],  V ←  V);
     n_double=kron(occu,occu)
-    n_double=TensorMap(n_double[order,order],  V ←  V);
+    n_double=TensorMap(n_double[[1,4,3,2],[1,4,3,2]],  V ←  V);
 
     # method 1
-    Cdagup=zeros(4,4,1);
-    Cdagup[order,order,1]=kron(sp,Id);
-    Cdagdn=zeros(4,4,1);
-    Cdagdn[order,order,1]=kron(sz,sp);
-    Cdagup=TensorMap(Cdagup,  V ← V ⊗Vdummy);Cdagup=permute(Cdagup,(3,1,),(2,))
-    Cdagdn=TensorMap(Cdagdn,  V ← V ⊗Vdummy);Cdagdn=permute(Cdagdn,(3,1,),(2,))
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,Id);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
+    Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
+    Cdag=permute(Cdag,(3,1,),(2,))
 
-    Cup=zeros(1,4,4);
-    Cup[1,order,order]=kron(sm,Id);
-    Cdn=zeros(1,4,4);
-    Cdn[1,order,order]=kron(sz,sm);
-    Cup=TensorMap(Cup, Vdummy ⊗ V ← V);
-    Cdn=TensorMap(Cdn, Vdummy ⊗ V ← V);
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+    C=TensorMap(Cup+Cdn, Vdummy ⊗ V ← V);
+   
+    return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
+end
+
+function special_Hamiltonians_spinful_Z2()
+    
+
+    # Vdummy=Rep[ℤ₂](1=>1);
+    Vdummy=Rep[ℤ₂](1=>2);
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order of kron() command: (0,0), (0,1), (1,0), (1,1)
+    order=[1,4,3,2];
+
+    # Ident=kron(Id,Id);
+    # Ident=TensorMap(Ident[order,order],  V  ←  V);
+
+    # N_occu=kron(occu,Id)+kron(Id,occu);
+    # N_occu=TensorMap(N_occu[order,order],  V ←  V);
+    # n_double=kron(occu,occu)
+    # n_double=TensorMap(n_double[order,order],  V ←  V);
+
+    # # method 1
+    # Cdagup=zeros(4,4,1);
+    # Cdagup[order,order,1]=kron(sp,sz);
+    # Cdagdn=zeros(4,4,1);
+    # Cdagdn[order,order,1]=kron(Id,sp);
+    # Cdagup=TensorMap(Cdagup,  V ← V ⊗Vdummy);Cdagup=permute(Cdagup,(3,1,),(2,))
+    # Cdagdn=TensorMap(Cdagdn,  V ← V ⊗Vdummy);Cdagdn=permute(Cdagdn,(3,1,),(2,))
+
+    # Cup=zeros(1,4,4);
+    # Cup[1,order,order]=kron(sm,Id);
+    # Cdn=zeros(1,4,4);
+    # Cdn[1,order,order]=kron(sz,sm);
+    # Cup=TensorMap(Cup, Vdummy ⊗ V ← V);
+    # Cdn=TensorMap(Cdn, Vdummy ⊗ V ← V);
 
 
 
-    return Ident, N_occu, n_double, Cdagup, Cup, Cdagdn, Cdn
+    # return Ident, N_occu, n_double, Cdagup, Cup, Cdagdn, Cdn
+
+
+    Ident=kron(Id,Id);
+    Ident=TensorMap(Ident[[1,4,3,2],[1,4,3,2]],  V  ←  V);
+
+    N_occu=kron(occu,Id)+kron(Id,occu);
+    N_occu=TensorMap(N_occu[[1,4,3,2],[1,4,3,2]],  V ←  V);
+    n_double=kron(occu,occu)
+    n_double=TensorMap(n_double[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+    # method 1
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,sz);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(Id,sp);
+    Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
+    Cdag=permute(Cdag,(3,1,),(2,))
+
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+    C=TensorMap(Cup+Cdn, Vdummy ⊗ V ← V);
+
+
+    return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
 end
 
 
@@ -651,7 +717,8 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
     global Lx,Ly
 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        Hamiltonian_terms=Hamiltonians_spinful_Z2;
     elseif isa(space(A_cell[1][1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         Hamiltonian_terms=Hamiltonians_spinless_U1;
     elseif isa(space(A_cell[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})

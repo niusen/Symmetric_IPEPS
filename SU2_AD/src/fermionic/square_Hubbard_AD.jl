@@ -161,6 +161,7 @@ function cost_fun(x) #variational parameters are vector of TensorMap
         t2=parameters["t2"];
         ϕ=parameters["ϕ"]
         μ=parameters["μ"];
+        U=parameters["U"];
 
         ex1=hopping_x(CTM,Cdag_B,C_A,A,AA,grad_ctm_setting);
         ex2=ob_onsite(CTM,CdagA_CB,A,AA,grad_ctm_setting);
@@ -170,9 +171,14 @@ function cost_fun(x) #variational parameters are vector of TensorMap
 
         e_diagonalb1=hopping_diagonalb(CTM,Cdag_B,C_A,A,AA,grad_ctm_setting);
         e_diagonalb2=hopping_y(CTM,Cdag_A,C_B,A,AA,grad_ctm_setting);
+        
+        eU1=ob_onsite(CTM,n_double_A-(1/2)*NA+(1/4)*Ident4,A,AA,grad_ctm_setting);
+        eU2=ob_onsite(CTM,n_double_B-(1/2)*NB+(1/4)*Ident4,A,AA,grad_ctm_setting);
 
-        E=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_diagonalb1-t2*e_diagonalb2;
-        E=real((E+E')/2);
+        println([ex1,ex2,ey1,ey2,e_diagonalb1,e_diagonalb2,eU1,eU2])
+        
+        E_hop=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_diagonalb1-t2*e_diagonalb2;
+        E=real((E_hop+E_hop')/2)+real(U*(eU1+eU2))/2;
     end
 
     println("E0= "*string(E));flush(stdout);
@@ -243,6 +249,7 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         t2=parameters["t2"];
         ϕ=parameters["ϕ"]
         μ=parameters["μ"];
+        U=parameters["U"];
 
         ex1=hopping_x(CTM,Cdag_B,C_A,A,AA,ctm_setting);
         ex2=ob_onsite(CTM,CdagA_CB,A,AA,ctm_setting);
@@ -256,9 +263,12 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         e01=ob_onsite(CTM,NA,A,AA,ctm_setting);
         e02=ob_onsite(CTM,NB,A,AA,ctm_setting);
 
-        E=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_diagonalb1-t2*e_diagonalb2;
-        E=real((E+E'))/2;
-        return E, ex1,ex2,ey1,ey2,e_diagonalb1,e_diagonalb2, e01,e02, ite_num,ite_err,CTM
+        eU1=ob_onsite(CTM,n_double_A-(1/2)*NA+(1/4)*Ident4,A,AA,grad_ctm_setting);
+        eU2=ob_onsite(CTM,n_double_B-(1/2)*NB+(1/4)*Ident4,A,AA,grad_ctm_setting);
+
+        E_hop=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_diagonalb1-t2*e_diagonalb2;
+        E=real((E_hop+E_hop')/2)+real(U*(eU1+eU2))/2;
+        return E, ex1,ex2,ey1,ey2,e_diagonalb1,e_diagonalb2, e01,e02,eU1,eU2, ite_num,ite_err,CTM
     end
 end
 

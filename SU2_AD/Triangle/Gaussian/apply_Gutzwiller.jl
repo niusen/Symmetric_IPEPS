@@ -1,6 +1,6 @@
-using Revise, TensorKit
+using Revise
 using LinearAlgebra:diag,I,diagm 
-using KrylovKit
+using TensorKit
 using JSON
 using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
@@ -17,28 +17,31 @@ include("..\\..\\src\\bosonic\\line_search_lib.jl")
 include("..\\..\\src\\bosonic\\optimkit_lib.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_model.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_model_correl.jl")
 include("..\\..\\src\\fermionic\\swap_funs.jl")
 include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\..\\src\\fermionic\\double_layer_funs.jl")
+include("..\\..\\src\\fermionic\\square_Hubbard_model.jl")
 include("..\\..\\src\\fermionic\\square_Hubbard_AD.jl")
 
-Random.seed!(777)
+Random.seed!(888)
 
-M=2;
+M=1;
+Dx=4;
+Dy=4;
 chi=40
 
 t=1;
 ϕ=pi/2;
 μ=0;
-parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ)]);
+U=12;
+parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+
 
 
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=50;
+grad_ctm_setting.CTM_ite_nums=10;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -71,14 +74,15 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0;
+optim_setting.init_statenm="parton_state_M1.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinful_triangle_lattice";
+energy_setting.model = "spinful_triangle_lattice_2site";
 dump(energy_setting);
+
 
 
 
@@ -87,58 +91,52 @@ multiplet_tol=1e-5;
 projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
 global backward_settings
+global Vx,Vy
+
+if (Dx==4)&(Dy==4)
+    Vx=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)';
+    Vy=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1);
+elseif (Dx==4)&(Dy==8)
+    Vx=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)';
+    Vy=Rep[U₁ × SU₂]((0, 0)=>2, (2, 0)=>2, (1, 1/2)=>2);
+ 
+elseif (Dx==16)&(Dy==16)
+    Vx=Rep[U₁ × SU₂]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1, (-1, 1/2)=>2, (-3, 1/2)=>2, (-2, 1)=>1);
+    Vy=Rep[U₁ × SU₂]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1, (-1, 1/2)=>2, (-3, 1/2)=>2, (-2, 1)=>1)';
+end
+@assert dim(Vx)==Dx;
+@assert dim(Vy)==Dy;
 
 
 
 
+init_complex_tensor=true;
+
+state_vec=initial_fPEPS_spinful_U1_SU2_2site(Vx,Vy, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=normalize_tensor_group(state_vec);
 
 
-################################################
-if M==1
-    data=load("parton_state_M1.jld2")
-    A=data["A"];   #P1,P2,L,R,D,U
-elseif M==2
-    data=load("parton_state_M2.jld2")
-    A=data["A"];   #P1,P2,L,R,D,U
+global chi, parameters, energy_setting, grad_ctm_setting
+
+
+
+
+for cg=1:10
+    coe=cg/10;
+    PG_set=Gutzwiller_U1_SU2_2site(coe);
+
+    @tensor A[:]:=state_vec.T[-1,-2,-3,-4,1]*PG_set[1][-5,2]*PG_set[2][2,1]
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    E, ex1,ex2,ey1,ey2,e_diagonalb1,e_diagonalb2, e01,e02,eU1,eU2, ite_num,ite_err,CTM=energy_CTM(Square_iPEPS(A), chi, parameters, LS_ctm_setting, energy_setting, init, init_CTM);
+    println([coe, E]);flush(stdout);
 end
 
 
-################################################
-# println("if flux is inserted, to get correct energy the following gauge transformation is required")
-# gauge_gate1=gauge_gate(A,4,-pi/4);
-# @tensor A[:]:=A[-1,-2,-3,1,-5]*gauge_gate1[-4,1];
-################################################
-# jldsave("parton_tensor_M"*string(M)*".jld2";A)
-################################################
 
 
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=fermi_CTMRG(A,chi,init,[],grad_ctm_setting);
 
-
-Ident4, NA, NB, n_double_A, n_double_B,  CdagA_CB, Cdag_A, C_A, Cdag_B, C_B = @ignore_derivatives Hamiltonians_spinful_U1_SU2_2site(M);
-ex1=hopping_x(CTM,Cdag_B,C_A,A,AA,grad_ctm_setting);
-ex2=ob_onsite(CTM,CdagA_CB,A,AA,grad_ctm_setting);
-println("ex1, ex2="*string([ex1,ex2]));
-
-ey1=hopping_y(CTM,Cdag_A,C_A,A,AA,grad_ctm_setting);
-ey2=hopping_y(CTM,Cdag_B,C_B,A,AA,grad_ctm_setting);
-println("ey1, ey2="*string([ey1,ey2]));
-
-e_right_top1=hopping_diagonalb(CTM,Cdag_B,C_A,A,AA,grad_ctm_setting);
-e_right_top2=hopping_y(CTM,Cdag_A,C_B,A,AA,grad_ctm_setting);
-println("e_right_top1, e_right_top2="*string([e_right_top1,e_right_top2]));
-
-E=im*ex1+im*ex2+ey1-ey2+e_right_top1-e_right_top2;
-E=E+E';
-dE=E/2+2.4020
-println("dE= "*string(dE));
-
-
-# direction="x";
-# distance=20;
-# CAdag_CA_ob,CAdag_CB_ob,CBdag_CA_ob,CBdag_CB_ob=cal_correl(direction,M,A, AA, chi,CTM, distance,grad_ctm_setting);
-
-# direction="y";
-# distance=20;
-# CAdag_CA_ob,CAdag_CB_ob,CBdag_CA_ob,CBdag_CB_ob=cal_correl(direction,M,A, AA, chi,CTM, distance,grad_ctm_setting);
+coe=0.4;
+PG_set=Gutzwiller_U1_SU2_2site(coe);
+@tensor A[:]:=state_vec.T[-1,-2,-3,-4,1]*PG_set[1][-5,2]*PG_set[2][2,1]
+filenm="Gutzwiller_M"*string(M)*"_coe_"*string(coe)*".jld2"
+jldsave(filenm;A=A)

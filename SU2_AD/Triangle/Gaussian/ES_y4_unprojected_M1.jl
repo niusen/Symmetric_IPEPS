@@ -113,9 +113,7 @@ if y_anti_pbc
     @tensor A1[:]:=A1[-1,-2,-3,1,-5]*gauge_gate1[-4,1];
 end
 
-using JLD2
-tensornm="parton_tensor_M"*string(M)*".jld2";
-jldsave(tensornm;A)
+
 
 #############################
 

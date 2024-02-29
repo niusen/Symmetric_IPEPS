@@ -30,13 +30,113 @@ function sector_projector(V::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU
         end
     end
 
-    V_odd=Rep[SU₂](Spin_odd_set[1]=>dim_odd_set[1]);
-    for cc=2:length(Spin_odd_set)
-        V_odd=V_odd ⊕ Rep[SU₂](Spin_odd_set[cc]=>dim_odd_set[cc]);
+    if length(Spin_odd_set)>0
+        V_odd=Rep[SU₂](Spin_odd_set[1]=>dim_odd_set[1]);
+        for cc=2:length(Spin_odd_set)
+            V_odd=V_odd ⊕ Rep[SU₂](Spin_odd_set[cc]=>dim_odd_set[cc]);
+        end
+    else
+        V_odd=Rep[SU₂]();
     end
-    V_even=Rep[SU₂](Spin_even_set[1]=>dim_even_set[1]);
-    for cc=2:length(Spin_even_set)
-        V_even=V_even ⊕ Rep[SU₂](Spin_even_set[cc]=>dim_even_set[cc]);
+
+    if length(Spin_even_set)>0
+        V_even=Rep[SU₂](Spin_even_set[1]=>dim_even_set[1]);
+        for cc=2:length(Spin_even_set)
+            V_even=V_even ⊕ Rep[SU₂](Spin_even_set[cc]=>dim_even_set[cc]);
+        end
+    else
+        V_even=Rep[SU₂]();
+    end
+
+    if V.dual
+        return V_odd',V_even'
+    else
+        return V_odd,V_even
+    end
+end
+
+#U1 symmetry
+function sector_projector(V::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+    L=length(V.dims.keys);
+    Charge_odd_set=[];
+    dim_odd_set=[];
+    Charge_even_set=[];
+    dim_even_set=[];
+    for cc=1:L
+        Charge=V.dims.keys[cc].charge;
+        if mod(Charge,2)==1
+            Charge_odd_set=vcat(Charge_odd_set,Charge);
+            dim_odd_set=vcat(dim_odd_set,V.dims.values[cc]);
+        elseif mod(Charge,2)==0
+            Charge_even_set=vcat(Charge_even_set,Charge);
+            dim_even_set=vcat(dim_even_set,V.dims.values[cc]);
+        end
+    end
+
+    if length(Charge_odd_set)>0
+        V_odd=Rep[U₁](Charge_odd_set[1]=>dim_odd_set[1]);
+        for cc=2:length(Charge_odd_set)
+            V_odd=V_odd ⊕ Rep[U₁](Charge_odd_set[cc]=>dim_odd_set[cc]);
+        end
+    else
+        V_odd=Rep[U₁]();
+    end
+
+    if length(Charge_even_set)>0
+        V_even=Rep[U₁](Charge_even_set[1]=>dim_even_set[1]);
+        for cc=2:length(Charge_even_set)
+            V_even=V_even ⊕ Rep[U₁](Charge_even_set[cc]=>dim_even_set[cc]);
+        end
+    else
+        V_even=Rep[U₁]();
+    end
+
+    if V.dual
+        return V_odd',V_even'
+    else
+        return V_odd,V_even
+    end
+end
+
+#U1xSU2 symmetry
+function sector_projector(V::GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+    L=length(V.dims.keys);
+    Charge_odd_set=[];
+    Spin_odd_set=[];
+    dim_odd_set=[];
+    Charge_even_set=[];
+    Spin_even_set=[];
+    dim_even_set=[];
+    for cc=1:L
+        Spin=V.dims.keys[cc].sectors[2].j;
+        
+        if mod(Spin,1)==1/2
+            Charge_odd_set=vcat(Charge_odd_set,V.dims.keys[cc].sectors[1].charge);
+            Spin_odd_set=vcat(Spin_odd_set,Spin);
+            dim_odd_set=vcat(dim_odd_set,V.dims.values[cc]);
+        elseif mod(Spin,1)==0
+            Charge_even_set=vcat(Charge_even_set,V.dims.keys[cc].sectors[1].charge);
+            Spin_even_set=vcat(Spin_even_set,Spin);
+            dim_even_set=vcat(dim_even_set,V.dims.values[cc]);
+        end
+    end
+
+    if length(Spin_odd_set)>0
+        V_odd=Rep[U₁ × SU₂]((Charge_odd_set[1],Spin_odd_set[1])=>dim_odd_set[1]);
+        for cc=2:length(Spin_odd_set)
+            V_odd=V_odd ⊕ Rep[U₁ × SU₂]((Charge_odd_set[cc],Spin_odd_set[cc])=>dim_odd_set[cc]);
+        end
+    else
+        V_odd=Rep[U₁ × SU₂]();
+    end
+
+    if length(Spin_even_set)>0
+        V_even=Rep[U₁ × SU₂]((Charge_even_set[1],Spin_even_set[1])=>dim_even_set[1]);
+        for cc=2:length(Spin_even_set)
+            V_even=V_even ⊕ Rep[U₁ × SU₂]((Charge_even_set[cc],Spin_even_set[cc])=>dim_even_set[cc]);
+        end
+    else
+        V_even=Rep[U₁ × SU₂]();
     end
 
     if V.dual
@@ -143,7 +243,25 @@ function get_Vspace_Spin(V1::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU
     return Slist1
 end
 
-
+#U1 symmetry
+function get_Vspace_Qn(V1::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+    Qnlist1=[];
+    Keys=V1.dims.keys;
+    Values=V1.dims.values;
+    
+    for cc in eachindex(Values)
+        Sec1=Keys[cc];
+        if V1.dual
+            Qn=-Sec1.charge;
+        else
+            Qn=Sec1.charge;
+        end
+        Dim=Values[cc];
+        Qnlist1=vcat(Qnlist1,Int.(ones(Dim))*Qn);
+        
+    end
+    return Qnlist1
+end
 
 #U1 x SU2 symmetry
 function get_Vspace_Qn(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
@@ -233,7 +351,13 @@ end
 function parity_gate(A,p1)
     V1=space(A,p1);
     P_odd,P_even=projector_parity(V1);
-    S=-P_odd'*P_odd+P_even'*P_even;
+    if norm(P_odd)==0
+        S=P_even'*P_even;
+    elseif norm(P_even)==0
+        S=-P_odd'*P_odd;
+    else
+        S=-P_odd'*P_odd+P_even'*P_even;
+    end
     return S
 end
 
@@ -322,7 +446,7 @@ function gauge_gate(A,p1,phase)
     V1=space(A,p1);
     S=unitary( V1, V1);
 
-    println(V1)
+    
     S_dense=convert(Array,S)*(1+0*im);
     Qnlist1=get_Vspace_Qn(V1);
     for c1=1:length(Qnlist1)

@@ -25,8 +25,9 @@ include("..\\src\\fermionic\\square_Hubbard_AD.jl")
 
 Random.seed!(888)
 
+
 Dx=4;
-Dy=8;
+Dy=4;
 chi=40
 
 global M
@@ -35,7 +36,9 @@ M=1;
 t=1;
 ϕ=pi/2;
 μ=0;
-parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ)]);
+U=12;
+parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+
 
 
 
@@ -74,8 +77,8 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="parton_tensor_M1.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0.6;
+optim_setting.init_statenm="Gutzwiller_M1_coe_0.4.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
@@ -100,10 +103,10 @@ if (Dx==4)&(Dy==4)
 elseif (Dx==4)&(Dy==8)
     Vx=Rep[U₁ × SU₂]((0, 0)=>1, (2, 0)=>1, (1, 1/2)=>1)';
     Vy=Rep[U₁ × SU₂]((0, 0)=>2, (2, 0)=>2, (1, 1/2)=>2);
-elseif D==6
-    Vv=SU2Space(0=>2,1/2=>2);
-elseif D==10
-    Vv=SU2Space(0=>3,1/2=>2,1=>1);
+ 
+elseif (Dx==16)&(Dy==16)
+    Vx=Rep[U₁ × SU₂]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1, (-1, 1/2)=>2, (-3, 1/2)=>2, (-2, 1)=>1);
+    Vy=Rep[U₁ × SU₂]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1, (-1, 1/2)=>2, (-3, 1/2)=>2, (-2, 1)=>1)';
 end
 @assert dim(Vx)==Dx;
 @assert dim(Vy)==Dy;

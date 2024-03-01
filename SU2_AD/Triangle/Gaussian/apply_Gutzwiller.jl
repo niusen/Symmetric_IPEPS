@@ -25,9 +25,9 @@ include("..\\..\\src\\fermionic\\square_Hubbard_AD.jl")
 
 Random.seed!(888)
 
-M=1;
-Dx=4;
-Dy=4;
+M=2;
+Dx=16;
+Dy=16;
 chi=40
 
 t=1;
@@ -74,7 +74,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="parton_state_M1.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="parton_state_M2.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -135,7 +135,7 @@ end
 
 
 
-coe=0.4;
+coe=0.5;
 PG_set=Gutzwiller_U1_SU2_2site(coe);
 @tensor A[:]:=state_vec.T[-1,-2,-3,-4,1]*PG_set[1][-5,2]*PG_set[2][2,1]
 filenm="Gutzwiller_M"*string(M)*"_coe_"*string(coe)*".jld2"

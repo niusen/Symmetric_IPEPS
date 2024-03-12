@@ -15,6 +15,7 @@ include("..\\src\\bosonic\\Settings_cell.jl")
 include("..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\src\\bosonic\\AD_lib.jl")
 include("..\\src\\bosonic\\line_search_lib.jl")
+include("..\\src\\bosonic\\line_search_lib_cell.jl")
 include("..\\src\\bosonic\\line_search_lib_cell_separate.jl")
 include("..\\src\\bosonic\\optimkit_lib.jl")
 include("..\\src\\bosonic\\CTMRG.jl")
@@ -24,6 +25,7 @@ include("..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 include("..\\src\\fermionic\\swap_funs.jl")
 include("..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\src\\fermionic\\double_layer_funs.jl")
+include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 include("..\\src\\fermionic\\square_Hubbard_AD_cell_separate.jl")
 
 let
@@ -94,6 +96,7 @@ global chi,multiplet_tol,projector_trun_tol
 multiplet_tol=1e-5;
 projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
+global chi, parameters, energy_setting, grad_ctm_setting,LS_ctm_setting,optim_setting
 global backward_settings
 
 

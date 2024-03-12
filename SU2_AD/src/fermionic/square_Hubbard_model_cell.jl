@@ -2,6 +2,21 @@ function Rank(T::TensorMap)
     return length(domain(T))+length(codomain(T))
 end
 
+function Gutzwiller_Z2(coe)
+
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+    PG=zeros(4,4);
+    PG[1,1]=coe;
+    PG[2,2]=coe;
+    PG[3,3]=1;
+    PG[4,4]=1;
+    PG=TensorMap(PG,  V ← V);
+    
+    return (PG,PG,)
+end
+
 
 function Gutzwiller_U1_SU2(coe)
     global VDummy_set

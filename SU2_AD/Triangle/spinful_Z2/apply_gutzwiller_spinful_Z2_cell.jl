@@ -10,21 +10,21 @@ using LineSearches
 using Dates
 cd(@__DIR__)
 
-include("..\\src\\bosonic\\Settings.jl")
-include("..\\src\\bosonic\\Settings_cell.jl")
-include("..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\src\\bosonic\\AD_lib.jl")
-include("..\\src\\bosonic\\line_search_lib.jl")
-include("..\\src\\bosonic\\line_search_lib_cell.jl")
-include("..\\src\\bosonic\\optimkit_lib.jl")
-include("..\\src\\bosonic\\CTMRG.jl")
-include("..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\src\\fermionic\\square_Hubbard_model_cell.jl")
-include("..\\src\\fermionic\\swap_funs.jl")
-include("..\\src\\fermionic\\mpo_mps_funs.jl")
-include("..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
+include("..\\..\\src\\bosonic\\Settings.jl")
+include("..\\..\\src\\bosonic\\Settings_cell.jl")
+include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\..\\src\\bosonic\\AD_lib.jl")
+include("..\\..\\src\\bosonic\\line_search_lib.jl")
+include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
+include("..\\..\\src\\bosonic\\optimkit_lib.jl")
+include("..\\..\\src\\bosonic\\CTMRG.jl")
+include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
+include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
+include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
+include("..\\..\\src\\fermionic\\swap_funs.jl")
+include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
+include("..\\..\\src\\fermionic\\double_layer_funs.jl")
+include("..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 
 Random.seed!(888)
 
@@ -74,7 +74,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_3.44331.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="Optim_cell_LS_D_6_chi_40_2.38185.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -127,39 +127,29 @@ state_vec=initial_fPEPS_state_spinful_Z2(Vv, optim_setting.init_statenm, optim_s
 state_vec=normalize_tensor_group(state_vec);
 
 
-global save_filenm
-save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 
-global starting_time
-starting_time=now();
+for cg=1:10
+    coe=cg/10;
+    PG_set=Gutzwiller_Z2(coe);
 
-################################################
-
-
-
-global E_history
-E_history=[10000];
-
-
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = StrongWolfe()
-# println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
+    @tensor A1[:]:=state_vec[1].T[-1,-2,-3,-4,1]*PG_set[1][-5,1];
+    @tensor A2[:]:=state_vec[2].T[-1,-2,-3,-4,1]*PG_set[2][-5,1];
+    state=deepcopy(state_vec);
+    state[1]=Square_iPEPS(A1);
+    state[2]=Square_iPEPS(A2);
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    println([coe, E]);flush(stdout);
+end
 
 
-# #optimize with OptimKit
-# optimkit_op(state_vec)
 
 
-println(E_tem)
+coe=0.5;
+PG_set=Gutzwiller_Z2(coe);
+@tensor A1[:]:=state_vec[1].T[-1,-2,-3,-4,1]*PG_set[1][-5,1];
+@tensor A2[:]:=state_vec[2].T[-1,-2,-3,-4,1]*PG_set[2][-5,1];
+state=deepcopy(state_vec);
+state[1]=Square_iPEPS(A1);
+state[2]=Square_iPEPS(A2);
+filenm="Gutzwiller_D"*string(D)*"_coe_"*string(coe)*".jld2"
+jldsave(filenm;x=state)

@@ -197,24 +197,17 @@ function initial_fPEPS_state_spinful_Z2(Vspace,init_statenm="nothing",init_noise
                 A=A0;
             else
                 println("Extend bond dimension of initial state")
-                if space(A0,1)==SU2Space(0=>2,1/2=>1)
-                    if Vspace==SU2Space(0=>3,1/2=>1)
-                        M=zeros(5,5,5,5,4)*im;
-                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    elseif Vspace==SU2Space(0=>2,1/2=>2)
+                
+                if space(A0,1)==Rep[ℤ₂](0=>2,1=>2)
+                    if Vspace==Rep[ℤ₂](0=>3,1=>3)
                         M=zeros(6,6,6,6,4)*im;
-                        M[[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],:]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    elseif Vspace==SU2Space(0=>3,1/2=>2,1=>1)
-                        M=zeros(10,10,10,10,4)*im;
                         M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
                         A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
                     end
-                elseif space(A0,1)==Rep[ℤ₂](0=>2, 1=>2)
-                    if Vspace==Rep[ℤ₂](0=>3, 1=>3)
-                        M=zeros(6,6,6,6,2)*im;
-                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],1:2]=convert(Array,A0);
+                elseif space(A0,1)==Rep[ℤ₂](0=>3,1=>3)
+                    if Vspace==Rep[ℤ₂](0=>4, 1=>4)
+                        M=zeros(8,8,8,8,4)*im;
+                        M[[1,2,3,5,6,7],[1,2,3,5,6,7],[1,2,3,5,6,7],[1,2,3,5,6,7],:]=convert(Array,A0);
                         A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
                     end
                 end

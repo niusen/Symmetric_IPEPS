@@ -1,3 +1,60 @@
+function create_isometry(V1,V2)
+    #V1 is larger than V2
+    #@assert dim(V1)>=dim(V2)
+    tt=TensorMap(randn,V1,V2);
+    for cc=1:length(tt.data.values)
+        mm=tt.data.values[cc];
+        tt.data.values[cc]=Matrix(I, size(mm,1), size(mm,2));
+    end
+    return tt
+end
+
+function initial_fPEPS_spinful_U1_SU2_2site_reducedD(Vx,Vy,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+    Vp=Rep[U₁ × SU₂]((0, 0)=>3, (2, 0)=>1, (-2, 0)=>1, (1, 1/2)=>2, (-1, 1/2)=>2, (0, 1)=>1)';
+    if init_statenm=="nothing" 
+        println("Random initial state");flush(stdout);
+        
+        if init_complex_tensor
+            A=TensorMap(randn,Vx*Vy*Vx'*Vy',Vp)+TensorMap(randn,Vx*Vy*Vx'*Vy',Vp)*im;
+        else
+            A=TensorMap(randn,Vx*Vy*Vx'*Vy',Vp);
+        end
+
+        A=permute(A,(1,2,3,4,5,));
+        A=A/norm(A);
+        
+        state=Square_iPEPS(A);
+        return state
+    else
+        
+        println("load state: "*init_statenm);flush(stdout);
+        data=load(init_statenm);
+
+        A0=data["A"];
+        if (Vx==space(A0,1))&(Vy==space(A0,2))
+            A=A0;
+        else
+            println("change bond dimension of initial state")
+            Ureduce=create_isometry(Vx,space(A0,1));
+            @tensor A[:]:=A0[1,-2,3,-4,-5]*Ureduce[-1,1]*Ureduce'[3,-3];
+
+            A=permute(A,(1,2,3,4,5,));
+        end
+
+        if init_complex_tensor
+            A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+        else
+            A_noise=TensorMap(randn,codomain(A),domain(A));
+        end
+
+        A=A+A_noise*init_noise*norm(A)/norm(A_noise);
+
+        state=Square_iPEPS(A);
+
+        return state
+    end
+end
+
 function initial_fPEPS_spinful_U1_SU2_2site(Vx,Vy,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
     Vp=Rep[U₁ × SU₂]((0, 0)=>3, (2, 0)=>1, (-2, 0)=>1, (1, 1/2)=>2, (-1, 1/2)=>2, (0, 1)=>1)';
     if init_statenm=="nothing" 
@@ -175,7 +232,7 @@ function cost_fun(x) #variational parameters are vector of TensorMap
         eU1=ob_onsite(CTM,n_double_A-(1/2)*NA+(1/4)*Ident4,A,AA,grad_ctm_setting);
         eU2=ob_onsite(CTM,n_double_B-(1/2)*NB+(1/4)*Ident4,A,AA,grad_ctm_setting);
 
-        println([ex1,ex2,ey1,ey2,e_diagonalb1,e_diagonalb2,eU1,eU2])
+        #println([ex1,ex2,ey1,ey2,e_diagonalb1,e_diagonalb2,eU1,eU2])
         
         E_hop=t1*exp(im*ϕ)*ex1+t1*exp(im*ϕ)*ex2+t1*ey1-t1*ey2+t2*e_diagonalb1-t2*e_diagonalb2;
         E=real((E_hop+E_hop')/2)+real(U*(eU1+eU2))/2;

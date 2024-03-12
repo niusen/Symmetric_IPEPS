@@ -15,7 +15,7 @@ include("..\\src\\bosonic\\Settings_cell.jl")
 include("..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\src\\bosonic\\AD_lib.jl")
 include("..\\src\\bosonic\\line_search_lib.jl")
-include("..\\src\\bosonic\\line_search_lib_cell.jl")
+include("..\\src\\bosonic\\line_search_lib_cell_separate.jl")
 include("..\\src\\bosonic\\optimkit_lib.jl")
 include("..\\src\\bosonic\\CTMRG.jl")
 include("..\\src\\fermionic\\Fermionic_CTMRG.jl")
@@ -24,11 +24,12 @@ include("..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 include("..\\src\\fermionic\\swap_funs.jl")
 include("..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
+include("..\\src\\fermionic\\square_Hubbard_AD_cell_separate.jl")
 
+let
 Random.seed!(888)
 
-D=6;
+D=4;
 chi=40
 
 t=1;
@@ -74,7 +75,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_3.44331.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -140,22 +141,37 @@ starting_time=now();
 global E_history
 E_history=[10000];
 
-
-ls = BackTracking(order=3)
+ls = BackTracking(c_1=0.0001,ρ_hi=0.5,ρ_lo=0.1,iterations=10,order=3,maxstep=Inf);
 println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
 
+optim_maxiter=500;
+LS_maxiter=4;
+grad_tol=1e-2;
+
+global psi
+global px,py
+psi=state_vec;
+for co=1:optim_maxiter
+    for ca=1:Lx
+        for cb=1:Ly
+            px=ca;
+            py=cb;
+            println("coordinate: "*string([px,py]));
+            fx_bt3, x_new, iter_bt3 = separate_gdoptimize(f_separate, g!_separate, fg!_separate, state_vec[px], ls, LS_maxiter, 1e-8, grad_tol)
+        end
+    end
+end
 # ls = StrongWolfe()
 # println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
+# fx_sw, x_sw, iter_sw = gdoptimize(f_separate, g!_separate, fg!_separate, state_vec, ls)
 
 # ls = LineSearches.HagerZhang()
 # println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
+# fx_hz, x_hz, iter_hz = gdoptimize(f_separate, g!_separate, fg!_separate, state_vec, ls)
 
 # ls = MoreThuente()
 # println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
+# fx_mt, x_mt, iter_mt = gdoptimize(f_separate, g!_separate, fg!_separate, state_vec, ls)
 
 
 # #optimize with OptimKit
@@ -163,3 +179,7 @@ fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
 
 
 println(E_tem)
+
+
+
+end

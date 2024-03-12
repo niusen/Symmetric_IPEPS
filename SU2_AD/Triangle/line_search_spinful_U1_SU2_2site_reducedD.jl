@@ -1,41 +1,50 @@
 using Revise, TensorKit
-using LinearAlgebra, OptimKit
+using LinearAlgebra:diag,I,diagm 
 using TensorKit
 using JSON
 using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
 using Zygote:@ignore_derivatives
 using Random
-using LineSearches
+using LineSearches,OptimKit
 using Dates
 cd(@__DIR__)
 
 include("..\\src\\bosonic\\Settings.jl")
-include("..\\src\\bosonic\\Settings_cell.jl")
 include("..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\src\\bosonic\\AD_lib.jl")
 include("..\\src\\bosonic\\line_search_lib.jl")
-include("..\\src\\bosonic\\line_search_lib_cell.jl")
 include("..\\src\\bosonic\\optimkit_lib.jl")
 include("..\\src\\bosonic\\CTMRG.jl")
 include("..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 include("..\\src\\fermionic\\swap_funs.jl")
 include("..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
+include("..\\src\\fermionic\\square_Hubbard_model.jl")
+include("..\\src\\fermionic\\square_Hubbard_AD.jl")
 
 Random.seed!(888)
 
-D=6;
+
+# Vx=Rep[U₁ × SU₂]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1, (-1, 1/2)=>2, (-3, 1/2)=>2, (-2, 1)=>1);
+Vx=Rep[U₁ × SU₂]((0, 0)=>1, (-2, 0)=>2, (-4, 0)=>1, (-1, 1/2)=>1, (-3, 1/2)=>1, (-2, 1)=>1);
+Vy=Rep[U₁ × SU₂]((0, 0)=>1, (-2, 0)=>3, (-4, 0)=>1, (-1, 1/2)=>2, (-3, 1/2)=>2, (-2, 1)=>1)';
+println("Vx: "*string(Vx));
+global Vx,Vy
+Dx=dim(Vx);
+Dy=dim(Vy);
+
 chi=40
+
+global M
+M=2;
 
 t=1;
 ϕ=pi/2;
 μ=0;
-U=0;
+U=12;
 parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+
 
 
 
@@ -74,19 +83,15 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_3.44331.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0;
+optim_setting.init_statenm="parton_state_M2.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinful_triangle_lattice";
+energy_setting.model = "spinful_triangle_lattice_2site";
 dump(energy_setting);
 
-algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
-algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
-dump(algrithm_CTMRG_settings);
-global algrithm_CTMRG_settings
 
 
 global chi,multiplet_tol,projector_trun_tol
@@ -96,25 +101,6 @@ projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 global backward_settings
 
 
-global Vv
-
-if D==4
-    Vv=Rep[ℤ₂](0=>2,1=>2);
-elseif D==6
-    Vv=Rep[ℤ₂](0=>3,1=>3);
-elseif D==8
-    Vv=Rep[ℤ₂](0=>4,1=>4);
-end
-@assert dim(Vv)==D;
-
-
-
-
-
-
-global Lx,Ly
-Lx=2;
-Ly=1;
 
 
 
@@ -123,12 +109,12 @@ Ly=1;
 
 init_complex_tensor=true;
 
-state_vec=initial_fPEPS_state_spinful_Z2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=initial_fPEPS_spinful_U1_SU2_2site_reducedD(Vx,Vy, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_tensor_group(state_vec);
 
 
 global save_filenm
-save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+save_filenm="Optim_LS_Dx_"*string(Dx)*"_Dy_"*string(Dy)*"_chi_"*string(chi)*".jld2"
 
 global starting_time
 starting_time=now();

@@ -86,13 +86,13 @@ function f_separate(x::iPEPS_ansatz)
         end
 
     end
-    global E_history
+    global E_history,save_filenm
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
-        filenm="Optim_cell_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+        # filenm="Optim_cell_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
         #jldsave(filenm; B_a=x[1],B_b=x[2],B_c=x[3],T_u=x[4],T_d=x[5]);
         global psi;
-        jldsave(filenm; x=psi);
+        jldsave(save_filenm; x=psi);
         global starting_time
         Now=now();
         Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));

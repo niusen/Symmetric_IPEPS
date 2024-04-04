@@ -7,139 +7,46 @@ ABABABAB
 CDCDCDCD
 """
 ###########################
-
-function Rank(T::TensorMap)
-    return length(domain(T))+length(codomain(T))
-end
-
-# function mypinv(T)
-#     return pinv(T)
-# end
-function mypinv(T)
-    epsilon0 = 1e-16
-    epsilon=epsilon0*maximum(diag(convert(Array,T)))
-    T_new=deepcopy(T);
-
-    for (k,dst) in blocks(T_new)
-        src = blocks(T_new)[k]
-        @inbounds for i in 1:size(dst,1)
-            dst[i,i] = dst[i,i]/(dst[i,i]^2+epsilon)
-        end
-    end
-    return T_new
-end
-
-function truncate_multiplet_origin(s,chi,multiplet_tol,trun_tol)
-    #the multiplet is not due to su(2) symmetry
-    s_dense=sort(abs.(diag(convert(Array,s))),rev=true);
-
-    # println(s_dense/s_dense[1])
-
-    if length(s_dense)>chi
-        value_trun=s_dense[chi+1];
-    else
-        value_trun=0;
-    end
-    value_max=maximum(s_dense);
-
-    s_Dict=convert(Dict,s);
+function convert_iPESS_to_iPEPS(Bset,Tset)
+    global Lx,Ly
     
-    space_full=space(s,1);
-    for sp in sectors(space_full)
-
-        diag_elem=abs.(diag(s_Dict[:data][string(sp)]));
-        for cd=1:length(diag_elem)
-            if ((diag_elem[cd]/value_max)<trun_tol) | (diag_elem[cd]<=value_trun) |(abs((diag_elem[cd]-value_trun)/value_trun)<multiplet_tol)
-                diag_elem[cd]=0;
-            end
+    A_cell_iPEPS=initial_tuple_cell(Lx,Ly);
+    for ca=1:Lx
+        for cb=1:Ly
+            A_A=iPESS_to_iPEPS(Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]));
+            A_cell_iPEPS=fill_tuple(A_cell_iPEPS, A_A.T, ca,cb);
         end
-        s_Dict[:data][string(sp)]=diagm(diag_elem);
     end
-    s=convert(TensorMap,s_Dict);
-
-    # s_=sort(diag(convert(Array,s)),rev=true);
-    # s_=s_/s_[1];
-    # print(s_)
-    # @assert 1+1==3
-    return s
+    return A_cell_iPEPS
 end
 
-function delet_zero_block(U,Σ,V)
-    if isa(space(Σ,1),ComplexSpace)
-        # pos=findall(diag(Σ).>0);
+function initial_iPESS(Lx,Ly,V,Vp)
+    Bset=Matrix{Any}(undef,Lx,Ly);
+    Tset=Matrix{Any}(undef,Lx,Ly);
+    lambdaset1=Matrix{Any}(undef,Lx,Ly);
+    lambdaset2=Matrix{Any}(undef,Lx,Ly);
+    lambdaset3=Matrix{Any}(undef,Lx,Ly);
 
-        # if Rank(U)==6
-        # end
-        # if Rank(V)==3
-        # end
-
-        # println(space(V))
-        return U,Σ,V
-    else
-        secs=blocksectors(Σ);
-        sec_length=Vector{Int}(undef,length(secs))
-        U_dict = convert(Dict,U)
-        Σ_dict = convert(Dict,Σ)
-        V_dict = convert(Dict,V)
-
-        #ProductSpace(Rep[SU₂](0=>3, 1/2=>4, 1=>4, 3/2=>2, 2=>1))
-
-        for cc =1:length(secs)
-            c=secs[cc];
-            if (size(diag(Σ_dict[:data][string(c)]),1)>0) & (sum(abs.(diag(Σ_dict[:data][string(c)])))>0)
-                inds=findall(x->(abs.(x).>0), diag(Σ_dict[:data][string(c)]));
-                U_dict[:data][string(c)]=U_dict[:data][string(c)][:,inds];
-                Σ_dict[:data][string(c)]=Σ_dict[:data][string(c)][inds,inds];
-                V_dict[:data][string(c)]=V_dict[:data][string(c)][inds,:];
-
-                sec_length[cc]=length(inds);
-            else
-                delete!(U_dict[:data], string(c))
-                delete!(V_dict[:data], string(c))
-                delete!(Σ_dict[:data], string(c))
-                sec_length[cc]=0;
-            end
+    for ca=1:Lx
+        for cb=1:Ly
+            BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,));
+            TA=TensorMap(randn,V*V,V');
+            Tset[ca,cb]=BA;
+            Bset[ca,cb]=TA;
+            t_A=TA;
+            λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
+            λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
+            λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+            lambdaset1[ca,cb]=λ_A_1;
+            lambdaset2[ca,cb]=λ_A_2;
+            lambdaset3[ca,cb]=λ_A_3;
         end
-
-        #define sector string
-        sec_str="ProductSpace(Rep[SU₂](" *string(((dim(secs[1])-1)/2)) * "=>" * string(sec_length[1]);
-        for cc=2:length(secs)
-            sec_str=sec_str*", " * string(((dim(secs[cc])-1)/2)) * "=>" * string(sec_length[cc]);
-        end
-        sec_str=sec_str*"))"
-
-        U_dict[:domain]=sec_str
-        V_dict[:codomain]=sec_str
-        Σ_dict[:domain]=sec_str
-        Σ_dict[:codomain]=sec_str
-
-        return convert(TensorMap, U_dict), convert(TensorMap, Σ_dict), convert(TensorMap, V_dict)
     end
+    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
 end
 
 
-function Truncations(uM,sM,vM,bond_dim,trun_tol)  
-    sM=truncate_multiplet_origin(sM,bond_dim,1e-5,trun_tol);
-
-    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
-    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
-    uM=uM_new;
-    sM=sM_new;
-    vM=vM_new;
-    # sM=sM/norm(sM)
-    return uM,sM,vM
-end
-
-
-
-
-
-
-
-
-
-
-function update_up_triangle(op_LD_RD_RU, T1, T2, T3, B, trun_tol)
+function triangle_gate_iPESS(op_LD_RD_RU, T1, T2, T3, B, trun_tol)
     # """
     #          M1     R1
     #            \   /
@@ -252,216 +159,193 @@ end
 
 
 
-function triangle_update(B_A, B_B, B_C, B_D, T_A, T_B, T_C, T_D, lambda_A_1, lambda_A_2, lambda_A_3, lambda_B_1, lambda_B_2, lambda_B_3, lambda_C_1, lambda_C_2, lambda_C_3, lambda_D_1, lambda_D_2, lambda_D_3, gates, trun_tol)
+function triangle_update_iPESS(ct,Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates, trun_tol)
     """
     ABABABAB
     CDCDCDCD
     ABABABAB
     CDCDCDCD
     """
-    global expon
-    function tensor_power(S,expon)
-        S=deepcopy(S);
-        for cc=1:length(S.data.values)
-            mm=S.data.values[cc];
-            S.data.values[cc]=mm^expon;
+    Lx,Ly=size(Bset);
+    for ca=1:Lx
+        for cb=1:Ly
+            # B
+            #CD
+            posTB=[mod1(ca+1,Lx),mod1(cb+1,Ly)];
+            posTD=[mod1(ca+1,Lx),mod1(cb,Ly)];
+            posTC=[mod1(ca,Lx),mod1(cb,Ly)];
+            posBond=posTD;
+
+            TB=Tset[posTB[1],posTB[2]];
+            TC=Tset[posTC[1],posTC[2]];
+            TD=Tset[posTD[1],posTD[2]];
+            lambda_A_1=lambdaset1[mod1(ca,Lx),mod1(cb-1,Ly)];
+            lambda_A_2=lambdaset2[mod1(ca+1+1,Lx),mod1(cb+1,Ly)];
+            lambda_B_1=lambdaset1[mod1(ca+1,Lx),mod1(cb-1,Ly)];
+            lambda_B_3=lambdaset3[mod1(ca+1,Lx),mod1(cb+1,Ly)];
+            lambda_C_2=lambdaset2[mod1(ca+1+1,Lx),mod1(cb,Ly)];
+            lambda_C_3=lambdaset3[mod1(ca,Lx),mod1(cb,Ly)];
+            B=Bset[posBond[1],posBond[2]];
+
+            @tensor TB[:]:=TB[1,-2,3,-4]*lambda_B_3[-1,1]*lambda_A_2[-3,3];
+            @tensor TC[:]:=TC[1,-2,-3,4]*lambda_C_3[-1,1]*lambda_A_1[-4,4];
+            @tensor TD[:]:=TD[-1,-2,3,4]*lambda_C_2[-3,3]*lambda_B_1[-4,4];
+            
+            TB, TC, TD, B, lambda_1, lambda_2, lambda_3=triangle_gate_iPESS(gates[mod1(ca,2)], TB, TC, TD, B, trun_tol);
+
+            lambda_A_1_inv=my_pinv(lambda_A_1);
+            lambda_A_2_inv=my_pinv(lambda_A_2);
+            lambda_B_1_inv=my_pinv(lambda_B_1);
+            lambda_B_3_inv=my_pinv(lambda_B_3);
+            lambda_C_2_inv=my_pinv(lambda_C_2);
+            lambda_C_3_inv=my_pinv(lambda_C_3);
+            @tensor TB[:]:=TB[1,-2,3,-4]*lambda_B_3_inv[-1,1]*lambda_A_2_inv[-3,3];
+            @tensor TC[:]:=TC[1,-2,-3,4]*lambda_C_3_inv[-1,1]*lambda_A_1_inv[-4,4];
+            @tensor TD[:]:=TD[-1,-2,3,4]*lambda_C_2_inv[-3,3]*lambda_B_1_inv[-4,4];
+            TB=permute(TB,(1,),(2,3,4,));
+            TC=permute(TC,(1,),(2,3,4,));
+            TD=permute(TD,(1,),(2,3,4,));
+
+
+            TB=TB/norm(TB);
+            TC=TC/norm(TC);
+            TD=TD/norm(TD);
+            B=B/norm(B);
+            lambda_1=lambda_1/norm(lambda_1);
+            lambda_2=lambda_2/norm(lambda_2);
+            lambda_3=lambda_3/norm(lambda_3);
+            
+            lambdaset1[posTD[1],posTD[2]]=lambda_1;
+            lambdaset2[posTD[1],posTD[2]]=lambda_2;
+            lambdaset3[posTD[1],posTD[2]]=lambda_3;
+            Tset[posTB[1],posTB[2]]=TB;
+            Tset[posTC[1],posTC[2]]=TC;
+            Tset[posTD[1],posTD[2]]=TD;
+            Bset[posBond[1],posBond[2]]=B;
+
+
+            if mod(ct,20)==0
+                println(space(lambda_1))
+                println(space(lambda_2))
+                println(space(lambda_3))
+            end
         end
-        return S
     end
-    
-
-    # B
-    #CD
-    @tensor T1[:]:=B_B[1,-2,3,-4]*tensor_power(lambda_B_3,expon)[-1,1]*tensor_power(lambda_A_2,expon)[-3,3];
-    @tensor T2[:]:=B_C[1,-2,-3,4]*tensor_power(lambda_C_3,expon)[-1,1]*tensor_power(lambda_A_1,expon)[-4,4];
-    @tensor T3[:]:=B_D[-1,-2,3,4]*tensor_power(lambda_C_2,expon)[-3,3]*tensor_power(lambda_B_1,expon)[-4,4];
-    B=T_D;
-    T1, T2, T3, B, lambda_1, lambda_2, lambda_3=update_up_triangle(gates[1], T1, T2, T3, B, trun_tol);
-    @tensor B_B[:]:=T1[1,-2,3,-4]*mypinv(tensor_power(lambda_B_3,expon))[-1,1]*mypinv(tensor_power(lambda_A_2,expon))[-3,3];
-    @tensor B_C[:]:=T2[1,-2,-3,4]*mypinv(tensor_power(lambda_C_3,expon))[-1,1]*mypinv(tensor_power(lambda_A_1,expon))[-4,4];
-    @tensor B_D[:]:=T3[-1,-2,3,4]*mypinv(tensor_power(lambda_C_2,expon))[-3,3]*mypinv(tensor_power(lambda_B_1,expon))[-4,4];
-    B_B=permute(B_B,(1,),(2,3,4,));
-    B_C=permute(B_C,(1,),(2,3,4,));
-    B_D=permute(B_D,(1,),(2,3,4,));
-    T_D=B;
-    lambda_D_1=lambda_1; 
-    lambda_D_2=lambda_2; 
-    lambda_D_3=lambda_3; 
-    
 
 
-    # A
-    #DC
-    @tensor T1[:]:=B_A[1,-2,3,-4]*tensor_power(lambda_A_3,expon)[-1,1]*tensor_power(lambda_B_2,expon)[-3,3];
-    @tensor T2[:]:=B_D[1,-2,-3,4]*tensor_power(lambda_D_3,expon)[-1,1]*tensor_power(lambda_B_1,expon)[-4,4];
-    @tensor T3[:]:=B_C[-1,-2,3,4]*tensor_power(lambda_D_2,expon)[-3,3]*tensor_power(lambda_A_1,expon)[-4,4];
-    B=T_C;
-    T1, T2, T3, B, lambda_1, lambda_2, lambda_3=update_up_triangle(gates[2], T1, T2, T3, B, trun_tol);
-    @tensor B_A[:]:=T1[1,-2,3,-4]*mypinv(tensor_power(lambda_A_3,expon))[-1,1]*mypinv(tensor_power(lambda_B_2,expon))[-3,3];
-    @tensor B_D[:]:=T2[1,-2,-3,4]*mypinv(tensor_power(lambda_D_3,expon))[-1,1]*mypinv(tensor_power(lambda_B_1,expon))[-4,4];
-    @tensor B_C[:]:=T3[-1,-2,3,4]*mypinv(tensor_power(lambda_D_2,expon))[-3,3]*mypinv(tensor_power(lambda_A_1,expon))[-4,4];
-    B_A=permute(B_A,(1,),(2,3,4,));
-    B_D=permute(B_D,(1,),(2,3,4,));
-    B_C=permute(B_C,(1,),(2,3,4,));
-    T_C=B;
-    lambda_C_1=lambda_1; 
-    lambda_C_2=lambda_2; 
-    lambda_C_3=lambda_3; 
-
-    
-
-    # D
-    #AB
-    @tensor T1[:]:=B_D[1,-2,3,-4]*tensor_power(lambda_D_3,expon)[-1,1]*tensor_power(lambda_C_2,expon)[-3,3];
-    @tensor T2[:]:=B_A[1,-2,-3,4]*tensor_power(lambda_A_3,expon)[-1,1]*tensor_power(lambda_C_1,expon)[-4,4];
-    @tensor T3[:]:=B_B[-1,-2,3,4]*tensor_power(lambda_A_2,expon)[-3,3]*tensor_power(lambda_D_1,expon)[-4,4];
-    B=T_B;
-    T1, T2, T3, B, lambda_1, lambda_2, lambda_3=update_up_triangle(gates[1], T1, T2, T3, B, trun_tol);
-    @tensor B_D[:]:=T1[1,-2,3,-4]*mypinv(tensor_power(lambda_D_3,expon))[-1,1]*mypinv(tensor_power(lambda_C_2,expon))[-3,3];
-    @tensor B_A[:]:=T2[1,-2,-3,4]*mypinv(tensor_power(lambda_A_3,expon))[-1,1]*mypinv(tensor_power(lambda_C_1,expon))[-4,4];
-    @tensor B_B[:]:=T3[-1,-2,3,4]*mypinv(tensor_power(lambda_A_2,expon))[-3,3]*mypinv(tensor_power(lambda_D_1,expon))[-4,4];
-    B_D=permute(B_D,(1,),(2,3,4,));
-    B_A=permute(B_A,(1,),(2,3,4,));
-    B_B=permute(B_B,(1,),(2,3,4,));
-    T_B=B;
-    lambda_B_1=lambda_1; 
-    lambda_B_2=lambda_2; 
-    lambda_B_3=lambda_3; 
 
 
-    # C
-    #BA
-    @tensor T1[:]:=B_C[1,-2,3,-4]*tensor_power(lambda_C_3,expon)[-1,1]*tensor_power(lambda_D_2,expon)[-3,3];
-    @tensor T2[:]:=B_B[1,-2,-3,4]*tensor_power(lambda_B_3,expon)[-1,1]*tensor_power(lambda_D_1,expon)[-4,4];
-    @tensor T3[:]:=B_A[-1,-2,3,4]*tensor_power(lambda_B_2,expon)[-3,3]*tensor_power(lambda_C_1,expon)[-4,4];
-    B=T_A;
-    T1, T2, T3, B, lambda_1, lambda_2, lambda_3=update_up_triangle(gates[2], T1, T2, T3, B, trun_tol);
-    @tensor B_C[:]:=T1[1,-2,3,-4]*mypinv(tensor_power(lambda_C_3,expon))[-1,1]*mypinv(tensor_power(lambda_D_2,expon))[-3,3];
-    @tensor B_B[:]:=T2[1,-2,-3,4]*mypinv(tensor_power(lambda_B_3,expon))[-1,1]*mypinv(tensor_power(lambda_D_1,expon))[-4,4];
-    @tensor B_A[:]:=T3[-1,-2,3,4]*mypinv(tensor_power(lambda_B_2,expon))[-3,3]*mypinv(tensor_power(lambda_C_1,expon))[-4,4];
-    B_C=permute(B_C,(1,),(2,3,4,));
-    B_B=permute(B_B,(1,),(2,3,4,));
-    B_A=permute(B_A,(1,),(2,3,4,));
-    T_A=B;
-    lambda_A_1=lambda_1; 
-    lambda_A_2=lambda_2; 
-    lambda_A_3=lambda_3; 
-    
-
-
-    T_A=T_A/norm(T_A);
-    T_B=T_B/norm(T_B);
-    T_C=T_C/norm(T_C);
-    T_D=T_D/norm(T_D);
-    B_A=B_A/norm(B_A);
-    B_B=B_B/norm(B_B);
-    B_C=B_C/norm(B_C);
-    B_D=B_D/norm(B_D);
-    lambda_A_1=lambda_A_1/norm(lambda_A_1);
-    lambda_A_2=lambda_A_2/norm(lambda_A_2);
-    lambda_A_3=lambda_A_3/norm(lambda_A_3);
-    lambda_B_1=lambda_B_1/norm(lambda_B_1);
-    lambda_B_2=lambda_B_2/norm(lambda_B_2);
-    lambda_B_3=lambda_B_3/norm(lambda_B_3);
-    lambda_C_1=lambda_C_1/norm(lambda_C_1);
-    lambda_C_2=lambda_C_2/norm(lambda_C_2);
-    lambda_C_3=lambda_C_3/norm(lambda_C_3);
-    lambda_D_1=lambda_D_1/norm(lambda_D_1);
-    lambda_D_2=lambda_D_2/norm(lambda_D_2);
-    lambda_D_3=lambda_D_3/norm(lambda_D_3);
-
-    return B_A, B_B, B_C, B_D, T_A, T_B, T_C, T_D, lambda_A_1, lambda_A_2, lambda_A_3, lambda_B_1, lambda_B_2, lambda_B_3, lambda_C_1, lambda_C_2, lambda_C_3, lambda_D_1, lambda_D_2, lambda_D_3
+    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
 end
 
 
-function gate_RU_LD_RD(parameters,dt, space_type)
+# function gate_RU_LD_RD(parameters,dt, space_type)
 
-    if space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
-        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_SU2();
-    elseif space_type==GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
-        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
-    elseif space_type==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
-        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_Z2();
-    end
+#     if space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+#         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_SU2();
+#     elseif space_type==GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
+#         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
+#     elseif space_type==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+#         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_Z2();
+#     end
     
-    t1=parameters["t1"];
-    t2=parameters["t2"];
-    ϕ=parameters["ϕ"];
-    U=parameters["U"];
+#     t1=parameters["t1"];
+#     t2=parameters["t2"];
+#     ϕ=parameters["ϕ"];
+#     U=parameters["U"];
 
-    tx_coe_set=[exp(im*ϕ),exp(im*ϕ)]*t1/2;
-    # ty_coe_set=[-1,1]*t1/2;
-    # t2_coe_set=[-1,1]*t2/2;
-    ty_coe_set=[1,-1]*t1/2;
-    t2_coe_set=[1,-1]*t2/2;
-    U_coe=U/6;
+#     tx_coe_set=[exp(im*ϕ),exp(im*ϕ)]*t1/2;
+#     # ty_coe_set=[-1,1]*t1/2;
+#     # t2_coe_set=[-1,1]*t2/2;
+#     ty_coe_set=[1,-1]*t1/2;
+#     t2_coe_set=[1,-1]*t2/2;
+#     U_coe=U/6;
 
-    gate_set=Matrix{TensorMap}(undef,2,1);
-    for cx=1:2;
-        ####################
-        O1=Cdag_set[mod1(cx,Lx)];
-        O2=C_set[mod1(cx+1,Lx)];
-        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
-        op=op*tx_coe_set[cx];
-        op=permute(op,(1,2,),(3,4,));
-        hh=op+op';
-        Id=unitary(space(hh,2),space(hh,2));
-        @tensor hh_tx[:]:=hh[-1,-2,-4,-5]*Id[-3,-6];
-        ######################
-        O1=Cdag_set[mod1(cx+1,Lx)];
-        O2=C_set[mod1(cx+1,Lx)];
-        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
-        op=op*ty_coe_set[cx];
-        op=permute(op,(1,2,),(3,4,));
-        hh=op+op';
-        Id=unitary(space(Cdag_set[mod1(cx,Lx)],2),space(Cdag_set[mod1(cx,Lx)],2));
-        @tensor hh_ty[:]:=hh[-2,-3,-5,-6]*Id[-1,-4];
-        #####################
-        O1=Cdag_set[mod1(cx,Lx)];
-        O2=C_set[mod1(cx+1,Lx)];
-        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
-        op=-op;#!!!!!!! somehow this minus sign is required
-        op=op*t2_coe_set[cx];
-        op=permute(op,(1,2,),(3,4,));
-        hh=op+op';
-        Id=unitary(space(hh,2),space(hh,2));
-        @tensor hh[:]:=hh[-1,-3,-4,-6]*Id[-2,-5];
-        sgate=swap_gate(hh,2,3);
-        @tensor hh_t2[:]:=sgate[-2,-3,1,2]*hh[-1,1,2,-4,3,4]*sgate'[3,4,-5,-6];
-        #################
-        OU_LD=n_double_set[mod1(cx,Lx)]-(1/2)*N_occu_set[mod1(cx,Lx)]+(1/4)*Ident_set[mod1(cx,Lx)];
-        OU_RU=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
-        OU_RD=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
-        Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
-        Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
-        Id_RD=unitary(space(OU_RD,1),space(OU_RD,1));
-        @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_RD[-2,-5]*Id_RU[-3,-6];
-        @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_RD[-2,-5]*OU_RU[-3,-6];
-        @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
-        hh_U=(hh_LD+hh_RU+hh_RD)*U_coe;
+#     gate_set=Matrix{TensorMap}(undef,2,1);
+#     for cx=1:2;
+#         ####################
+#         O1=Cdag_set[mod1(cx,Lx)];
+#         O2=C_set[mod1(cx+1,Lx)];
+#         @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+#         op=op*tx_coe_set[cx];
+#         op=permute(op,(1,2,),(3,4,));
+#         hh=op+op';
+#         Id=unitary(space(hh,2),space(hh,2));
+#         @tensor hh_tx[:]:=hh[-1,-2,-4,-5]*Id[-3,-6];
+#         ######################
+#         O1=Cdag_set[mod1(cx+1,Lx)];
+#         O2=C_set[mod1(cx+1,Lx)];
+#         @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+#         op=op*ty_coe_set[cx];
+#         op=permute(op,(1,2,),(3,4,));
+#         hh=op+op';
+#         Id=unitary(space(Cdag_set[mod1(cx,Lx)],2),space(Cdag_set[mod1(cx,Lx)],2));
+#         @tensor hh_ty[:]:=hh[-2,-3,-5,-6]*Id[-1,-4];
+#         #####################
+#         O1=Cdag_set[mod1(cx,Lx)];
+#         O2=C_set[mod1(cx+1,Lx)];
+#         @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+#         op=-op;#!!!!!!! somehow this minus sign is required
+#         op=op*t2_coe_set[cx];
+#         op=permute(op,(1,2,),(3,4,));
+#         hh=op+op';
+#         Id=unitary(space(hh,2),space(hh,2));
+#         @tensor hh[:]:=hh[-1,-3,-4,-6]*Id[-2,-5];
+#         sgate=swap_gate(hh,2,3);
+#         @tensor hh_t2[:]:=sgate[-2,-3,1,2]*hh[-1,1,2,-4,3,4]*sgate'[3,4,-5,-6];
+#         #################
+#         OU_LD=n_double_set[mod1(cx,Lx)]-(1/2)*N_occu_set[mod1(cx,Lx)]+(1/4)*Ident_set[mod1(cx,Lx)];
+#         OU_RU=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
+#         OU_RD=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
+#         Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
+#         Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
+#         Id_RD=unitary(space(OU_RD,1),space(OU_RD,1));
+#         @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_RD[-2,-5]*Id_RU[-3,-6];
+#         @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_RD[-2,-5]*OU_RU[-3,-6];
+#         @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
+#         hh_U=(hh_LD+hh_RU+hh_RD)*U_coe;
         
-        #################
-        hh=permute(hh_tx+hh_ty+hh_t2+hh_U,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
-        eu,ev=eigh(hh);
-        gate=ev*exp(-dt*eu)*ev';
-        gate_set[cx]=gate;
-    end
-    return gate_set
-end
+#         #################
+#         hh=permute(hh_tx+hh_ty+hh_t2+hh_U,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
+#         eu,ev=eigh(hh);
+#         gate=ev*exp(-dt*eu)*ev';
+#         gate_set[cx]=gate;
+#     end
+#     return gate_set
+# end
 
 
 
-function itebd(parameters, B_A, B_B, B_C, B_D, T_A, T_B, T_C, T_D, lambda_A_1, lambda_A_2, lambda_A_3, lambda_B_1, lambda_B_2, lambda_B_3, lambda_C_1, lambda_C_2, lambda_C_3, lambda_D_1, lambda_D_2, lambda_D_3,  tau, dt, trun_tol)
+function itebd_iPESS(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  tau, dt, trun_tol)
+    tol=dt*1e-3;#for determining convergence 
+    println("tau, dt="*string([tau,dt]))
     # println("one step")
     # println(space(T_u))
     # println(space(T_d))
+    Lx,Ly=size(Tset);
+    lambdaset1_old=deepcopy(lambdaset1);
+    lambdaset2_old=deepcopy(lambdaset2);
+    lambdaset3_old=deepcopy(lambdaset3);
 
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(T_A,1)));
+    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(Bset[1],1)),Lx);
 
     for ct=1:Int(round(tau/abs(dt)))
-        println("iteration "*string(ct));flush(stdout)
-        B_A, B_B, B_C, B_D, T_A, T_B, T_C, T_D, lambda_A_1, lambda_A_2, lambda_A_3, lambda_B_1, lambda_B_2, lambda_B_3, lambda_C_1, lambda_C_2, lambda_C_3, lambda_D_1, lambda_D_2, lambda_D_3= triangle_update(B_A, B_B, B_C, B_D, T_A, T_B, T_C, T_D, lambda_A_1, lambda_A_2, lambda_A_3, lambda_B_1, lambda_B_2, lambda_B_3, lambda_C_1, lambda_C_2, lambda_C_3, lambda_D_1, lambda_D_2, lambda_D_3, gates_ru_ld_rd, trun_tol);
+        #println("iteration "*string(ct));flush(stdout)
+        Bset, Tset, lambdaset1, lambdaset2, lambdaset3= triangle_update_iPESS(ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd, trun_tol);
+        err_1=check_convergence(lambdaset1,lambdaset1_old);
+        err_2=check_convergence(lambdaset2,lambdaset2_old);
+        err_3=check_convergence(lambdaset3,lambdaset3_old);
+        er=max(maximum(err_1),maximum(err_2),maximum(err_3));
+        if mod(ct,20)==0
+            println("iteration "*string(ct)*", convergence= "*string(er));flush(stdout)
+        end
+        if er<tol
+            break;
+        end
+        lambdaset1_old=deepcopy(lambdaset1);
+        lambdaset2_old=deepcopy(lambdaset2);
+        lambdaset3_old=deepcopy(lambdaset3);
     end
-    return B_A, B_B, B_C, B_D, T_A, T_B, T_C, T_D, lambda_A_1, lambda_A_2, lambda_A_3, lambda_B_1, lambda_B_2, lambda_B_3, lambda_C_1, lambda_C_2, lambda_C_3, lambda_D_1, lambda_D_2, lambda_D_3
+    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
 end
 

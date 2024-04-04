@@ -12,22 +12,8 @@ function Rank(T::TensorMap)
     return length(domain(T))+length(codomain(T))
 end
 
-function mypinv(T)
-    return pinv(T)
-end
-# function mypinv(T)
-#     epsilon0 = 1e-16
-#     epsilon=epsilon0*maximum(diag(convert(Array,T)))
-#     T_new=deepcopy(T);
 
-#     for (k,dst) in blocks(T_new)
-#         src = blocks(T_new)[k]
-#         @inbounds for i in 1:size(dst,1)
-#             dst[i,i] = dst[i,i]/(dst[i,i]^2+epsilon)
-#         end
-#     end
-#     return T_new
-# end
+
 
 function truncate_multiplet_origin(s,chi,multiplet_tol,trun_tol)
     #the multiplet is not due to su(2) symmetry
@@ -262,7 +248,7 @@ function evo_hopping_diagonala(O1,O2,A_RU0,A_LD0,A_RD0,hopping_coe,dt)
         T_RD=permute(V2,(1,2,3,4,5,));#(L_rd, U_rd,d_rd,R_rd,D_rd,) 
         T_RD=permute(T_RD,(1,5,4,2,3,));
 
-        @tensor T_RD[:]:=T_RD[-1,-2,-3,1,-5]*mypinv(S1)[1,-4];
+        @tensor T_RD[:]:=T_RD[-1,-2,-3,1,-5]*my_pinv(S1)[1,-4];
         lambda_RU_RD=S1;
         lambda_LD_RD=S2;
         return RU_keep,LD_keep, T_RD, lambda_RU_RD, lambda_LD_RD
@@ -526,9 +512,9 @@ function diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_LD[:]:=T_C[1,2,-3,4,-5]*lambda_D_R[-1,1]*lambda_A_U[-2,2]*lambda_A_D[-4,4];
     @tensor A_RD[:]:=T_D[1,2,3,4,-5]*lambda_D_L[1,-1]*lambda_D_D[2,-2]*lambda_D_R[3,-3]*lambda_D_U[4,-4];
     A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[1], O_set_set[2], A_RU,A_LD,A_RD, hopping_coe_set[1], -dt);
-    @tensor T_B[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_A_R)[-1,1]*mypinv(lambda_A_L)[-3,3]*mypinv(lambda_D_D)[-4,4];
-    @tensor T_C[:]:=A_LD[1,2,-3,4,-5]*mypinv(lambda_D_R)[-1,1]*mypinv(lambda_A_U)[-2,2]*mypinv(lambda_A_D)[-4,4];
-    @tensor T_D[:]:=A_RD[-1,2,3,-4,-5]*mypinv(lambda_D_D)[2,-2]*mypinv(lambda_D_R)[3,-3];
+    @tensor T_B[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_A_R)[-1,1]*my_pinv(lambda_A_L)[-3,3]*my_pinv(lambda_D_D)[-4,4];
+    @tensor T_C[:]:=A_LD[1,2,-3,4,-5]*my_pinv(lambda_D_R)[-1,1]*my_pinv(lambda_A_U)[-2,2]*my_pinv(lambda_A_D)[-4,4];
+    @tensor T_D[:]:=A_RD[-1,2,3,-4,-5]*my_pinv(lambda_D_D)[2,-2]*my_pinv(lambda_D_R)[3,-3];
     lambda_D_U=lambda_RU_RD; 
     lambda_D_L=permute(lambda_LD_RD,(2,),(1,));
 
@@ -537,9 +523,9 @@ function diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_LD[:]:=T_D[1,2,-3,4,-5]*lambda_D_L[1,-1]*lambda_D_D[2,-2]*lambda_D_U[4,-4];
     @tensor A_RD[:]:=T_C[1,2,3,4,-5]*lambda_D_R[-1,1]*lambda_A_U[-2,2]*lambda_D_L[-3,3]*lambda_A_D[-4,4];
     A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[3], O_set_set[4], A_RU,A_LD,A_RD, hopping_coe_set[2], -dt);
-    @tensor T_A[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_A_L)[1,-1]*mypinv(lambda_A_R)[3,-3]*mypinv(lambda_A_U)[4,-4];
-    @tensor T_D[:]:=A_LD[1,2,-3,4,-5]*mypinv(lambda_D_L)[1,-1]*mypinv(lambda_D_D)[2,-2]*mypinv(lambda_D_U)[4,-4];
-    @tensor T_C[:]:=A_RD[-1,2,3,-4,-5]*mypinv(lambda_A_U)[-2,2]*mypinv(lambda_D_L)[-3,3];
+    @tensor T_A[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_A_L)[1,-1]*my_pinv(lambda_A_R)[3,-3]*my_pinv(lambda_A_U)[4,-4];
+    @tensor T_D[:]:=A_LD[1,2,-3,4,-5]*my_pinv(lambda_D_L)[1,-1]*my_pinv(lambda_D_D)[2,-2]*my_pinv(lambda_D_U)[4,-4];
+    @tensor T_C[:]:=A_RD[-1,2,3,-4,-5]*my_pinv(lambda_A_U)[-2,2]*my_pinv(lambda_D_L)[-3,3];
     lambda_A_D=permute(lambda_RU_RD,(2,),(1,)); 
     lambda_D_R=lambda_LD_RD;
 
@@ -548,9 +534,9 @@ function diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_LD[:]:=T_A[1,2,-3,4,-5]*lambda_A_L[1,-1]*lambda_A_D[2,-2]*lambda_A_U[4,-4];
     @tensor A_RD[:]:=T_B[1,2,3,4,-5]*lambda_A_R[-1,1]*lambda_D_U[-2,2]*lambda_A_L[-3,3]*lambda_D_D[-4,4];
     A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[1], O_set_set[2], A_RU,A_LD,A_RD, hopping_coe_set[1], -dt);
-    @tensor T_D[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_D_L)[1,-1]*mypinv(lambda_D_R)[3,-3]*mypinv(lambda_D_U)[4,-4];
-    @tensor T_A[:]:=A_LD[1,2,-3,4,-5]*mypinv(lambda_A_L)[1,-1]*mypinv(lambda_A_D)[2,-2]*mypinv(lambda_A_U)[4,-4];
-    @tensor T_B[:]:=A_RD[-1,2,3,-4,-5]*mypinv(lambda_D_U)[-2,2]*mypinv(lambda_A_L)[-3,3];
+    @tensor T_D[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_D_L)[1,-1]*my_pinv(lambda_D_R)[3,-3]*my_pinv(lambda_D_U)[4,-4];
+    @tensor T_A[:]:=A_LD[1,2,-3,4,-5]*my_pinv(lambda_A_L)[1,-1]*my_pinv(lambda_A_D)[2,-2]*my_pinv(lambda_A_U)[4,-4];
+    @tensor T_B[:]:=A_RD[-1,2,3,-4,-5]*my_pinv(lambda_D_U)[-2,2]*my_pinv(lambda_A_L)[-3,3];
     lambda_D_D=permute(lambda_RU_RD,(2,),(1,)); 
     lambda_A_R=lambda_LD_RD;
 
@@ -559,9 +545,9 @@ function diagonala_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_LD[:]:=T_B[1,2,-3,4,-5]*lambda_A_R[-1,1]*lambda_D_U[-2,2]*lambda_D_D[-4,4];
     @tensor A_RD[:]:=T_A[1,2,3,4,-5]*lambda_A_L[1,-1]*lambda_A_D[2,-2]*lambda_A_R[3,-3]*lambda_A_U[4,-4];
     A_RU,A_LD,A_RD,lambda_RU_RD, lambda_LD_RD=evo_hopping_diagonala(O_set_set[3], O_set_set[4], A_RU,A_LD,A_RD, hopping_coe_set[2], -dt);
-    @tensor T_C[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_D_R)[-1,1]*mypinv(lambda_D_L)[-3,3]*mypinv(lambda_A_D)[-4,4];
-    @tensor T_B[:]:=A_LD[1,2,-3,4,-5]*mypinv(lambda_A_R)[-1,1]*mypinv(lambda_D_U)[-2,2]*mypinv(lambda_D_D)[-4,4];
-    @tensor T_A[:]:=A_RD[-1,2,3,-4,-5]*mypinv(lambda_A_D)[2,-2]*mypinv(lambda_A_R)[3,-3];
+    @tensor T_C[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_D_R)[-1,1]*my_pinv(lambda_D_L)[-3,3]*my_pinv(lambda_A_D)[-4,4];
+    @tensor T_B[:]:=A_LD[1,2,-3,4,-5]*my_pinv(lambda_A_R)[-1,1]*my_pinv(lambda_D_U)[-2,2]*my_pinv(lambda_D_D)[-4,4];
+    @tensor T_A[:]:=A_RD[-1,2,3,-4,-5]*my_pinv(lambda_A_D)[2,-2]*my_pinv(lambda_A_R)[3,-3];
     lambda_A_U=lambda_RU_RD; 
     lambda_A_L=permute(lambda_LD_RD,(2,),(1,));
     
@@ -596,32 +582,32 @@ function hopping_x_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_LU[:]:=T_A[1,2,3,4,-5]*lambda_A_L[1,-1]*lambda_A_D[2,-2]*lambda_A_R[3,-3]*lambda_A_U[4,-4];
     @tensor A_RU[:]:=T_B[-1,2,3,4,-5]*lambda_D_U[-2,2]*lambda_A_L[-3,3]*lambda_D_D[-4,4];
     A_LU, A_RU, lambda_LU_RU=evo_hopping_x(O_set_set[1], O_set_set[2], A_LU,A_RU, hopping_coe_set[1], -dt);
-    @tensor T_A[:]:=A_LU[1,2,-3,4,-5]*mypinv(lambda_A_L)[1,-1]*mypinv(lambda_A_D)[2,-2]*mypinv(lambda_A_U)[4,-4];
-    @tensor T_B[:]:=A_RU[-1,2,3,4,-5]*mypinv(lambda_D_U)[-2,2]*mypinv(lambda_A_L)[-3,3]*mypinv(lambda_D_D)[-4,4];
+    @tensor T_A[:]:=A_LU[1,2,-3,4,-5]*my_pinv(lambda_A_L)[1,-1]*my_pinv(lambda_A_D)[2,-2]*my_pinv(lambda_A_U)[4,-4];
+    @tensor T_B[:]:=A_RU[-1,2,3,4,-5]*my_pinv(lambda_D_U)[-2,2]*my_pinv(lambda_A_L)[-3,3]*my_pinv(lambda_D_D)[-4,4];
     lambda_A_R=lambda_LU_RU; 
 
     #CD
     @tensor A_LU[:]:=T_C[1,2,3,4,-5]*lambda_D_R[-1,1]*lambda_A_U[-2,2]*lambda_D_L[-3,3]*lambda_A_D[-4,4];
     @tensor A_RU[:]:=T_D[-1,2,3,4,-5]*lambda_D_D[2,-2]*lambda_D_R[3,-3]*lambda_D_U[4,-4];
     A_LU, A_RU, lambda_LU_RU=evo_hopping_x(O_set_set[1], O_set_set[2], A_LU,A_RU, hopping_coe_set[1], -dt);
-    @tensor T_C[:]:=A_LU[1,2,-3,4,-5]*mypinv(lambda_D_R)[-1,1]*mypinv(lambda_A_U)[-2,2]*mypinv(lambda_A_D)[-4,4];
-    @tensor T_D[:]:=A_RU[-1,2,3,4,-5]*mypinv(lambda_D_D)[2,-2]*mypinv(lambda_D_R)[3,-3]*mypinv(lambda_D_U)[4,-4];
+    @tensor T_C[:]:=A_LU[1,2,-3,4,-5]*my_pinv(lambda_D_R)[-1,1]*my_pinv(lambda_A_U)[-2,2]*my_pinv(lambda_A_D)[-4,4];
+    @tensor T_D[:]:=A_RU[-1,2,3,4,-5]*my_pinv(lambda_D_D)[2,-2]*my_pinv(lambda_D_R)[3,-3]*my_pinv(lambda_D_U)[4,-4];
     lambda_D_L=permute(lambda_LU_RU,(2,),(1,)); 
 
     #BA
     @tensor A_LU[:]:=T_B[1,2,3,4,-5]*lambda_A_R[-1,1]*lambda_D_U[-2,2]*lambda_A_L[-3,3]*lambda_D_D[-4,4];
     @tensor A_RU[:]:=T_A[-1,2,3,4,-5]*lambda_A_D[2,-2]*lambda_A_R[3,-3]*lambda_A_U[4,-4];
     A_LU, A_RU, lambda_LU_RU=evo_hopping_x(O_set_set[2], O_set_set[1], A_LU,A_RU, hopping_coe_set[2], -dt);
-    @tensor T_B[:]:=A_LU[1,2,-3,4,-5]*mypinv(lambda_A_R)[-1,1]*mypinv(lambda_D_U)[-2,2]*mypinv(lambda_D_D)[-4,4];
-    @tensor T_A[:]:=A_RU[-1,2,3,4,-5]*mypinv(lambda_A_D)[2,-2]*mypinv(lambda_A_R)[3,-3]*mypinv(lambda_A_U)[4,-4];
+    @tensor T_B[:]:=A_LU[1,2,-3,4,-5]*my_pinv(lambda_A_R)[-1,1]*my_pinv(lambda_D_U)[-2,2]*my_pinv(lambda_D_D)[-4,4];
+    @tensor T_A[:]:=A_RU[-1,2,3,4,-5]*my_pinv(lambda_A_D)[2,-2]*my_pinv(lambda_A_R)[3,-3]*my_pinv(lambda_A_U)[4,-4];
     lambda_A_L=permute(lambda_LU_RU,(2,),(1,)); 
 
     #DC
     @tensor A_LU[:]:=T_D[1,2,3,4,-5]*lambda_D_L[1,-1]*lambda_D_D[2,-2]*lambda_D_R[3,-3]*lambda_D_U[4,-4];
     @tensor A_RU[:]:=T_C[-1,2,3,4,-5]*lambda_A_U[-2,2]*lambda_D_L[-3,3]*lambda_A_D[-4,4];
     A_LU, A_RU, lambda_LU_RU=evo_hopping_x(O_set_set[2], O_set_set[1], A_LU,A_RU, hopping_coe_set[2], -dt);
-    @tensor T_D[:]:=A_LU[1,2,-3,4,-5]*mypinv(lambda_D_L)[1,-1]*mypinv(lambda_D_D)[2,-2]*mypinv(lambda_D_U)[4,-4];
-    @tensor T_C[:]:=A_RU[-1,2,3,4,-5]*mypinv(lambda_A_U)[-2,2]*mypinv(lambda_D_L)[-3,3]*mypinv(lambda_A_D)[-4,4];
+    @tensor T_D[:]:=A_LU[1,2,-3,4,-5]*my_pinv(lambda_D_L)[1,-1]*my_pinv(lambda_D_D)[2,-2]*my_pinv(lambda_D_U)[4,-4];
+    @tensor T_C[:]:=A_RU[-1,2,3,4,-5]*my_pinv(lambda_A_U)[-2,2]*my_pinv(lambda_D_L)[-3,3]*my_pinv(lambda_A_D)[-4,4];
     lambda_D_R=lambda_LU_RU; 
     
 
@@ -654,8 +640,8 @@ function hopping_y_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_RU[:]:=T_B[1,-2,3,4,-5]*lambda_A_R[-1,1]*lambda_A_L[-3,3]*lambda_D_D[-4,4];
     @tensor A_RD[:]:=T_D[1,2,3,4,-5]*lambda_D_L[1,-1]*lambda_D_D[2,-2]*lambda_D_R[3,-3]*lambda_D_U[4,-4];
     A_RU, A_RD, lambda_RU_RD=evo_hopping_y(O_set_set[3], O_set_set[4], A_RU,A_RD, hopping_coe_set[1], -dt);
-    @tensor T_B[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_A_R)[-1,1]*mypinv(lambda_A_L)[-3,3]*mypinv(lambda_D_D)[-4,4];
-    @tensor T_D[:]:=A_RD[1,2,3,-4,-5]*mypinv(lambda_D_L)[1,-1]*mypinv(lambda_D_D)[2,-2]*mypinv(lambda_D_R)[3,-3];
+    @tensor T_B[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_A_R)[-1,1]*my_pinv(lambda_A_L)[-3,3]*my_pinv(lambda_D_D)[-4,4];
+    @tensor T_D[:]:=A_RD[1,2,3,-4,-5]*my_pinv(lambda_D_L)[1,-1]*my_pinv(lambda_D_D)[2,-2]*my_pinv(lambda_D_R)[3,-3];
     lambda_D_U=permute(lambda_RU_RD,(2,),(1,)); 
     
 
@@ -663,24 +649,24 @@ function hopping_y_update(T_A, T_B, T_C, T_D, lambda_A_L, lambda_A_D, lambda_A_R
     @tensor A_RU[:]:=T_A[1,-2,3,4,-5]*lambda_A_L[1,-1]*lambda_A_R[3,-3]*lambda_A_U[4,-4];
     @tensor A_RD[:]:=T_C[1,2,3,4,-5]*lambda_D_R[-1,1]*lambda_A_U[-2,2]*lambda_D_L[-3,3]*lambda_A_D[-4,4];
     A_RU, A_RD, lambda_RU_RD=evo_hopping_y(O_set_set[1], O_set_set[2], A_RU,A_RD, hopping_coe_set[2], -dt);
-    @tensor T_A[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_A_L)[1,-1]*mypinv(lambda_A_R)[3,-3]*mypinv(lambda_A_U)[4,-4];
-    @tensor T_C[:]:=A_RD[1,2,3,-4,-5]*mypinv(lambda_D_R)[-1,1]*mypinv(lambda_A_U)[-2,2]*mypinv(lambda_D_L)[-3,3];
+    @tensor T_A[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_A_L)[1,-1]*my_pinv(lambda_A_R)[3,-3]*my_pinv(lambda_A_U)[4,-4];
+    @tensor T_C[:]:=A_RD[1,2,3,-4,-5]*my_pinv(lambda_D_R)[-1,1]*my_pinv(lambda_A_U)[-2,2]*my_pinv(lambda_D_L)[-3,3];
     lambda_A_D=lambda_RU_RD; 
 
     #DB
     @tensor A_RU[:]:=T_D[1,-2,3,4,-5]*lambda_D_L[1,-1]*lambda_D_R[3,-3]*lambda_D_U[4,-4];
     @tensor A_RD[:]:=T_B[1,2,3,4,-5]*lambda_A_R[-1,1]*lambda_D_U[-2,2]*lambda_A_L[-3,3]*lambda_D_D[-4,4];
     A_RU, A_RD, lambda_RU_RD=evo_hopping_y(O_set_set[3], O_set_set[4], A_RU,A_RD, hopping_coe_set[1], -dt);
-    @tensor T_D[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_D_L)[1,-1]*mypinv(lambda_D_R)[3,-3]*mypinv(lambda_D_U)[4,-4];
-    @tensor T_B[:]:=A_RD[1,2,3,-4,-5]*mypinv(lambda_A_R)[-1,1]*mypinv(lambda_D_U)[-2,2]*mypinv(lambda_A_L)[-3,3];
+    @tensor T_D[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_D_L)[1,-1]*my_pinv(lambda_D_R)[3,-3]*my_pinv(lambda_D_U)[4,-4];
+    @tensor T_B[:]:=A_RD[1,2,3,-4,-5]*my_pinv(lambda_A_R)[-1,1]*my_pinv(lambda_D_U)[-2,2]*my_pinv(lambda_A_L)[-3,3];
     lambda_D_D=lambda_RU_RD; 
 
     #CA
     @tensor A_RU[:]:=T_C[1,-2,3,4,-5]*lambda_D_R[-1,1]*lambda_D_L[-3,3]*lambda_A_D[-4,4];
     @tensor A_RD[:]:=T_A[1,2,3,4,-5]*lambda_A_L[1,-1]*lambda_A_D[2,-2]*lambda_A_R[3,-3]*lambda_A_U[4,-4];
     A_RU, A_RD, lambda_RU_RD=evo_hopping_y(O_set_set[1], O_set_set[2], A_RU,A_RD, hopping_coe_set[2], -dt);
-    @tensor T_C[:]:=A_RU[1,-2,3,4,-5]*mypinv(lambda_D_R)[-1,1]*mypinv(lambda_D_L)[-3,3]*mypinv(lambda_A_D)[-4,4];
-    @tensor T_A[:]:=A_RD[1,2,3,-4,-5]*mypinv(lambda_A_L)[1,-1]*mypinv(lambda_A_D)[2,-2]*mypinv(lambda_A_R)[3,-3];
+    @tensor T_C[:]:=A_RU[1,-2,3,4,-5]*my_pinv(lambda_D_R)[-1,1]*my_pinv(lambda_D_L)[-3,3]*my_pinv(lambda_A_D)[-4,4];
+    @tensor T_A[:]:=A_RD[1,2,3,-4,-5]*my_pinv(lambda_A_L)[1,-1]*my_pinv(lambda_A_D)[2,-2]*my_pinv(lambda_A_R)[3,-3];
     lambda_A_U=permute(lambda_RU_RD,(2,),(1,)); 
     
 

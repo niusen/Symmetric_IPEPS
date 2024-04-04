@@ -25,13 +25,24 @@ end
 
 function my_pinv(T)
     epsilon0 = 1e-12
-    epsilon=epsilon0*maximum(diag(convert(Array,T)))
+    epsilon=epsilon0*maximum(abs.(diag(convert(Array,T))))^2
     T_new=deepcopy(T);
-
-    for (k,dst) in blocks(T_new)
-        src = blocks(T_new)[k]
-        @inbounds for i in 1:size(dst,1)
-            dst[i,i] = dst[i,i]/(dst[i,i]^2+epsilon)
+    
+    if sectortype(space(T_new,1)) == Trivial
+        mm=T_new.data;
+        @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
+        for i=1:size(mm,1)
+            mm[i,i] = mm[i,i]/(mm[i,i]^2+epsilon)
+        end
+        T_new=TensorMap(mm,codomain(T),domain(T));
+    else
+        for cc=1:length(T_new.data.values)
+            mm=T_new.data.values[cc];
+            @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
+            for i = 1:size(mm,1)
+                mm[i,i] = mm[i,i]/(mm[i,i]^2+epsilon)
+            end
+            T_new.data.values[cc]=mm;
         end
     end
     return T_new
@@ -39,19 +50,62 @@ end
 
 function my_pinv2(T)
     epsilon0 = 1e-8
-    epsilon=epsilon0*maximum(diag(convert(Array,T)))
+    epsilon=epsilon0*maximum(abs.(diag(convert(Array,T))))
     T_new=deepcopy(T);
 
-    for (k,dst) in blocks(T_new)
-        src = blocks(T_new)[k]
-        @inbounds for i in 1:size(dst,1)
-            if abs(dst[i,i])>epsilon
-                dst[i,i] = 1/dst[i,i]
+    if sectortype(space(T_new,1)) == Trivial
+        mm=T_new.data;
+        @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
+        for i=1:size(mm,1)
+            if abs(mm[i,i])>epsilon
+                mm[i,i] = 1/mm[i,i]
             end
+        end
+        T_new=TensorMap(mm,codomain(T),domain(T));
+    else
+        for cc=1:length(T_new.data.values)
+            mm=T_new.data.values[cc];
+            @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
+            for i = 1:size(mm,1)
+                if abs(mm[i,i])>epsilon
+                    mm[i,i] = 1/mm[i,i]
+                end
+            end
+            T_new.data.values[cc]=mm;
         end
     end
     return T_new
 end
+
+# function my_pinv(T)
+#     epsilon0 = 1e-12
+#     epsilon=epsilon0*maximum(abs.(diag(convert(Array,T))))^2
+#     T_new=deepcopy(T);
+
+#     for (k,dst) in blocks(T_new)
+#         src = blocks(T_new)[k]
+#         @inbounds for i in 1:size(dst,1)
+#             dst[i,i] = dst[i,i]/(dst[i,i]^2+epsilon)
+#         end
+#     end
+#     return T_new
+# end
+
+# function my_pinv2(T)
+#     epsilon0 = 1e-8
+#     epsilon=epsilon0*maximum(abs.(diag(convert(Array,T))))
+#     T_new=deepcopy(T);
+
+#     for (k,dst) in blocks(T_new)
+#         src = blocks(T_new)[k]
+#         @inbounds for i in 1:size(dst,1)
+#             if abs(dst[i,i])>epsilon
+#                 dst[i,i] = 1/dst[i,i]
+#             end
+#         end
+#     end
+#     return T_new
+# end
 
 function my_tsvd(T::AbstractTensorMap; kwargs...)
     (U,S,V) = tsvd(T;kwargs...);

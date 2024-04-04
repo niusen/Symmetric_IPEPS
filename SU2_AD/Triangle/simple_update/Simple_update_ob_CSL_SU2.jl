@@ -29,6 +29,7 @@ include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate.jl")
 
+# let
 ###########################
 """
 ABABABAB
@@ -38,9 +39,10 @@ CDCDCDCD
 """
 ###########################
 
-Random.seed!(1234)
+Random.seed!(888)
 symmetric_initial=false;
 
+D_max=6;
 
 t1=1;
 t2=1;
@@ -55,7 +57,12 @@ println(parameters)
 println("parameters_evolve:")
 println(parameters_evolve)
 
-D_max=4;
+global update_triangle1, update_triangle2
+update_triangle1=true;
+update_triangle2=false;
+println("update_triangle1: "*string(update_triangle1));
+println("update_triangle2: "*string(update_triangle2));
+
 
 
 global D_max, SU_trun_tol
@@ -88,7 +95,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU2_cell_LS_D_4_chi_40_2.368055.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_statenm="SU_SU2_csl_D4.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -114,18 +121,6 @@ dump(energy_setting);
 
 
 
-##################################
-"""
-       /| s3
-      / |
-     /  |
-    /   |
- s2 ----- s1
-"""
-
-
-
-
 
 ##################################
 global chi,multiplet_tol,projector_trun_tol
@@ -136,110 +131,52 @@ global Lx,Ly
 Lx=2;
 Ly=2;
 
-data=load(optim_setting.init_statenm);
-x=data["x"];
-function init_x(x)
-    if size(x)==(2,1)
-        TA=deepcopy(x[1].T);
-        TB=deepcopy(x[2].T);
-        TC=deepcopy(x[1].T);
-        TD=deepcopy(x[2].T);
-    elseif size(x)==(2,2)
-        TA=deepcopy(x[1][1].T);
-        TB=deepcopy(x[2][1].T);
-        TC=deepcopy(x[1][2].T);
-        TD=deepcopy(x[2][2].T);
-    end
-    return TA,TB,TC,TD
+if optim_setting.init_statenm=="nothing"
+    Vp=Rep[SU₂](0=>2, 1/2=>1);
+    Vv=Rep[SU₂](0=>2, 1/2=>1);
+    T_set,lambdax_set,lambday_set=initial_iPEPS_SU2(Lx,Ly,Vp,Vv);
+else
+    data=load(optim_setting.init_statenm);
+    T_set=data["T_set"];
+    lambdax_set=data["lambdax_set"];
+    lambday_set=data["lambday_set"];
 end
-
-TA,TB,TC,TD=init_x(x);
-
-
-λ_A_L=unitary(space(TA,1)',space(TA,1)');
-λ_A_D=unitary(space(TA,2)',space(TA,2)'); 
-λ_A_R=unitary(space(TA,3)',space(TA,3)');
-λ_A_U=unitary(space(TA,4)',space(TA,4)');
-λ_D_L=unitary(space(TD,1)',space(TD,1)');
-λ_D_D=unitary(space(TD,2)',space(TD,2)'); 
-λ_D_R=unitary(space(TD,3)',space(TD,3)');
-λ_D_U=unitary(space(TD,4)',space(TD,4)');
-
-
-######################
-
-
-println(space(TA))
-println(space(TB))
-println(space(TC))
-println(space(TD))
 
 
 ##############
-state_vec=Matrix{Square_iPEPS}(undef,2,2);
-state_vec[1,1]=Square_iPEPS(TA);
-state_vec[1,2]=Square_iPEPS(TC);
-state_vec[2,1]=Square_iPEPS(TB);
-state_vec[2,2]=Square_iPEPS(TD);
-
-##############
-
-
-global Lx,Ly,A_cell
-A_cell=initial_tuple_cell(Lx,Ly);
-
-for cx=1:Lx
-    for cy=1:Ly
-        global U_phy,A_cell
-        A=state_vec[cx, cy].T;
-        A_cell=fill_tuple(A_cell, A, cx,cy);
-    end
-end
-
-# global chi, parameters, energy_setting, grad_ctm_setting
-# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-
-# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
-
-
-# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-# Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonians_spinful_U1_SU2();
-
-
-
-tau=5;
-dt=0.1;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters_evolve, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
-
-tau=1;
-dt=0.05;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters_evolve, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
-
-
-tau=0.2;
-dt=0.01;
-TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U=itebd(parameters_evolve, TA, TB, TC, TD, λ_A_L, λ_A_D, λ_A_R, λ_A_U, λ_D_L, λ_D_D, λ_D_R, λ_D_U, tau, dt);
-
-
-Lx=2;
-Ly=2;
-@tensor A_D[:]:=TD[1,2,3,4,-5]*λ_D_L[1,-1]*λ_D_D[2,-2]*λ_D_R[3,-3]*λ_D_U[4,-4];
-@tensor A_A[:]:=TA[1,2,3,4,-5]*λ_A_L[1,-1]*λ_A_D[2,-2]*λ_A_R[3,-3]*λ_A_U[4,-4];
-A_B=TB;
-A_C=TC;
-A_cell=initial_tuple_cell(2,2);
-A_cell=fill_tuple(A_cell, A_A, 1,1);
-A_cell=fill_tuple(A_cell, A_B, 2,1);
-A_cell=fill_tuple(A_cell, A_C, 1,2);
-A_cell=fill_tuple(A_cell, A_D, 2,2);
-state=Matrix{Square_iPEPS}(undef,Lx,Ly);
-state[1,1]=Square_iPEPS(A_A);
-state[2,1]=Square_iPEPS(A_B);
-state[1,2]=Square_iPEPS(A_C);
-state[2,2]=Square_iPEPS(A_D);
-
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 LS_ctm_setting.CTM_ite_nums=10;
+
+
+
+global chi, parameters, energy_setting, grad_ctm_setting
+# A_cell=convert_to_iPEPS(Lx,Ly,T_set);
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total)
+
+
+# tau=30;
+# dt=0.1;
+# T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
+
+
+# tau=4;
+# dt=0.05;
+# T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
+
+tau=20;
+dt=0.01;
+T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
+
+tau=20;
+dt=0.002;
+T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
+
+
+
+A_cell=convert_to_iPEPS(Lx,Ly,T_set);
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
 E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 println(E_total)
@@ -248,5 +185,11 @@ println(ey_set)
 println(e_diagonala_set)
 println(e0_set)
 println(eU_set)
-filenm="SU_csl_D"*string(D_max)*".jld2";
-jldsave(filenm;x=state)
+
+
+
+# filenm="SU_SU2_csl_D"*string(D_max)*".jld2";
+# jldsave(filenm;T_set,lambdax_set,lambday_set)
+
+
+# end

@@ -8,6 +8,55 @@ function create_isometry(V1,V2)
     end
     return tt
 end
+function add_noise(A::TensorMap,nois,init_complex_tensor)
+    if init_complex_tensor
+        A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+    else
+        A_noise=TensorMap(randn,codomain(A),domain(A));
+    end
+
+    A_new=A+A_noise*nois*norm(A)/norm(A_noise);
+    return A_new
+end
+function initial_fiPESS_spinful_SU2(init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+    Vp=SU2Space(0=>2,1/2=>1)';
+    global Lx,Ly
+    if init_statenm=="nothing" 
+        
+        # println("Random initial state");flush(stdout);
+        
+        # state=Matrix{Square_iPEPS}(undef,Lx,Ly);
+        # for cx=1:Lx
+        #     for cy=1:Ly
+        #         if init_complex_tensor
+        #             A=TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)+TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)*im;
+        #         else
+        #             A=TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp);
+        #         end
+        #         A=permute(A,(1,2,3,4,5,));
+        #         A=A/norm(A);
+        #         state[cx,cy]=Square_iPEPS(A);
+        #     end
+        # end
+        # return state
+    else
+        println("load iPESS state: "*init_statenm);flush(stdout);
+        x=load(init_statenm)["x"];
+        state=similar(x);
+        for cc in eachindex(x)
+            ansatz=x[cc];
+            tm=ansatz.Tm;
+            tm=add_noise(tm,init_noise,init_complex_tensor);
+            bm=ansatz.Bm;
+            bm=add_noise(bm,init_noise,init_complex_tensor);
+            ansatz_new=Triangle_iPESS(bm,tm);
+            state[cc]=ansatz_new;
+            println(space(tm))
+        end
+        return state
+    end
+end
+
 function initial_fPEPS_state_SimpleUpdate_U1_SU2(Vphy,init_statenm,init_noise=0,init_complex_tensor=false)
    
     global Lx,Ly
@@ -378,7 +427,13 @@ function cost_fun(x::Matrix{T})  where T<:iPEPS_ansatz_immutable #variational pa
     A_cell=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            A=x[cx,cy].T;
+            if isa(x[cx,cy],Square_iPEPS_immutable)
+                A=x[cx,cy].T;
+            elseif isa(x[cx,cy],Triangle_iPESS_immutable)
+                tm=x[cx,cy].Tm;#|LU><M|
+                bm=x[cx,cy].Bm;#|Md><|RD
+                A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
+            end
             norm_A=norm(A)
             A=A/norm_A;
 
@@ -407,7 +462,13 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
     A_cell=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            A=x[cx,cy].T;
+            if isa(x[cx,cy],Square_iPEPS)
+                A=x[cx,cy].T;
+            elseif isa(x[cx,cy],Triangle_iPESS)
+                tm=x[cx,cy].Tm;#|LU><M|
+                bm=x[cx,cy].Bm;#|Md><|RD
+                A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
+            end
             norm_A=norm(A)
             A=A/norm_A;
 
@@ -450,7 +511,13 @@ function cost_fun_testt(x::Matrix{T})  where T<:iPEPS_ansatz #variational parame
     A_cell=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            A=x[cx,cy].T;
+            if isa(x[cx,cy],Square_iPEPS_immutable)
+                A=x[cx,cy].T;
+            elseif isa(x[cx,cy],Triangle_iPESS_immutable)
+                tm=x[cx,cy].Tm;#|LU><M|
+                bm=x[cx,cy].Bm;#|Md><|RD
+                A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
+            end
             norm_A=norm(A)
             A=A/norm_A;
 

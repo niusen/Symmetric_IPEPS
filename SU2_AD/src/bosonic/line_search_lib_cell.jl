@@ -40,7 +40,8 @@ function gdoptimize(f, g!, fg!, x0::Matrix{T}, linesearch, maxiter::Int = 500, g
     iter = 0
     while iter < maxiter && gnorm > gtol
         println("optim iteration "*string(iter))
-        x=normalize_tensor_group(x);
+        # x=normalize_tensor_group(x);
+        x=normalize_ansatz(x);
 
         iter += 1
         s = (-1)*gvec
@@ -72,6 +73,11 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
     elseif isa(x[1],Checkerboard_iPESS)
         E,E_plaquatte_cell,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, init, CTM0); 
         println("E= "*string(E)*", "*"E_plaquatte_cell= "*string(E_plaquatte_cell[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+    elseif isa(x[1],Triangle_iPESS)
+        if energy_setting.model == "spinful_triangle_lattice";
+            E, ex_set, ey_set, e_diagonal1_set, e0_set, eU_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonal1_set= "*string(e_diagonal1_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+        end
     elseif isa(x[1],Square_iPEPS)
         if energy_setting.model =="triangle_J1_J2_Jchi"
             E,E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set,ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
@@ -94,9 +100,10 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
     global E_history
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
-        filenm="Optim_cell_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+        # filenm="Optim_cell_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
         #jldsave(filenm; B_a=x[1],B_b=x[2],B_c=x[3],T_u=x[4],T_d=x[5]);
-        jldsave(filenm; x);
+        global save_filenm
+        jldsave(save_filenm; x);
         global starting_time
         Now=now();
         Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
@@ -160,6 +167,13 @@ function normalize_ansatz(x::Matrix{T}) where T<:iPEPS_ansatz
             BU=BU/norm(BU);
             Tm=Tm/norm(Tm);
             ansatz_new=Checkerboard_iPESS(BL,BU,Tm);
+        elseif isa(x[cc],Triangle_iPESS)
+            iPEss=x[cc];
+            bm=iPEss.Bm;
+            tm=iPEss.Tm;
+            bm=bm/norm(bm);
+            tm=tm/norm(tm);
+            ansatz_new=Triangle_iPESS(bm,tm);
         elseif isa(x[cc],Square_iPEPS)
             A=ansatz.T;
 
@@ -180,6 +194,8 @@ function get_grad(x0::Matrix{T}) where T<:iPEPS_ansatz
         x=Matrix{Kagome_iPESS_immutable}(undef,size(x0,1),size(x0,2));
     elseif isa(x0[1],Checkerboard_iPESS)
         x=Matrix{Checkerboard_iPESS_immutable}(undef,size(x0,1),size(x0,2));
+    elseif isa(x0[1],Triangle_iPESS)
+        x=Matrix{Triangle_iPESS_immutable}(undef,size(x0,1),size(x0,2));
     elseif isa(x0[1],Square_iPEPS)
         x=Matrix{Square_iPEPS_immutable}(undef,size(x0,1),size(x0,2));    
     end
@@ -188,6 +204,8 @@ function get_grad(x0::Matrix{T}) where T<:iPEPS_ansatz
             x[cc]=Kagome_iPESS_convert(x0[cc]);#convert to immutable ansatz
         elseif isa(x0[cc],Checkerboard_iPESS)
             x[cc]=Checkerboard_iPESS_convert(x0[cc]);#convert to immutable ansatz
+        elseif isa(x0[cc],Triangle_iPESS)
+            x[cc]=Triangle_iPESS_convert(x0[cc]);#convert to immutable ansatz
         elseif isa(x0[cc],Square_iPEPS)
             x[cc]=Square_iPEPS_convert(x0[cc]);#convert to immutable ansatz
         end
@@ -223,14 +241,28 @@ end
 
 
 
-function normalize_tensor_group(x0:: Matrix{T}) where T<:iPEPS_ansatz
-    x_new=deepcopy(x0);
-    Norm=norm_tensor_group(x0);
-    for cc in eachindex(x0)
-        setindex!(x_new,x0[cc]/Norm, cc)
-    end
-    return x_new
-end
+# function normalize_tensor_group(x0:: Matrix{T}) where T<:iPEPS_ansatz
+#     x_new=deepcopy(x0);
+#     Norm=norm_tensor_group(x0);
+#     for cc in eachindex(x0)
+#         setindex!(x_new,x0[cc]/Norm, cc)
+#     end
+#     return x_new
+# end
+
+# function normalize_tensor_group(x0:: Matrix{Triangle_iPESS}) 
+#     x_new=deepcopy(x0);
+#     for cc in eachindex(x0)
+#         iPEss=x_new[cc];
+#         bm=iPEss.Bm;
+#         tm=iPEss.Tm;
+#         bm=bm/norm(bm);
+#         tm=tm/norm(tm);
+#         iPEss=Triangle_iPESS(bm,tm);
+#         setindex!(x_new,iPEss, cc)
+#     end
+#     return x_new
+# end
 
 function add_group(Tp1:: Matrix{T}, Tp2, coe1, coe2) where T<:iPEPS_ansatz
     x_new=deepcopy(Tp1);

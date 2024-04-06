@@ -40,8 +40,11 @@ CDCDCDCD
 """
 ###########################
 # let
-Random.seed!(1234)
-
+Random.seed!(1234);
+using LinearAlgebra.BLAS
+# n_cpu=10;
+# LinearAlgebra.BLAS.set_num_threads(n_cpu);
+println("number of cpus: "*string(LinearAlgebra.BLAS.get_num_threads()))
 
 D_max=4;
 
@@ -84,7 +87,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU_iPESS_SU2_csl_D4.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -139,7 +142,7 @@ global chi, parameters, energy_setting, grad_ctm_setting
 
 
 if optim_setting.init_statenm=="nothing"
-    V=Rep[SU₂](0=>1, 1/2=>1);
+    V=Rep[SU₂](0=>2, 1/2=>1);
     Vp=Rep[SU₂](0=>2, 1/2=>1);
     B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp);    
 else
@@ -169,19 +172,19 @@ end
 
 tau=20;
 dt=0.1;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.05;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.01;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.002;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 

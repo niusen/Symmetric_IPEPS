@@ -18,6 +18,29 @@ function convert_to_iPEPS(Lx,Ly,T_set)
     return A_cell
 end
 
+function initial_state_from_optimized(state)
+    Lx=2;
+    Ly=2;
+    
+    T_set=Matrix{TensorMap}(undef,Lx,Ly);
+    lambdax_set=Matrix{TensorMap}(undef,Lx,Ly);
+    lambday_set=Matrix{TensorMap}(undef,Lx,Ly);
+    for ca=1:Lx
+        for cb=1:Ly
+            if isa(state[1],Square_iPEPS)
+                if size(state)==(2,1)
+                    T_set[ca,cb]=state[ca,1].T;
+                end
+                Vv1=space(T_set[ca,cb],1);
+                Vv2=space(T_set[ca,cb],2);
+                lambdax_set[ca,cb]=unitary(Vv1,Vv1);
+                lambday_set[ca,cb]=unitary(Vv2',Vv2');
+            end
+        end
+    end
+    return T_set,lambdax_set,lambday_set
+end
+
 function initial_iPEPS_Z2(Lx,Ly,Vp,Vv)
     lambdax_set=Matrix{Any}(undef,Lx,Ly);#to the left of site (ca,cb) 
     lambday_set=Matrix{Any}(undef,Lx,Ly);#to the bot of site (ca,cb)

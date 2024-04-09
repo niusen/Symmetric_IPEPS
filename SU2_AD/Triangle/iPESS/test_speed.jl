@@ -46,7 +46,7 @@ import LinearAlgebra.BLAS as BLAS
 # BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()))
 
-D_max=4;
+D_max=8;
 
 t1=1;
 t2=1;
@@ -87,7 +87,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU_iPESS_SU2_csl_D4_2.10715.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -156,42 +156,31 @@ end
 
 
 
-A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-println(E_total)
-println(ex_set)
-println(ey_set)
-println(e_diagonala_set)
-println(e0_set)
-println(eU_set)
+# A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell_speed(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total)
+# println(ex_set)
+# println(ey_set)
+# println(e_diagonala_set)
+# println(e0_set)
+# println(eU_set)
 
 
 
 
-tau=20;
+tau=1;
 dt=0.1;
 B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
-tau=20;
-dt=0.05;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-
-tau=20;
-dt=0.01;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-
-tau=20;
-dt=0.002;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell_speed(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 println(E_total)
 println(ex_set)
 println(ey_set)

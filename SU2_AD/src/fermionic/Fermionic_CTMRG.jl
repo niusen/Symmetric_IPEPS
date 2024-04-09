@@ -5,7 +5,6 @@ using Zygote:@ignore_derivatives
 function build_double_layer_swap(Ap,A)
     # println(space(Ap))
     # println(space(A))
-    
 
     gate=@ignore_derivatives swap_gate(Ap,1,4); 
     @tensor Ap[:]:=Ap[1,-2,-3,2,-5]*gate[-1,-4,1,2];  
@@ -16,18 +15,13 @@ function build_double_layer_swap(Ap,A)
     gate=@ignore_derivatives parity_gate(Ap,2); 
     @tensor Ap[:]:=Ap[-1,1,-3,-4,-5]*gate[-2,1];
     
-
-
-
     Ap=permute(Ap,(1,2,),(3,4,5))
-    A=permute(A,(1,2,),(3,4,5));
-    
+    A=permute(A,(1,2,),(3,4,5));    
 
     U_L=@ignore_derivatives unitary(fuse(space(Ap, 1) ⊗ space(A, 1)), space(Ap, 1) ⊗ space(A, 1));
     U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 2)), space(Ap, 2) ⊗ space(A, 2));
     U_R=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 3)', fuse(space(Ap, 3)' ⊗ space(A, 3)'));
     U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 4)', fuse(space(Ap, 4)' ⊗ space(A, 4)'));
-
 
     # uMp,sMp,vMp=tsvd(Ap);
     # uMp=uMp*sMp;
@@ -72,28 +66,145 @@ function build_double_layer_swap(Ap,A)
     double_RU=permute(double_RU,(1,),(2,3,));
     AA_fused=double_LD*double_RU;
 
-
     ##########################
-    @tensor U_LU[:]:=U_L'[-1,-2,-5]*U_U'[-6,-3,-4];
-    gate1=@ignore_derivatives swap_gate(U_LU,1,4);
-    gate2=@ignore_derivatives swap_gate(U_LU,3,4);
-    @tensor U_LU[:]:=U_LU[1,-2,-3,2,-5,-6]*gate1[-1,-4,1,2];
-    @tensor U_LU[:]:=U_LU[-1,-2,1,2,-5,-6]*gate2[-3,-4,1,2];
-    @tensor U_LU[:]:=U_LU[1,2,3,4,-3,-4]*U_L[-1,1,2]*U_U[3,4,-2];
-    @tensor AA_fused[:]:=AA_fused[1,-2,-3,2]*U_LU[-1,-4,1,2];
+    AA_fused=permute(AA_fused,(1,2,3,4,));
 
+    P_odd_Lp,_=@ignore_derivatives projector_parity(space(U_L',1));
+    P_odd_Up,_=@ignore_derivatives projector_parity(space(U_U',2));
+    P_odd_U,_=@ignore_derivatives projector_parity(space(U_U',3));
 
-    @tensor U_DR[:]:=U_D'[-1,-2,-5]*U_R'[-6,-3,-4];
-    gate1=@ignore_derivatives swap_gate(U_DR,1,2);
-    gate2=@ignore_derivatives swap_gate(U_DR,1,4);
-    @tensor U_DR[:]:=U_DR[1,2,-3,-4,-5,-6]*gate1[-1,-2,1,2];
-    @tensor U_DR[:]:=U_DR[1,-2,-3,2,-5,-6]*gate2[-1,-4,1,2];
+    @tensor isom_Lp[:]:=U_L[-1,4,3]*P_odd_Lp'[4,1]*P_odd_Lp[1,2]*U_L'[2,3,-2];
+    @tensor isom_U[:]:=U_U[3,4,-1]*P_odd_U'[4,1]*P_odd_U[1,2]*U_U'[-2,3,2];
+    @tensor isom_Up_U[:]:=U_U[3,4,-1]*P_odd_Up'[3,1]*P_odd_Up[1,5]*P_odd_U'[4,2]*P_odd_U[2,6]*U_U'[-2,5,6];
+    @tensor AA_Lp_U[:]:=AA_fused[1,-2,-3,4]*isom_Lp[-1,1]*isom_U[-4,4];
+    AA_fused=AA_fused-2*AA_Lp_U;
+    @tensor AA_Up_U[:]:=AA_fused[-1,-2,-3,4]*isom_Up_U[-4,4];
+    AA_fused=AA_fused-2*AA_Up_U;
 
-    @tensor U_DR[:]:=U_DR[1,2,3,4,-3,-4]*U_D[-1,1,2]*U_R[3,4,-2];
-    @tensor AA_fused[:]:=AA_fused[-1,1,2,-4]*U_DR[-2,-3,1,2];
+    # @tensor U_LU[:]:=U_L'[-1,-2,-5]*U_U'[-6,-3,-4];
+    # gate1=@ignore_derivatives swap_gate(U_LU,1,4);
+    # gate2=@ignore_derivatives swap_gate(U_LU,3,4);
+    # @tensor U_LU[:]:=U_LU[1,-2,-3,2,-5,-6]*gate1[-1,-4,1,2];
+    # @tensor U_LU[:]:=U_LU[-1,-2,1,2,-5,-6]*gate2[-3,-4,1,2];
+    # @tensor U_LU[:]:=U_LU[1,2,3,4,-3,-4]*U_L[-1,1,2]*U_U[3,4,-2];
+    # @tensor AA_fused[:]:=AA_fused[1,-2,-3,2]*U_LU[-1,-4,1,2];
+
+    P_odd_Dp,_=@ignore_derivatives projector_parity(space(U_D',1));
+    P_odd_D,_=@ignore_derivatives projector_parity(space(U_D',2));
+    P_odd_R,_=@ignore_derivatives projector_parity(space(U_R',3));
+    @tensor isom_Dp[:]:=U_D[-1,4,3]*P_odd_Dp'[4,1]*P_odd_Dp[1,2]*U_D'[2,3,-2];
+    @tensor isom_R[:]:=U_R[3,4,-1]*P_odd_R'[4,1]*P_odd_R[1,2]*U_R'[-2,3,2];
+    @tensor isom_Dp_D[:]:=U_D[-1,3,4]*P_odd_Dp'[3,1]*P_odd_Dp[1,5]*P_odd_D'[4,2]*P_odd_D[2,6]*U_D'[5,6,-2];
+    @tensor AA_Dp_D[:]:=AA_fused[-1,2,-3,-4]*isom_Dp_D[-2,2];
+    AA_fused=AA_fused-2*AA_Dp_D;
+    @tensor AA_Dp_R[:]:=AA_fused[-1,2,3,-4]*isom_Dp[-2,2]*isom_R[-3,3];
+    AA_fused=AA_fused-2*AA_Dp_R;
+
+    # @tensor U_DR[:]:=U_D'[-1,-2,-5]*U_R'[-6,-3,-4];
+    # gate1=@ignore_derivatives swap_gate(U_DR,1,2);
+    # gate2=@ignore_derivatives swap_gate(U_DR,1,4);
+    # @tensor U_DR[:]:=U_DR[1,2,-3,-4,-5,-6]*gate1[-1,-2,1,2];
+    # @tensor U_DR[:]:=U_DR[1,-2,-3,2,-5,-6]*gate2[-1,-4,1,2];
+
+    # @tensor U_DR[:]:=U_DR[1,2,3,4,-3,-4]*U_D[-1,1,2]*U_R[3,4,-2];
+    # @tensor AA_fused[:]:=AA_fused[-1,1,2,-4]*U_DR[-2,-3,1,2];
 
     return AA_fused, U_L,U_D,U_R,U_U
 end
+
+
+# function build_double_layer_swap_old(Ap,A)
+#     # println(space(Ap))
+#     # println(space(A))
+    
+
+#     gate=@ignore_derivatives swap_gate(Ap,1,4); 
+#     @tensor Ap[:]:=Ap[1,-2,-3,2,-5]*gate[-1,-4,1,2];  
+#     gate=@ignore_derivatives swap_gate(Ap,2,3); 
+#     @tensor Ap[:]:=Ap[-1,1,2,-4,-5]*gate[-2,-3,1,2];  
+#     gate=@ignore_derivatives parity_gate(Ap,4); 
+#     @tensor Ap[:]:=Ap[-1,-2,-3,1,-5]*gate[-4,1];
+#     gate=@ignore_derivatives parity_gate(Ap,2); 
+#     @tensor Ap[:]:=Ap[-1,1,-3,-4,-5]*gate[-2,1];
+    
+
+
+
+#     Ap=permute(Ap,(1,2,),(3,4,5))
+#     A=permute(A,(1,2,),(3,4,5));
+    
+
+#     U_L=@ignore_derivatives unitary(fuse(space(Ap, 1) ⊗ space(A, 1)), space(Ap, 1) ⊗ space(A, 1));
+#     U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 2)), space(Ap, 2) ⊗ space(A, 2));
+#     U_R=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 3)', fuse(space(Ap, 3)' ⊗ space(A, 3)'));
+#     U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 4)', fuse(space(Ap, 4)' ⊗ space(A, 4)'));
+
+
+#     # uMp,sMp,vMp=tsvd(Ap);
+#     # uMp=uMp*sMp;
+#     # uM,sM,vM=tsvd(A);
+#     # uM=uM*sM;
+
+#     U_tem=@ignore_derivatives unitary(fuse(space(A,1)*space(A,2)), space(A,1)*space(A,2))*(1+0*im);
+#     vM=U_tem*A;
+#     uM=U_tem';
+#     U_temp=@ignore_derivatives unitary(fuse(space(Ap,1)*space(Ap,2)), space(Ap,1)*space(Ap,2))*(1+0*im);
+#     vMp=U_temp*Ap;
+#     uMp=U_temp';
+
+#     uMp=permute(uMp,(1,2,3,),())
+#     uM=permute(uM,(1,2,3,),())
+#     Vp=@ignore_derivatives space(uMp,3);
+#     V=@ignore_derivatives space(vM,1);
+#     U=@ignore_derivatives unitary(fuse(Vp' ⊗ V), Vp' ⊗ V);
+
+#     @tensor double_LD[:]:=uMp[-1,-2,1]*U'[1,-3,-4];
+#     @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
+
+#     vMp=permute(vMp,(1,2,3,4,),());
+#     vM=permute(vM,(1,2,3,4,),());
+
+#     @tensor double_RU[:]:=U[-1,-2,1]*vM[1,-3,-4,-5];
+#     @tensor double_RU[:]:=vMp[1,-2,-4,2]*double_RU[-1,1,-3,-5,2];
+
+#     #display(space(double_RU))
+
+#     double_LD=permute(double_LD,(1,2,),(3,4,5,));
+#     double_LD=U_L*double_LD;
+#     double_LD=permute(double_LD,(2,3,),(1,4,));
+#     double_LD=U_D*double_LD;
+#     double_LD=permute(double_LD,(2,1,),(3,));
+#     #display(space(double_LD))
+#     double_RU=permute(double_RU,(1,4,5,),(2,3,));
+#     double_RU=double_RU*U_R;
+#     double_RU=permute(double_RU,(1,4,),(2,3,));
+#     double_RU=double_RU*U_U;
+#     double_LD=permute(double_LD,(1,2,),(3,));
+#     double_RU=permute(double_RU,(1,),(2,3,));
+#     AA_fused=double_LD*double_RU;
+
+
+#     ##########################
+#     @tensor U_LU[:]:=U_L'[-1,-2,-5]*U_U'[-6,-3,-4];
+#     gate1=@ignore_derivatives swap_gate(U_LU,1,4);
+#     gate2=@ignore_derivatives swap_gate(U_LU,3,4);
+#     @tensor U_LU[:]:=U_LU[1,-2,-3,2,-5,-6]*gate1[-1,-4,1,2];
+#     @tensor U_LU[:]:=U_LU[-1,-2,1,2,-5,-6]*gate2[-3,-4,1,2];
+#     @tensor U_LU[:]:=U_LU[1,2,3,4,-3,-4]*U_L[-1,1,2]*U_U[3,4,-2];
+#     @tensor AA_fused[:]:=AA_fused[1,-2,-3,2]*U_LU[-1,-4,1,2];#this line is slow
+
+
+#     @tensor U_DR[:]:=U_D'[-1,-2,-5]*U_R'[-6,-3,-4];
+#     gate1=@ignore_derivatives swap_gate(U_DR,1,2);
+#     gate2=@ignore_derivatives swap_gate(U_DR,1,4);
+#     @tensor U_DR[:]:=U_DR[1,2,-3,-4,-5,-6]*gate1[-1,-2,1,2];
+#     @tensor U_DR[:]:=U_DR[1,-2,-3,2,-5,-6]*gate2[-1,-4,1,2];
+
+#     @tensor U_DR[:]:=U_DR[1,2,3,4,-3,-4]*U_D[-1,1,2]*U_R[3,4,-2];
+#     @tensor AA_fused[:]:=AA_fused[-1,1,2,-4]*U_DR[-2,-3,1,2];#this line is slow
+
+#     return AA_fused, U_L,U_D,U_R,U_U
+# end
 
 
 function init_CTM_swap(chi,A,AA_fused, U_L,U_D,U_R,U_U,type,CTM_ite_info)

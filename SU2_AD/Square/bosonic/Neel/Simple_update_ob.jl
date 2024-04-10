@@ -41,7 +41,7 @@ symmetric_initial=false;
 
 
 J1=1;
-J2=0.9;
+J2=0;
 Jchi=0;
 parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 D_max=6;

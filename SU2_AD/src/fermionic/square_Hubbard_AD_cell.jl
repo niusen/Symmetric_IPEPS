@@ -214,6 +214,36 @@ function initial_fPEPS_state_spinful_SU2(Vspace,init_statenm="nothing",init_nois
     end
 end
 
+function initial_fPEPS_state_spinful_Z2_from_simple_update(init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+
+    global Lx,Ly
+    if init_statenm=="nothing" 
+        
+
+    else
+        println("load state: "*init_statenm);flush(stdout);
+        x=load(init_statenm)["x"];
+        state=similar(x);
+        for cc in eachindex(x)
+            ansatz=x[cc];
+            A0=ansatz.T;
+            A=permute(A0,(1,2,3,4,5,));
+
+            if init_complex_tensor
+                A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+            else
+                A_noise=TensorMap(randn,codomain(A),domain(A));
+            end
+
+            A_new=A+A_noise*init_noise*norm(A)/norm(A_noise);
+            A_new=permute(A_new,(1,2,3,4,5,));
+            ansatz_new=Square_iPEPS(A_new);
+            state[cc]=ansatz_new;
+        end
+        return state
+    end
+end
+
 function initial_fPEPS_state_spinful_Z2(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
     Vp=Rep[ℤ₂](0=>2,1=>2)';
     global Lx,Ly

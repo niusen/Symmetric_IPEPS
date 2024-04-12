@@ -28,6 +28,7 @@ include("..\\..\\src\\fermionic\\fermi_permute.jl")
 include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
 include("..\\..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
+include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate.jl")
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate_iPESS.jl")
 
 ###########################
@@ -38,9 +39,12 @@ ABABABAB
 CDCDCDCD
 """
 ###########################
-
-Random.seed!(1234)
-
+# let
+Random.seed!(888);
+import LinearAlgebra.BLAS as BLAS
+# n_cpu=10;
+# BLAS.set_num_threads(n_cpu);
+println("number of cpus: "*string(BLAS.get_num_threads()))
 
 D_max=4;
 
@@ -48,11 +52,10 @@ t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=0;
+U=12;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
-global expon
-expon=1;
+
 
 trun_tol=1e-6;
 
@@ -84,7 +87,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_statenm="SU_iPESS_Z2_csl_D4_U0.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -120,9 +123,6 @@ dump(energy_setting);
 """
 
 
-
-
-
 ##################################
 global chi,multiplet_tol,projector_trun_tol
 multiplet_tol=1e-5;
@@ -133,101 +133,75 @@ Lx=2;
 Ly=2;
 
 
-
-
-
-
+LS_ctm_setting.CTM_ite_nums=30;
 ##############
 
 
 global Lx,Ly,A_cell
-
-
-
 global chi, parameters, energy_setting, grad_ctm_setting
 
 
-
-function initial_iPESS()
+if optim_setting.init_statenm=="nothing"
     Vp=Rep[ℤ₂](0=>2,1=>2);
     V=Rep[ℤ₂](0=>2,1=>2);
-    BA=permute(TensorMap(randn,V*Vp,V*V),(1,),(2,3,4,));
-    TA=TensorMap(randn,V*V,V);
-    BB=permute(TensorMap(randn,V*Vp,V*V),(1,),(2,3,4,));
-    TB=TensorMap(randn,V*V,V);
-    BC=permute(TensorMap(randn,V*Vp,V*V),(1,),(2,3,4,));
-    TC=TensorMap(randn,V*V,V);
-    BD=permute(TensorMap(randn,V*Vp,V*V),(1,),(2,3,4,));
-    TD=TensorMap(randn,V*V,V);
-    b_A=BA;
-    t_A=TA;
-    b_B=BB;
-    t_B=TB;
-    b_C=BC;
-    t_C=TC;
-    b_D=BD;
-    t_D=TD;
-    λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
-    λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
-    λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
-    λ_B_1=unitary(space(t_B,1)',space(t_B,1)');
-    λ_B_2=unitary(space(t_B,2)',space(t_B,2)');
-    λ_B_3=unitary(space(t_B,3)',space(t_B,3)');
-    λ_C_1=unitary(space(t_C,1)',space(t_C,1)');
-    λ_C_2=unitary(space(t_C,2)',space(t_C,2)');
-    λ_C_3=unitary(space(t_C,3)',space(t_C,3)');
-    λ_D_1=unitary(space(t_D,1)',space(t_D,1)');
-    λ_D_2=unitary(space(t_D,2)',space(t_D,2)');
-    λ_D_3=unitary(space(t_D,3)',space(t_D,3)');
-    return b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3
-end
-
-
-function compute_E(b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D)
-    global Lx,Ly
-    A_A=iPESS_to_iPEPS(Triangle_iPESS(b_A,t_A));
-    A_B=iPESS_to_iPEPS(Triangle_iPESS(b_B,t_B));
-    A_C=iPESS_to_iPEPS(Triangle_iPESS(b_C,t_C));
-    A_D=iPESS_to_iPEPS(Triangle_iPESS(b_D,t_D));
-
-    A_cell_iPEPS=initial_tuple_cell(Lx,Ly);
-    A_cell_iPEPS=fill_tuple(A_cell_iPEPS, A_A.T, 1,1);
-    A_cell_iPEPS=fill_tuple(A_cell_iPEPS, A_B.T, 2,1);
-    A_cell_iPEPS=fill_tuple(A_cell_iPEPS, A_C.T, 1,2);
-    A_cell_iPEPS=fill_tuple(A_cell_iPEPS, A_D.T, 2,2);
-
-    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-    E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-    println(E_total)
-    println(ex_set)
-    println(ey_set)
-    println(e_diagonala_set)
-    println(e0_set)
-    println(eU_set)
+    B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp);    
+else
+    data=load(optim_setting.init_statenm);
+    T_set=data["T_set"];
+    B_set=data["B_set"];
+    λ_set1=data["λ_set1"];
+    λ_set2=data["λ_set2"];
+    λ_set3=data["λ_set3"];
 end
 
 
 
-b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3=initial_iPESS();
-# include("..\\..\\src\\fermionic\\swap_funs.jl")
-# include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate_iPESS.jl")
-# compute_E(b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D);
+A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+println(E_total)
+println(ex_set)
+println(ey_set)
+println(e_diagonala_set)
+println(e0_set)
+println(eU_set)
 
-tau=5;
-dt=0.1;
-b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3 = itebd(parameters, b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3, tau, dt, trun_tol);
-compute_E(b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D);
 
-tau=4;
-dt=0.05;
-b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3 = itebd(parameters, b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3, tau, dt, trun_tol);
-compute_E(b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D);
 
-tau=4;
+
+# tau=20;
+# dt=0.1;
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+# tau=20;
+# dt=0.05;
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+tau=20;
 dt=0.01;
-b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3 = itebd(parameters, b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D, λ_A_1, λ_A_2, λ_A_3, λ_B_1, λ_B_2, λ_B_3, λ_C_1, λ_C_2, λ_C_3, λ_D_1, λ_D_2, λ_D_3, tau, dt, trun_tol);
-compute_E(b_A, b_B, b_C, b_D, t_A, t_B, t_C, t_D);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+tau=20;
+dt=0.002;
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 
+A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+println(E_total)
+println(ex_set)
+println(ey_set)
+println(e_diagonala_set)
+println(e0_set)
+println(eU_set)
+
+
+filenm="SU_iPESS_Z2_csl_D"*string(D_max)*".jld2";
+jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
+
+
+# end

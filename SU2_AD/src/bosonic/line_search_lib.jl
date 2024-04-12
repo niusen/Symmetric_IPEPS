@@ -51,7 +51,7 @@ function gdoptimize(f, g!, fg!, x0::iPEPS_ansatz, linesearch, maxiter::Int = 500
     iter = 0
     while iter < maxiter && gnorm > gtol
         println("optim iteration "*string(iter))
-        x=normalize_tensor_group(x);
+        x=normalize_ansatz(x);
 
         iter += 1
         s = (-1)*gvec
@@ -240,26 +240,68 @@ function norm_tensor_group(x0:: iPEPS_ansatz)
     return Norm
 end
 
-function normalize_tensor_group(x0:: Vector{TensorMap})
-    Norm=norm_tensor_group(x0);
-    #x_new=[[tt/Norm for tt in x0]...,]
-    x_new=deepcopy(x0);
-    for cc in eachindex(x0)
-        x_new[cc]=x_new[cc]/Norm;
+# function normalize_tensor_group(x0:: Vector{TensorMap})
+#     Norm=norm_tensor_group(x0);
+#     #x_new=[[tt/Norm for tt in x0]...,]
+#     x_new=deepcopy(x0);
+#     for cc in eachindex(x0)
+#         x_new[cc]=x_new[cc]/Norm;
+#     end
+#     return x_new
+# end
+
+# function normalize_tensor_group(x0:: iPEPS_ansatz)
+#     x_new=deepcopy(x0);
+#     Norm=norm_tensor_group(x0);
+#     Fields=fieldnames(typeof(x_new));
+#     for i in Fields
+#         Value=getfield(x_new, i)
+#         setfield!(x_new,i,Value/Norm)
+#     end
+#     return x_new
+# end
+
+function normalize_ansatz(x::T) where T<:iPEPS_ansatz
+    if isa(x,Kagome_iPESS)
+        ansatz=x;
+        B1=ansatz.B1;
+        B2=ansatz.B2;
+        B3=ansatz.B3;
+        Tup=ansatz.Tup;
+        Tdn=ansatz.Tdn;
+
+        B1=B1/norm(B1);
+        B2=B2/norm(B2);
+        B3=B3/norm(B3);
+        Tup=Tup/norm(Tup);
+        Tdn=Tdn/norm(Tdn);
+        ansatz_new=Kagome_iPESS(B1,B2,B3,Tup,Tdn);
+    elseif isa(x,Checkerboard_iPESS)
+        ansatz=x;
+        BL=ansatz.B_L;
+        BU=ansatz.B_U;
+        Tm=ansatz.Tm;
+
+        BL=BL/norm(BL);
+        BU=BU/norm(BU);
+        Tm=Tm/norm(Tm);
+        ansatz_new=Checkerboard_iPESS(BL,BU,Tm);
+    elseif isa(x,Triangle_iPESS)
+        iPEss=x;
+        bm=iPEss.Bm;
+        tm=iPEss.Tm;
+        bm=bm/norm(bm);
+        tm=tm/norm(tm);
+        ansatz_new=Triangle_iPESS(bm,tm);
+    elseif isa(x,Square_iPEPS)
+        ansatz=x;
+        A=ansatz.T;
+        A=A/norm(A);
+        ansatz_new=Square_iPEPS(A);
     end
-    return x_new
+    return ansatz_new
 end
 
-function normalize_tensor_group(x0:: iPEPS_ansatz)
-    x_new=deepcopy(x0);
-    Norm=norm_tensor_group(x0);
-    Fields=fieldnames(typeof(x_new));
-    for i in Fields
-        Value=getfield(x_new, i)
-        setfield!(x_new,i,Value/Norm)
-    end
-    return x_new
-end
 
 function add_group(Tp1:: Vector{TensorMap}, Tp2, coe1, coe2)
     # if Tp2==[]

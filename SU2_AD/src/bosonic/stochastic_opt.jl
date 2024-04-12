@@ -98,8 +98,8 @@ function random_tensor_sign(T::TensorMap)
         end
         return b[1]
     end
-    for cc=1:length(T.data.values)
-        mm=T.data.values[cc];
+    if sectortype(space(T,1)) == Trivial
+        mm=T.data;
         for dd in eachindex(mm)
             a=mm[dd];
             if isa(a,Float64)
@@ -111,7 +111,23 @@ function random_tensor_sign(T::TensorMap)
             end
             mm[dd]=a_new;
         end
-        T.data.values[cc]=mm;
+        T=TensorMap(mm,codomain(T),domain(T));
+    else
+        for cc=1:length(T.data.values)
+            mm=T.data.values[cc];
+            for dd in eachindex(mm)
+                a=mm[dd];
+                if isa(a,Float64)
+                    a_new=generate_number(a);
+                elseif isa(a,ComplexF64)
+                    a_new=generate_number(real(a))+im*generate_number(imag(a));
+                else
+                    error("unknown number type")
+                end
+                mm[dd]=a_new;
+            end
+            T.data.values[cc]=mm;
+        end
     end
     return T
 end

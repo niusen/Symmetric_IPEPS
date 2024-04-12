@@ -1,42 +1,38 @@
-using Revise, TensorKit
-using LinearAlgebra, OptimKit
+using Revise
+using LinearAlgebra:diag,I,diagm 
 using TensorKit
 using JSON
 using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
 using Zygote:@ignore_derivatives
 using Random
-using LineSearches
+using LineSearches,OptimKit
 using Dates
 cd(@__DIR__)
 
-include("..\\src\\bosonic\\Settings.jl")
-include("..\\src\\bosonic\\Settings_cell.jl")
-include("..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\src\\bosonic\\AD_lib.jl")
-include("..\\src\\bosonic\\line_search_lib.jl")
-include("..\\src\\bosonic\\line_search_lib_cell.jl")
-include("..\\src\\bosonic\\optimkit_lib.jl")
-include("..\\src\\bosonic\\CTMRG.jl")
-include("..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\src\\fermionic\\square_Hubbard_model_cell.jl")
-include("..\\src\\fermionic\\swap_funs.jl")
-include("..\\src\\fermionic\\mpo_mps_funs.jl")
-include("..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
-
+include("..\\..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
+include("..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\..\\..\\src\\bosonic\\CTMRG.jl")
+include("..\\..\\..\\src\\bosonic\\CTMRG_unitcell.jl")
+include("..\\..\\..\\src\\bosonic\\square\\square_model.jl")
+include("..\\..\\..\\src\\bosonic\\square\\square_model_cell.jl")
+include("..\\..\\..\\src\\bosonic\\square\\square_AD_SU2_cell.jl")
+include("..\\..\\..\\src\\bosonic\\Settings.jl")
+include("..\\..\\..\\src\\bosonic\\Settings_cell.jl")
+include("..\\..\\..\\src\\bosonic\\AD_lib.jl")
+include("..\\..\\..\\src\\bosonic\\line_search_lib.jl")
+include("..\\..\\..\\src\\bosonic\\line_search_lib_cell.jl")
+include("..\\..\\..\\src\\bosonic\\stochastic_opt.jl")
+include("..\\..\\..\\src\\bosonic\\optimkit_lib.jl")
 Random.seed!(888)
 
-D=6;
+D=2;
 chi=40
 
-t=1;
-ϕ=pi/2;
-μ=0;
-U=0;
-parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
-
+J1=1;
+J2=0;
+Jchi=0;
+parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 
 grad_ctm_setting=grad_CTMRG_settings();
@@ -74,13 +70,13 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_cell_LS_D_4_chi_40_3.44331.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="iPEPS_D2.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
-energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinful_triangle_lattice";
+energy_setting=Square_Energy_settings();
+energy_setting.model = "triangle_J1_J2_Jchi";
 dump(energy_setting);
 
 algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
@@ -96,25 +92,9 @@ projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 global backward_settings
 
 
-global Vv
-
-if D==4
-    Vv=Rep[ℤ₂](0=>2,1=>2);
-elseif D==6
-    Vv=Rep[ℤ₂](0=>3,1=>3);
-elseif D==8
-    Vv=Rep[ℤ₂](0=>4,1=>4);
-end
-@assert dim(Vv)==D;
-
-
-
-
-
-
 global Lx,Ly
 Lx=2;
-Ly=1;
+Ly=2;
 
 
 
@@ -123,12 +103,12 @@ Ly=1;
 
 init_complex_tensor=true;
 
-state_vec=initial_fPEPS_state_spinful_Z2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+state_vec=initial_dense_state(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_ansatz(state_vec);
 
 
 global save_filenm
-save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+save_filenm="stochastic_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 
 global starting_time
 starting_time=now();
@@ -137,29 +117,19 @@ starting_time=now();
 
 
 
-global E_history
+global E_history,E_all_history,delta_history
 E_history=[10000];
+E_all_history=[10000];
+delta_history=[10000];
+
+maxiter=100;
+gtol=1e-3;
+delta=1e-3;
+state_vec=stochastic_opt(state_vec, delta, maxiter, gtol);
 
 
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = StrongWolfe()
-# println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
-
-
-# #optimize with OptimKit
-# optimkit_op(state_vec)
 
 
 println(E_tem)
+
+

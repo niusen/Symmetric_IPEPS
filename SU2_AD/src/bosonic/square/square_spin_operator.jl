@@ -21,7 +21,7 @@ function Hamiltonians(VV)
         @tensor H_Heisenberg[:]:=sx[-1,-3]*sx[-2,-4]+sy[-1,-3]*sy[-2,-4]+sz[-1,-3]*sz[-2,-4];
         H_Heisenberg=TensorMap(H_Heisenberg, Vp'*Vp' ← Vp'*Vp');
         H_Heisenberg=permute(H_Heisenberg,(1,2,3,4,));
-    elseif isa(VV,typeof(SU2Space(1/2=>1)))
+    elseif (isa(VV,typeof(SU2Space(1/2=>1))))|(VV=="SU2")
         # Heisenberg interaction
         Vp=SU2Space(1/2=>1);
         U_phy=unitary(fuse(Vp*Vp*Vp),Vp*Vp*Vp);

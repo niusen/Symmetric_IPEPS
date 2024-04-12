@@ -1,3 +1,30 @@
+function initial_dense_state(init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+    if init_statenm=="nothing" 
+    else
+        global Lx,Ly
+        println("load state: "*init_statenm);flush(stdout);
+        x=load(init_statenm)["x"];
+        state=similar(x);
+        for cc in eachindex(x)
+            ansatz=x[cc];
+            A0=ansatz.T;
+            A=A0;
+
+
+            if init_complex_tensor
+                A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+            else
+                A_noise=TensorMap(randn,codomain(A),domain(A));
+            end
+
+            A_new=A+A_noise*init_noise*norm(A)/norm(A_noise);
+            A_new=permute(A_new,(1,2,3,4,5,));
+            ansatz_new=Square_iPEPS(A_new);
+            state[cc]=ansatz_new;
+        end
+        return state
+    end
+end
 function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
     if init_statenm=="nothing" 
         global Lx,Ly

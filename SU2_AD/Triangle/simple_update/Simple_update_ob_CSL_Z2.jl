@@ -48,7 +48,7 @@ t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=0;
+U=12;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 parameters_evolve=Dict([("t1", t1),("t2", t2*1), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
@@ -95,7 +95,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU_Z2_csl_D4.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
+optim_setting.init_statenm="SU_Z2_csl_D4_U5.jld2";#"Optim_cell_LS_D_4_chi_40_2.140901.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -149,11 +149,11 @@ LS_ctm_setting.CTM_ite_nums=10;
 
 
 global chi, parameters, energy_setting, grad_ctm_setting
-# A_cell=convert_to_iPEPS(Lx,Ly,T_set);
-# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
-# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-# println(E_total)
+A_cell=convert_to_iPEPS(Lx,Ly,T_set);
+init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+println(E_total)
 
 
 # tau=30;
@@ -161,7 +161,7 @@ global chi, parameters, energy_setting, grad_ctm_setting
 # T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
 
 
-# tau=4;
+# tau=20;
 # dt=0.05;
 # T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
 
@@ -188,8 +188,8 @@ println(eU_set)
 
 
 
-# filenm="SU_Z2_csl_D"*string(D_max)*".jld2";
-# jldsave(filenm;T_set,lambdax_set,lambday_set)
+filenm="SU_Z2_csl_D"*string(D_max)*".jld2";
+jldsave(filenm;T_set,lambdax_set,lambday_set)
 
 
 # end

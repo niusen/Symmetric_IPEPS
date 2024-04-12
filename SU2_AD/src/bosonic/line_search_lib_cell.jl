@@ -176,8 +176,7 @@ function normalize_ansatz(x::Matrix{T}) where T<:iPEPS_ansatz
             ansatz_new=Triangle_iPESS(bm,tm);
         elseif isa(x[cc],Square_iPEPS)
             A=ansatz.T;
-
-            AL=A/norm(A);
+            A=A/norm(A);
             ansatz_new=Square_iPEPS(A);
         end
         x[cc]=ansatz_new;

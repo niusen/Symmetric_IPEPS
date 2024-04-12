@@ -272,7 +272,7 @@ function initial_fPEPS_state_spinful_Z2(Vspace,init_statenm="nothing",init_noise
         for cc in eachindex(x)
             ansatz=x[cc];
             A0=ansatz.T;
-            if space(A0,1)==Vspace
+            if (Vspace==nothing)|(space(A0,1)==Vspace)
                 A=A0;
             else
                 println("Extend bond dimension of initial state")

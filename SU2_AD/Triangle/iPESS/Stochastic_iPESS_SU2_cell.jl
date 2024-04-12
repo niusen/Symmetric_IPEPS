@@ -113,7 +113,7 @@ state_vec=normalize_ansatz(state_vec);
 
 
 global save_filenm
-save_filenm="stochastic_iPESS_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+save_filenm="stochastic_iPESS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 
 global starting_time
 starting_time=now();

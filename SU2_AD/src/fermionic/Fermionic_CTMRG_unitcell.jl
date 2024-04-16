@@ -63,7 +63,65 @@ function rotate_AA_cell(AA_fused_cell,construct_double_layer)
         AA_set4=((AA_11.T4, AA_12.T4), (AA_21.T4, AA_22.T4));
 
         AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
-            
+    elseif (Lx==3)&(Ly==2)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+        AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
+        AA_22=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
+        AA_31=rotate_AA(AA_fused_cell[3][1],construct_double_layer);
+        AA_32=rotate_AA(AA_fused_cell[3][2],construct_double_layer);
+        
+        direction=1;
+        AA_set1=((AA_11.T1, AA_12.T1), (AA_21.T1, AA_22.T1), (AA_31.T1, AA_32.T1));
+        direction=2;
+        AA_set2=((AA_11.T2, AA_12.T2), (AA_21.T2, AA_22.T2), (AA_31.T2, AA_32.T2));
+        direction=3;
+        AA_set3=((AA_11.T3, AA_12.T3), (AA_21.T3, AA_22.T3), (AA_31.T3, AA_32.T3));
+        direction=4;
+        AA_set4=((AA_11.T4, AA_12.T4), (AA_21.T4, AA_22.T4), (AA_31.T4, AA_32.T4));
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    elseif (Lx==3)&(Ly==3)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+        AA_13=rotate_AA(AA_fused_cell[1][3],construct_double_layer);
+        AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
+        AA_22=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
+        AA_23=rotate_AA(AA_fused_cell[2][3],construct_double_layer);
+        AA_31=rotate_AA(AA_fused_cell[3][1],construct_double_layer);
+        AA_32=rotate_AA(AA_fused_cell[3][2],construct_double_layer);
+        AA_33=rotate_AA(AA_fused_cell[3][3],construct_double_layer);
+        
+        direction=1;
+        AA_set1=((AA_11.T1, AA_12.T1, AA_13.T1), (AA_21.T1, AA_22.T1, AA_23.T1), (AA_31.T1, AA_32.T1, AA_33.T1));
+        direction=2;
+        AA_set2=((AA_11.T2, AA_12.T2, AA_13.T2), (AA_21.T2, AA_22.T2, AA_23.T2), (AA_31.T2, AA_32.T2, AA_33.T2));
+        direction=3;
+        AA_set3=((AA_11.T3, AA_12.T3, AA_13.T3), (AA_21.T3, AA_22.T3, AA_23.T3), (AA_31.T3, AA_32.T3, AA_33.T3));
+        direction=4;
+        AA_set4=((AA_11.T4, AA_12.T4, AA_13.T4), (AA_21.T4, AA_22.T4, AA_23.T4), (AA_31.T4, AA_32.T4, AA_33.T4));
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    elseif (Lx==4)&(Ly==2)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+        AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
+        AA_22=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
+        AA_31=rotate_AA(AA_fused_cell[3][1],construct_double_layer);
+        AA_32=rotate_AA(AA_fused_cell[3][2],construct_double_layer);
+        AA_41=rotate_AA(AA_fused_cell[4][1],construct_double_layer);
+        AA_42=rotate_AA(AA_fused_cell[4][2],construct_double_layer);
+        
+        direction=1;
+        AA_set1=((AA_11.T1, AA_12.T1), (AA_21.T1, AA_22.T1), (AA_31.T1, AA_32.T1), (AA_41.T1, AA_42.T1));
+        direction=2;
+        AA_set2=((AA_11.T2, AA_12.T2), (AA_21.T2, AA_22.T2), (AA_31.T2, AA_32.T2), (AA_41.T2, AA_42.T2));
+        direction=3;
+        AA_set3=((AA_11.T3, AA_12.T3), (AA_21.T3, AA_22.T3), (AA_31.T3, AA_32.T3), (AA_41.T3, AA_42.T3));
+        direction=4;
+        AA_set4=((AA_11.T4, AA_12.T4), (AA_21.T4, AA_22.T4), (AA_31.T4, AA_32.T4), (AA_41.T4, AA_42.T4));
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
     end
 
     return AA_rotated_cell

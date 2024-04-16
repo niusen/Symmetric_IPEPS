@@ -122,7 +122,11 @@ end
 
 Base.@kwdef mutable struct Square_Hubbard_Energy_settings
     model :: String = "spinless_Hubbard"
+end
 
+Base.@kwdef mutable struct Triangle_Hofstadter_Hubbard_settings
+    model :: String = "spinful_Hubbard"
+    Magnetic_cell :: Int64 =2;
 end
 
 Base.@kwdef mutable struct Square_Energy_settings

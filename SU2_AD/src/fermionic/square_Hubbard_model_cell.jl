@@ -81,8 +81,9 @@ function Hamiltonians_spinless_Z2()
     Cdag_[1,:,:]=sp;
     Cdag_=TensorMap(Cdag_, Vdummy' ⊗ V ← V);
 
-
-    return Ident, occu, Cdag, C, Cdag_ 
+    #return Ident, occu, Cdag, C, Cdag_ 
+    n_double=Ident*0;#no hubbard interaction for spinless model
+    return (Ident,Ident), (occu,occu), (n_double,n_double), (Cdag,Cdag), (C,C)
 end
 
 
@@ -492,6 +493,31 @@ function special_Hamiltonians_spinful_Z2()
 end
 
 
+
+function ob_2x2(CTM,AA_LU_,AA_RU_,AA_LD_,AA_RD_,cx,cy)
+    global Lx,Ly
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+
+    @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-3]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-1,4,1]*AA_LU_[4,-2,-4,3]; 
+    @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
+
+    @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
+    @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4]; 
+
+    MM_LU=permute(MM_LU,(1,2,),(3,4,));
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+    up=MM_LU*MM_RU;
+    down=MM_LD*MM_RD;
+    rho=@tensor up[1,2,3,4,]*down[1,2,3,4];
+    return rho
+end
+
+
 function hopping_x(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     global Lx,Ly
     pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
@@ -801,13 +827,21 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
     global Lx,Ly
 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
-        Hamiltonian_terms=Hamiltonians_spinful_Z2;
+        
+        if (energy_setting.model == "Triangle_Hofstadter_Hubbard")|(energy_setting.model == "spinful_triangle_lattice")
+            Hamiltonian_terms=Hamiltonians_spinful_Z2;
+        elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
+            Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        end
     elseif isa(space(A_cell[1][1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         Hamiltonian_terms=Hamiltonians_spinless_U1;
     elseif isa(space(A_cell[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
         Hamiltonian_terms=Hamiltonians_spinful_SU2;
     elseif isa(space(A_cell[1][1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        if mod(energy_setting.Magnetic_cell,2)==1 #odd number of sites in unitcell
+            @assert mod(Ly,2)==0;
+            #if use U1 symmetry, use different dummy physical space along y direction along Ly, where Ly should be even number
+        end
         Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
     end
 
@@ -1092,131 +1126,95 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             E_total=E_total/(Lx*Ly);
             return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
         end
+
+    elseif energy_setting.model in ("Triangle_Hofstadter_Hubbard","Triangle_Hofstadter_spinless")
+        @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+
+        pasrmeters_site=@ignore_derivatives get_Hofstadter_coefficients(Lx,Ly,parameters,energy_setting);
+        tx_coe_set=pasrmeters_site["tx_coe_set"];
+        ty_coe_set=pasrmeters_site["ty_coe_set"];
+        t2_coe_set=pasrmeters_site["t2_coe_set"];
+        U_coe_set=pasrmeters_site["U_coe_set"];
+        μ_coe_set=pasrmeters_site["μ_coe_set"];
+
+        ex_set=zeros(Lx,Ly)*im;
+        ey_set=zeros(Lx,Ly)*im;
+        e_diagonala_set=zeros(Lx,Ly)*im;
+        e0_set=zeros(Lx,Ly)*im;
+        eU_set=zeros(Lx,Ly)*im;
+        
+        E_total=0;
+        for px=1:Lx
+            for py=1:Ly
+                #(cx,cy): coordinate of left-top C1 tensor
+                cx=mod1(px-1,Lx);
+                cy=mod1(py-1,Ly);
+                ex=hopping_x(CTM_cell,Cdag_set[mod1(py,Ly)],C_set[mod1(py,Ly)],A_cell,AA_cell,cx,cy,ctm_setting);
+                ey=hopping_y(CTM_cell,Cdag_set[mod1(py,Ly)],C_set[mod1(py+1,Ly)],A_cell,AA_cell,cx,cy,ctm_setting);
+                e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(py+1,Ly)],C_set[mod1(py,Ly)],A_cell,AA_cell,cx,cy,ctm_setting);
+                e0=ob_onsite(CTM_cell,N_occu_set[mod1(py,Ly)],A_cell,AA_cell,cx,cy,ctm_setting);
+                eU=ob_onsite(CTM_cell,n_double_set[mod1(py,Ly)]-(1/2)*N_occu_set[mod1(py,Ly)]+(1/4)*Ident_set[mod1(py,Ly)],A_cell,AA_cell,cx,cy,ctm_setting);
+                @ignore_derivatives ex_set[px,py]=ex;
+                @ignore_derivatives ey_set[px,py]=ey;
+                @ignore_derivatives e_diagonala_set[px,py]=e_diagonala;
+                @ignore_derivatives e0_set[px,py]=e0;
+                @ignore_derivatives eU_set[px,py]=eU;
+                tx_coe=tx_coe_set[px,py];
+                ty_coe=ty_coe_set[px,py];
+                t2_coe=t2_coe_set[px,py];
+                U_coe=U_coe_set[px,py];
+                μ_coe=μ_coe_set[px,py];
+                E_temp=tx_coe*ex +ty_coe*ey +t2_coe*e_diagonala -μ_coe*e0/2  +U_coe*eU/2;
+                E_total=E_total+real(E_temp+E_temp');
+                
+            end
+        end 
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
     end
 end
 
 
+function get_Hofstadter_coefficients(Lx,Ly,parameters,energy_setting)
+    """change of coordinate 
+    (1,1)  (2,1)
+    (1,2)  (2,2)
 
-
-
-
-
-function ob_2x2(CTM,AA_LU_,AA_RU_,AA_LD_,AA_RD_,cx,cy)
-    global Lx,Ly
-    Cset=CTM.Cset;
-    Tset=CTM.Tset;
-
-    @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-3]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-1,4,1]*AA_LU_[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
-
-    @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
-    @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
-    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4]; 
-
-    MM_LU=permute(MM_LU,(1,2,),(3,4,));
-    MM_RU=permute(MM_RU,(1,2,),(3,4,));
-    MM_LD=permute(MM_LD,(1,2,),(3,4,));
-    MM_RD=permute(MM_RD,(1,2,),(3,4,));
-
-    up=MM_LU*MM_RU;
-    down=MM_LD*MM_RD;
-    rho=@tensor up[1,2,3,4,]*down[1,2,3,4];
-    return rho
+    coordinate of C1 tensor: (cx,cy)=(1-1,1-1)
+    defining terms: (px,py)=(1,1)
+    """    
+    @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+    t1=parameters["t1"];
+    t2=parameters["t2"];
+    μ=parameters["μ"];
+    U=parameters["U"];
+    tx_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    ty_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    t2_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    U_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    μ_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    phi=2*pi/(energy_setting.Magnetic_cell);
+    for px=1:Lx
+        for py=1:Ly
+            tx_coe_set[px,py]=-t1';#(px,py+1) <- (px+1,py+1)
+            ty_coe_set[px,py]=-t1*exp(im*(px+1)*phi)'; #(px+1,py+1) <- (px+1,py)
+            t2_coe_set[px,py]=t2*exp(im*((px+1)*phi-phi/2)); #(px,py+1) <- (px+1,py)
+            U_coe_set[px,py]=U;
+            μ_coe_set[px,py]=μ;
+        end
+    end
+    parameters_site=Dict([("tx_coe_set", tx_coe_set),("ty_coe_set", ty_coe_set), ("t2_coe_set",  t2_coe_set), ("U_coe_set",  U_coe_set), ("μ_coe_set", μ_coe_set)]);
+    return parameters_site
 end
 
 
 
-# function ob_LU_RU_LD_cell(cx,cy,CTM,AA_,AA_LU_,AA_RU_,AA_LD_)
-#     global Lx,Ly
-#     Cset=CTM.Cset;
-#     Tset=CTM.Tset;
 
-#     @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-4]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-2,4,1]*AA_LU_[4,-3,-5,3,-1]; 
-#     @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3,-5]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
 
-#     @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3,-1]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
-#     @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
-#     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_[-2,1,2,-4]; 
 
-#     MM_LU=permute(MM_LU,(1,2,3,),(4,5,));
-#     MM_RU=permute(MM_RU,(1,2,),(3,4,5,));
-#     MM_LD=permute(MM_LD,(1,2,3,),(4,5,));
-#     MM_RD=permute(MM_RD,(1,2,),(3,4,));
 
-#     up=MM_LU*MM_RU;
-#     down=MM_LD*MM_RD;
-#     @tensor rho[:]:= up[-1,1,2,3,4,-2]*down[-3,1,2,3,4];
-#     return rho
-# end
 
-# function ob_LD_RU_RD_cell(cx,cy,CTM,AA_,AA_LD_,AA_RU_,AA_RD_)
-#     global Lx,Ly
-#     Cset=CTM.Cset;
-#     Tset=CTM.Tset;
-
-#     @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-3]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-1,4,1]*AA_[4,-2,-4,3]; 
-#     @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3,-5]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
-
-#     @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3,-1]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
-#     @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
-#     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4,-5]; 
-
-#     MM_LU=permute(MM_LU,(1,2,),(3,4,));
-#     MM_RU=permute(MM_RU,(1,2,),(3,4,5,));
-#     MM_LD=permute(MM_LD,(1,2,3,),(4,5,));
-#     MM_RD=permute(MM_RD,(1,2,),(3,4,5,));
-
-#     up=MM_LU*MM_RU;
-#     down=MM_LD*MM_RD;
-#     @tensor rho[:]:= up[1,2,3,4,-2]*down[-1,1,2,3,4,-3];
-#     return rho
-# end
-
-# function ob_LU_LD_RD_cell(cx,cy,CTM,AA_,AA_LU_,AA_LD_,AA_RD_)
-#     global Lx,Ly
-#     Cset=CTM.Cset;
-#     Tset=CTM.Tset;
-
-#     @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-4]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-2,4,1]*AA_LU_[4,-3,-5,3,-1]; 
-#     @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_[-2,-4,4,3]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
-
-#     @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3,-1]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
-#     @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
-#     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4,-5]; 
-
-#     MM_LU=permute(MM_LU,(1,2,3,),(4,5,));
-#     MM_RU=permute(MM_RU,(1,2,),(3,4,));
-#     MM_LD=permute(MM_LD,(1,2,3,),(4,5,));
-#     MM_RD=permute(MM_RD,(1,2,),(3,4,5,));
-
-#     up=MM_LU*MM_RU;
-#     down=MM_LD*MM_RD;
-#     @tensor rho[:]:= up[-1,1,2,3,4]*down[-2,1,2,3,4,-3];
-#     return rho
-# end
-
-# function ob_LU_RU_RD_cell(cx,cy,CTM,AA_,AA_LU_,AA_RU_,AA_RD_)
-#     global Lx,Ly
-#     Cset=CTM.Cset;
-#     Tset=CTM.Tset;
-
-#     @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-4]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-2,4,1]*AA_LU_[4,-3,-5,3,-1]; 
-#     @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3,-5]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
-
-#     @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_[3,4,-5,-3]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
-#     @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
-#     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4,-5]; 
-
-#     MM_LU=permute(MM_LU,(1,2,3,),(4,5,));
-#     MM_RU=permute(MM_RU,(1,2,),(3,4,5,));
-#     MM_LD=permute(MM_LD,(1,2,),(3,4,));
-#     MM_RD=permute(MM_RD,(1,2,),(3,4,5,));
-
-#     up=MM_LU*MM_RU;
-#     down=MM_LD*MM_RD;
-#     @tensor rho[:]:= up[-1,1,2,3,4,-2]*down[1,2,3,4,-3];
-#     return rho
-# end
 
 
 

@@ -40,22 +40,25 @@ CDCDCDCD
 """
 ###########################
 # let
-Random.seed!(1234);
-import LinearAlgebra.BLAS as BLAS
-# n_cpu=10;
-# BLAS.set_num_threads(n_cpu);
-println("number of cpus: "*string(BLAS.get_num_threads()))
+Random.seed!(888);
 
 D_max=4;
-
+Mcell=3;#magnetic unit-cell
 t1=1;
 t2=1;
-ϕ=pi/2;
 μ=0;
 U=0;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+parameters=Dict([("t1", t1),("t2", t2), ("μ",  μ), ("U",  U), ("M", Mcell)]);
+println("parameters:");
+println(parameters);
 
-
+import LinearAlgebra.BLAS as BLAS
+n_cpu=10;
+BLAS.set_num_threads(n_cpu);
+println("number of cpus: "*string(BLAS.get_num_threads()))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_"*"SU_iPESS_U"*string(U)*"_D"*string(D_max))
+pid=getpid();
+println("pid="*string(pid));
 
 trun_tol=1e-6;
 
@@ -107,8 +110,9 @@ LS_ctm_setting.construct_double_layer=true;
 LS_ctm_setting.grad_checkpoint=true;
 dump(LS_ctm_setting);
 
-energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinful_triangle_lattice";
+energy_setting=Triangle_Hofstadter_Hubbard_settings();
+energy_setting.model = "Triangle_Hofstadter_Hubbard";
+energy_setting.Magnetic_cell=parameters["M"];
 dump(energy_setting);
 
 
@@ -129,7 +133,7 @@ multiplet_tol=1e-5;
 projector_trun_tol=LS_ctm_setting.CTM_trun_tol
 ###################################
 global Lx,Ly
-Lx=2;
+Lx=energy_setting.Magnetic_cell;
 Ly=2;
 
 
@@ -142,10 +146,9 @@ global chi, parameters, energy_setting, grad_ctm_setting
 
 
 if optim_setting.init_statenm=="nothing"
-    V=Rep[SU₂](0=>2, 1/2=>1);
-    Vp=Rep[SU₂](0=>2, 1/2=>1);
-    B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp); 
-    # B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS_uniform(Lx,Ly,V,Vp);    
+    Vp=Rep[ℤ₂](0=>2,1=>2);
+    V=Rep[ℤ₂](0=>2,1=>2);
+    B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp);    
 else
     data=load(optim_setting.init_statenm);
     T_set=data["T_set"];
@@ -166,30 +169,34 @@ println(ex_set)
 println(ey_set)
 println(e_diagonala_set)
 println(e0_set)
-println(eU_set)
+println("average occupation: "*string(sum(e0_set)/Lx/Ly))
+println(eU_set);flush(stdout);
 
 
 
-
-# tau=20;
-# dt=0.1;
-# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-
-# tau=20;
-# dt=0.05;
-# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
-dt=0.01;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+dt=0.1;
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting,parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
-dt=0.002;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+dt=0.05;
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting,parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
+# tau=20;
+# dt=0.01;
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting,parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
+# tau=20;
+# dt=0.002;
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting,parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
+filenm="SU_iPESS_Z2_M"*string(Mcell)*"_D"*string(D_max)*".jld2";
+jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
+
+
+chi=40;
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
 E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
@@ -198,11 +205,47 @@ println(ex_set)
 println(ey_set)
 println(e_diagonala_set)
 println(e0_set)
-println(eU_set)
+println("average occupation: "*string(sum(e0_set)/Lx/Ly))
+println(eU_set);flush(stdout);
+
+# chi=80;
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total)
+# println(ex_set)
+# println(ey_set)
+# println(e_diagonala_set)
+# println(e0_set)
+# println("average occupation: "*string(sum(e0_set)/Lx/Ly))
+# println(eU_set);flush(stdout);
+
+# chi=120;
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total)
+# println(ex_set)
+# println(ey_set)
+# println(e_diagonala_set)
+# println(e0_set)
+# println("average occupation: "*string(sum(e0_set)/Lx/Ly))
+# println(eU_set);flush(stdout);
+
+# chi=160;
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total)
+# println(ex_set)
+# println(ey_set)
+# println(e_diagonala_set)
+# println(e0_set)
+# println("average occupation: "*string(sum(e0_set)/Lx/Ly))
+# println(eU_set);flush(stdout);
 
 
-# filenm="SU_iPESS_SU2_csl_D"*string(D_max)*".jld2";
-# jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
+
 
 
 # end

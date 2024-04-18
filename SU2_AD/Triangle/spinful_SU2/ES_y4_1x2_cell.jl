@@ -20,7 +20,8 @@ B=data["x"][2].T;
 
 #convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
 
-
+A=A/norm(A);
+B=B/norm(B);
 
 
 
@@ -613,7 +614,7 @@ v_init=permute(v_init,(1,2,3,4,5,),());#L1,L2,L3,L4,dummy
 contraction_fun_R(x)=M_vr(l_Vodd,l_Veven, M_vr(l_Vodd,l_Veven, x, BB1_set,BB2_set,BB3_set,BB4_set,gateB_set), AA1_set,AA2_set,AA3_set,AA4_set,gateA_set);
 @time eur,evr=eigsolve(contraction_fun_R, v_init, 1,:LM,Arnoldi(krylovdim=40));
 VR=evr[findmax(abs.(eur))[2]];#L1,L2,L3,L4,dummy
-VR_aa=deepcopy(VR);
+
 
 v_init=TensorMap(randn, space(BB2_set[1],3)*space(BB2_set[1],3)*space(BB2_set[1],3)*space(BB2_set[1],3),Rep[SU₂]((0)=>1)');
 v_init=permute(v_init,(5,1,2,3,4,),());#dummy,R1,R2,R3,R4

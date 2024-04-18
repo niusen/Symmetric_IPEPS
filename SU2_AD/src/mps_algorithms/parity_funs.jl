@@ -82,37 +82,37 @@ function get_Vspace_parity(V1::GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep
 end
 
 
-function parity_gate(A,p1)
-    V1=space(A,p1);
-    S=unitary( V1, V1);
-    S_dense=convert(Array,S);
-    oddlist1=get_Vspace_parity(V1);
-    for c1=1:length(oddlist1)
-        if (oddlist1[c1]==1)
-            S_dense[c1,c1]=-1;
-        end
-    end
-    S=TensorMap(S_dense,V1 ← V1);
-    return S
-end
+# function parity_gate(A,p1)
+#     V1=space(A,p1);
+#     S=unitary( V1, V1);
+#     S_dense=convert(Array,S);
+#     oddlist1=get_Vspace_parity(V1);
+#     for c1=1:length(oddlist1)
+#         if (oddlist1[c1]==1)
+#             S_dense[c1,c1]=-1;
+#         end
+#     end
+#     S=TensorMap(S_dense,V1 ← V1);
+#     return S
+# end
 
 
 
-function gauge_gate(A,p1,phase)
-    V1=space(A,p1);
-    S=unitary( V1, V1);
+# function gauge_gate(A,p1,phase)
+#     V1=space(A,p1);
+#     S=unitary( V1, V1);
 
-    println(V1)
-    S_dense=convert(Array,S)*(1+0*im);
-    Qnlist1=get_Vspace_Qn(V1);
-    for c1=1:length(Qnlist1)
+#     println(V1)
+#     S_dense=convert(Array,S)*(1+0*im);
+#     Qnlist1=get_Vspace_Qn(V1);
+#     for c1=1:length(Qnlist1)
 
-        S_dense[c1,c1]=exp(Qnlist1[c1]*im*phase);
+#         S_dense[c1,c1]=exp(Qnlist1[c1]*im*phase);
  
-    end
-    S=TensorMap(S_dense,V1 ← V1);
-    return S
-end
+#     end
+#     S=TensorMap(S_dense,V1 ← V1);
+#     return S
+# end
 
 
 function QN_str_search(Str)

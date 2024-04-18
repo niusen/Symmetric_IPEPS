@@ -125,10 +125,10 @@ function permute_neighbour_ind(A,ind1,ind2,total_ind)
             gate=swap_gate(A,6,7); @tensor A[:]:=A[-1,-2,-3,-4,-5,1,2,-8,-9]*gate[-6,-7,1,2]; 
             A=permute(A,(1,2,3,4,5,7,6,8,9,));
         elseif (ind1==7)&&(ind2==8)
-            gate=swap_gate(A,6,7); @tensor A[:]:=A[-1,-2,-3,-4,-5,-6,1,2,-9]*gate[-7,-8,1,2]; 
+            gate=swap_gate(A,7,8); @tensor A[:]:=A[-1,-2,-3,-4,-5,-6,1,2,-9]*gate[-7,-8,1,2]; 
             A=permute(A,(1,2,3,4,5,6,8,7,9,));
         elseif (ind1==8)&&(ind2==9)
-            gate=swap_gate(A,7,8); @tensor A[:]:=A[-1,-2,-3,-4,-5,-6,-7,1,2]*gate[-8,-9,1,2]; 
+            gate=swap_gate(A,8,9); @tensor A[:]:=A[-1,-2,-3,-4,-5,-6,-7,1,2]*gate[-8,-9,1,2]; 
             A=permute(A,(1,2,3,4,5,6,7,9,8,));
         end
 

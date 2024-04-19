@@ -164,6 +164,97 @@ function projector_parity(V)
 end
 
 
+#SU2 symmetry
+function sector_split(V::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    L=length(V.dims.keys);
+    Spin_odd_set=[];
+    dim_odd_set=[];
+    
+    Spin_even_set=[];
+    dim_even_set=[];
+    for cc=1:L
+        Spin=V.dims.keys[cc].j;
+        if mod(Spin,1)==1/2
+            Spin_odd_set=vcat(Spin_odd_set,Spin);
+            dim_odd_set=vcat(dim_odd_set,V.dims.values[cc]);
+        elseif mod(Spin,1)==0
+            Spin_even_set=vcat(Spin_even_set,Spin);
+            dim_even_set=vcat(dim_even_set,V.dims.values[cc]);
+        end
+    end
+    V_odd_set=Vector{Any}(undef,length(Spin_odd_set));
+    V_even_set=Vector{Any}(undef,length(Spin_even_set));
+
+    if length(Spin_odd_set)>0
+        V_odd=Rep[SU₂](Spin_odd_set[1]=>dim_odd_set[1]);
+        V_odd_set[1]=V_odd;
+        for cc=2:length(Spin_odd_set)
+            V_odd=Rep[SU₂](Spin_odd_set[cc]=>dim_odd_set[cc]);
+            V_odd_set[cc]=V_odd;
+        end
+    else
+        V_odd=Rep[SU₂]();
+    end
+
+    if length(Spin_even_set)>0
+        V_even=Rep[SU₂](Spin_even_set[1]=>dim_even_set[1]);
+        V_even_set[1]=V_even;
+        for cc=2:length(Spin_even_set)
+            V_even= Rep[SU₂](Spin_even_set[cc]=>dim_even_set[cc]);
+            V_even_set[cc]=V_even;
+        end
+    else
+        V_even=Rep[SU₂]();
+    end
+
+    if V.dual
+        for cc=1:length(V_odd_set)
+            V_odd_set[cc]=V_odd_set[cc]';
+        end
+        for cc=1:length(V_even_set)
+            V_even_set[cc]=V_even_set[cc]';
+        end
+    end
+    return V_odd_set,V_even_set
+end
+
+function projector_split(V)
+    V_odd_set,V_even_set=sector_split(V);
+    P_odd_set=Vector{TensorMap}(undef,length(V_odd_set));
+    P_even_set=Vector{TensorMap}(undef,length(V_even_set));
+    function become_isometry(T::TensorMap)
+        for cc=1:length(T.data.values)
+            mm=T.data.values[cc];
+            mm_new=Matrix(I,size(mm,1),size(mm,2));
+            T.data.values[cc]=mm_new;
+        end
+        return T
+    end
+    for cc=1:length(P_odd_set)
+        P_odd=TensorMap(randn,V_odd_set[cc],V);
+        P_odd=become_isometry(P_odd);
+        P_odd_set[cc]=P_odd;
+    end
+    for cc=1:length(P_even_set)
+        P_even=TensorMap(randn,V_even_set[cc],V);
+        P_even=become_isometry(P_even);
+        P_even_set[cc]=P_even;
+    end
+
+
+    II=unitary(V,V)*0;
+    for cc=1:length(P_even_set)
+        II=II+P_even_set[cc]'*P_even_set[cc];
+    end
+    for cc=1:length(P_odd_set)
+        II=II+P_odd_set[cc]'*P_odd_set[cc];
+    end
+    @assert norm(unitary(V,V)-II)<1e-15
+
+    return P_odd_set,P_even_set
+end
+
+
 
 #Z2 symmetry
 function get_Vspace_parity(V1::GradedSpace{Z2Irrep, Tuple{Int64, Int64}})

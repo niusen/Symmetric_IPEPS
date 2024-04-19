@@ -26,7 +26,6 @@ B=B/norm(B);
 
 
 #############################
-# #convert to the order of PEPS code
 A1=deepcopy(A);
 A2=deepcopy(A);
 A3=deepcopy(A);

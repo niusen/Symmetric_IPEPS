@@ -16,74 +16,100 @@ include("..\\..\\src\\bosonic\\Settings.jl")
 include("..\\..\\src\\bosonic\\Settings_cell.jl")
 include("..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
+global y_anti_pbc,D
 y_anti_pbc=true;
-filenm="Optim_cell_LS_D_4_chi_40_2.368055.jld2";
-data=load(filenm);
-# A=data["x"][1].T;
-# B=data["x"][2].T;
-state=data["x"]
-#convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
+function get_CTM(y_translation)
+    chi=40;
+    filenm="stochastic_iPESS_LS_D_6_chi_40.jld2";
+    data=load(filenm);
+    # A=data["x"][1].T;
+    # B=data["x"][2].T;
+    state=data["x"]
+    # state=data["T_set"]
+    #convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
 
 
-algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
-algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
-dump(algrithm_CTMRG_settings);
-global algrithm_CTMRG_settings
+    algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+    algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+    dump(algrithm_CTMRG_settings);
+    global algrithm_CTMRG_settings
 
-LS_ctm_setting=LS_CTMRG_settings();
-LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=10;
-LS_ctm_setting.CTM_trun_tol=1e-8;
-LS_ctm_setting.svd_lanczos_tol=1e-8;
-LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
-LS_ctm_setting.conv_check="singular_value";
-LS_ctm_setting.CTM_ite_info=true;
-LS_ctm_setting.CTM_conv_info=true;
-LS_ctm_setting.CTM_trun_svd=false;
-LS_ctm_setting.construct_double_layer=true;
-LS_ctm_setting.grad_checkpoint=true;
-dump(LS_ctm_setting);
+    LS_ctm_setting=LS_CTMRG_settings();
+    LS_ctm_setting.CTM_conv_tol=1e-6;
+    LS_ctm_setting.CTM_ite_nums=30;
+    LS_ctm_setting.CTM_trun_tol=1e-8;
+    LS_ctm_setting.svd_lanczos_tol=1e-8;
+    LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+    LS_ctm_setting.conv_check="singular_value";
+    LS_ctm_setting.CTM_ite_info=true;
+    LS_ctm_setting.CTM_conv_info=true;
+    LS_ctm_setting.CTM_trun_svd=false;
+    LS_ctm_setting.construct_double_layer=true;
+    LS_ctm_setting.grad_checkpoint=true;
+    dump(LS_ctm_setting);
 
-global Lx,Ly
-Lx,Ly=size(state);
-A_cell=initial_tuple_cell(Lx,Ly);
-for ca=1:Lx
-    for cb=1:Ly
-        if isa(state[ca,cb],Square_iPEPS)
-            A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
-        elseif isa(state[ca,cb],Triangle_iPESS)
-            A0=iPESS_to_iPEPS(state[ca,cb]).T;
-            A0=A0/norm(A0)*10;
-            A_cell=fill_tuple(A_cell, A0, ca,cb);
-        else
-            error("unknown type ansatz")
+    global Lx,Ly
+    Lx,Ly=size(state);
+    A_cell=initial_tuple_cell(Lx,Ly);
+    for ca=1:Lx
+        for cb=1:Ly
+            if isa(state[ca,cb],Square_iPEPS)
+                A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
+            elseif isa(state[ca,cb],Triangle_iPESS)
+                A0=iPESS_to_iPEPS(state[ca,cb])
+                A_cell=fill_tuple(A_cell, A0.T, ca,cb);
+            elseif isa(state[ca,cb],TensorMap)
+                A_cell=fill_tuple(A_cell, state[ca,cb], ca,cb);
+            else
+                error("unknown type ansatz")
+            end
         end
     end
+    global D
+    D=dim(space(A_cell[1][1],1));
+
+    ##################################
+    global chi,multiplet_tol,projector_trun_tol
+    multiplet_tol=1e-5;
+    projector_trun_tol=LS_ctm_setting.CTM_trun_tol
+    ###################################
+
+
+    
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    if y_translation
+        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_y_translate(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    else
+        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    end
+    return CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
 end
-
-##################################
-global chi,multiplet_tol,projector_trun_tol
-multiplet_tol=1e-5;
-projector_trun_tol=LS_ctm_setting.CTM_trun_tol
-###################################
-
-
-chi=40;
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
 #############################
+
+y_translation=false;
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation);
+y_translation=true;
+CTM_cell_tran, AA_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran=get_CTM(y_translation);
+
+############################
 #get T tensors
 ca=1;
 cb=1;
-TL=CTM_cell.Tset[ca][cb].T4;
-TR=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
+TL01=CTM_cell.Tset[ca][cb].T4;
+TR01=CTM_cell_tran.Tset[mod1(ca+1,Lx)][cb].T2;
 U_L=U_L_cell[ca][cb];
-U_R=U_R_cell[ca+1][cb];
+U_R=U_R_cell_tran[ca+1][cb];
+
+cb=2;
+TL02=CTM_cell.Tset[ca][cb].T4;
+TR02=CTM_cell_tran.Tset[mod1(ca+1,Lx)][cb].T2;
+U_L=U_L_cell[ca][cb];
+U_R=U_R_cell_tran[ca+1][cb];
 
 #############################
 #extra swap gate that was not included when construct double layer tensor
@@ -92,21 +118,25 @@ gate=swap_gate(U_L,2,3);
 gate=swap_gate(U_R,1,2);
 @tensor U_R_new[:]:=U_R'[-1,1,2]*gate[1,2,3,4]*U_R[3,4,-2];
 
-@tensor TL[:]:=TL[-1,1,-3]*U_R_new'[-2,1]; 
-@tensor TR[:]:=TR[-1,1,-3]*U_L_new'[-2,1]; 
+@tensor TL01[:]:=TL01[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR01[:]:=TR01[-1,1,-3]*U_L_new'[-2,1]; 
+@tensor TL02[:]:=TL02[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR02[:]:=TR02[-1,1,-3]*U_L_new'[-2,1]; 
 
-TL=TL*10;
-TR=TR*10;
+TL01=TL01*10;
+TR01=TR01*10;
+TL02=TL02*10;
+TR02=TR02*10;
 #############################
-TL1=deepcopy(TL);
-TL2=deepcopy(TL);
-TL3=deepcopy(TL);
-TL4=deepcopy(TL);
+TL1=deepcopy(TL01);
+TL2=deepcopy(TL02);
+TL3=deepcopy(TL01);
+TL4=deepcopy(TL02);
 
-TR1=deepcopy(TR);
-TR2=deepcopy(TR);
-TR3=deepcopy(TR);
-TR4=deepcopy(TR);
+TR1=deepcopy(TR01);
+TR2=deepcopy(TR02);
+TR3=deepcopy(TR01);
+TR4=deepcopy(TR02);
 
 #############################
 #extra parity gate from crossing
@@ -164,6 +194,18 @@ gate_middle=parity_gate(TL1,3);
 
 function vr_ML_MR(vr0,  TL1,TL2,TL3,TL4,TR1,TR2,TR3,TR4, P_seta,P_setb, gate_middle)
     println("apply Mr")
+
+    ################
+    if y_anti_pbc
+        op=parity_gate(vr0,1);
+        @tensor vr0[:]:=op[-1,1]*vr0[1,-2,-3,-4,-5];
+    end
+    vr0=permute_neighbour_ind(vr0,1,2,5);
+    vr0=permute_neighbour_ind(vr0,2,3,5);
+    vr0=permute_neighbour_ind(vr0,3,4,5);
+    ################
+
+
     vr=deepcopy(vr0)*0;
     for ca=1:2#parity of index U in ML
         @tensor TL1_tem[:]:=TL1[-1,-2,-3,1]*P_seta[ca][-4,1];
@@ -192,38 +234,37 @@ function vr_ML_MR(vr0,  TL1,TL2,TL3,TL4,TR1,TR2,TR3,TR4, P_seta,P_setb, gate_mid
             vr=vr+vr_temp;
         end
     end
+
+
+
+    # ################
+    # if y_anti_pbc
+    #     op=parity_gate(vr,1);
+    #     @tensor vr[:]:=op[-4,1]*vr[-1,-2,-3,1,-5];
+    # end
+    # vr=permute_neighbour_ind(vr,3,4,5);
+    # vr=permute_neighbour_ind(vr,2,3,5);
+    # vr=permute_neighbour_ind(vr,1,2,5);
+    # ################
     return vr
 end
 
-function compute_k(ev,y_anti_pbc)
-    ev0=deepcopy(ev);
-    if y_anti_pbc
-        ev=permute(ev,(1,2,3,4,5,));#L1',L2',L3',L4',dummy
-        op=parity_gate(ev,4);
-        @tensor ev_translation[:]:=op[1,-1]*ev'[1,-2,-3,-4,-5];
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),1,2,5);#L2',L1',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,5);#L2',L3',L1',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,5);#L2',L3',L4',L1',dummy
-    else
-        ev=permute(ev,(1,2,3,4,5,));#L1',L2',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev'),1,2,5);#L2',L1',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,5);#L2',L3',L1',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,5);#L2',L3',L4',L1',dummy
-    end
-    
-    
-    kphase=@tensor ev_translation[1,2,3,4,5]*ev[1,2,3,4,5];
-    Norm=@tensor ev0'[1,2,3,4,5]*ev0[1,2,3,4,5];
-    kphase=kphase/Norm
-    return kphase'
-end
 
-Spin_set=[0,1/2,1,3/2,2,5/2];
+if isa(space(TL1,1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+    Spin_set=[0,1];
+elseif isa(space(TL1,1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    Spin_set=[0,1/2,1,3/2,2,5/2];
+end
 eu=Vector{ComplexF64}(undef,0);
 k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 for ss=1:length(Spin_set)
-    v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1),Rep[SU₂](Spin_set[ss]=>1));
+    if isa(space(TL1,1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1),Rep[ℤ₂](Spin_set[ss]=>1));
+    elseif isa(space(TL1,1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1),Rep[SU₂](Spin_set[ss]=>1));
+    end
+    
     v_init=permute(v_init,(1,2,3,4,5,),());#L1,L2,L3,L4,dummy
     if norm(v_init)==0
         continue;
@@ -233,7 +274,7 @@ for ss=1:length(Spin_set)
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
     for cc=1:length(eu0)
-        ks[cc]=compute_k(ev[cc],y_anti_pbc);
+        ks[cc]=eu0[cc]/abs(eu0[cc]);
         spins[cc]=Spin_set[ss];
     end
     eu=vcat(eu,eu0);
@@ -243,7 +284,7 @@ end
 
 ##############################
 
-eu=eu/sum(eu);
+
 println(sort(abs.(eu)))
 
 order=sortperm(abs.(eu));
@@ -257,7 +298,7 @@ Spin=Spin[order]
 
 ##########################
 
-D=dim(space(A_cell[1][1],1));
+
 
 if y_anti_pbc
     matnm="ES_CTM_D"*string(D)*"_Nv4_APBC"*".mat";

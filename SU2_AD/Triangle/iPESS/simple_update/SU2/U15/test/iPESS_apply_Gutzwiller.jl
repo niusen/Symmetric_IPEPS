@@ -29,19 +29,24 @@ include("..\\..\\..\\..\\..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
 Random.seed!(888)
 
-D=8;
-filenm="SU_iPESS_SU2_csl_D8.jld2"
+filenm="stochastic_iPESS_LS_D_10_chi_40_2.39213.jld2"
 
 #filenm="SU_iPESS_SU2_csl_D"*string(D)*".jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 data=load(filenm);
-Tset=data["T_set"];
-Bset=data["B_set"];
-Lx,Ly=size(Tset);
+x=data["x"]
+Lx,Ly=size(x);
 
 state_new=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+coe=0.45;
 for ca=1:Lx
     for cb=1:Ly
-        state_new[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+        bm=x[ca,cb].Bm;
+        tm=x[ca,cb].Tm;
+        
+        Pg=Gutzwiller_SU2(coe);
+        @tensor bm[:]:=bm[-1,1,-3,-4]*Pg[-2,1];
+        bm=permute(bm,(1,),(2,3,4,));
+        state_new[ca,cb]=Triangle_iPESS(bm,tm);
         iPESS_to_iPEPS(state_new[ca,cb]);
     end
 end
@@ -51,6 +56,8 @@ end
 
 
 
-save_filenm="iPESS_SU_D_"*string(D)*".jld2"
+save_filenm="Gutzwiller_"*filenm;
 jldsave(save_filenm;x=state_new);
+
+
 

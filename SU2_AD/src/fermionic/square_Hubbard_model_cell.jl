@@ -16,6 +16,23 @@ function Gutzwiller_Z2(coe)
     
     return (PG,PG,)
 end
+function Gutzwiller_SU2(coe)
+
+
+    V=Rep[SU₂](0=>2,1/2=>1);
+
+    PG=zeros(4,4);
+    PG[1,1]=coe;
+    PG[2,2]=coe;
+    PG[3,3]=1;
+    PG[4,4]=1;
+    PG=TensorMap(PG,  V ← V);
+
+############################################
+
+
+    return PG
+end
 
 
 function Gutzwiller_U1_SU2(coe)
@@ -24,11 +41,6 @@ function Gutzwiller_U1_SU2(coe)
     VDummy2=VDummy_set[2];
 
     V=Rep[U₁ × SU₂]((0,0)=>1,(2,0)=>1,(1, 1/2)=>1);
-
-
-
- 
-
 
     PG=zeros(4,4);
     PG[1,1]=coe;
@@ -322,6 +334,85 @@ function Hamiltonians_spinful_SU2()
     return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
 end
 
+function Operators_spinful_SU2()
+    
+
+    Vdummy=SU2Space(1/2=>1);
+    V=SU2Space(0=>2,1/2=>1);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order: (0,0), (0,1), (1,0), (1,1)
+    
+    Ident=kron(Id,Id);
+    Ident=TensorMap(Ident[[1,4,3,2],[1,4,3,2]],  V  ←  V);
+
+    N_occu=kron(occu,Id)+kron(Id,occu);
+    N_occu=TensorMap(N_occu[[1,4,3,2],[1,4,3,2]],  V ←  V);
+    n_double=kron(occu,occu)
+    n_double=TensorMap(n_double[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+
+    n_hole=kron(Id-occu,Id-occu);
+    n_hole=TensorMap(n_hole[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+    # method 1
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,Id);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
+    Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
+    Cdag=permute(Cdag,(3,1,),(2,))
+
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+    C=TensorMap(Cup+Cdn, Vdummy ⊗ V ← V);
+
+
+    CdagupCdagdn=zeros(4,4);
+    CdagupCdagdn[[1,4,3,2],[1,4,3,2]]=kron(sp,sp);
+    CdagupCdagdn=TensorMap(CdagupCdagdn,  V ← V );
+
+    Vdummy0=SU2Space(0=>1);
+    Pairinga=zeros(4,4,1);#CdagupCdagdn
+    Pairinga[[1,4,3,2],[1,4,3,2],1]=kron(sp,sp);
+    Pairinga=TensorMap(Pairinga,  V ← V ⊗Vdummy0);
+    Pairinga=permute(Pairinga,(3,1,),(2,))
+
+    Pairingb=zeros(1,4,4);#CupCdn
+    Pairingb[1,[1,4,3,2],[1,4,3,2]]=kron(sm,sm);
+    Pairingb=TensorMap(Pairingb, Vdummy0 ⊗ V ← V);
+
+    #Spin operator
+    Sp=zeros(4,4);
+    Sp[[1,4,3,2],[1,4,3,2]]=kron(sp,sm);
+    Sm=zeros(4,4);
+    Sm[[1,4,3,2],[1,4,3,2]]=kron(sm,sp);
+    Sz=zeros(4,4);
+    Sz[[1,4,3,2],[1,4,3,2]]=kron(occu,Id)/2-kron(Id,occu)/2;
+    @tensor SpSm[:]:=Sp[-1,-2]*Sm[-3,-4];
+    @tensor SmSp[:]:=Sm[-1,-2]*Sp[-3,-4];
+    @tensor SzSz[:]:=Sz[-1,-2]*Sz[-3,-4];
+    SS=SpSm/2+SmSp/2+SzSz;
+    SS=permutedims(SS,(1,3,2,4));#s1's2's1s2
+    SS=TensorMap(SS, V ⊗ V ← V ⊗ V);
+    SS=permute(SS,(1,3,),(2,4,));#V,s1',s1,s2',s2
+    u0,s0,v0=tsvd(SS);
+    
+    P=create_isometry(space(v0,1),Rep[SU₂](1=>1))
+    s0=s0*P;
+    v0=P'*v0;
+    @assert norm(u0*s0*v0-SS)<1e-14;
+    Sa=permute(u0*s0,(3,1,),(2,));
+    Sb=permute(v0,(1,2,),(3,));
+
+    return (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb)
+end
+
 function special_Hamiltonians_spinful_SU2()
     
 
@@ -565,6 +656,39 @@ function hopping_x(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     return ob
 end
 
+function hopping_x_no_sign(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+
+    @tensor A_LU[:]:= A_cell[pos_LU[1]][pos_LU[2]][-1,-2,-3,-4,1]*O1[-6,-5,1]
+    @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-6,-5,1]
+   
+
+    U=@ignore_derivatives unitary(fuse(space(A_LU,3)⊗space(A_LU,6)), space(A_LU,3)⊗space(A_LU,6)); 
+    @tensor A_LU[:]:=A_LU[-1,-2,1,-4,-5,2]*U[-3,1,2];
+    @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,2]*U'[1,2,-1];
+
+
+    if ctm_setting.grad_checkpoint
+        AA_LU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_LU[1]][pos_LU[2]]',A_LU);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+    else
+        AA_LU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LU[1]][pos_LU[2]]',A_LU);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+    end
+
+
+    
+
+    ob=ob_2x2(CTM,AA_LU_double,AA_RU_double,AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob
+end
+
 function hopping_y(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     global Lx,Ly
     pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
@@ -608,6 +732,38 @@ function hopping_y(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
 end
 
 
+function hopping_y_no_sign(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+
+    #the first index of O is dummy
+    @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O1[-6,-5,1]
+    @tensor A_RD[:]:= A_cell[pos_RD[1]][pos_RD[2]][-1,-2,-3,-4,1]*O2[-6,-5,1]
+
+
+    U1=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U1[-2,1,2];
+    @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,2]*U1'[1,2,-4];
+
+
+    if ctm_setting.grad_checkpoint
+        AA_RD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+    else
+        AA_RD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+    end
+
+
+    
+    ob=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_RU_double,AA_cell[pos_LD[1]][pos_LD[2]],AA_RD_double,cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob
+end
 
 
 
@@ -719,6 +875,52 @@ function hopping_diagonala(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     @tensor A_RU[:]:=A_RU[-1,-2,1,-4,-5,-6]*gate[-3,1];
     gate=@ignore_derivatives parity_gate(A_RU,5); 
     @tensor A_RU[:]:=A_RU[-1,-2,-3,-4,1,-6]*gate[-5,1];
+
+
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
+    @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
+    @tensor A_RD[:]:=A_RD[1,-2,-3,3,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-4];
+
+
+    if ctm_setting.grad_checkpoint
+        AA_LD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+        AA_RD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+    else
+        AA_LD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+        AA_RD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+    end
+
+    ob=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_RU_double,AA_LD_double,AA_RD_double,cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob        
+end
+
+function hopping_diagonala_no_sign(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+
+
+    @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*O1[-6,-5,1]
+    @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-6,-5,1]
+    # @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*O1[-5,1]
+    # @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-5,1]
+    O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+
+
+
+
+
+    A_RD=A_cell[pos_RD[1]][pos_RD[2]];
+
+
 
 
     U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 

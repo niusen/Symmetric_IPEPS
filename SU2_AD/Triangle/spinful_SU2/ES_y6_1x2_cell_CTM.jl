@@ -19,6 +19,7 @@ include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
+include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
 y_anti_pbc=false;
 filenm="Optim_cell_LS_D_4_chi_40_2.368055.jld2";
@@ -53,7 +54,15 @@ Lx,Ly=size(state);
 A_cell=initial_tuple_cell(Lx,Ly);
 for ca=1:Lx
     for cb=1:Ly
-        A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
+        if isa(state[ca,cb],Square_iPEPS)
+            A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
+        elseif isa(state[ca,cb],Triangle_iPESS)
+            A0=iPESS_to_iPEPS(state[ca,cb]).T;
+            A0=A0/norm(A0)*10;
+            A_cell=fill_tuple(A_cell, A0, ca,cb);
+        else
+            error("unknown type ansatz")
+        end
     end
 end
 
@@ -265,11 +274,12 @@ Spin=Spin[order]
 
 
 ##########################
+D=dim(space(A_cell[1][1],1));
 
 if y_anti_pbc
-    matnm="ES_unprojected_M1_Nv6_APBC"*".mat";
+    matnm="ES_CTM_D"*string(D)*"_Nv6_APBC"*".mat";
 else
-    matnm="ES_unprojected_M1_Nv6_PBC"*".mat";
+    matnm="ES_CTM_D"*string(D)*"_Nv6_PBC"*".mat";
 end
 matwrite(matnm, Dict(
     "k_phase" => k_phase,

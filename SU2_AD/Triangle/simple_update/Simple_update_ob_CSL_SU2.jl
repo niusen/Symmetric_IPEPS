@@ -42,13 +42,13 @@ CDCDCDCD
 Random.seed!(888)
 symmetric_initial=false;
 
-D_max=6;
+D_max=8;
 
 t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=0;
+U=12;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 parameters_evolve=Dict([("t1", t1),("t2", t2*1), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
@@ -166,12 +166,13 @@ global chi, parameters, energy_setting, grad_ctm_setting
 # T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
 
 tau=20;
+tau=5;
 dt=0.01;
 T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
 
-tau=20;
-dt=0.002;
-T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
+# tau=20;
+# dt=0.002;
+# T_set,lambdax_set,lambday_set=itebd(parameters_evolve, T_set,lambdax_set,lambday_set, tau, dt, D_max);
 
 
 
@@ -188,8 +189,8 @@ println(eU_set)
 
 
 
-# filenm="SU_SU2_csl_D"*string(D_max)*".jld2";
-# jldsave(filenm;T_set,lambdax_set,lambday_set)
+filenm="SU_SU2_csl_D"*string(D_max)*".jld2";
+jldsave(filenm;T_set,lambdax_set,lambday_set)
 
 
 # end

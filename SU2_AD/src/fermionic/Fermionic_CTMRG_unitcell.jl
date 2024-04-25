@@ -783,3 +783,242 @@ function init_CTM_cell(chi,A_cell,AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell, 
 end
 
 
+function Fermionic_CTMRG_cell_y_translate(A_cell::Tuple,chi,init,CTM0, ctm_setting) #for computing k in entanglement spectrum
+    global Lx,Ly
+    global algrithm_CTMRG_settings
+    #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
+    ########################
+    CTM_trun_tol=ctm_setting.CTM_trun_tol;
+    CTM_ite_info=ctm_setting.CTM_ite_info;
+    CTM_conv_info=ctm_setting.CTM_conv_info;
+    projector_strategy=ctm_setting.projector_strategy;
+    CTM_trun_svd=ctm_setting.CTM_trun_svd;
+    svd_lanczos_tol=ctm_setting.svd_lanczos_tol;
+    CTM_ite_nums=ctm_setting.CTM_ite_nums;
+    construct_double_layer=ctm_setting.construct_double_layer;
+    #######################
+    if (CTM_trun_svd==true) & (projector_strategy=="4x4")
+        println("Attention: truncated svd with 4x4 projector could give large error");
+    end
+
+    #initial corner transfer matrix
+    if init.reconstruct_AA
+        AA_fused_cell=initial_tuple_cell(Lx,Ly);
+        U_L_cell=initial_tuple_cell(Lx,Ly);
+        U_D_cell=initial_tuple_cell(Lx,Ly);
+        U_R_cell=initial_tuple_cell(Lx,Ly);
+        U_U_cell=initial_tuple_cell(Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                AA_fused_, U_L_,U_D_,U_R_,U_U_=build_double_layer_swap(A_cell[cx][cy]',A_cell[cx][mod1(cy+1,Ly)]);
+                AA_fused_cell=fill_tuple(AA_fused_cell, AA_fused_, cx,cy);
+                U_L_cell=fill_tuple(U_L_cell, U_L_, cx,cy);
+                U_D_cell=fill_tuple(U_D_cell, U_D_, cx,cy);
+                U_R_cell=fill_tuple(U_R_cell, U_R_, cx,cy);
+                U_U_cell=fill_tuple(U_U_cell, U_U_, cx,cy);
+            end
+        end
+        AA_memory=@ignore_derivatives Base.summarysize(AA_fused_cell)/1024/1024;
+        @ignore_derivatives if CTM_ite_info
+            println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
+        end
+    else
+        AA_fused_cell=auxi_tensors.AA_fused_cell;
+        U_L_cell=auxi_tensors.U_L_cell;
+        U_D_cell=auxi_tensors.U_D_cell;
+        U_R_cell=auxi_tensors.U_R_cell;
+        U_U_cell=auxi_tensors.U_U_cell;
+    end
+
+    if init.reconstruct_CTM
+        CTM_cell= init_CTM_cell(chi,A_cell,AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,  init.init_type,CTM_ite_info);
+    else
+        CTM_cell=deepcopy(CTM0);
+    end
+    
+    ss_old1_cell= Matrix(undef,Lx,Ly);
+    ss_old2_cell= Matrix(undef,Lx,Ly);
+    ss_old3_cell= Matrix(undef,Lx,Ly);
+    ss_old4_cell= Matrix(undef,Lx,Ly);
+    ss_new1_cell= Matrix(undef,Lx,Ly);
+    ss_new2_cell= Matrix(undef,Lx,Ly);
+    ss_new3_cell= Matrix(undef,Lx,Ly);
+    ss_new4_cell= Matrix(undef,Lx,Ly);
+    er1_cell= Matrix(undef,Lx,Ly);
+    er2_cell= Matrix(undef,Lx,Ly);
+    er3_cell= Matrix(undef,Lx,Ly);
+    er4_cell= ones(Lx,Ly);
+
+
+    Cset_cell=CTM_cell.Cset;
+    Tset_cell=CTM_cell.Tset;
+    conv_check="singular_value"
+
+    @ignore_derivatives for cx=1:Lx
+        for cy=1:Ly
+            ss_old1_cell[cx,cy]=ones(chi)*2;
+            ss_old2_cell[cx,cy]=ones(chi)*2;
+            ss_old3_cell[cx,cy]=ones(chi)*2;
+            ss_old4_cell[cx,cy]=ones(chi)*2;
+        end
+    end
+    d=2;
+    rho_old=Matrix(I,d^3,d^3);
+
+    #Iteration
+
+    print_corner=false;
+    C1_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    C2_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    C3_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    C4_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    @ignore_derivatives if print_corner
+        for cx=1:Lx
+            for cy=1:Ly
+                println("cell position: "*string([cx,cy]))
+                println("corner 4:")
+                C4_spec=svdvals(convert(Array,Cset[4][cx,cy]));
+                C4_spec_cell[cx,cy]=C4_spec/C4_spec[1];
+                println(C4_spec);
+                println("corner 1:")
+                C1_spec=svdvals(convert(Array,Cset[1][cx,cy]));
+                C1_spec_cell[cx,cy]=C1_spec/C1_spec[1];
+                println(C1_spec);
+                println("corner 3:")
+                C3_spec=svdvals(convert(Array,Cset[3][cx,cy]));
+                C3_spec_cell[cx,cy]=C3_spec/C3_spec[1];
+                println(C3_spec);
+                println("corner 2:")
+                C2_spec=svdvals(convert(Array,Cset[2][cx,cy]));
+                C2_spec_cell[cx,cy]=C2_spec/C2_spec[1];
+                println(C2_spec);
+            end
+        end
+        println("CTM init finished")
+    end
+    
+    if construct_double_layer
+        AA_rotated_cell=rotate_AA_cell(AA_fused_cell,construct_double_layer);
+    else
+        AA_rotated_cell=rotate_AA(A_cell,construct_double_layer);
+    end
+
+
+    @ignore_derivatives if CTM_ite_info
+        println("start CTM iterations:")
+    end
+    ite_num=0;
+    ite_err=1;
+    err_set=1;
+    
+    if algrithm_CTMRG_settings.CTM_cell_ite_method== "together_update"
+        CTM_ite_cell=CTM_ite_cell_together_update;
+    elseif algrithm_CTMRG_settings.CTM_cell_ite_method== "continuous_update"
+        CTM_ite_cell=CTM_ite_cell_continuous_update;
+    end
+
+    for ci=1:CTM_ite_nums
+        ite_num=ci;
+        #direction_order=[1,2,3,4];
+        #direction_order=[4,1,2,3];
+        direction_order=[3,4,1,2];
+        for direction in direction_order
+
+            if ctm_setting.grad_checkpoint #use checkpoint to save memory
+                Cset_cell,Tset_cell= Zygote.checkpointed(CTM_ite_cell, Cset_cell, Tset_cell, get_Tset(AA_rotated_cell, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            else
+                Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, get_Tset(AA_rotated_cell, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            end
+        end
+
+        print_corner=false;
+        @ignore_derivatives if print_corner
+            for cx=1:Lx
+                for cy=1:Ly
+                    println("cell position: "*string([cx,cy]))
+                    println("corner 4:")
+                    C4_spec=svdvals(convert(Array,Cset[4][cx,cy]));
+                    C4_spec_cell[cx,cy]=C4_spec/C4_spec[1];
+                    println(C4_spec);
+                    println("corner 1:")
+                    C1_spec=svdvals(convert(Array,Cset[1][cx,cy]));
+                    C1_spec_cell[cx,cy]=C1_spec/C1_spec[1];
+                    println(C1_spec);
+                    println("corner 3:")
+                    C3_spec=svdvals(convert(Array,Cset[3][cx,cy]));
+                    C3_spec_cell[cx,cy]=C3_spec/C3_spec[1];
+                    println(C3_spec);
+                    println("corner 2:")
+                    C2_spec=svdvals(convert(Array,Cset[2][cx,cy]));
+                    C2_spec_cell[cx,cy]=C2_spec/C2_spec[1];
+                    println(C2_spec);
+                end
+            end
+            println("next iteration:")
+        end
+        
+
+
+        if conv_check=="singular_value" #check convergence of singular value
+            for cx=1:Lx
+                for cy=1:Ly
+                    er1,ss_new1=@ignore_derivatives spectrum_conv_check(ss_old1_cell[cx,cy],Cset_cell[cx][cy].C1);
+                    er2,ss_new2=@ignore_derivatives spectrum_conv_check(ss_old2_cell[cx,cy],Cset_cell[cx][cy].C2);
+                    er3,ss_new3=@ignore_derivatives spectrum_conv_check(ss_old3_cell[cx,cy],Cset_cell[cx][cy].C3);
+                    er4,ss_new4=@ignore_derivatives spectrum_conv_check(ss_old4_cell[cx,cy],Cset_cell[cx][cy].C4);
+
+                    # println([cx,cy])
+                    # println(ss_new1)
+                    # println(ss_new2)
+                    # println(ss_new3)
+                    # println(ss_new4)
+                    
+
+                    @ignore_derivatives er1_cell[cx,cy]=er1;
+                    @ignore_derivatives er2_cell[cx,cy]=er2;
+                    @ignore_derivatives er3_cell[cx,cy]=er3;
+                    @ignore_derivatives er4_cell[cx,cy]=er4;
+                    @ignore_derivatives ss_new1_cell[cx,cy]=ss_new1;
+                    @ignore_derivatives ss_new2_cell[cx,cy]=ss_new2;
+                    @ignore_derivatives ss_new3_cell[cx,cy]=ss_new3;
+                    @ignore_derivatives ss_new4_cell[cx,cy]=ss_new4;
+
+                end
+            end
+
+            er=@ignore_derivatives maximum([maximum(er1_cell[:]),maximum(er2_cell[:]),maximum(er3_cell[:]),maximum(er4_cell[:])]);
+            err_set=vcat(err_set,er);
+
+            ite_err=er;
+            if CTM_ite_info
+                println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));flush(stdout);
+            end
+            if er<ctm_setting.CTM_conv_tol
+                break;
+            end
+
+            if ci>30
+                err_recent=err_set[end-10:end];
+                Std=std(err_recent)/mean(err_recent);
+                if (Std<0.001)&(er>1e-4)
+                    break;
+                end
+
+            end
+
+            ss_old1_cell=ss_new1_cell;
+            ss_old2_cell=ss_new2_cell;
+            ss_old3_cell=ss_new3_cell;
+            ss_old4_cell=ss_new4_cell;
+        elseif conv_check=="density_matrix" #check reduced density matrix
+        end
+    end
+
+    CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
+    if CTM_conv_info
+        return CTM_cell, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
+    else
+        return CTM_cell, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
+    end
+
+end

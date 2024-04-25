@@ -80,11 +80,16 @@ CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic
 #get T tensors
 ca=1;
 cb=1;
-TL=CTM_cell.Tset[ca][cb].T4;
-TR=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
+TL01=CTM_cell.Tset[ca][cb].T4;
+TR01=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
 U_L=U_L_cell[ca][cb];
 U_R=U_R_cell[ca+1][cb];
 
+cb=2;
+TL02=CTM_cell.Tset[ca][cb].T4;
+TR02=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
+U_L=U_L_cell[ca][cb];
+U_R=U_R_cell[ca+1][cb];
 #############################
 #extra swap gate that was not included when construct double layer tensor
 gate=swap_gate(U_L,2,3);
@@ -92,29 +97,33 @@ gate=swap_gate(U_L,2,3);
 gate=swap_gate(U_R,1,2);
 @tensor U_R_new[:]:=U_R'[-1,1,2]*gate[1,2,3,4]*U_R[3,4,-2];
 
-@tensor TL[:]:=TL[-1,1,-3]*U_R_new'[-2,1]; 
-@tensor TR[:]:=TR[-1,1,-3]*U_L_new'[-2,1]; 
+@tensor TL01[:]:=TL01[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR01[:]:=TR01[-1,1,-3]*U_L_new'[-2,1];
+@tensor TL02[:]:=TL02[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR02[:]:=TR02[-1,1,-3]*U_L_new'[-2,1]; 
 
-TL=TL*10;
-TR=TR*10;
+TL01=TL01*10;
+TR01=TR01*10;
+TL02=TL02*10;
+TR02=TR02*10;
 #############################
-TL1=deepcopy(TL);
-TL2=deepcopy(TL);
-TL3=deepcopy(TL);
-TL4=deepcopy(TL);
-TL5=deepcopy(TL);
-TL6=deepcopy(TL);
-TL7=deepcopy(TL);
-TL8=deepcopy(TL);
+TL1=deepcopy(TL01);
+TL2=deepcopy(TL02);
+TL3=deepcopy(TL01);
+TL4=deepcopy(TL02);
+TL5=deepcopy(TL01);
+TL6=deepcopy(TL02);
+TL7=deepcopy(TL01);
+TL8=deepcopy(TL02);
 
-TR1=deepcopy(TR);
-TR2=deepcopy(TR);
-TR3=deepcopy(TR);
-TR4=deepcopy(TR);
-TR5=deepcopy(TR);
-TR6=deepcopy(TR);
-TR7=deepcopy(TR);
-TR8=deepcopy(TR);
+TR1=deepcopy(TR01);
+TR2=deepcopy(TR02);
+TR3=deepcopy(TR01);
+TR4=deepcopy(TR02);
+TR5=deepcopy(TR01);
+TR6=deepcopy(TR02);
+TR7=deepcopy(TR01);
+TR8=deepcopy(TR02);
 
 #############################
 #extra parity gate from crossing
@@ -366,7 +375,6 @@ if y_anti_pbc
 else
     matnm="ES_CTM_D"*string(D)*"_Nv8_PBC"*".mat";
 end
-
 matwrite(matnm, Dict(
     "k_phase" => k_phase,
     "eu" => eu,

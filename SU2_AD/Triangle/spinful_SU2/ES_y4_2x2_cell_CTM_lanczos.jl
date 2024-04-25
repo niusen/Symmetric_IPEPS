@@ -16,17 +16,18 @@ include("..\\..\\src\\bosonic\\Settings.jl")
 include("..\\..\\src\\bosonic\\Settings_cell.jl")
 include("..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
-y_anti_pbc=false;
-filenm="Optim_cell_LS_D_4_chi_40_2.368055.jld2";
+y_anti_pbc=true;
+filenm="stochastic_iPESS_LS_D_6_chi_40_4.079_csl.jld2";
 data=load(filenm);
 # A=data["x"][1].T;
 # B=data["x"][2].T;
 state=data["x"]
+# state=data["T_set"]
 #convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
 
 
@@ -37,7 +38,7 @@ global algrithm_CTMRG_settings
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=10;
+LS_ctm_setting.CTM_ite_nums=30;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -57,9 +58,10 @@ for ca=1:Lx
         if isa(state[ca,cb],Square_iPEPS)
             A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
         elseif isa(state[ca,cb],Triangle_iPESS)
-            A0=iPESS_to_iPEPS(state[ca,cb]).T;
-            A0=A0/norm(A0)*10;
-            A_cell=fill_tuple(A_cell, A0, ca,cb);
+            A0=iPESS_to_iPEPS(state[ca,cb])
+            A_cell=fill_tuple(A_cell, A0.T, ca,cb);
+        elseif isa(state[ca,cb],TensorMap)
+            A_cell=fill_tuple(A_cell, state[ca,cb], ca,cb);
         else
             error("unknown type ansatz")
         end
@@ -80,8 +82,14 @@ CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic
 #get T tensors
 ca=1;
 cb=1;
-TL=CTM_cell.Tset[ca][cb].T4;
-TR=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
+TL01=CTM_cell.Tset[ca][cb].T4;
+TR01=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
+U_L=U_L_cell[ca][cb];
+U_R=U_R_cell[ca+1][cb];
+
+cb=2;
+TL02=CTM_cell.Tset[ca][cb].T4;
+TR02=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
 U_L=U_L_cell[ca][cb];
 U_R=U_R_cell[ca+1][cb];
 
@@ -92,25 +100,25 @@ gate=swap_gate(U_L,2,3);
 gate=swap_gate(U_R,1,2);
 @tensor U_R_new[:]:=U_R'[-1,1,2]*gate[1,2,3,4]*U_R[3,4,-2];
 
-@tensor TL[:]:=TL[-1,1,-3]*U_R_new'[-2,1]; 
-@tensor TR[:]:=TR[-1,1,-3]*U_L_new'[-2,1]; 
+@tensor TL01[:]:=TL01[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR01[:]:=TR01[-1,1,-3]*U_L_new'[-2,1]; 
+@tensor TL02[:]:=TL02[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR02[:]:=TR02[-1,1,-3]*U_L_new'[-2,1]; 
 
-TL=TL*10;
-TR=TR*10;
+TL01=TL01*10;
+TR01=TR01*10;
+TL02=TL02*10;
+TR02=TR02*10;
 #############################
-TL1=deepcopy(TL);
-TL2=deepcopy(TL);
-TL3=deepcopy(TL);
-TL4=deepcopy(TL);
-TL5=deepcopy(TL);
-TL6=deepcopy(TL);
+TL1=deepcopy(TL01);
+TL2=deepcopy(TL02);
+TL3=deepcopy(TL01);
+TL4=deepcopy(TL02);
 
-TR1=deepcopy(TR);
-TR2=deepcopy(TR);
-TR3=deepcopy(TR);
-TR4=deepcopy(TR);
-TR5=deepcopy(TR);
-TR6=deepcopy(TR);
+TR1=deepcopy(TR01);
+TR2=deepcopy(TR02);
+TR3=deepcopy(TR01);
+TR4=deepcopy(TR02);
 
 #############################
 #extra parity gate from crossing
@@ -132,20 +140,16 @@ end
 @tensor TL2[:]:=TL2[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
 @tensor TL3[:]:=TL3[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
 @tensor TL4[:]:=TL4[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
-@tensor TL5[:]:=TL5[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
-@tensor TL6[:]:=TL6[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
 
 @tensor TR1[:]:=TR1[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
 @tensor TR2[:]:=TR2[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
 @tensor TR3[:]:=TR3[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
 @tensor TR4[:]:=TR4[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
-@tensor TR5[:]:=TR5[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
-@tensor TR6[:]:=TR6[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
 
 #############################
 #apply on-site swap gate on T tensors
-TL_set=[TL1,TL2,TL3,TL4,TL5,TL6];
-TR_set=[TR1,TR2,TR3,TR4,TR5,TR6];
+TL_set=[TL1,TL2,TL3,TL4];
+TR_set=[TR1,TR2,TR3,TR4];
 for cc=1:length(TL_set)-1
     tl=TL_set[cc];
     gate=swap_gate(tl,2,3);
@@ -158,8 +162,8 @@ for cc=1:length(TL_set)-1
     TR_set[cc]=tr;
 end
 
-TL1,TL2,TL3,TL4,TL5,TL6=TL_set;
-TR1,TR2,TR3,TR4,TR5,TR6=TR_set;
+TL1,TL2,TL3,TL4=TL_set;
+TR1,TR2,TR3,TR4=TR_set;
 
 #############################
 P_odda,P_evena=projector_parity(space(TL1,4));
@@ -170,43 +174,33 @@ P_setb=[P_oddb,P_evenb];
 
 gate_middle=parity_gate(TL1,3);
 
-function vr_ML_MR(vr0,  TL_set,TR_set, P_seta,P_setb, gate_middle)
-    println("apply Mr");flush(stdout);
-    TL1,TL2,TL3,TL4,TL5,TL6=TL_set;
-    TR1,TR2,TR3,TR4,TR5,TR6=TR_set;
+function vr_ML_MR(vr0,  TL1,TL2,TL3,TL4,TR1,TR2,TR3,TR4, P_seta,P_setb, gate_middle)
+    println("apply Mr")
     vr=deepcopy(vr0)*0;
     for ca=1:2#parity of index U in ML
         @tensor TL1_tem[:]:=TL1[-1,-2,-3,1]*P_seta[ca][-4,1];
         TL2_tem=deepcopy(TL2);
         TL3_tem=deepcopy(TL3);
-        TL4_tem=deepcopy(TL4);
-        TL5_tem=deepcopy(TL5);
-        @tensor TL6_tem[:]:=TL6[-1,1,-3,-4]*P_seta[ca]'[1,-2];
+        @tensor TL4_tem[:]:=TL4[-1,1,-3,-4]*P_seta[ca]'[1,-2];
         if mod(ca,2)==1
             @tensor TL1_tem[:]:=TL1_tem[-1,-2,1,-4]*gate_middle[-3,1];
             @tensor TL2_tem[:]:=TL2_tem[-1,-2,1,-4]*gate_middle[-3,1];
             @tensor TL3_tem[:]:=TL3_tem[-1,-2,1,-4]*gate_middle[-3,1];
-            @tensor TL4_tem[:]:=TL4_tem[-1,-2,1,-4]*gate_middle[-3,1];
-            @tensor TL5_tem[:]:=TL5_tem[-1,-2,1,-4]*gate_middle[-3,1];
         end
         for cb=1:2#parity of index U in MR
             @tensor TR1_tem[:]:=TR1[-1,-2,-3,1]*P_setb[cb][-4,1];
             TR2_tem=deepcopy(TR2);
             TR3_tem=deepcopy(TR3);
-            TR4_tem=deepcopy(TR4);
-            TR5_tem=deepcopy(TR5);
-            @tensor TR6_tem[:]:=TR6[-1,1,-3,-4]*P_setb[cb]'[1,-2];
+            @tensor TR4_tem[:]:=TR4[-1,1,-3,-4]*P_setb[cb]'[1,-2];
             if mod(cb,2)==1
                 @tensor TR1_tem[:]:=TR1_tem[1,-2,-3,-4]*gate_middle'[1,-1];
                 @tensor TR2_tem[:]:=TR2_tem[1,-2,-3,-4]*gate_middle'[1,-1];
                 @tensor TR3_tem[:]:=TR3_tem[1,-2,-3,-4]*gate_middle'[1,-1];
-                @tensor TR4_tem[:]:=TR4_tem[1,-2,-3,-4]*gate_middle'[1,-1];
-                @tensor TR5_tem[:]:=TR5_tem[1,-2,-3,-4]*gate_middle'[1,-1];
             end
 
             
-            @tensor vr_temp[:]:=TR1_tem[-1,2,1,12]*TR2_tem[-2,4,3,2]*TR3_tem[-3,6,5,4]*TR4_tem[-4,8,7,6]*TR5_tem[-5,10,9,8]*TR6_tem[-6,12,11,10]*vr0[1,3,5,7,9,11,-7];
-            @tensor vr_temp[:]:=TL1_tem[-1,2,1,12]*TL2_tem[-2,4,3,2]*TL3_tem[-3,6,5,4]*TL4_tem[-4,8,7,6]*TL5_tem[-5,10,9,8]*TL6_tem[-6,12,11,10]*vr_temp[1,3,5,7,9,11,-7];
+            @tensor vr_temp[:]:=TR1_tem[-1,2,1,8]*TR2_tem[-2,4,3,2]*TR3_tem[-3,6,5,4]*TR4_tem[-4,8,7,6]*vr0[1,3,5,7,-5];
+            @tensor vr_temp[:]:=TL1_tem[-1,2,1,8]*TL2_tem[-2,4,3,2]*TL3_tem[-3,6,5,4]*TL4_tem[-4,8,7,6]*vr_temp[1,3,5,7,-5];
             vr=vr+vr_temp;
         end
     end
@@ -216,43 +210,58 @@ end
 function compute_k(ev,y_anti_pbc)
     ev0=deepcopy(ev);
     if y_anti_pbc
-        ev=permute(ev,(1,2,3,4,5,6,7,));#L1',L2',L3',L4',dummy
-        op=parity_gate(ev,6);
-        @tensor ev_translation[:]:=op[1,-1]*ev'[1,-2,-3,-4,-5,-6,-7];
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),1,2,7);#L2',L1',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,7);#L2',L3',L1',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,7);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),4,5,7);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),5,6,7);#L2',L3',L4',L1',dummy
+        ev=permute(ev,(1,2,3,4,5,));#L1',L2',L3',L4',dummy
+        op=parity_gate(ev,4);
+        ev_translation=deepcopy(ev');
+        @tensor ev_translation[:]:=op[1,-1]*ev_translation[1,-2,-3,-4,-5];
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),1,2,5);#L2',L1',L3',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,5);#L2',L3',L1',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,5);#L2',L3',L4',L1',dummy
+        #second translation
+        @tensor ev_translation[:]:=op[1,-1]*ev_translation[1,-2,-3,-4,-5];
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),1,2,5);#L2',L1',L3',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,5);#L2',L3',L1',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,5);#L2',L3',L4',L1',dummy
     else
-        ev=permute(ev,(1,2,3,4,5,6,7,));#L1',L2',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev'),1,2,7);#L2',L1',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,7);#L2',L3',L1',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,7);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),4,5,7);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),5,6,7);#L2',L3',L4',L1',dummy
+        ev=permute(ev,(1,2,3,4,5,));#L1',L2',L3',L4',dummy
+        ev_translation=deepcopy(ev');
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),1,2,5);#L2',L1',L3',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,5);#L2',L3',L1',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,5);#L2',L3',L4',L1',dummy
+        #second translation
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),1,2,5);#L2',L1',L3',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,5);#L2',L3',L1',L4',dummy
+        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,5);#L2',L3',L4',L1',dummy
     end
     
     
-    kphase=@tensor ev_translation[1,2,3,4,5,6,7]*ev[1,2,3,4,5,6,7];
-    Norm=@tensor ev0'[1,2,3,4,5,6,7]*ev0[1,2,3,4,5,6,7];
+    kphase=@tensor ev_translation[1,2,3,4,5]*ev[1,2,3,4,5];
+    Norm=@tensor ev0'[1,2,3,4,5]*ev0[1,2,3,4,5];
     kphase=kphase/Norm
     return kphase'
 end
 
-Spin_set=[0,1/2,1,3/2,2,5/2];
-n_Es=[100,80,40,30,20,20];
+if isa(space(TL1,1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+    Spin_set=[0,1];
+elseif isa(space(TL1,1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    Spin_set=[0,1/2,1,3/2,2,5/2];
+end
 eu=Vector{ComplexF64}(undef,0);
 k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 for ss=1:length(Spin_set)
-    v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1)*space(TL5,1)*space(TL6,1),Rep[SU₂](Spin_set[ss]=>1));
-    v_init=permute(v_init,(1,2,3,4,5,6,7,),());#L1,L2,L3,L4,dummy
+    if isa(space(TL1,1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1),Rep[ℤ₂](Spin_set[ss]=>1));
+    elseif isa(space(TL1,1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1),Rep[SU₂](Spin_set[ss]=>1));
+    end
+    
+    v_init=permute(v_init,(1,2,3,4,5,),());#L1,L2,L3,L4,dummy
     if norm(v_init)==0
         continue;
     end
-    contraction_fun_R(x)=vr_ML_MR(x, TL_set,TR_set, P_seta,P_setb, gate_middle);
-    @time eu0,ev=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+20));
+    contraction_fun_R(x)=vr_ML_MR(x, TL1,TL2,TL3,TL4,TR1,TR2,TR3,TR4, P_seta,P_setb, gate_middle);
+    @time eu0,ev=eigsolve(contraction_fun_R, v_init, 30,:LM,Arnoldi(krylovdim=40));
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
     for cc=1:length(eu0)
@@ -279,12 +288,13 @@ Spin=Spin[order]
 
 
 ##########################
+
 D=dim(space(A_cell[1][1],1));
 
 if y_anti_pbc
-    matnm="ES_CTM_D"*string(D)*"_Nv6_APBC"*".mat";
+    matnm="ES_CTM_D"*string(D)*"_Nv4_APBC"*".mat";
 else
-    matnm="ES_CTM_D"*string(D)*"_Nv6_PBC"*".mat";
+    matnm="ES_CTM_D"*string(D)*"_Nv4_PBC"*".mat";
 end
 matwrite(matnm, Dict(
     "k_phase" => k_phase,

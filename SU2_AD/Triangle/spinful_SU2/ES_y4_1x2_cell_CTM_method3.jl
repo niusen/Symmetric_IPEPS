@@ -19,6 +19,7 @@ include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
+include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
 y_anti_pbc=true;
 filenm="Optim_cell_LS_D_4_chi_40_2.368055.jld2";
@@ -210,11 +211,12 @@ Spin=Spin[order]
 
 
 ##########################
+D=dim(space(A_cell[1][1],1));
 
 if y_anti_pbc
-    matnm="ES_unprojected_M1_Nv4_APBC"*".mat";
+    matnm="ES_CTM_D"*string(D)*"_Nv4_APBC"*".mat";
 else
-    matnm="ES_unprojected_M1_Nv4_PBC"*".mat";
+    matnm="ES_CTM_D"*string(D)*"_Nv4_PBC"*".mat";
 end
 matwrite(matnm, Dict(
     "k_phase" => k_phase,

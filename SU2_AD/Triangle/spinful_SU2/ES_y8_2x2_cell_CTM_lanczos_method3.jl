@@ -21,70 +21,92 @@ include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
 include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
+global y_anti_pbc,D
 y_anti_pbc=true;
-filenm="stochastic_iPESS_LS_D_8_chi_40_3.44937.jld2";
-data=load(filenm);
-# A=data["x"][1].T;
-# B=data["x"][2].T;
-state=data["x"]
-#convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
+function get_CTM(y_translation)
+    chi=40;
+    filenm="stochastic_iPESS_LS_D_8_chi_40_3.44937.jld2";
+    data=load(filenm);
+    # A=data["x"][1].T;
+    # B=data["x"][2].T;
+    state=data["x"]
+    #convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
 
 
-algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
-algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
-dump(algrithm_CTMRG_settings);
-global algrithm_CTMRG_settings
+    algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+    algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+    dump(algrithm_CTMRG_settings);
+    global algrithm_CTMRG_settings
 
-LS_ctm_setting=LS_CTMRG_settings();
-LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=30;
-LS_ctm_setting.CTM_trun_tol=1e-8;
-LS_ctm_setting.svd_lanczos_tol=1e-8;
-LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
-LS_ctm_setting.conv_check="singular_value";
-LS_ctm_setting.CTM_ite_info=true;
-LS_ctm_setting.CTM_conv_info=true;
-LS_ctm_setting.CTM_trun_svd=false;
-LS_ctm_setting.construct_double_layer=true;
-LS_ctm_setting.grad_checkpoint=true;
-dump(LS_ctm_setting);
+    LS_ctm_setting=LS_CTMRG_settings();
+    LS_ctm_setting.CTM_conv_tol=1e-6;
+    LS_ctm_setting.CTM_ite_nums=30;
+    LS_ctm_setting.CTM_trun_tol=1e-8;
+    LS_ctm_setting.svd_lanczos_tol=1e-8;
+    LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+    LS_ctm_setting.conv_check="singular_value";
+    LS_ctm_setting.CTM_ite_info=true;
+    LS_ctm_setting.CTM_conv_info=true;
+    LS_ctm_setting.CTM_trun_svd=false;
+    LS_ctm_setting.construct_double_layer=true;
+    LS_ctm_setting.grad_checkpoint=true;
+    dump(LS_ctm_setting);
 
-global Lx,Ly
-Lx,Ly=size(state);
-A_cell=initial_tuple_cell(Lx,Ly);
-for ca=1:Lx
-    for cb=1:Ly
-        if isa(state[ca,cb],Square_iPEPS)
-            A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
-        elseif isa(state[ca,cb],Triangle_iPESS)
-            A0=iPESS_to_iPEPS(state[ca,cb]).T;
-            A0=A0/norm(A0)*10;
-            A_cell=fill_tuple(A_cell, A0, ca,cb);
-        else
-            error("unknown type ansatz")
+    global Lx,Ly
+    Lx,Ly=size(state);
+    A_cell=initial_tuple_cell(Lx,Ly);
+    for ca=1:Lx
+        for cb=1:Ly
+            if isa(state[ca,cb],Square_iPEPS)
+                A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
+            elseif isa(state[ca,cb],Triangle_iPESS)
+                A0=iPESS_to_iPEPS(state[ca,cb]).T;
+                A0=A0/norm(A0)*10;
+                A_cell=fill_tuple(A_cell, A0, ca,cb);
+            else
+                error("unknown type ansatz")
+            end
         end
     end
+    global D
+    D=dim(space(A_cell[1][1],1));
+
+    ##################################
+    global chi,multiplet_tol,projector_trun_tol
+    multiplet_tol=1e-5;
+    projector_trun_tol=LS_ctm_setting.CTM_trun_tol
+    ###################################
+
+
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    if y_translation
+        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_y_translate(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    else
+        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    end
+    return CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
 end
+#############################
 
-##################################
-global chi,multiplet_tol,projector_trun_tol
-multiplet_tol=1e-5;
-projector_trun_tol=LS_ctm_setting.CTM_trun_tol
-###################################
+y_translation=false;
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation);
+y_translation=true;
+CTM_cell_tran, AA_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran=get_CTM(y_translation);
 
-
-chi=40;
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
 #############################
 #get T tensors
 ca=1;
 cb=1;
-TL=CTM_cell.Tset[ca][cb].T4;
-TR=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
+TL01=CTM_cell.Tset[ca][cb].T4;
+TR01=CTM_cell_tran.Tset[mod1(ca+1,Lx)][cb].T2;
 U_L=U_L_cell[ca][cb];
-U_R=U_R_cell[ca+1][cb];
+U_R=U_R_cell_tran[ca+1][cb];
 
+cb=2;
+TL02=CTM_cell.Tset[ca][cb].T4;
+TR02=CTM_cell_tran.Tset[mod1(ca+1,Lx)][cb].T2;
+U_L=U_L_cell[ca][cb];
+U_R=U_R_cell_tran[ca+1][cb];
 #############################
 #extra swap gate that was not included when construct double layer tensor
 gate=swap_gate(U_L,2,3);
@@ -92,29 +114,33 @@ gate=swap_gate(U_L,2,3);
 gate=swap_gate(U_R,1,2);
 @tensor U_R_new[:]:=U_R'[-1,1,2]*gate[1,2,3,4]*U_R[3,4,-2];
 
-@tensor TL[:]:=TL[-1,1,-3]*U_R_new'[-2,1]; 
-@tensor TR[:]:=TR[-1,1,-3]*U_L_new'[-2,1]; 
+@tensor TL01[:]:=TL01[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR01[:]:=TR01[-1,1,-3]*U_L_new'[-2,1];
+@tensor TL02[:]:=TL02[-1,1,-3]*U_R_new'[-2,1]; 
+@tensor TR02[:]:=TR02[-1,1,-3]*U_L_new'[-2,1]; 
 
-TL=TL*10;
-TR=TR*10;
+TL01=TL01*10;
+TR01=TR01*10;
+TL02=TL02*10;
+TR02=TR02*10;
 #############################
-TL1=deepcopy(TL);
-TL2=deepcopy(TL);
-TL3=deepcopy(TL);
-TL4=deepcopy(TL);
-TL5=deepcopy(TL);
-TL6=deepcopy(TL);
-TL7=deepcopy(TL);
-TL8=deepcopy(TL);
+TL1=deepcopy(TL01);
+TL2=deepcopy(TL02);
+TL3=deepcopy(TL01);
+TL4=deepcopy(TL02);
+TL5=deepcopy(TL01);
+TL6=deepcopy(TL02);
+TL7=deepcopy(TL01);
+TL8=deepcopy(TL02);
 
-TR1=deepcopy(TR);
-TR2=deepcopy(TR);
-TR3=deepcopy(TR);
-TR4=deepcopy(TR);
-TR5=deepcopy(TR);
-TR6=deepcopy(TR);
-TR7=deepcopy(TR);
-TR8=deepcopy(TR);
+TR1=deepcopy(TR01);
+TR2=deepcopy(TR02);
+TR3=deepcopy(TR01);
+TR4=deepcopy(TR02);
+TR5=deepcopy(TR01);
+TR6=deepcopy(TR02);
+TR7=deepcopy(TR01);
+TR8=deepcopy(TR02);
 
 #############################
 #extra parity gate from crossing
@@ -238,10 +264,25 @@ gate_middle45=parity_gate(TL45,3);
 gate_middle67=parity_gate(TL67,3);
 gate_middle_set=(gate_middle1,gate_middle23,gate_middle45,gate_middle67,);
 
-
+global U_D_D1a,U_D_D2a,U_D_D3a
+@assert norm(U_D_D1a-U_D_D2a)<1e-10;#ensure the same virtual space, otherwise need to be very careful
+@assert norm(U_D_D2a-U_D_D3a)<1e-10;#ensure the same virtual space, otherwise need to be very careful
 
 function vr_ML_MR(vr0,  TL_set,TR_set, gate_middle_set)
     println("apply Mr");flush(stdout);
+    ################
+    global U_D_D1a,y_anti_pbc
+    if y_anti_pbc
+        op=parity_gate(vr0,1);
+        @tensor vr0[:]:=op[-1,1]*vr0[1,-2,-3,-4,-5,-6];
+    end
+    vr0=permute_neighbour_ind(vr0,1,2,6);
+    vr0=permute_neighbour_ind(vr0,2,3,6);
+    vr0=permute_neighbour_ind(vr0,3,4,6);
+    vr0=permute_neighbour_ind(vr0,4,5,6);
+    @tensor vr0[:]:=vr0[7,4,1,3,-5,-6]*U_D_D1a'[-1,8,7]*U_D_D1a'[9,5,4]*U_D_D1a'[6,2,1]*U_D_D1a[-2,8,9]*U_D_D1a[-3,5,6]*U_D_D1a[-4,2,3];
+    ################
+
     TL1_set,TL23,TL45,TL67,TL8_set=TL_set;
     TR1_set,TR23,TR45,TR67,TR8_set=TR_set;
     vr=deepcopy(vr0)*0;
@@ -287,38 +328,6 @@ function vr_ML_MR(vr0,  TL_set,TR_set, gate_middle_set)
     return vr
 end
 
-function compute_k(ev,U_D_D_set,y_anti_pbc)
-    ev0=deepcopy(ev);
-    U_D_D1,U_D_D2,U_D_D3=U_D_D_set;
-    @tensor ev[:]:=ev[-1,2,3,4,-8,-9]*U_D_D1'[-2,-3,2]*U_D_D2'[-4,-5,3]*U_D_D3'[-6,-7,4];
-    if y_anti_pbc
-        ev=permute(ev,(1,2,3,4,5,6,7,8,9,));#L1',L2',L3',L4',dummy
-        op=parity_gate(ev,8);
-        @tensor ev_translation[:]:=op[1,-1]*ev'[1,-2,-3,-4,-5,-6,-7,-8,-9];
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),1,2,9);#L2',L1',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,9);#L2',L3',L1',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),4,5,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),5,6,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),6,7,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),7,8,9);#L2',L3',L4',L1',dummy
-    else
-        ev=permute(ev,(1,2,3,4,5,6,7,8,9,));#L1',L2',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev'),1,2,9);#L2',L1',L3',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),2,3,9);#L2',L3',L1',L4',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),3,4,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),4,5,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),5,6,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),6,7,9);#L2',L3',L4',L1',dummy
-        ev_translation=permute_neighbour_ind(deepcopy(ev_translation),7,8,9);#L2',L3',L4',L1',dummy
-    end
-    
-    
-    kphase=@tensor ev_translation[1,2,3,4,5,6,7,8,9]*ev[1,2,3,4,5,6,7,8,9];
-    Norm=@tensor ev0'[1,2,3,4,5,6]*ev0[1,2,3,4,5,6];
-    kphase=kphase/Norm
-    return kphase'
-end
 
 Spin_set=[0,1/2,1,3/2,2,5/2];
 n_Es=[100,80,40,30,20,20];
@@ -336,7 +345,7 @@ for ss=1:length(Spin_set)
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
     for cc=1:length(eu0)
-        ks[cc]=compute_k(ev[cc],U_D_D_seta,y_anti_pbc);
+        ks[cc]=eu0[cc]/abs(eu0[cc]);
         spins[cc]=Spin_set[ss];
     end
     eu=vcat(eu,eu0);
@@ -346,7 +355,7 @@ end
 
 ##############################
 
-eu=eu/sum(eu);
+
 println(sort(abs.(eu)))
 
 order=sortperm(abs.(eu));
@@ -359,14 +368,13 @@ Spin=Spin[order]
 
 
 ##########################
-D=dim(space(A_cell[1][1],1));
+
 
 if y_anti_pbc
     matnm="ES_CTM_D"*string(D)*"_Nv8_APBC"*".mat";
 else
     matnm="ES_CTM_D"*string(D)*"_Nv8_PBC"*".mat";
 end
-
 matwrite(matnm, Dict(
     "k_phase" => k_phase,
     "eu" => eu,

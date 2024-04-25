@@ -331,7 +331,6 @@ function triangle_update_iPESS(D_max,ct,Bset, Tset, lambdaset1, lambdaset2, lamb
             lambda_C_2=lambdaset2[mod1(ca+1+1,Lx),mod1(cb,Ly)];
             lambda_C_3=lambdaset3[mod1(ca,Lx),mod1(cb,Ly)];
             B=Bset[posBond[1],posBond[2]];
-
             @tensor TB[:]:=TB[1,-2,3,-4]*lambda_B_3[-1,1]*lambda_A_2[-3,3];
             @tensor TC[:]:=TC[1,-2,-3,4]*lambda_C_3[-1,1]*lambda_A_1[-4,4];
             @tensor TD[:]:=TD[-1,-2,3,4]*lambda_C_2[-3,3]*lambda_B_1[-4,4];
@@ -418,6 +417,41 @@ function itebd_iPESS(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,
     return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
 end
 
+
+
+function itebd_iPESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  Dmax, trun_tol)
+    tol=1e-6;#for determining convergence 
+
+    # println("one step")
+    # println(space(T_u))
+    # println(space(T_d))
+    Lx,Ly=size(Tset);
+    lambdaset1_old=deepcopy(lambdaset1);
+    lambdaset2_old=deepcopy(lambdaset2);
+    lambdaset3_old=deepcopy(lambdaset3);
+
+    gates_ru_ld_rd=gate_RU_LD_RD(parameters,0, typeof(space(Bset[1],1)),Lx);
+
+    for ct=1:10000
+        println(ct)
+        #println("iteration "*string(ct));flush(stdout)
+        Bset, Tset, lambdaset1, lambdaset2, lambdaset3= triangle_update_iPESS(Dmax, ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd, trun_tol);
+        err_1=check_convergence(lambdaset1,lambdaset1_old);
+        err_2=check_convergence(lambdaset2,lambdaset2_old);
+        err_3=check_convergence(lambdaset3,lambdaset3_old);
+        er=max(maximum(err_1),maximum(err_2),maximum(err_3));
+        if mod(ct,20)==0
+            println("iteration "*string(ct)*", convergence= "*string(er));flush(stdout)
+        end
+        if er<tol
+            break;
+        end
+        lambdaset1_old=deepcopy(lambdaset1);
+        lambdaset2_old=deepcopy(lambdaset2);
+        lambdaset3_old=deepcopy(lambdaset3);
+    end
+    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
+end
 
 function Hofstadter_triangle_update_iPESS(D_max,ct,Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates, trun_tol)
     """

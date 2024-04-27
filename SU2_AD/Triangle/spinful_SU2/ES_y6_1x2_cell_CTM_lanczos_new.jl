@@ -21,6 +21,16 @@ include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
 include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
+import LinearAlgebra.BLAS as BLAS
+n_cpu=8;
+BLAS.set_num_threads(n_cpu);
+println("number of cpus: "*string(BLAS.get_num_threads()))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_ES")
+pid=getpid();
+println("pid="*string(pid));
+
+
+global y_anti_pbc,D,chi
 y_anti_pbc=false;
 filenm="Optim_cell_LS_D_4_chi_40_2.368055.jld2";
 data=load(filenm);
@@ -37,7 +47,7 @@ global algrithm_CTMRG_settings
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=10;
+LS_ctm_setting.CTM_ite_nums=30;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -298,12 +308,14 @@ function compute_k(ev,U_D_D_set,y_anti_pbc)
     return kphase'
 end
 
+global Spin_set, n_Es,eu,k_phase,Spin
 Spin_set=[0,1/2,1,3/2,2,5/2];
 n_Es=[40,40,40,40,40,40];
 eu=Vector{ComplexF64}(undef,0);
 k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 for ss=1:length(Spin_set)
+    global Spin_set, n_Es,eu,k_phase,Spin
     v_init=TensorMap(randn, space(TL1,1)*fuse(space(TL2,1)*space(TL3,1))*fuse(space(TL4,1)*space(TL5,1))*space(TL6,1),Rep[SU₂](Spin_set[ss]=>1));
     v_init=permute(v_init,(1,2,3,4,5,),());#L1,L2,L3,L4,dummy
     if norm(v_init)==0
@@ -324,7 +336,7 @@ end
 
 ##############################
 
-eu=eu/sum(eu);
+
 println(sort(abs.(eu)))
 
 order=sortperm(abs.(eu));

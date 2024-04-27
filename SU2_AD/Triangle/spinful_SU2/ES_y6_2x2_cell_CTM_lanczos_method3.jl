@@ -22,7 +22,7 @@ include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
 
 global y_anti_pbc,D
-y_anti_pbc=false;
+y_anti_pbc=true;
 function get_CTM(y_translation)
     chi=40;
 
@@ -366,6 +366,7 @@ matwrite(matnm, Dict(
     "eu" => eu,
     "Spin"=>Spin
 ); compress = false)
+
 
 
 

@@ -21,8 +21,9 @@ include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
 include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
-y_anti_pbc=true;
-filenm="Optim_cell_LS_D_4_chi_40_2.368055.jld2";
+global y_anti_pbc,D
+y_anti_pbc=false;
+filenm="stochastic_iPESS_2x1_LS_D_7_chi_80_2.38534.jld2";
 data=load(filenm);
 # A=data["x"][1].T;
 # B=data["x"][2].T;
@@ -37,7 +38,7 @@ global algrithm_CTMRG_settings
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=10;
+LS_ctm_setting.CTM_ite_nums=30;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -54,9 +55,19 @@ Lx,Ly=size(state);
 A_cell=initial_tuple_cell(Lx,Ly);
 for ca=1:Lx
     for cb=1:Ly
-        A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
+        if isa(state[ca,cb],Square_iPEPS)
+            A_cell=fill_tuple(A_cell, state[ca,cb].T, ca,cb);
+        elseif isa(state[ca,cb],Triangle_iPESS)
+            A0=iPESS_to_iPEPS(state[ca,cb])
+            A_cell=fill_tuple(A_cell, A0.T, ca,cb);
+        elseif isa(state[ca,cb],TensorMap)
+            A_cell=fill_tuple(A_cell, state[ca,cb], ca,cb);
+        else
+            error("unknown type ansatz")
+        end
     end
 end
+global D
 
 ##################################
 global chi,multiplet_tol,projector_trun_tol

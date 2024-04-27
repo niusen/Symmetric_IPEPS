@@ -25,7 +25,7 @@ global y_anti_pbc,D
 y_anti_pbc=true;
 function get_CTM(y_translation)
     chi=40;
-    filenm="stochastic_iPESS_LS_D_6_chi_40.jld2";
+    filenm="stochastic_iPESS_LS_D_8_chi_160_2.38467.jld2";
     data=load(filenm);
     # A=data["x"][1].T;
     # B=data["x"][2].T;

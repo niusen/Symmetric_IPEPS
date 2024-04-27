@@ -12,8 +12,8 @@ include("..\\..\\src\\fermionic\\fermi_permute.jl")
 include("..\\..\\src\\mps_algorithms\\Projector_funs.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 
-y_anti_pbc=true;
-filenm="stochastic_iPESS_LS_D_4_chi_40_2.2439.jld2";
+y_anti_pbc=false;
+filenm="stochastic_iPESS_LS_D_6_chi_40_4.095.jld2";
 data=load(filenm);
 # A=data["x"][1].T;
 # B=data["x"][2].T;

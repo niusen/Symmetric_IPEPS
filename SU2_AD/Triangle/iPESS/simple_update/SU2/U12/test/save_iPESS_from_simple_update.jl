@@ -29,8 +29,8 @@ include("..\\..\\..\\..\\..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
 Random.seed!(888)
 
-D=8;
-filenm="SU_iPESS_SU2_csl_D8.jld2"
+D=12;
+filenm="SU_iPESS_SU2_csl_D12.jld2"
 
 #filenm="SU_iPESS_SU2_csl_D"*string(D)*".jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 data=load(filenm);

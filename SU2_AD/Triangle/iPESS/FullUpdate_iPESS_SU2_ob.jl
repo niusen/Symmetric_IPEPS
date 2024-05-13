@@ -30,6 +30,7 @@ include("..\\..\\src\\fermionic\\double_layer_funs.jl")
 include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate.jl")
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate_iPESS.jl")
+include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
 
 ###########################
 """
@@ -52,7 +53,7 @@ t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=0;
+U=5;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
 
@@ -87,8 +88,8 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
-optim_setting.init_noise=0.0;
+optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
+optim_setting.init_noise=4.5;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
@@ -183,7 +184,11 @@ println(e0_set)
 println(eU_set)
 
 
+test_decomposition1(B_set, T_set,AA_cell,Lx,Ly);
 
+test_decomposition2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly);
+
+test_decomposition3(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total);
 
 # tau=20;
 # dt=0.1;

@@ -850,6 +850,92 @@ function gate_LU_RU_LD(parameters,dt, space_type, Lx)
     return gate_set
 end
 
+
+
+function H_RU_LD_RD(parameters,dt, space_type,Lx)
+
+    if space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_SU2();
+    elseif space_type==GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
+    elseif space_type==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_Z2();
+    end
+    
+    t1=parameters["t1"];
+    t2=parameters["t2"];
+    ϕ=parameters["ϕ"];
+    U=parameters["U"];
+
+    tx_coe_set=[exp(im*ϕ),exp(im*ϕ)]*t1;
+    # ty_coe_set=[-1,1]*t1;
+    # t2_coe_set=[-1,1]*t2;
+    ty_coe_set=[1,-1]*t1;
+    t2_coe_set=[1,-1]*t2;
+    U_coe=U/3;
+
+    H_set=Matrix{TensorMap}(undef,2,1);
+    for cx=1:2;
+        ####################
+        # O1=Cdag_set[mod1(cx,Lx)];
+        # O2=C_set[mod1(cx+1,Lx)];
+        O1=Cdag_set[mod1(cx,2)];
+        O2=C_set[mod1(cx+1,2)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=op*tx_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(hh,2),space(hh,2));
+        @tensor hh_tx[:]:=hh[-1,-2,-4,-5]*Id[-3,-6];
+        ######################
+        # O1=Cdag_set[mod1(cx+1,Lx)];
+        # O2=C_set[mod1(cx+1,Lx)];
+        O1=Cdag_set[mod1(cx+1,2)];
+        O2=C_set[mod1(cx+1,2)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=op*ty_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        # Id=unitary(space(Cdag_set[mod1(cx,Lx)],2),space(Cdag_set[mod1(cx,Lx)],2));
+        Id=unitary(space(Cdag_set[mod1(cx,2)],2),space(Cdag_set[mod1(cx,2)],2));
+        @tensor hh_ty[:]:=hh[-2,-3,-5,-6]*Id[-1,-4];
+        #####################
+        # O1=Cdag_set[mod1(cx,Lx)];
+        # O2=C_set[mod1(cx+1,Lx)];
+        O1=Cdag_set[mod1(cx,2)];
+        O2=C_set[mod1(cx+1,2)];
+        @tensor op[:]:=O1[1,-1,-3]*O2[1,-2,-4];
+        op=-op;#!!!!!!! somehow this minus sign is required
+        op=op*t2_coe_set[cx];
+        op=permute(op,(1,2,),(3,4,));
+        hh=op+op';
+        Id=unitary(space(hh,2),space(hh,2));
+        @tensor hh[:]:=hh[-1,-3,-4,-6]*Id[-2,-5];
+        sgate=swap_gate(hh,2,3);
+        @tensor hh_t2[:]:=sgate[-2,-3,1,2]*hh[-1,1,2,-4,3,4]*sgate'[3,4,-5,-6];
+        #################
+        # OU_LD=n_double_set[mod1(cx,Lx)]-(1/2)*N_occu_set[mod1(cx,Lx)]+(1/4)*Ident_set[mod1(cx,Lx)];
+        # OU_RU=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
+        # OU_RD=n_double_set[mod1(cx+1,Lx)]-(1/2)*N_occu_set[mod1(cx+1,Lx)]+(1/4)*Ident_set[mod1(cx+1,Lx)];
+        OU_LD=n_double_set[mod1(cx,2)]-(1/2)*N_occu_set[mod1(cx,2)]+(1/4)*Ident_set[mod1(cx,2)];
+        OU_RU=n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)];
+        OU_RD=n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)];
+        Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
+        Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
+        Id_RD=unitary(space(OU_RD,1),space(OU_RD,1));
+        @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_RD[-2,-5]*Id_RU[-3,-6];
+        @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_RD[-2,-5]*OU_RU[-3,-6];
+        @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
+        hh_U=(hh_LD+hh_RU+hh_RD)*U_coe;
+        
+        #################
+        hh=permute(hh_tx+hh_ty+hh_t2+hh_U,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
+        H_set[cx]=hh;
+    end
+    return H_set
+end
+
+
 function check_convergence(lambdaset,lambdaset_old)
     Lx,Ly=size(lambdaset);
     err_set=Matrix{Float64}(undef,Lx,Ly);

@@ -8,13 +8,371 @@ using LinearAlgebra:diag,I,diagm
 ###########################
 
 
-function test_decomposition()
+function test_decomposition1(B_set, T_set,AA_cell,Lx,Ly)
+    global Lx,Ly
+    for c1=1:Lx
+        for c2=1:Ly
+            Tm=B_set[c1,c2];
+            Tm_double, U_L,U_D,U_U = build_double_layer_swap_Tm(Tm',Tm, false);#L M U
+
+            Bm=T_set[c1,c2];
+            Bm_double, U_D,U_R,U_U = build_double_layer_swap_Bm(Bm',Bm,true);#D R M
+            @tensor AA_new[:]:=Tm_double[-1,1,-4]*Bm_double[-2,-3,1];
+
+            @assert norm(AA_new-AA_cell[c1][c2])/norm(AA_cell[c1][c2])<1e-12
+        end
+    end
+end
+
+
+function test_decomposition2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly)
+    global Lx,Ly,parameters
     #decomposit 4x4 cluster from iPEPS representation to iPESS representation
+    for c1=1:Lx
+        for c2=1:Ly
+            dt=0;
+            gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+
+            B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd[mod1(c1,2)]);
+
+
+            T_LU=B_set[c1,c2];
+            T_double_LU, U_L,U_D,U_U = build_double_layer_swap_Tm(T_LU',T_LU, false);#L M U
+            B_LU=T_set[c1,c2];
+            B_double_LU, U_D,U_R,U_U = build_double_layer_swap_Bm(B_LU',B_LU, true);#D R M
+
+            T_RU=B_set[mod1(c1+1,Lx),c2];
+            T_double_RU, U_L,U_D,U_U = build_double_layer_swap_Tm(T_RU',T_RU, false);#L M U
+
+            T_LD=B_set[c1,mod1(c2+1,Ly)];
+            T_double_LD, U_L,U_D,U_U = build_double_layer_swap_Tm(T_LD',T_LD, false);#L M U
+
+            B_double_RU, U_D,U_R,U_U = build_double_layer_swap_Bm(B1_res',B1_res,false);#D R M
+            B_double_LD, U_D,U_R,U_U = build_double_layer_swap_Bm(B2_res',B2_res,false);#D R M
+            B_double_RD, U_D,U_R,U_U = build_double_layer_swap_Bm(B3_res',B3_res,false);#D R M
+            BigTriangle_double, U_L,U_D,U_U = build_double_layer_swap_Tm(B1_B2_T_B3',B1_B2_T_B3_op, true);#L M U
+            BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));
+
+            ov1=@tensor BigTriangle_double[1,2,3]*BigTriangle_double_env[1,2,3];
+            ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
+            # println(ov1/ov2)
+            @assert abs(ov1/ov2-1)<1e-10;
+        end
+    end
+end
+
+
+function test_decomposition3(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_correct)
+    global Lx,Ly,parameters
+    #decomposit 4x4 cluster from iPEPS representation to iPESS representation
+    E=0;
+    for c1=1:Lx
+        for c2=1:Ly
+            dt=0;
+            gates_ru_ld_rd=H_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+
+            B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd[mod1(c1,2)]);
+
+
+            T_LU=B_set[c1,c2];
+            T_double_LU, U_L,U_D,U_U = build_double_layer_swap_Tm(T_LU',T_LU, false);#L M U
+            B_LU=T_set[c1,c2];
+            B_double_LU, U_D,U_R,U_U = build_double_layer_swap_Bm(B_LU',B_LU, true);#D R M
+
+            T_RU=B_set[mod1(c1+1,Lx),c2];
+            T_double_RU, U_L,U_D,U_U = build_double_layer_swap_Tm(T_RU',T_RU, false);#L M U
+
+            T_LD=B_set[c1,mod1(c2+1,Ly)];
+            T_double_LD, U_L,U_D,U_U = build_double_layer_swap_Tm(T_LD',T_LD, false);#L M U
+
+            B_double_RU, U_D,U_R,U_U = build_double_layer_swap_Bm(B1_res',B1_res,false);#D R M
+            B_double_LD, U_D,U_R,U_U = build_double_layer_swap_Bm(B2_res',B2_res,false);#D R M
+            B_double_RD, U_D,U_R,U_U = build_double_layer_swap_Bm(B3_res',B3_res,false);#D R M
+            BigTriangle_double, U_L,U_D,U_U = build_double_layer_swap_Tm(B1_B2_T_B3',B1_B2_T_B3_op, true);#L M U
+            BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));
+
+            ov1=@tensor BigTriangle_double[1,2,3]*BigTriangle_double_env[1,2,3];
+            ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
+            #println(ov1/ov2)
+            E=E+ov1/ov2;
+
+        end
+    end
+    E_new=E/Lx/Ly;
+    println([E_new,E_correct])
+    #@assert abs(E_new-E_correct)/abs(E_correct)<1e-10 #this error is not quite small since in two methods expectation values are computed with different environment clusters
 end
 
 
 
+function build_double_layer_swap_Tm(Ap,A, with_physical)
+    if ~with_physical #no physical leg
+        @assert (length(codomain(A))==2)&(length(domain(A))==1)
+        @assert (length(codomain(Ap))==1)&(length(domain(Ap))==2)
+        #Treat (LU,M) as (LU,D)
+        #Treat (M',L'U') as (D',L'U')
+        # println(space(Ap))
+        # println(space(A))
 
+        gate=@ignore_derivatives swap_gate(Ap,2,3); #gate L'U'
+        @tensor Ap[:]:=Ap[-1,1,2]*gate[-2,-3,1,2];  
+
+        gate=@ignore_derivatives parity_gate(Ap,1); #gate D'
+        @tensor Ap[:]:=Ap[1,-2,-3]*gate[-1,1];
+        gate=@ignore_derivatives parity_gate(Ap,3); #gate U'
+        @tensor Ap[:]:=Ap[-1,-2,1]*gate[-3,1];
+
+        
+        A=permute(A,(1,2,),(3,));
+        Ap=permute(Ap,(1,),(2,3,));
+        
+
+        U_L=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 1)), space(Ap, 2) ⊗ space(A, 1));
+        U_D=@ignore_derivatives unitary(fuse(space(Ap, 1) ⊗ space(A, 3)), space(Ap, 1) ⊗ space(A, 3));
+        U_U=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 2)', fuse(space(Ap, 3)' ⊗ space(A, 2)'));
+
+        @tensor AA_fused[:]:=Ap[5,1,3]*A[2,4,6]*U_L[-1,1,2]*U_D[-2,5,6]*U_U[3,4,-3];
+
+    else #with 3 physical legs grouped as one leg
+        @assert (length(codomain(A))==2)&(length(domain(A))==2)
+        @assert (length(codomain(Ap))==2)&(length(domain(Ap))==2)
+        #Treat (LU,dM) as (LU,dD)
+        #Treat (d'M',L'U') as (d'D',L'U')
+        # println(space(Ap))
+        # println(space(A))
+
+        gate=@ignore_derivatives swap_gate(Ap,3,4); #gate L'U'
+        @tensor Ap[:]:=Ap[-1,-2,1,2]*gate[-3,-4,1,2];  
+
+        gate=@ignore_derivatives parity_gate(Ap,2); #gate D'
+        @tensor Ap[:]:=Ap[-1,1,-3,-4]*gate[-2,1];
+        gate=@ignore_derivatives parity_gate(Ap,4); #gate U'
+        @tensor Ap[:]:=Ap[-1,-2,-3,1]*gate[-4,1];
+
+        
+        A=permute(A,(1,2,),(3,4,));
+        Ap=permute(Ap,(1,2,),(3,4,));
+        
+
+        U_L=@ignore_derivatives unitary(fuse(space(Ap, 3) ⊗ space(A, 1)), space(Ap, 3) ⊗ space(A, 1));
+        U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 4)), space(Ap, 2) ⊗ space(A, 4));
+        U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 2)', fuse(space(Ap, 4)' ⊗ space(A, 2)'));
+
+        @tensor AA_fused[:]:=Ap[3,6,1,4]*A[2,5,3,7]*U_L[-1,1,2]*U_D[-2,6,7]*U_U[4,5,-3];
+    end
+
+
+    P_odd_Lp,_=@ignore_derivatives projector_parity(space(U_L',1));
+    P_odd_Up,_=@ignore_derivatives projector_parity(space(U_U',2));
+    P_odd_U,_=@ignore_derivatives projector_parity(space(U_U',3));
+
+    @tensor isom_Lp[:]:=U_L[-1,4,3]*P_odd_Lp'[4,1]*P_odd_Lp[1,2]*U_L'[2,3,-2];
+    @tensor isom_U[:]:=U_U[3,4,-1]*P_odd_U'[4,1]*P_odd_U[1,2]*U_U'[-2,3,2];
+    @tensor isom_Up_U[:]:=U_U[3,4,-1]*P_odd_Up'[3,1]*P_odd_Up[1,5]*P_odd_U'[4,2]*P_odd_U[2,6]*U_U'[-2,5,6];
+    @tensor AA_Lp_U[:]:=AA_fused[1,-2,4]*isom_Lp[-1,1]*isom_U[-3,4];
+    AA_fused=AA_fused-2*AA_Lp_U;
+    @tensor AA_Up_U[:]:=AA_fused[-1,-2,4]*isom_Up_U[-3,4];
+    AA_fused=AA_fused-2*AA_Up_U;
+
+
+
+    P_odd_Dp,_=@ignore_derivatives projector_parity(space(U_D',1));
+    P_odd_D,_=@ignore_derivatives projector_parity(space(U_D',2));
+    @tensor isom_Dp[:]:=U_D[-1,4,3]*P_odd_Dp'[4,1]*P_odd_Dp[1,2]*U_D'[2,3,-2];
+    @tensor isom_Dp_D[:]:=U_D[-1,3,4]*P_odd_Dp'[3,1]*P_odd_Dp[1,5]*P_odd_D'[4,2]*P_odd_D[2,6]*U_D'[5,6,-2];
+    @tensor AA_Dp_D[:]:=AA_fused[-1,2,-3]*isom_Dp_D[-2,2];
+    AA_fused=AA_fused-2*AA_Dp_D;
+
+
+    #double layer order: L M U = L D U 
+    return AA_fused, U_L,U_D,U_U
+end
+
+function build_double_layer_swap_Bm(Ap,A, with_physical)
+    if with_physical #with one physical leg
+        @assert (length(codomain(A))==1)&(length(domain(A))==3)
+        @assert (length(codomain(Ap))==3)&(length(domain(Ap))==1)
+        #treat (M,dRD) as (U,dRD)
+        #treat (d'R'D',M') as (d'R'D',U')
+        # println(space(Ap))
+        # println(space(A))
+
+
+        gate=@ignore_derivatives swap_gate(Ap,2,3); #gate D'R'
+        @tensor Ap[:]:=Ap[-1,1,2,-4]*gate[-2,-3,1,2];  
+        gate=@ignore_derivatives parity_gate(Ap,4); #gate U'
+        @tensor Ap[:]:=Ap[-1,-2,-3,1]*gate[-4,1];
+        gate=@ignore_derivatives parity_gate(Ap,3);  #gate D'
+        @tensor Ap[:]:=Ap[-1,-2,1,-4]*gate[-3,1];
+        
+        A=permute(A,(1,),(2,3,4,));
+        Ap=permute(Ap,(1,2,3,),(4,));
+        
+    
+        U_D=@ignore_derivatives unitary(fuse(space(Ap, 3) ⊗ space(A, 4)), space(Ap, 3) ⊗ space(A, 4));
+        U_R=@ignore_derivatives unitary(space(Ap, 2)' ⊗ space(A, 3)', fuse(space(Ap, 2)' ⊗ space(A, 3)'));
+        U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 1)', fuse(space(Ap, 4)' ⊗ space(A, 1)'));
+
+
+        @tensor AA_fused[:]:=Ap[3,1,6,4]*A[5,3,2,7]*U_U[4,5,-3]*U_R[1,2,-2]*U_D[-1,6,7];
+    else
+        @assert (length(codomain(A))==1)&(length(domain(A))==2)
+        @assert (length(codomain(Ap))==2)&(length(domain(Ap))==1)
+        #treat (M,RD) as (U,RD)
+        #treat (R'D',M') as (R'D',U')
+
+        gate=@ignore_derivatives swap_gate(Ap,1,2); #gate D'R'
+        @tensor Ap[:]:=Ap[1,2,-3]*gate[-1,-2,1,2];  
+        gate=@ignore_derivatives parity_gate(Ap,3); #gate U'
+        @tensor Ap[:]:=Ap[-1,-2,1]*gate[-3,1];
+        gate=@ignore_derivatives parity_gate(Ap,2);  #gate D'
+        @tensor Ap[:]:=Ap[-1,1,-3]*gate[-2,1];
+        
+        A=permute(A,(1,),(2,3,));
+        Ap=permute(Ap,(1,2,),(3,));
+        
+    
+        U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 3)), space(Ap, 2) ⊗ space(A, 3));
+        U_R=@ignore_derivatives unitary(space(Ap, 1)' ⊗ space(A, 2)', fuse(space(Ap, 1)' ⊗ space(A, 2)'));
+        U_U=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 1)', fuse(space(Ap, 3)' ⊗ space(A, 1)'));
+
+
+        @tensor AA_fused[:]:=Ap[1,6,4]*A[5,2,7]*U_U[4,5,-3]*U_R[1,2,-2]*U_D[-1,6,7];
+    end
+
+
+    ##########################
+
+
+
+    P_odd_Up,_=@ignore_derivatives projector_parity(space(U_U',2));
+    P_odd_U,_=@ignore_derivatives projector_parity(space(U_U',3));
+
+
+    @tensor isom_U[:]:=U_U[3,4,-1]*P_odd_U'[4,1]*P_odd_U[1,2]*U_U'[-2,3,2];
+    @tensor isom_Up_U[:]:=U_U[3,4,-1]*P_odd_Up'[3,1]*P_odd_Up[1,5]*P_odd_U'[4,2]*P_odd_U[2,6]*U_U'[-2,5,6];
+    @tensor AA_Up_U[:]:=AA_fused[-1,-2,4]*isom_Up_U[-3,4];
+    AA_fused=AA_fused-2*AA_Up_U;
+
+
+
+    P_odd_Dp,_=@ignore_derivatives projector_parity(space(U_D',1));
+    P_odd_D,_=@ignore_derivatives projector_parity(space(U_D',2));
+    P_odd_R,_=@ignore_derivatives projector_parity(space(U_R',3));
+    @tensor isom_Dp[:]:=U_D[-1,4,3]*P_odd_Dp'[4,1]*P_odd_Dp[1,2]*U_D'[2,3,-2];
+    @tensor isom_R[:]:=U_R[3,4,-1]*P_odd_R'[4,1]*P_odd_R[1,2]*U_R'[-2,3,2];
+    @tensor isom_Dp_D[:]:=U_D[-1,3,4]*P_odd_Dp'[3,1]*P_odd_Dp[1,5]*P_odd_D'[4,2]*P_odd_D[2,6]*U_D'[5,6,-2];
+    @tensor AA_Dp_D[:]:=AA_fused[2,-2,-3]*isom_Dp_D[-1,2];
+    AA_fused=AA_fused-2*AA_Dp_D;
+    @tensor AA_Dp_R[:]:=AA_fused[2,3,-3]*isom_Dp[-1,2]*isom_R[-2,3];
+    AA_fused=AA_fused-2*AA_Dp_R;
+
+
+    #double layer order: D R M = D R U 
+    return AA_fused, U_D,U_R,U_U
+end
+
+
+
+function split_3Tesnsors(B1, B2, B3, T, op_LD_RD_RU)
+    # """
+    #          M1     R1
+    #            \   /
+    #             \ /....d1
+    #              |                   B1 =  |M1, d1><D1, R1|=|M1, d1><|R1, D1   
+    #              |D1
+
+    #              |                B=|R2, D1><M3|
+    #             / \
+
+    #   M2\   /R2    M3\   /R3
+    #      \ /....d2    \ /....d3
+    #       |            |   
+    #       |D2          |D3
+
+    #       B2           B3
+
+    # B2=|M2, d2><D2, R2|=|M2, d2><|R2, D2 
+    # B3=|M3, d3><D3, R3|=|M3, d3><|R3, D3 
+    # """
+
+    @assert (length(codomain(B1))==1)&(length(domain(B1))==3)
+    @assert (length(codomain(B2))==1)&(length(domain(B2))==3)
+    @assert (length(codomain(B3))==1)&(length(domain(B3))==3)
+    @assert (length(codomain(T))==2)&(length(domain(T))==1)
+
+    B1=permute_neighbour_ind(B1,2,3,4);#M1, R1, d1,  D1
+    uu,ss,vv=tsvd(permute(B1,(1,2,),(3,4,)));
+    B1_res=uu; #M1, R1, new1
+    B1_keep=ss*vv; #new1, d1,  D1
+    B1_res=permute(B1_res,(1,),(2,3,));#(M1), (R1, new1)
+
+
+    B2=permute_neighbour_ind(B2,3,4,4);#M2, d2, D2, R2
+    B2=permute_neighbour_ind(B2,2,3,4);#M2, D2, d2, R2
+    uu,ss,vv=tsvd(permute(B2,(1,2,),(3,4,)));
+    B2_res=uu;#M2, D2, new2
+    B2_keep=ss*vv; #new2, d2, R2
+    B2_res=permute_neighbour_ind(B2_res,2,3,3);#M2, new2, D2
+    B2_res=permute(B2_res,(1,),(2,3,));#(M2), (new2, D2)
+
+    B3=B3;#M3, d3, R3, D3 
+    uu,ss,vv=tsvd(permute(B3,(1,2,),(3,4,)));
+    B3_keep=uu*ss; #M3, d3, new3,
+    B3_res=vv;#new3, R3, D3
+    B3_res=permute(B3_res,(1,),(2,3,)); #(new3), (R3, D3)
+
+    ##################
+    @tensor B2_T[:]:=B2_keep[-1,-2,1]*T[1,-3,-4];     #(new2, d2, R2),  (R2, D1, M3) => (new2, d2, D1, M3)
+    B2_T=permute_neighbour_ind(B2_T,2,3,4);#(new2, D1, d2, M3)
+    B2_T=permute_neighbour_ind(B2_T,1,2,4);#(D1, new2, d2, M3)
+    @tensor B1_B2_T[:]:=B1_keep[-1,-2,1]*B2_T[1,-3,-4,-5];#(new1, d1,  D1), (D1, new2, d2, M3) => (new1, d1, new2, d2, M3)
+
+    @tensor B1_B2_T_B3[:]:=B1_B2_T[-1,-2,-3,-4,1]*B3_keep[1,-5,-6];#(new1, d1, new2, d2, M3), (M3, d3, new3) => (new1, d1, new2, d2, d3, new3)
+    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,2,3,6);# new1, new2, d1, d2, d3, new3
+
+    Up=unitary(fuse(space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5)), space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5));
+    @tensor B1_B2_T_B3[:]:=B1_B2_T_B3[-1,-2,1,2,3,-4]*Up[-3,1,2,3];# new1, new2, d123, new3
+
+    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,1,2,4);# new2, new1, d123, new3
+    B1_B2_T_B3=permute(B1_B2_T_B3,(1,2,),(3,4,));# (new2, new1), (d123, new3)
+
+    #d2',d3',d1', d2,d3,d1
+    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,5,6,6);#d2',d3',d1', d2,d1,d3
+    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,4,5,6);#d2',d3',d1', d1,d2,d3
+    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,2,3,6);#d2',d1',d3', d1,d2,d3
+    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,1,2,6);#d1',d2',d3', d1,d2,d3
+    @tensor op_LD_RD_RU[:]:=Up[-1,1,2,3]*op_LD_RD_RU[1,2,3,4,5,6]*Up'[4,5,6,-2];
+
+    @tensor B1_B2_T_B3_op[:]:=B1_B2_T_B3[-1,-2,1,-4]*op_LD_RD_RU[-3,1];# new2, new1, d123, new3
+    B1_B2_T_B3_op=permute(B1_B2_T_B3_op,(1,2,),(3,4,));# (new2, new1), (d123, new3)
+
+
+    return B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op
+end
+
+
+
+function contract_triangle_env(CTM, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, cx,cy)
+    #leading memory cost:
+    #chi^2*D^4*d^4
+    #D^6*d^6
+    global Lx,Ly
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
+
+    @tensor MM_LU[:]:=Cset[mod1(cx-1,Lx)][mod1(cy-1,Ly)].C1[1,2]*Tset[mod1(cx,Lx)][mod1(cy-1,Ly)].T1[2,3,-3]*Tset[mod1(cx-1,Lx)][mod1(cy,Ly)].T4[-1,4,1]*T_double_LU[4,5,3]*B_double_LU[-2,-4,5]; 
+    @tensor MM_RU[:]:=Tset[mod1(cx+1,Lx)][mod1(cy-1,Ly)].T1[-1,3,1]* Cset[mod1(cx+2,Lx)][mod1(cy-1,Ly)].C2[1,2]* T_double_RU[-2,5,3]*B_double_RU[-4,4,5]*Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T2[2,4,-3];
+
+    @tensor MM_LD[:]:=Tset[mod1(cx-1,Lx)][mod1(cy+1,Ly)].T4[1,3,-1]*T_double_LD[3,5,-2]*B_double_LD[4,-4,5]*Cset[mod1(cx-1,Lx)][mod1(cy+2,Ly)].C4[2,1]*Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T3[-3,4,2]; 
+    @tensor MM_RD[:]:=Tset[mod1(cx+2,Lx)][mod1(cy+1,Ly)].T2[-4,-3,2]*Tset[mod1(cx+1,Lx)][mod1(cy+2,Ly)].T3[1,-2,-1]*Cset[mod1(cx+2,Lx)][mod1(cy+2,Ly)].C3[2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*B_double_RD[1,2,-2]; 
+
+
+    @tensor LD_LU_RU[:]:=MM_LD[1,2,-1,-2]*MM_LU[1,2,3,4]*MM_RU[3,4,-3,-4];
+    @tensor BigTriangle[:]:= LD_LU_RU[1,-1,2,-3]*MM_RD[1,-2,2];
+    return BigTriangle
+end
 
 function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_tol)
     # """

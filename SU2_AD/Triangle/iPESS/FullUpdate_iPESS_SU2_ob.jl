@@ -190,6 +190,23 @@ test_decomposition2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly);
 
 test_decomposition3(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total);
 
+test_positive_triangle_env(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
+
+dt=0.1;
+
+
+
+
+gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+
+
+
+
+
+
+
+
+
 # tau=20;
 # dt=0.1;
 # B_set, T_set = FullUpdate(parameters, B_set, T_set, tau, dt,D_max, trun_tol,ENV_ctm_setting);

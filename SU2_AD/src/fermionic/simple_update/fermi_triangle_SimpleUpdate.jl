@@ -852,7 +852,7 @@ end
 
 
 
-function H_RU_LD_RD(parameters,dt, space_type,Lx)
+function H_RU_LD_RD(parameters, space_type,Lx)
 
     if space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_SU2();

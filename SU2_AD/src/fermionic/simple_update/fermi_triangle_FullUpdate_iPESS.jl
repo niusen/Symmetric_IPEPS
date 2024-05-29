@@ -7,6 +7,37 @@ using LinearAlgebra:diag,I,diagm
 """
 ###########################
 
+function check_positive(T)
+    T_dense=convert(Array,T);
+    T_new=deepcopy(T);
+    @assert (norm(diag(T_dense))-norm(T_dense))/norm(T_dense)<1e-14;#verify diagonal
+
+
+    #change negative eigenvalue to zero
+    if sectortype(space(T,1)) == Trivial
+        mm=T.data;
+        for cc=1:size(mm,1)
+            if real(mm[cc,cc])<0
+                mm[cc,cc]=0;
+            end
+        end
+        T_new=TensorMap(mm,codomain(eu),domain(eu));
+    else
+        for cc=1:length(T.data.values)
+            mm=T.data.values[cc];
+            for dd=1:size(mm,1)
+                if real(mm[dd,dd])<0
+                    mm[dd,dd]=0;
+                end
+            end
+            T_new.data.values[cc]=mm;
+        end
+    end
+
+    @assert norm(T-T_new)/norm(T_new)<0.01;
+    return T_new
+end
+
 
 function test_decomposition1(B_set, T_set,AA_cell,Lx,Ly)
     global Lx,Ly
@@ -105,14 +136,14 @@ end
 
 
 function test_positive_triangle_env(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_correct)
-    global c1,c2
+    #global c1,c2
     E=0;
     for c1=1:Lx
         for c2=1:Ly
 
             gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
 
-            B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd[mod1(c1,2)]);
+            B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd[mod1(c1,Lx)]);
 
 
             T_LU=B_set[c1,c2];
@@ -172,6 +203,7 @@ function test_positive_triangle_env(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_correc
             @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,2,3,4,5,6]*U_L'[1,4,-1]*U_D'[2,5,-2]*U_U'[-3,3,6];
             ov1=@tensor BigTriangle_double_env_expand[1,2,3]*BigTriangle_double_Noswap[1,2,3];
             ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
+            #println([ov1,ov2])
             E=E+ov1/ov2;
         end
     end
@@ -179,6 +211,86 @@ function test_positive_triangle_env(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_correc
     println([E_new,E_correct])
 end
 
+
+function test_positive_triangle_env2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_correct)
+    #global c1,c2
+    E=0;
+    for c1=1:Lx
+        for c2=1:Ly
+
+            gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
+
+    
+
+            B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd[mod1(c1,Lx)]);
+
+
+            T_LU=B_set[c1,c2];
+            T_double_LU, _ = build_double_layer_swap_Tm(T_LU',T_LU, false);#L M U
+            B_LU=T_set[c1,c2];
+            B_double_LU, _ = build_double_layer_swap_Bm(B_LU',B_LU, true);#D R M
+
+            T_RU=B_set[mod1(c1+1,Lx),c2];
+            T_double_RU, _ = build_double_layer_swap_Tm(T_RU',T_RU, false);#L M U
+
+            T_LD=B_set[c1,mod1(c2+1,Ly)];
+            T_double_LD, _ = build_double_layer_swap_Tm(T_LD',T_LD, false);#L M U
+
+            B_double_RU, _ = build_double_layer_swap_Bm(B1_res',B1_res,false);#D R M
+            B_double_LD, _ = build_double_layer_swap_Bm(B2_res',B2_res,false);#D R M
+            B_double_RD, _ = build_double_layer_swap_Bm(B3_res',B3_res,false);#D R M
+            BigTriangle_double_Noswap, U_L,U_D,U_U = build_double_layer_Noswap_Tm(B1_B2_T_B3',B1_B2_T_B3_op, true);#L M U = L D U
+            BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));#L M U = L D U
+
+            @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env[1,2,3]*U_L[1,-1,-4]*U_D[2,-2,-5]*U_U[-3,-6,3]; # storage order: L', D', U',   L, D, U,  fermionic order: L',L,U',U,D,D'
+            
+
+            BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));# storage order: L', D', U',       L, D, U
+            #the fowllowing swap gates are taken from  function "build_double_layer_swap_Tm"
+            gate=swap_gate(BigTriangle_double_env_expand,1,3);#L'U'
+            @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,2,-4,-5,-6]*gate[-1,-3,1,2];
+            gate=swap_gate(BigTriangle_double_env_expand,1,6);#L'U
+            @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,-3,-4,-5,2]*gate[-1,-6,1,2];
+            gate=swap_gate(BigTriangle_double_env_expand,3,6);#U'U
+            @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,2]*gate[-3,-6,1,2];
+            gate=swap_gate(BigTriangle_double_env_expand,2,5);#D'D'
+            @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,2,-6]*gate[-2,-5,1,2];
+            gate=parity_gate(BigTriangle_double_env_expand,2);#D'
+            @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,-5,-6]*gate[-2,1];
+            gate=parity_gate(BigTriangle_double_env_expand,3);#U'
+            @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,-6]*gate[-3,1];
+
+            BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));
+
+            #eu,ev=eigen(BigTriangle_double_env_expand);
+            eu,ev=eigh(BigTriangle_double_env_expand);
+            #M=ev*eu*ev';
+            env_bot=sqrt(eu)*ev';#new_ind,2,3,1
+            env_top=ev*sqrt(eu);# 2,3,1, new_ind
+
+            ov1=get_overlap_env(env_top,env_bot,B1_B2_T_B3',B1_B2_T_B3_op);
+            ov2=get_overlap_env(env_top,env_bot,B1_B2_T_B3',B1_B2_T_B3);
+            #println([ov1,ov2])
+            E=E+ov1/ov2;
+
+        end
+    end
+    E_new=E/Lx/Ly;
+    println([E_new,E_correct])
+
+
+end
+
+function get_overlap_env(env_top,env_bot,triangle_top,triangle_bot)
+    #env_bot:   (env_ind),  (2,3,1)
+    #env_top:   (2,3,1), (env_ind)
+    #triangle_bot: (2, 1), (d123, 3)
+    #triangle_top: (d123, 3), (2, 1)
+    @tensor Bot[:]:=env_bot[-1,2,3,1]*triangle_bot[2,1,-2,3];
+    @tensor Top[:]:=env_top[2,3,1,-1]*triangle_top[-2,3,2,1];
+    ov=@tensor Bot[1,2]*Top[1,2];
+    return ov
+end
 
 function build_double_layer_swap_Tm(Ap,A, with_physical)
     if ~with_physical #no physical leg
@@ -263,7 +375,6 @@ function build_double_layer_swap_Tm(Ap,A, with_physical)
     return AA_fused, U_L,U_D,U_U
 end
 
-
 function build_double_layer_Noswap_Tm(Ap,A, with_physical)
     if ~with_physical #no physical leg
         @assert (length(codomain(A))==2)&(length(domain(A))==1)
@@ -346,7 +457,6 @@ function build_double_layer_Noswap_Tm(Ap,A, with_physical)
     #double layer order: L M U = L D U 
     return AA_fused, U_L,U_D,U_U
 end
-
 
 function build_double_layer_swap_Bm(Ap,A, with_physical)
     if with_physical #with one physical leg
@@ -432,11 +542,6 @@ function build_double_layer_swap_Bm(Ap,A, with_physical)
     return AA_fused, U_D,U_R,U_U
 end
 
-
-
-
-
-
 function split_3Tesnsors(B1, B2, B3, T, op_LD_RD_RU)
     # """
     #          M1     R1
@@ -486,19 +591,9 @@ function split_3Tesnsors(B1, B2, B3, T, op_LD_RD_RU)
     B3_res=permute(B3_res,(1,),(2,3,)); #(new3), (R3, D3)
 
     ##################
-    @tensor B2_T[:]:=B2_keep[-1,-2,1]*T[1,-3,-4];     #(new2, d2, R2),  (R2, D1, M3) => (new2, d2, D1, M3)
-    B2_T=permute_neighbour_ind(B2_T,2,3,4);#(new2, D1, d2, M3)
-    B2_T=permute_neighbour_ind(B2_T,1,2,4);#(D1, new2, d2, M3)
-    @tensor B1_B2_T[:]:=B1_keep[-1,-2,1]*B2_T[1,-3,-4,-5];#(new1, d1,  D1), (D1, new2, d2, M3) => (new1, d1, new2, d2, M3)
 
-    @tensor B1_B2_T_B3[:]:=B1_B2_T[-1,-2,-3,-4,1]*B3_keep[1,-5,-6];#(new1, d1, new2, d2, M3), (M3, d3, new3) => (new1, d1, new2, d2, d3, new3)
-    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,2,3,6);# new1, new2, d1, d2, d3, new3
 
-    Up=unitary(fuse(space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5)), space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5));
-    @tensor B1_B2_T_B3[:]:=B1_B2_T_B3[-1,-2,1,2,3,-4]*Up[-3,1,2,3];# new1, new2, d123, new3
-
-    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,1,2,4);# new2, new1, d123, new3
-    B1_B2_T_B3=permute(B1_B2_T_B3,(1,2,),(3,4,));# (new2, new1), (d123, new3)
+    B1_B2_T_B3=build_triangle_from_4tensors(T,B1_keep,B2_keep,B3_keep);
 
     #d2',d3',d1', d2,d3,d1
     op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,5,6,6);#d2',d3',d1', d2,d1,d3
@@ -513,8 +608,6 @@ function split_3Tesnsors(B1, B2, B3, T, op_LD_RD_RU)
 
     return B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op
 end
-
-
 
 function contract_triangle_env(CTM, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, cx,cy)
     #leading memory cost:
@@ -536,6 +629,291 @@ function contract_triangle_env(CTM, T_double_LU, T_double_RU, T_double_LD, B_dou
     @tensor BigTriangle[:]:= LD_LU_RU[1,-1,2,-3]*MM_RD[1,-2,2]; # L M U = L D U
     return BigTriangle
 end
+
+function build_triangle_from_4tensors(T,B1_keep,B2_keep,B3_keep)
+    @tensor B2_T[:]:=B2_keep[-1,-2,1]*T[1,-3,-4];     #(new2, d2, R2),  (R2, D1, M3) => (new2, d2, D1, M3)
+    B2_T=permute_neighbour_ind(B2_T,2,3,4);#(new2, D1, d2, M3)
+    B2_T=permute_neighbour_ind(B2_T,1,2,4);#(D1, new2, d2, M3)
+    @tensor B1_B2_T[:]:=B1_keep[-1,-2,1]*B2_T[1,-3,-4,-5];#(new1, d1,  D1), (D1, new2, d2, M3) => (new1, d1, new2, d2, M3)
+
+    @tensor B1_B2_T_B3[:]:=B1_B2_T[-1,-2,-3,-4,1]*B3_keep[1,-5,-6];#(new1, d1, new2, d2, M3), (M3, d3, new3) => (new1, d1, new2, d2, d3, new3)
+    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,2,3,6);# new1, new2, d1, d2, d3, new3
+
+    Up=unitary(fuse(space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5)), space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5));
+    global Up
+    @tensor B1_B2_T_B3[:]:=B1_B2_T_B3[-1,-2,1,2,3,-4]*Up[-3,1,2,3];# new1, new2, d123, new3
+
+    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,1,2,4);# new2, new1, d123, new3
+    B1_B2_T_B3=permute(B1_B2_T_B3,(1,2,),(3,4,));# (new2, new1), (d123, new3)
+
+    #########################################
+    
+    # big_T_compressed=permute_neighbour_ind(B_new,1,2,3);#(D1_new, R2_new, M3_new)
+    # @tensor big_T_compressed[:]:=T1_new[-1,-2,1]*big_T_compressed[1,-3,-4];#(M1_R1, d1, R2_new, M3_new) 
+    # big_T_compressed=permute_neighbour_ind(big_T_compressed,2,3,4);#(M1_R1,R2_new, d1,  M3_new) 
+    # big_T_compressed=permute_neighbour_ind(big_T_compressed,1,2,4);#(R2_new, M1_R1, d1,  M3_new) 
+    # @tensor big_T_compressed[:]:=big_T_compressed[-1,-2,-3,1]*T3_new[1,-4,-5];#(R2_new, M1_R1, d1,  d3, R3_D3)
+    # @tensor big_T_compressed[:]:=T2_new[-1,-2,1]*big_T_compressed[1,-3,-4,-5,-6];#(M2_D2, d2,  M1_R1, d1,  d3, R3_D3)
+
+    # big_T_compressed=permute_neighbour_ind(big_T_compressed,2,3,6);#(M2_D2,  M1_R1, d2, d1,  d3, R3_D3)
+    # big_T_compressed=permute_neighbour_ind(big_T_compressed,3,4,6);#(M2_D2,  M1_R1, d1, d2,  d3, R3_D3)
+    # @tensor big_T_compressed[:]:=big_T_compressed[-1,-2,1,2,3,-4]*Up[-3,1,2,3];#(new2, new1,  d123, new3)
+    # big_T_compressed=permute(big_T_compressed,(1,2,),(3,4,))#(new2, new1), (d123, new3)
+    
+
+    return B1_B2_T_B3
+end
+
+function truncation_direct(big_T,D_max, trun_order, trun_tol)
+    #big_T: (new2, new1), (d123, new3)
+    global Up
+    @tensor big_T[:]:=big_T[-1,-2,1,-6]*Up'[-3,-4,-5,1];# new2, new1, d1,d2,d3, new3
+    #big_T=big_T/norm(big_T);
+    if trun_order=="simultaneous"
+
+    
+        big_T=permute_neighbour_ind(big_T,1,2,6);# new1, new2, d1,d2,d3, new3
+        big_T=permute_neighbour_ind(big_T,2,3,6);# new1, d1, new2,d2,d3, new3
+
+        if isa(space(big_T,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            U1,S1,V1=tsvd(big_T,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
+            U3,S3,V3=tsvd(big_T,(1,2,3,4,),(5,6,);trunc=truncdim(D_max));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
+        elseif isa(space(big_T,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+            U1,S1,V1=tsvd(big_T,(1,2,),(3,4,5,6,));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
+            U1,S1,V1=Truncations(U1,S1,V1,D_max,trun_tol);#println(norm(U1*S1*V1-M_old)/norm(M_old))
+            U3,S3,V3=tsvd(big_T,(1,2,3,4,),(5,6,));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
+            U3,S3,V3=Truncations(U3,S3,V3,D_max,trun_tol);#println(norm(U3*S3*V3-M_old)/norm(M_old))
+        end
+    
+    
+        big_T=permute_neighbour_ind(big_T,2,3,6);# M1_R1, M2_D2, d1, d2, d3, R3_D3
+        big_T=permute_neighbour_ind(big_T,1,2,6);# M2_D2, M1_R1, d1, d2, d3, R3_D3
+        big_T=permute_neighbour_ind(big_T,3,4,6);# M2_D2, M1_R1, d2, d1, d3, R3_D3
+        big_T=permute_neighbour_ind(big_T,2,3,6);# M2_D2, d2, M1_R1, d1, d3, R3_D3
+        # T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
+        if isa(space(big_T,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            U2,S2,V2=tsvd(big_T,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+        elseif isa(space(big_T,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+            U2,S2,V2=tsvd(big_T,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+            U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
+        end
+    
+        # λ_2_new=permute(S2,(2,),(1,));
+    
+        # @tensor T2_new[:]:=T2_res[-1,1]*U2[1,-2,-3];#(M2_D2, d2, R2_new)
+        # T1_B_T3=S2*V2;#(R2_new, M1_R1, d1, d3, R3_D3)
+        # @tensor T1_B[:]:=T1_B_T3[-1,-2,-3,1,2]*V3'[1,2,-4];#(R2_new, M1_R1, d1, M3_new) 
+        # @tensor T3_new[:]:=V3[-1,-2,1]*T3_res[1,-3];#(M3_new, d3, R3_D3)
+        # λ_3_new=S3;
+    
+        # T1_B=permute_neighbour_ind(T1_B,1,2,4);#(M1_R1, R2_new, d1, M3_new) 
+        # T1_B=permute_neighbour_ind(T1_B,2,3,4);#(M1_R1, d1, R2_new, M3_new) 
+        # @tensor B_new[:]:=U1'[-1,1,2]*T1_B[1,2,-2,-3];#(D1_new, R2_new, M3_new) 
+        # @tensor T1_new[:]:=T1_res[-1,1]*U1[1,-2,-3];#(M1_R1, d1, D1_new) 
+        # λ_1_new=permute(S1,(2,),(1,));
+    
+        # #B_new: (D1_new, R2_new, M3_new) => (R2, D1, M3)
+        # B_new=permute_neighbour_ind(B_new,1,2,3);#(R2_new, D1_new, M3_new)
+        # B_new=permute(B_new,(1,2,),(3,));
+    
+        # #T1_new: (M1_R1, d1, D1_new) => (M1, d1, R1, D1)
+        # @tensor T1_new[:]:=T1_new[1,-3,-4]*Ut1'[-1,-2,1];#(M1, R1, d1, D1_new)
+        # T1_new=permute_neighbour_ind(T1_new,2,3,4);#(M1, d1, R1, D1_new)
+    
+        # #T2_new: (M2_D2, d2, R2_new) => (M2, d2, R2, D2) 
+        # @tensor T2_new[:]:=T2_new[1,-3,-4]*Ut2'[-1,-2,1];#(M2, D2, d2, R2_new)
+        # T2_new=permute_neighbour_ind(T2_new,2,3,4);#(M2, d2, D2, R2_new)
+        # T2_new=permute_neighbour_ind(T2_new,3,4,4);#(M2, d2, R2_new, D2)
+    
+        # #T3_new: (M3_new, d3, R3_D3) => (M3, d3, R3, D3)
+        # @tensor T3_new[:]:=T3_new[-1,-2,1]*Ut3'[-3,-4,1];#(M3_new, d3, R3, D3)
+
+
+    
+        T2_new=U2*sqrt(S2);#(M2_D2, d2, R2_new)     #here how to absorb S doesn't matter, as we will redetermine S by svd after sweep optimization 
+        T2_new=permute(T2_new,(1,2,),(3,));
+        B_new=sqrt(S2)*V2;#(R2_new, M1_R1, d1, d3, R3_D3)
+        λ_2_new=sqrt(S2);
+
+        λ_3_new=sqrt(S3);
+        λ_3_new_inv=my_pinv(λ_3_new);
+        @tensor B_new[:]:=B_new[-1,-2,-3,1,2]*V3'[1,2,3]*λ_3_new_inv'[3,-4];#(R2_new, M1_R1, d1, M3_new) 
+        T3_new=sqrt(S3)*V3;#(M3_new, d3, R3_D3)
+        T3_new=permute(T3_new,(1,2,),(3,));
+    
+        B_new=permute_neighbour_ind(B_new,1,2,4);#(M1_R1, R2_new, d1, M3_new) 
+        B_new=permute_neighbour_ind(B_new,2,3,4);#(M1_R1, d1, R2_new, M3_new) 
+        λ_1_new=sqrt(S1);
+        λ_1_new_inv=my_pinv(λ_1_new);
+        @tensor B_new[:]:=λ_1_new_inv'[-1,3]*U1'[3,1,2]*B_new[1,2,-2,-3];#(D1_new, R2_new, M3_new) 
+        T1_new=U1*sqrt(S1);#(M1_R1, d1, D1_new) 
+        T1_new=permute(T1_new,(1,2,),(3,));
+    
+        #B_new: (D1_new, R2_new, M3_new) => (R2, D1, M3)
+        B_new=permute_neighbour_ind(B_new,1,2,3);#(R2_new, D1_new, M3_new)
+        B_new=permute(B_new,(1,2,),(3,));
+    
+        method=2;#two methods are the same
+        if method==1
+            # big_T_compressed=permute_neighbour_ind(B_new,1,2,3);#(D1_new, R2_new, M3_new)
+            # @tensor big_T_compressed[:]:=T1_new[-1,-2,1]*big_T_compressed[1,-3,-4];#(M1_R1, d1, R2_new, M3_new) 
+            # big_T_compressed=permute_neighbour_ind(big_T_compressed,2,3,4);#(M1_R1,R2_new, d1,  M3_new) 
+            # big_T_compressed=permute_neighbour_ind(big_T_compressed,1,2,4);#(R2_new, M1_R1, d1,  M3_new) 
+            # @tensor big_T_compressed[:]:=big_T_compressed[-1,-2,-3,1]*T3_new[1,-4,-5];#(R2_new, M1_R1, d1,  d3, R3_D3)
+            # @tensor big_T_compressed[:]:=T2_new[-1,-2,1]*big_T_compressed[1,-3,-4,-5,-6];#(M2_D2, d2,  M1_R1, d1,  d3, R3_D3)
+
+            # big_T_compressed=permute_neighbour_ind(big_T_compressed,2,3,6);#(M2_D2,  M1_R1, d2, d1,  d3, R3_D3)
+            # big_T_compressed=permute_neighbour_ind(big_T_compressed,3,4,6);#(M2_D2,  M1_R1, d1, d2,  d3, R3_D3)
+            # @tensor big_T_compressed[:]:=big_T_compressed[-1,-2,1,2,3,-4]*Up[-3,1,2,3];#(new2, new1,  d123, new3)
+            # big_T_compressed=permute(big_T_compressed,(1,2,),(3,4,))#(new2, new1), (d123, new3)
+
+
+        else
+            big_T_compressed=build_triangle_from_4tensors(B_new,T1_new,T2_new,T3_new)
+        end
+        
+
+        return B_new,T1_new,T2_new,T3_new, big_T_compressed
+    elseif trun_order=="successive"
+    end
+end
+
+function truncation_Env_gauge(env_top,env_bot, big_T,D_max, trun_order, trun_tol)
+    #big_T: (2, 1), (d123, 3)
+    #env_bot: new_ind,2,3,1
+    #env_top: 2,3,1, new_ind
+    u,s,v=tsvd(env_bot,(1,2,3,),(4,));
+    gauge1=s*v;#11,1
+    gauge1_inv=v'*my_pinv(s);
+    u,s,v=tsvd(env_bot,(1,3,4,),(2,));
+    gauge2=s*v;#2,2
+    gauge2_inv=v'*my_pinv(s);
+    u,s,v=tsvd(env_bot,(1,2,4,),(3,));
+    gauge3=s*v;#33,3
+    gauge3_inv=v'*my_pinv(s);
+
+    @tensor big_T_new[:]:=big_T[2,1,-3,3]*gauge1[-2,1]*gauge2[-1,2]*gauge3[-4,3];
+    big_T_new=permute(big_T_new,(1,2,),(3,4,));
+
+    B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_direct(big_T_new,D_max, trun_order, trun_tol);
+    @tensor big_T_compressed[:]:=big_T_compressed[2,1,-3,3]*gauge1_inv[-2,1]*gauge2_inv[-1,2]*gauge3_inv[-4,3];
+    big_T_compressed=permute(big_T_compressed,(1,2,),(3,4,));
+
+    #T1_new: (M1_R1, d1, D1_new) 
+    @tensor T1_new[:]:=T1_new[1,-2,-3]*gauge1_inv[-1,1];
+    T1_new=permute(T1_new,(1,2,),(3,));
+    #T2_new: (M2_D2, d2, R2_new)
+    @tensor T2_new[:]:=T2_new[1,-2,-3]*gauge2_inv[-1,1];
+    T2_new=permute(T2_new,(1,2,),(3,));
+    #T3_new: (M3_new, d3, R3_D3)
+    @tensor T3_new[:]:=T3_new[-1,-2,1]*gauge3_inv[-3,1];
+    T3_new=permute(T3_new,(1,2,),(3,));
+
+    return B_new,T1_new,T2_new,T3_new, big_T_compressed
+end
+
+
+
+function triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol)
+    (c1,c2)=coord;
+
+    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+    #gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
+    gates_ru_ld_rd=gates_ru_ld_rd[mod1(c1,Lx)];
+    
+
+    B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd);
+
+
+    T_LU=B_set[c1,c2];
+    T_double_LU, _ = build_double_layer_swap_Tm(T_LU',T_LU, false);#L M U
+    B_LU=T_set[c1,c2];
+    B_double_LU, _ = build_double_layer_swap_Bm(B_LU',B_LU, true);#D R M
+
+    T_RU=B_set[mod1(c1+1,Lx),c2];
+    T_double_RU, _ = build_double_layer_swap_Tm(T_RU',T_RU, false);#L M U
+
+    T_LD=B_set[c1,mod1(c2+1,Ly)];
+    T_double_LD, _ = build_double_layer_swap_Tm(T_LD',T_LD, false);#L M U
+
+    B_double_RU, _ = build_double_layer_swap_Bm(B1_res',B1_res,false);#D R M
+    B_double_LD, _ = build_double_layer_swap_Bm(B2_res',B2_res,false);#D R M
+    B_double_RD, _ = build_double_layer_swap_Bm(B3_res',B3_res,false);#D R M
+    BigTriangle_double_Noswap, U_L,U_D,U_U = build_double_layer_Noswap_Tm(B1_B2_T_B3',B1_B2_T_B3_op, true);#L M U = L D U
+    BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));#L M U = L D U
+
+    @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env[1,2,3]*U_L[1,-1,-4]*U_D[2,-2,-5]*U_U[-3,-6,3]; # storage order: L', D', U',   L, D, U,  fermionic order: L',L,U',U,D,D'
+    
+
+        BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));# storage order: L', D', U',       L, D, U
+        #the fowllowing swap gates are taken from  function "build_double_layer_swap_Tm"
+        gate=swap_gate(BigTriangle_double_env_expand,1,3);#L'U'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,2,-4,-5,-6]*gate[-1,-3,1,2];
+        gate=swap_gate(BigTriangle_double_env_expand,1,6);#L'U
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,-3,-4,-5,2]*gate[-1,-6,1,2];
+        gate=swap_gate(BigTriangle_double_env_expand,3,6);#U'U
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,2]*gate[-3,-6,1,2];
+        gate=swap_gate(BigTriangle_double_env_expand,2,5);#D'D'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,2,-6]*gate[-2,-5,1,2];
+        gate=parity_gate(BigTriangle_double_env_expand,2);#D'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,-5,-6]*gate[-2,1];
+        gate=parity_gate(BigTriangle_double_env_expand,3);#U'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,-6]*gate[-3,1];
+
+        BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));
+
+        #eu,ev=eigen(BigTriangle_double_env_expand);
+        eu,ev=eigh(BigTriangle_double_env_expand);
+        eu=check_positive(eu);
+        #M=ev*eu*ev';
+        # env_bot=ev';#new_ind,1,2,3
+        # env_top=ev;# 1,2,3, new_ind
+        env_bot=sqrt(eu)*ev';#new_ind,2,3,1
+        env_top=ev*sqrt(eu);# 2,3,1, new_ind
+
+    
+    # @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,2,3,4,5,6]*U_L'[1,4,-1]*U_D'[2,5,-2]*U_U'[-3,3,6];
+    # ov1=@tensor BigTriangle_double_env_expand[1,2,3]*BigTriangle_double_Noswap[1,2,3];
+    # ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
+    # E=E+ov1/ov2;
+
+    #direct truncation
+    println("direct truncation:")
+    B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_direct(B1_B2_T_B3_op,D_max, trun_order, trun_tol)
+    
+    #test overlap without environment
+    # println(space(big_T_compressed))
+    # println(space(B1_B2_T_B3_op))
+    ov=dot(big_T_compressed,B1_B2_T_B3_op)/sqrt(dot(B1_B2_T_B3_op,B1_B2_T_B3_op)*dot(big_T_compressed,big_T_compressed));
+    println("overlap without environmen:"*string(ov))
+
+    #test overlap without environment
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen:"*string(norm(ov)))
+    println(space(B_new))
+
+    ####################################
+    #truncation with env gauge
+    println("truncation with env gauge:")
+    B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_Env_gauge(env_top,env_bot, B1_B2_T_B3_op,D_max, trun_order, trun_tol)
+
+    #test overlap without environment
+    ov=dot(big_T_compressed,B1_B2_T_B3_op)/sqrt(dot(B1_B2_T_B3_op,B1_B2_T_B3_op)*dot(big_T_compressed,big_T_compressed));
+    println("overlap without environmen:"*string(ov))
+
+    #test overlap without environment
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen:"*string(norm(ov)))
+    println(space(B_new))
+
+end
+
 
 function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_tol)
     # """
@@ -658,10 +1036,7 @@ end
 
 
 
-
-
-
-function triangle_update_iPESS(D_max,ct,Bset, Tset, gates, trun_tol)
+function triangle_SimpleUpdate_iPESS(D_max,ct,Bset, Tset, gates, trun_tol)
     """
     ABABABAB
     CDCDCDCD

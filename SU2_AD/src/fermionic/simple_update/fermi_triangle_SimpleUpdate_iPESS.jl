@@ -55,8 +55,8 @@ function initial_iPESS(Lx,Ly,V,Vp)
 
     for ca=1:Lx
         for cb=1:Ly
-            BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,));
-            TA=TensorMap(randn,V*V,V');
+            BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,))+permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,))*im;
+            TA=TensorMap(randn,V*V,V')+TensorMap(randn,V*V,V')*im;
             Tset[ca,cb]=BA;
             Bset[ca,cb]=TA;
             t_A=TA;

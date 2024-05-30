@@ -65,7 +65,13 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
 
     #left side
     @tensor rho[:]:=env_bot_new_gate3_B2_T_B3'[1,-1,2,-2,-3,3]*env_bot_new_gate3_B2_T_B3[1,-4,2,-5,-6,3];#(new_ind,new1,  d1,d1,  D1, d2d3),     (new_ind,new1,  d1,d1,  D1, d2d3) -> (new1,  d1,  D1),     (new1,  d1,  D1)
-    eu,ev=eigen(rho,(1,2,3,),(4,5,6,));
+    
+    rho=permute(rho,(1,2,3,),(4,5,6,));
+    @assert norm(rho-rho')/norm(rho)<1e-10;
+    rho=rho/2+rho'/2;
+    eu,ev=eigh(rho);
+    eu=check_positive(eu);
+    rho_inv=ev*my_pinv(eu)*ev';
     
 
     #right side
@@ -81,7 +87,8 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     norm2=@tensor rightside[1,2,3]*B1_keep'[3,1,2]; #(new1, d1, D1)  (D1 | new1, d1) -
 
     println([norm1,norm2])
-    rho_inv=ev*my_pinv(eu)*ev';
+    
+    
     @tensor B1_updated[:]:=rho_inv[-1,-2,-3,1,2,3]*rightside[1,2,3];#(new1,  d1,  D1  |  new1,  d1,  D1)    (new1, d1, D1)  -> new1,  d1,  D1 
 
     B1_updated=permute(B1_updated,(1,2,),(3,));#(new1,  d1),  (D1) 
@@ -125,7 +132,12 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     
     @tensor rho[:]:=leftside[2,-1,1, 4,-3,3]*double_gate1_T_B3[1,2,-2, 3,4,-4];#(new3, new2, D1,| new3, new2, D1),  (D1, new3, d2R2, |    D1, new3, d2R2)-> (new2, d2R2,  new2, d2R2)
     @tensor rho[:]:=rho[-1,1,-4,2]*Uu[1,-2,-3]*Uu'[-5,-6,2];#(new2, d2,R2,  new2, d2,R2)
-    eu,ev=eigen(rho,(1,2,3,),(4,5,6,));
+
+    rho=permute(rho,(1,2,3,),(4,5,6,));
+    @assert norm(rho-rho')/norm(rho)<1e-10
+    rho=rho/2+rho'/2;
+    eu,ev=eigh(rho);
+    eu=check_positive(eu);
     rho_inv=ev*my_pinv(eu)*ev';
 
     global Up
@@ -154,7 +166,7 @@ end
 
 
 
-function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_keep)
+function partial_triangle_partial_B3(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_keep)
     @tensor B2_T[:]:=B2_keep[-1,-2,1]*T[1,-3,-4];     #(new2, d2, R2),  (R2, D1, M3) => (new2, d2, D1, M3)
     B2_T=permute_neighbour_ind(B2_T,2,3,4);#(new2, D1, d2, M3)
     B2_T=permute_neighbour_ind(B2_T,1,2,4);#(D1, new2, d2, M3)
@@ -164,26 +176,35 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     B1_B2_T=permute_neighbour_ind(B1_B2_T,1,2,5);# new2, new1, d1, d2, M3
 
     #env_bot: new_ind,new2,new3,new1
-    @tensor env_bot_B1_B2_T[:]:=env_bot[]*B1_B2_T[]
+    @tensor env_bot_B1_B2_T[:]:=env_bot[-1,2,-2,1]*B1_B2_T[2,1,-3,-4,-5];#(new_ind,new2,new3,new1), (new2, new1, d1, d2, M3) -> (new_ind, new3, d1, d2, M3)
 
-
+    @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-6]*Up'[-3,-4,-5,1];#(new2,new1,  d1,d2,d3, new3) 
     
+    Id=unitary(space(B3_keep,2),space(B3_keep,2));
+    @tensor leftside[:]:=env_bot_B1_B2_T'[1,-1,2,3,-2]*env_bot_B1_B2_T[1,-3,2,3,-4];#(new_ind, new3, d1, d2, M3), (new_ind, new3, d1, d2, M3) ->(new3, M3,  new3,  M3) 
+    @tensor rho[:]:=leftside[-1,-2,-4,-5]*Id[-3,-6];#(new3, M3,d3,    new3,  M3,d3) 
 
 
+    rho=permute(rho,(1,2,3,),(4,5,6,));
+    @assert (norm(rho-rho')/norm(rho))<1e-10
+    rho=rho/2+rho'/2;
+    eu,ev=eigh(rho);
+    eu=check_positive(eu);
+    rho_inv=ev*my_pinv(eu)*ev';
 
-    @tensor B1_B2_T_B3[:]:=B1_B2_T[-1,-2,-3,-4,1]*B3_keep[1,-5,-6];#(new1, d1, new2, d2, M3), (M3, d3, new3) => (new1, d1, new2, d2, d3, new3)
-    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,2,3,6);# new1, new2, d1, d2, d3, new3
 
-    Up=unitary(fuse(space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5)), space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5));
-    global Up
-    @tensor B1_B2_T_B3[:]:=B1_B2_T_B3[-1,-2,1,2,3,-4]*Up[-3,1,2,3];# new1, new2, d123, new3
-
-    B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,1,2,4);# new2, new1, d123, new3
-    B1_B2_T_B3=permute(B1_B2_T_B3,(1,2,),(3,4,));# (new2, new1), (d123, new3)
-
-    #########################################
+    @tensor env_bot_Big_triangle[:]:=env_bot[-1,2,3,1]*Big_triangle[2,1,-2,-3,-4,3];#(new_ind,new2,new3,new1), (new2,new1,  d1,d2,d3, new3) -> (new_ind,  d1,d2,d3)
+    @tensor rightside[:]:=env_bot_B1_B2_T'[1,-1,2,3,-2]*env_bot_Big_triangle[1,2,3,-3];#(new_ind, new3, d1, d2, M3), (new_ind,  d1,d2,d3) -> (new3, M3,d3) 
     
+    @tensor B3_updated[:]:=rho_inv[-1,-2,-3,1,2,3]*rightside[1,2,3];#(new3, M3,d3,    new3,  M3,d3) ,    (new3, M3,d3)  -> (new3, M3,d3)
+    B3_updated=permute(B3_updated,(2,3,),(1,));#(M3, d3), (new3)
 
+    norm1=@tensor rho[1,2,3,4,5,6]*B3_keep'[1,2,3]*B3_keep[5,6,4];#(new3, M3,d3,    new3,  M3,d3)   (new3)(M3, d3),    (M3, d3)(new3)
+    norm2=@tensor rightside[1,2,3]*B3_keep'[1,2,3]; #(new3, M3,d3)   (new3)(M3, d3)
+    println([norm1,norm2])
 
-    return 
+    return rho,rightside,B3_updated
+end
+
+function partial_triangle_partial_T(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_keep)
 end

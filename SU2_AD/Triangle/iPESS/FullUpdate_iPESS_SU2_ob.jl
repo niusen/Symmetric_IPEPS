@@ -203,6 +203,7 @@ test_positive_triangle_env2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
 
 
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
+include("..\\..\\src\\fermionic\\simple_update\\Full_Update_lib.jl")
 coord=[1,1];
 D_max=6;
 trun_order="simultaneous";
@@ -210,6 +211,7 @@ trun_tol=1e-8;
 dt=0.5;
 # gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
 triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol)
+1+1
 
 
 

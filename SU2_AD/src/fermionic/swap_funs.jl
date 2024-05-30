@@ -521,9 +521,19 @@ end
 #     return S
 # end
 
-function swap_gate(A,p1,p2) #much faster
+function swap_gate(A,p1::Number,p2::Number) #much faster
     V1=space(A,p1);
     V2=space(A,p2);
+    S=unitary( V1 ⊗ V2, V1 ⊗ V2);
+    P1_odd,P1_even=projector_parity(V1);
+    P2_odd,P2_even=projector_parity(V2);
+    @tensor S_minus[:]:=P1_odd'[-1,1]*P1_odd[1,3]*P2_odd'[-2,2]*P2_odd[2,4]*S[3,4,-3,-4];
+    S_minus=permute(S_minus,(1,2,),(3,4,));
+    S=S-2*S_minus;
+    return S
+end
+
+function swap_gate(V1::GradedSpace,V2::GradedSpace) #much faster
     S=unitary( V1 ⊗ V2, V1 ⊗ V2);
     P1_odd,P1_even=projector_parity(V1);
     P2_odd,P2_even=projector_parity(V2);

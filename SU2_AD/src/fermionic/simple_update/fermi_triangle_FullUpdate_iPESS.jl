@@ -944,6 +944,15 @@ function triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max
     ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
     ov=ov12/sqrt(ov11*ov22);
     println("overlap with environmen after optimization B3:"*string(norm(ov)))
+    ####################################
+    B_left,B_right,B_opt=partial_triangle_partial_T(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    #test overlap after optimization 
+    big_T_compressed_opt=build_triangle_from_4tensors(B_opt,T1_new,T2_new,T3_new)
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen after optimization B3:"*string(norm(ov)))
 
 end
 

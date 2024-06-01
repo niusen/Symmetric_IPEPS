@@ -31,7 +31,7 @@ include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate.jl")
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate_iPESS.jl")
 include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
-
+include("..\\..\\src\\fermionic\\simple_update\\Full_Update_lib.jl")
 ###########################
 """
 ABABABAB
@@ -53,10 +53,21 @@ t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=5;
+U=0;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
+###########################
+import LinearAlgebra.BLAS as BLAS
+n_cpu=8;
+BLAS.set_num_threads(n_cpu);
+println("number of cpus: "*string(BLAS.get_num_threads()))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_"*"FU_U"*string(U)*"_D"*string(D_max))
+pid=getpid();
+println("pid="*string(pid));
+###########################
 
+
+function main(D_max,parameters)
 
 trun_tol=1e-6;
 
@@ -89,7 +100,7 @@ global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
 optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
-optim_setting.init_noise=4.5;
+optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
@@ -108,19 +119,6 @@ ENV_ctm_setting.grad_checkpoint=true;
 dump(ENV_ctm_setting);
 
 
-LS_ctm_setting=LS_CTMRG_settings();
-LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=10;
-LS_ctm_setting.CTM_trun_tol=1e-8;
-LS_ctm_setting.svd_lanczos_tol=1e-8;
-LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
-LS_ctm_setting.conv_check="singular_value";
-LS_ctm_setting.CTM_ite_info=true;
-LS_ctm_setting.CTM_conv_info=true;
-LS_ctm_setting.CTM_trun_svd=false;
-LS_ctm_setting.construct_double_layer=true;
-LS_ctm_setting.grad_checkpoint=true;
-dump(LS_ctm_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
 energy_setting.model = "spinful_triangle_lattice";
@@ -141,14 +139,14 @@ dump(energy_setting);
 ##################################
 global chi,multiplet_tol,projector_trun_tol
 multiplet_tol=1e-5;
-projector_trun_tol=LS_ctm_setting.CTM_trun_tol
+projector_trun_tol=ENV_ctm_setting.CTM_trun_tol
 ###################################
 global Lx,Ly
 Lx=2;
 Ly=2;
 
 
-LS_ctm_setting.CTM_ite_nums=30;
+ENV_ctm_setting.CTM_ite_nums=30;
 ##############
 
 
@@ -165,17 +163,21 @@ else
     data=load(optim_setting.init_statenm);
     T_set=data["T_set"];
     B_set=data["B_set"];
-    λ_set1=data["λ_set1"];
-    λ_set2=data["λ_set2"];
-    λ_set3=data["λ_set3"];
+    # λ_set1=data["λ_set1"];
+    # λ_set2=data["λ_set2"];
+    # λ_set3=data["λ_set3"];
 end
+
+# init_complex_tensor=true;
+# state_vec=initial_fiPESS_spinful_SU2(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+# state_vec=normalize_ansatz(state_vec);
 
 
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
 println(E_total)
 println(ex_set)
 println(ey_set)
@@ -185,68 +187,51 @@ println(eU_set)
 
 println("verifications:")
 test_decomposition1(B_set, T_set,AA_cell,Lx,Ly);
-
 test_decomposition2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly);
-
 test_decomposition3(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total);
-
-include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
 test_positive_triangle_env(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
 test_positive_triangle_env2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
 
 
 
 
+global save_filenm
+save_filenm="FU_iPESS_LS_D_"*string(D_max)*"_chi_"*string(chi)*".jld2"
+
+global starting_time
+starting_time=now();
+
+global E_history,E_all_history
+E_history=[10000];
+E_all_history=[10000];
 
 
 
 
 
-include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
-include("..\\..\\src\\fermionic\\simple_update\\Full_Update_lib.jl")
-coord=[1,1];
-D_max=6;
+
 trun_order="simultaneous";
 trun_tol=1e-8;
-dt=0.5;
-# gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
-triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol)
-1+1
 
+n_sweep=10;
 
-
-# tau=20;
-# dt=0.1;
-# B_set, T_set = FullUpdate(parameters, B_set, T_set, tau, dt,D_max, trun_tol,ENV_ctm_setting);
-
-# tau=20;
-# dt=0.05;
-# B_set, T_set = FullUpdate(parameters, B_set, T_set, tau, dt,D_max, trun_tol,ENV_ctm_setting);
-
-tau=20;
-dt=0.01;
-B_set, T_set = FullUpdate(parameters, B_set, T_set, tau, dt,D_max, trun_tol,ENV_ctm_setting);
-
-tau=20;
-dt=0.002;
-B_set, T_set = FullUpdate(parameters, B_set, T_set, tau, dt,D_max, trun_tol,ENV_ctm_setting);
 
 
 
-A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-println(E_total)
-println(ex_set)
-println(ey_set)
-println(e_diagonala_set)
-println(e0_set)
-println(eU_set)
+tau=20;
+dt=0.1;
+Bset, Tset=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
+
+tau=2;
+dt=0.05;
+Bset, Tset=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
+
+end
 
 
-# filenm="SU_iPESS_SU2_csl_D"*string(D_max)*".jld2";
-# jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
+
+main(D_max,parameters)
 
 
-# end
+
+

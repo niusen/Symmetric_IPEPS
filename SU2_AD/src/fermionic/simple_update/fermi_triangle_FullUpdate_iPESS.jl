@@ -282,6 +282,148 @@ function test_positive_triangle_env2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_corre
 
 end
 
+function test_triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol)
+    (c1,c2)=coord;
+
+    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+    #gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
+    gates_ru_ld_rd=gates_ru_ld_rd[mod1(c1,Lx)];
+    
+
+    B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd);
+
+
+    T_LU=B_set[c1,c2];
+    T_double_LU, _ = build_double_layer_swap_Tm(T_LU',T_LU, false);#L M U
+    B_LU=T_set[c1,c2];
+    B_double_LU, _ = build_double_layer_swap_Bm(B_LU',B_LU, true);#D R M
+
+    T_RU=B_set[mod1(c1+1,Lx),c2];
+    T_double_RU, _ = build_double_layer_swap_Tm(T_RU',T_RU, false);#L M U
+
+    T_LD=B_set[c1,mod1(c2+1,Ly)];
+    T_double_LD, _ = build_double_layer_swap_Tm(T_LD',T_LD, false);#L M U
+
+    B_double_RU, _ = build_double_layer_swap_Bm(B1_res',B1_res,false);#D R M
+    B_double_LD, _ = build_double_layer_swap_Bm(B2_res',B2_res,false);#D R M
+    B_double_RD, _ = build_double_layer_swap_Bm(B3_res',B3_res,false);#D R M
+    BigTriangle_double_Noswap, U_L,U_D,U_U = build_double_layer_Noswap_Tm(B1_B2_T_B3',B1_B2_T_B3_op, true);#L M U = L D U
+    BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));#L M U = L D U
+
+    @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env[1,2,3]*U_L[1,-1,-4]*U_D[2,-2,-5]*U_U[-3,-6,3]; # storage order: L', D', U',   L, D, U,  fermionic order: L',L,U',U,D,D'
+    
+
+        BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));# storage order: L', D', U',       L, D, U
+        #the fowllowing swap gates are taken from  function "build_double_layer_swap_Tm"
+        gate=swap_gate(BigTriangle_double_env_expand,1,3);#L'U'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,2,-4,-5,-6]*gate[-1,-3,1,2];
+        gate=swap_gate(BigTriangle_double_env_expand,1,6);#L'U
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,-3,-4,-5,2]*gate[-1,-6,1,2];
+        gate=swap_gate(BigTriangle_double_env_expand,3,6);#U'U
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,2]*gate[-3,-6,1,2];
+        gate=swap_gate(BigTriangle_double_env_expand,2,5);#D'D'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,2,-6]*gate[-2,-5,1,2];
+        gate=parity_gate(BigTriangle_double_env_expand,2);#D'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,-5,-6]*gate[-2,1];
+        gate=parity_gate(BigTriangle_double_env_expand,3);#U'
+        @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,-6]*gate[-3,1];
+
+        BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));
+
+        #eu,ev=eigen(BigTriangle_double_env_expand);
+        eu,ev=eigh(BigTriangle_double_env_expand);
+        eu=check_positive(eu);
+        #M=ev*eu*ev';
+        # env_bot=ev';#new_ind,1,2,3
+        # env_top=ev;# 1,2,3, new_ind
+        env_bot=sqrt(eu)*ev';#new_ind,2,3,1
+        env_top=ev*sqrt(eu);# 2,3,1, new_ind
+
+    
+    # @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,2,3,4,5,6]*U_L'[1,4,-1]*U_D'[2,5,-2]*U_U'[-3,3,6];
+    # ov1=@tensor BigTriangle_double_env_expand[1,2,3]*BigTriangle_double_Noswap[1,2,3];
+    # ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
+    # E=E+ov1/ov2;
+
+    #direct truncation
+    println("direct truncation:")
+    B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_direct(B1_B2_T_B3_op,D_max, trun_order, trun_tol)
+    
+    #test overlap without environment
+    # println(space(big_T_compressed))
+    # println(space(B1_B2_T_B3_op))
+    ov=dot(big_T_compressed,B1_B2_T_B3_op)/sqrt(dot(B1_B2_T_B3_op,B1_B2_T_B3_op)*dot(big_T_compressed,big_T_compressed));
+    println("overlap without environmen:"*string(ov))
+
+    #test overlap without environment
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen:"*string(norm(ov)))
+    println(space(B_new))
+
+    ####################################
+    #truncation with env gauge
+    println("truncation with env gauge:")
+    B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_Env_gauge(env_top,env_bot, B1_B2_T_B3_op,D_max, trun_order, trun_tol)
+
+    #test overlap without environment
+    ov=dot(big_T_compressed,B1_B2_T_B3_op)/sqrt(dot(B1_B2_T_B3_op,B1_B2_T_B3_op)*dot(big_T_compressed,big_T_compressed));
+    println("overlap without environmen:"*string(ov))
+
+    #test overlap without environment
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environment:"*string(norm(ov)))
+    println(space(B_new))
+
+    println([ov12,ov11,ov22])
+    
+
+
+    ####################################
+    T1_left,T1_right,T1_opt=partial_triangle_partial_B1(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    #test overlap after optimization 
+    big_T_compressed_opt=build_triangle_from_4tensors(B_new,T1_opt,T2_new,T3_new)
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen after optimization B1:"*string(norm(ov)))
+    ####################################
+    T2_left,T2_right,T2_opt=partial_triangle_partial_B2(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    #test overlap after optimization 
+    big_T_compressed_opt=build_triangle_from_4tensors(B_new,T1_new,T2_opt,T3_new)
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen after optimization B2:"*string(norm(ov)))
+    ####################################
+    T3_left,T3_right,T3_opt=partial_triangle_partial_B3(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    #test overlap after optimization 
+    big_T_compressed_opt=build_triangle_from_4tensors(B_new,T1_new,T2_new,T3_opt)
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen after optimization B3:"*string(norm(ov)))
+    ####################################
+    B_left,B_right,B_opt=partial_triangle_partial_T(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    #test overlap after optimization 
+    big_T_compressed_opt=build_triangle_from_4tensors(B_opt,T1_new,T2_new,T3_new)
+    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
+    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
+    ov=ov12/sqrt(ov11*ov22);
+    println("overlap with environmen after optimization B3:"*string(norm(ov)))
+
+end
+
+
 function get_overlap_env(env_top,env_bot,triangle_top,triangle_bot)
     #env_bot:   (env_ind),  (2,3,1)
     #env_top:   (2,3,1), (env_ind)
@@ -543,72 +685,7 @@ function build_double_layer_swap_Bm(Ap,A, with_physical)
     return AA_fused, U_D,U_R,U_U
 end
 
-function split_3Tesnsors(B1, B2, B3, T, op_LD_RD_RU)
-    # """
-    #          M1     R1
-    #            \   /
-    #             \ /....d1
-    #              |                   B1 =  |M1, d1><D1, R1|=|M1, d1><|R1, D1   
-    #              |D1
 
-    #              |                B=|R2, D1><M3|
-    #             / \
-
-    #   M2\   /R2    M3\   /R3
-    #      \ /....d2    \ /....d3
-    #       |            |   
-    #       |D2          |D3
-
-    #       B2           B3
-
-    # B2=|M2, d2><D2, R2|=|M2, d2><|R2, D2 
-    # B3=|M3, d3><D3, R3|=|M3, d3><|R3, D3 
-    # """
-
-    @assert (length(codomain(B1))==1)&(length(domain(B1))==3)
-    @assert (length(codomain(B2))==1)&(length(domain(B2))==3)
-    @assert (length(codomain(B3))==1)&(length(domain(B3))==3)
-    @assert (length(codomain(T))==2)&(length(domain(T))==1)
-
-    B1=permute_neighbour_ind(B1,2,3,4);#M1, R1, d1,  D1
-    uu,ss,vv=tsvd(permute(B1,(1,2,),(3,4,)));
-    B1_res=uu; #M1, R1, new1
-    B1_keep=ss*vv; #new1, d1,  D1
-    B1_res=permute(B1_res,(1,),(2,3,));#(M1), (R1, new1)
-
-
-    B2=permute_neighbour_ind(B2,3,4,4);#M2, d2, D2, R2
-    B2=permute_neighbour_ind(B2,2,3,4);#M2, D2, d2, R2
-    uu,ss,vv=tsvd(permute(B2,(1,2,),(3,4,)));
-    B2_res=uu;#M2, D2, new2
-    B2_keep=ss*vv; #new2, d2, R2
-    B2_res=permute_neighbour_ind(B2_res,2,3,3);#M2, new2, D2
-    B2_res=permute(B2_res,(1,),(2,3,));#(M2), (new2, D2)
-
-    B3=B3;#M3, d3, R3, D3 
-    uu,ss,vv=tsvd(permute(B3,(1,2,),(3,4,)));
-    B3_keep=uu*ss; #M3, d3, new3,
-    B3_res=vv;#new3, R3, D3
-    B3_res=permute(B3_res,(1,),(2,3,)); #(new3), (R3, D3)
-
-    ##################
-
-
-    B1_B2_T_B3=build_triangle_from_4tensors(T,B1_keep,B2_keep,B3_keep);
-
-    #d2',d3',d1', d2,d3,d1
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,5,6,6);#d2',d3',d1', d2,d1,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,4,5,6);#d2',d3',d1', d1,d2,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,2,3,6);#d2',d1',d3', d1,d2,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,1,2,6);#d1',d2',d3', d1,d2,d3
-    @tensor op_LD_RD_RU[:]:=Up[-1,1,2,3]*op_LD_RD_RU[1,2,3,4,5,6]*Up'[4,5,6,-2];
-
-    @tensor B1_B2_T_B3_op[:]:=B1_B2_T_B3[-1,-2,1,-4]*op_LD_RD_RU[-3,1];# new2, new1, d123, new3
-    B1_B2_T_B3_op=permute(B1_B2_T_B3_op,(1,2,),(3,4,));# (new2, new1), (d123, new3)
-
-
-    return B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op
-end
 
 function contract_triangle_env(CTM, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, cx,cy)
     #leading memory cost:
@@ -815,7 +892,28 @@ end
 
 
 
-function triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol)
+function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
+    # """
+    #          M1     R1
+    #            \   /
+    #             \ /....d1
+    #              |                   T1 =  |M1, d1><D1, R1|=|M1, d1><|R1, D1   
+    #              |D1
+
+    #              |                B=|R2, D1><M3|
+    #             / \
+
+    #   M2\   /R2    M3\   /R3
+    #      \ /....d2    \ /....d3
+    #       |            |   
+    #       |D2          |D3
+
+    #       T2           T3
+
+    # T2=|M2, d2><D2, R2|=|M2, d2><|R2, D2 
+    # T3=|M3, d3><D3, R3|=|M3, d3><|R3, D3 
+    # """
+
     (c1,c2)=coord;
 
     gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
@@ -878,305 +976,163 @@ function triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max
     # ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
     # E=E+ov1/ov2;
 
+    ############################################
     #direct truncation
-    println("direct truncation:")
     B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_direct(B1_B2_T_B3_op,D_max, trun_order, trun_tol)
-    
-    #test overlap without environment
-    # println(space(big_T_compressed))
-    # println(space(B1_B2_T_B3_op))
-    ov=dot(big_T_compressed,B1_B2_T_B3_op)/sqrt(dot(B1_B2_T_B3_op,B1_B2_T_B3_op)*dot(big_T_compressed,big_T_compressed));
-    println("overlap without environmen:"*string(ov))
+    println("direct truncation:"*string(space(B_new)))
 
-    #test overlap without environment
+    # #test overlap without environment
     ov12=get_overlap_env(env_top,env_bot,big_T_compressed',B1_B2_T_B3_op);
     ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
     ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
     ov=ov12/sqrt(ov11*ov22);
-    println("overlap with environmen:"*string(norm(ov)))
-    println(space(B_new))
+    println("overlap without optimization:"*string(norm(ov)))
+
+    println("overlap with environmen after optimization:");
+    B_new_a,T1_new_a,T2_new_a,T3_new_a,big_T_compressed_opt_a, ov_a=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top,env_bot, B_new,T1_new,T2_new,T3_new)
+
 
     ####################################
     #truncation with env gauge
-    println("truncation with env gauge:")
     B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_Env_gauge(env_top,env_bot, B1_B2_T_B3_op,D_max, trun_order, trun_tol)
-
-    #test overlap without environment
-    ov=dot(big_T_compressed,B1_B2_T_B3_op)/sqrt(dot(B1_B2_T_B3_op,B1_B2_T_B3_op)*dot(big_T_compressed,big_T_compressed));
-    println("overlap without environmen:"*string(ov))
-
-    #test overlap without environment
+    println("truncation with env gauge:"*string(space(B_new)))
+    # #test overlap without environment
     ov12=get_overlap_env(env_top,env_bot,big_T_compressed',B1_B2_T_B3_op);
     ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
     ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
     ov=ov12/sqrt(ov11*ov22);
-    println("overlap with environment:"*string(norm(ov)))
-    println(space(B_new))
-
-    println([ov12,ov11,ov22])
+    println("overlap without optimization:"*string(norm(ov)))
     
+    # println([ov12,ov11,ov22])
+    println("overlap with environmen after optimization:");
+    B_new_b,T1_new_b,T2_new_b,T3_new_b,big_T_compressed_opt_b, ov_b=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top,env_bot, B_new,T1_new,T2_new,T3_new)
 
-
-    ####################################
-    T1_left,T1_right,T1_opt=partial_triangle_partial_B1(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
-    #test overlap after optimization 
-    big_T_compressed_opt=build_triangle_from_4tensors(B_new,T1_opt,T2_new,T3_new)
-    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
-    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
-    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
-    ov=ov12/sqrt(ov11*ov22);
-    println("overlap with environmen after optimization B1:"*string(norm(ov)))
-    ####################################
-    T2_left,T2_right,T2_opt=partial_triangle_partial_B2(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
-    #test overlap after optimization 
-    big_T_compressed_opt=build_triangle_from_4tensors(B_new,T1_new,T2_opt,T3_new)
-    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
-    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
-    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
-    ov=ov12/sqrt(ov11*ov22);
-    println("overlap with environmen after optimization B2:"*string(norm(ov)))
-    ####################################
-    T3_left,T3_right,T3_opt=partial_triangle_partial_B3(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
-    #test overlap after optimization 
-    big_T_compressed_opt=build_triangle_from_4tensors(B_new,T1_new,T2_new,T3_opt)
-    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
-    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
-    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
-    ov=ov12/sqrt(ov11*ov22);
-    println("overlap with environmen after optimization B3:"*string(norm(ov)))
-    ####################################
-    B_left,B_right,B_opt=partial_triangle_partial_T(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
-    #test overlap after optimization 
-    big_T_compressed_opt=build_triangle_from_4tensors(B_opt,T1_new,T2_new,T3_new)
-    ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
-    ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
-    ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
-    ov=ov12/sqrt(ov11*ov22);
-    println("overlap with environmen after optimization B3:"*string(norm(ov)))
-
-end
-
-
-function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_tol)
-    # """
-    #          M1     R1
-    #            \   /
-    #             \ /....d1
-    #              |                   T1 =  |M1, d1><D1, R1|=|M1, d1><|R1, D1   
-    #              |D1
-
-    #              |                B=|R2, D1><M3|
-    #             / \
-
-    #   M2\   /R2    M3\   /R3
-    #      \ /....d2    \ /....d3
-    #       |            |   
-    #       |D2          |D3
-
-    #       T2           T3
-
-    # T2=|M2, d2><D2, R2|=|M2, d2><|R2, D2 
-    # T3=|M3, d3><D3, R3|=|M3, d3><|R3, D3 
-    # """
-
-    T1=permute_neighbour_ind(T1,2,3,4);#M1, R1, d1,  D1
-    Ut1=unitary(fuse(space(T1,1)*space(T1,2)), space(T1,1)*space(T1,2));
-    @tensor T1[:]:=Ut1[-1,1,2]*T1[1,2,-2,-3];#M1_R1, d1,  D1
-    uu,ss,vv=tsvd(permute(T1,(1,),(2,3,)));
-    T1_res=uu;
-    T1_keep=ss*vv;
-
-    T2=permute_neighbour_ind(T2,3,4,4);#M2, d2, D2, R2
-    T2=permute_neighbour_ind(T2,2,3,4);#M2, D2, d2, R2
-    Ut2=unitary(fuse(space(T2,1)*space(T2,2)), space(T2,1)*space(T2,2));
-    @tensor T2[:]:=Ut2[-1,1,2]*T2[1,2,-2,-3];#M2_D2, d2, R2
-    uu,ss,vv=tsvd(permute(T2,(1,),(2,3,)));
-    T2_res=uu;
-    T2_keep=ss*vv;
-
-    T3=T3;#M3, d3, R3, D3 
-    Ut3=unitary(fuse(space(T3,3)*space(T3,4)), space(T3,3)*space(T3,4));
-    @tensor T3[:]:=T3[-1,-2,1,2]*Ut3[-3,1,2];#M3, d3, R3_D3 
-    uu,ss,vv=tsvd(permute(T3,(1,2,),(3,)));
-    T3_keep=uu*ss;
-    T3_res=vv;
-
-    @tensor T2_B[:]:=T2_keep[-1,-2,1]*B[1,-3,-4];     #(M2_D2, d2, R2),  (R2, D1, M3) => (M2_D2, d2, D1, M3)
-    T2_B=permute_neighbour_ind(T2_B,2,3,4);#(M2_D2, D1, d2, M3)
-    T2_B=permute_neighbour_ind(T2_B,1,2,4);#(D1, M2_D2, d2, M3)
-    @tensor T1_T2_B[:]:=T1_keep[-1,-2,1]*T2_B[1,-3,-4,-5];#(M1_R1, d1,  D1), (D1, M2_D2, d2, M3) => (M1_R1, d1, M2_D2, d2, M3)
-
-    @tensor T1_T2_B_T3[:]:=T1_T2_B[-1,-2,-3,-4,1]*T3_keep[1,-5,-6];#(M1_R1, d1, M2_D2, d2, M3), (M3, d3, R3_D3) => (M1_R1, d1, M2_D2, d2, d3, R3_D3)
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, M2_D2, d1, d2, d3, R3_D3
-
-    #d2',d3',d1', d2,d3,d1
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,5,6,6);#d2',d3',d1', d2,d1,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,4,5,6);#d2',d3',d1', d1,d2,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,2,3,6);#d2',d1',d3', d1,d2,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,1,2,6);#d1',d2',d3', d1,d2,d3
-    @tensor T1_T2_B_T3[:]:=T1_T2_B_T3[-1,-2,1,2,3,-6]*op_LD_RD_RU[-3,-4,-5,1,2,3];
-
-
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, d1, M2_D2, d2, d3, R3_D3
-    T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
-    if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        U1,S1,V1=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
-        U3,S3,V3=tsvd(T1_T2_B_T3,(1,2,3,4,),(5,6,);trunc=truncdim(D_max));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
-    elseif isa(space(T1,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
-        U1,S1,V1=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
-        U1,S1,V1=Truncations(U1,S1,V1,D_max,trun_tol);#println(norm(U1*S1*V1-M_old)/norm(M_old))
-        U3,S3,V3=tsvd(T1_T2_B_T3,(1,2,3,4,),(5,6,));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
-        U3,S3,V3=Truncations(U3,S3,V3,D_max,trun_tol);#println(norm(U3*S3*V3-M_old)/norm(M_old))
+    #########################################
+    if ov_a>ov_b 
+        println("direct truncation better")
+        B_new_=B_new_a;
+        T1_new_=T1_new_a;
+        T2_new_=T2_new_a;
+        T3_new_=T3_new_a;
+        big_T_compressed_opt_=big_T_compressed_opt_a;
+    else
+        println("truncation with gauge better")
+        B_new_=B_new_b;
+        T1_new_=T1_new_b;
+        T2_new_=T2_new_b;
+        T3_new_=T3_new_b;
+        big_T_compressed_opt_=big_T_compressed_opt_b;
     end
+    # println(space(B_new_))
+    # println(space(T1_new_))
+    # println(space(T2_new_))
+    # println(space(T3_new_))
+    # println(space(big_T_compressed_opt_))
 
 
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, M2_D2, d1, d2, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,1,2,6);# M2_D2, M1_R1, d1, d2, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,3,4,6);# M2_D2, M1_R1, d2, d1, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M2_D2, d2, M1_R1, d1, d3, R3_D3
-    T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
-    if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
-    elseif isa(space(T1,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
-        U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
-        U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
-    end
+    #T1_new: (new1, d1),  (D1) 
+    #T2_new: (new2, d2),  (R2) 
+    #T3_new: (M3, d3), (new3)
+    #B_new: (R2, D1), (M3)
 
-    λ_2_new=permute(S2,(2,),(1,));
 
-    @tensor T2_new[:]:=T2_res[-1,1]*U2[1,-2,-3];#(M2_D2, d2, R2_new)
-    T1_B_T3=S2*V2;#(R2_new, M1_R1, d1, d3, R3_D3)
-    @tensor T1_B[:]:=T1_B_T3[-1,-2,-3,1,2]*V3'[1,2,-4];#(R2_new, M1_R1, d1, M3_new) 
-    @tensor T3_new[:]:=V3[-1,-2,1]*T3_res[1,-3];#(M3_new, d3, R3_D3)
-    λ_3_new=S3;
 
-    T1_B=permute_neighbour_ind(T1_B,1,2,4);#(M1_R1, R2_new, d1, M3_new) 
-    T1_B=permute_neighbour_ind(T1_B,2,3,4);#(M1_R1, d1, R2_new, M3_new) 
-    @tensor B_new[:]:=U1'[-1,1,2]*T1_B[1,2,-2,-3];#(D1_new, R2_new, M3_new) 
-    @tensor T1_new[:]:=T1_res[-1,1]*U1[1,-2,-3];#(M1_R1, d1, D1_new) 
-    λ_1_new=permute(S1,(2,),(1,));
+    #T1=|M1, d1><D1, R1|=|M1, d1><|R1, D1 
+    #T1_res:(M1), (R1, new1)
+    @tensor T1_new_opt[:]:=B1_res[-1,-2,1]*T1_new_[1,-3,-4];#(M1)(R1, new1), (new1, d1)(D1) ->  (M1,R1, d1,D1)
+    T1_new_opt=permute_neighbour_ind(T1_new_opt,2,3,4);#(M1,d1, R1,D1)
+    T1_new_opt=permute(T1_new_opt,(1,),(2,3,4,));#(M1),(d1,R1,D1)
 
-    #B_new: (D1_new, R2_new, M3_new) => (R2, D1, M3)
-    B_new=permute_neighbour_ind(B_new,1,2,3);#(R2_new, D1_new, M3_new)
-    B_new=permute(B_new,(1,2,),(3,));
+    #T2=|M2, d2><D2, R2|=|M2, d2><|R2, D2 
+    #T2_res: (M2), (new2, D2)
+    B2_res=permute_neighbour_ind(B2_res,2,3,3);#(M2)(D2,new2)
+    @tensor T2_new_opt[:]:=B2_res[-1,-2,1]*T2_new_[1,-3,-4];#(M2)(D2,new2), (new2, d2)(R2)  ->  (M2,D2, d2,R2)
+    T2_new_opt=permute_neighbour_ind(T2_new_opt,2,3,4);#(M2,d2, D2,R2)
+    T2_new_opt=permute_neighbour_ind(T2_new_opt,3,4,4);#(M2,d2, R2,D2)
+    T2_new_opt=permute(T2_new_opt,(1,),(2,3,4,));#(M2),(d2,R2,D2)
 
-    #T1_new: (M1_R1, d1, D1_new) => (M1, d1, R1, D1)
-    @tensor T1_new[:]:=T1_new[1,-3,-4]*Ut1'[-1,-2,1];#(M1, R1, d1, D1_new)
-    T1_new=permute_neighbour_ind(T1_new,2,3,4);#(M1, d1, R1, D1_new)
+    #T3=|M3, d3><D3, R3|=|M3, d3><|R3, D3 
+    #T3_res: (new3), (R3, D3)
+    @tensor T3_new_opt[:]:=T3_new_[-1,-2,1]*B3_res[1,-3,-4];#(M3, d3)(new3),  (new3)(R3, D3)  ->  (M3,d3, R3,D3)
+    T3_new_opt=permute(T3_new_opt,(1,),(2,3,4,));#(M3),(d3,R3,D3)
 
-    #T2_new: (M2_D2, d2, R2_new) => (M2, d2, R2, D2) 
-    @tensor T2_new[:]:=T2_new[1,-3,-4]*Ut2'[-1,-2,1];#(M2, D2, d2, R2_new)
-    T2_new=permute_neighbour_ind(T2_new,2,3,4);#(M2, d2, D2, R2_new)
-    T2_new=permute_neighbour_ind(T2_new,3,4,4);#(M2, d2, R2_new, D2)
 
-    #T3_new: (M3_new, d3, R3_D3) => (M3, d3, R3, D3)
-    @tensor T3_new[:]:=T3_new[-1,-2,1]*Ut3'[-3,-4,1];#(M3_new, d3, R3, D3)
 
-    return T1_new, T2_new, T3_new, B_new
+    #B=|R2, D1><M3|
+    B_new_opt=B_new_;
+
+    @assert (length(codomain(T1_new_opt))==1)&(length(domain(T1_new_opt))==3)
+    @assert (length(codomain(T2_new_opt))==1)&(length(domain(T2_new_opt))==3)
+    @assert (length(codomain(T3_new_opt))==1)&(length(domain(T3_new_opt))==3)
+    @assert (length(codomain(B_new_opt))==2)&(length(domain(B_new_opt))==1)
+
+    T1_new_opt=T1_new_opt/norm(T1_new_opt);
+    T2_new_opt=T2_new_opt/norm(T2_new_opt);
+    T3_new_opt=T3_new_opt/norm(T3_new_opt);
+    B_new_opt=B_new_opt/norm(B_new_opt);
+
+    (c1,c2)=coord;
+    T_set[mod1(c1+1,Lx),c2]=T1_new_opt;
+    T_set[c1,mod1(c2+1,Ly)]=T2_new_opt;
+    T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)]=T3_new_opt;
+    B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)]=B_new_opt;
+
+    return B_set, T_set
 end
 
 
 
 
-function triangle_SimpleUpdate_iPESS(D_max,ct,Bset, Tset, gates, trun_tol)
-    """
-    ABABABAB
-    CDCDCDCD
-    ABABABAB
-    CDCDCDCD
-    """
-    Lx,Ly=size(Bset);
-    for ca=1:Lx
-        for cb=1:Ly
-            # B
-            #CD
-            posTB=[mod1(ca+1,Lx),mod1(cb+1,Ly)];
-            posTD=[mod1(ca+1,Lx),mod1(cb,Ly)];
-            posTC=[mod1(ca,Lx),mod1(cb,Ly)];
-            posBond=posTD;
 
-            TB=Tset[posTB[1],posTB[2]];
-            TC=Tset[posTC[1],posTC[2]];
-            TD=Tset[posTD[1],posTD[2]];
-            lambda_A_1=lambdaset1[mod1(ca,Lx),mod1(cb-1,Ly)];
-            lambda_A_2=lambdaset2[mod1(ca+1+1,Lx),mod1(cb+1,Ly)];
-            lambda_B_1=lambdaset1[mod1(ca+1,Lx),mod1(cb-1,Ly)];
-            lambda_B_3=lambdaset3[mod1(ca+1,Lx),mod1(cb+1,Ly)];
-            lambda_C_2=lambdaset2[mod1(ca+1+1,Lx),mod1(cb,Ly)];
-            lambda_C_3=lambdaset3[mod1(ca,Lx),mod1(cb,Ly)];
-            B=Bset[posBond[1],posBond[2]];
-            @tensor TB[:]:=TB[1,-2,3,-4]*lambda_B_3[-1,1]*lambda_A_2[-3,3];
-            @tensor TC[:]:=TC[1,-2,-3,4]*lambda_C_3[-1,1]*lambda_A_1[-4,4];
-            @tensor TD[:]:=TD[-1,-2,3,4]*lambda_C_2[-3,3]*lambda_B_1[-4,4];
-            
-            TB, TC, TD, B, lambda_1, lambda_2, lambda_3=triangle_gate_iPESS_simplified(D_max,gates[mod1(ca,2)], TB, TC, TD, B, trun_tol);
+function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
+    println("tau, dt="*string([tau,dt]))
 
-            lambda_A_1_inv=my_pinv(lambda_A_1);
-            lambda_A_2_inv=my_pinv(lambda_A_2);
-            lambda_B_1_inv=my_pinv(lambda_B_1);
-            lambda_B_3_inv=my_pinv(lambda_B_3);
-            lambda_C_2_inv=my_pinv(lambda_C_2);
-            lambda_C_3_inv=my_pinv(lambda_C_3);
-            @tensor TB[:]:=TB[1,-2,3,-4]*lambda_B_3_inv[-1,1]*lambda_A_2_inv[-3,3];
-            @tensor TC[:]:=TC[1,-2,-3,4]*lambda_C_3_inv[-1,1]*lambda_A_1_inv[-4,4];
-            @tensor TD[:]:=TD[-1,-2,3,4]*lambda_C_2_inv[-3,3]*lambda_B_1_inv[-4,4];
-            TB=permute(TB,(1,),(2,3,4,));
-            TC=permute(TC,(1,),(2,3,4,));
-            TD=permute(TD,(1,),(2,3,4,));
+    #get initial CTM tensors
+    A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
 
 
-            TB=TB/norm(TB);
-            TC=TC/norm(TC);
-            TD=TD/norm(TD);
-            B=B/norm(B);
-            lambda_1=lambda_1/norm(lambda_1);
-            lambda_2=lambda_2/norm(lambda_2);
-            lambda_3=lambda_3/norm(lambda_3);
-            
-            lambdaset1[posTD[1],posTD[2]]=lambda_1;
-            lambdaset2[posTD[1],posTD[2]]=lambda_2;
-            lambdaset3[posTD[1],posTD[2]]=lambda_3;
-            Tset[posTB[1],posTB[2]]=TB;
-            Tset[posTC[1],posTC[2]]=TC;
-            Tset[posTD[1],posTD[2]]=TD;
-            Bset[posBond[1],posBond[2]]=B;
+
+    for ct=1:Int(round(tau/abs(dt)))
+        println("iteration "*string(ct));flush(stdout)
+        for ca=1:Lx
+            for cb=1:Ly
+                coord=[ca,cb];
+
+                B_set, T_set=triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
+                
+                #get CTM tensors for energy and next optimization
+                A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
+                init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+                CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
+                E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+                println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
+                
 
 
-            if mod(ct,20)==0
-                println(space(lambda_1))
-                println(space(lambda_2))
-                println(space(lambda_3))
+
+
+
+
+                global E_history
+                if E_total<minimum(E_history)
+                    E_history=vcat(E_history,E_total);
+                    global save_filenm
+                    jldsave(save_filenm; B_set, T_set);
+                    global starting_time
+                    Now=now();
+                    Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+                    println("Time consumed: "*string(Time));flush(stdout);
+                end
+
+
             end
         end
     end
-
-
-
-
-    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
-end
-
-
-
-function FullUpdate_iPESS(parameters, Bset, Tset,  tau, dt, Dmax, trun_tol, ENV_ctm_setting)
-    println("tau, dt="*string([tau,dt]))
-    # println("one step")
-    # println(space(T_u))
-    # println(space(T_d))
-    Lx,Ly=size(Tset);
-
-
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(Bset[1],1)),Lx);
-
-    for ct=1:Int(round(tau/abs(dt)))
-        #println("iteration "*string(ct));flush(stdout)
-        Bset, Tset= triangle_update_iPESS(Dmax, ct, Bset, Tset, gates_ru_ld_rd, trun_tol);
-
-        
-        println("iteration "*string(ct));flush(stdout)
-        
-    end
     return Bset, Tset
 end
+
+
 
 

@@ -1091,7 +1091,7 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
     A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
-
+    ENV_ctm_setting.CTM_ite_info=false;
 
 
     for ct=1:Int(round(tau/abs(dt)))
@@ -1106,29 +1106,24 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
                 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
                 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
                 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
-                E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
-                println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
-                
-
-
-
-
-
-
-                global E_history
-                if E_total<minimum(E_history)
-                    E_history=vcat(E_history,E_total);
-                    global save_filenm
-                    jldsave(save_filenm; B_set, T_set);
-                    global starting_time
-                    Now=now();
-                    Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
-                    println("Time consumed: "*string(Time));flush(stdout);
-                end
-
-
+                println("ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
             end
         end
+
+        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+        println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
+
+        global E_history
+        if E_total<minimum(E_history)
+            E_history=vcat(E_history,E_total);
+            global save_filenm
+            jldsave(save_filenm; B_set, T_set);
+            global starting_time
+            Now=now();
+            Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+            println("Time consumed: "*string(Time));flush(stdout);
+        end
+
     end
     return Bset, Tset
 end

@@ -106,7 +106,7 @@ dump(optim_setting);
 
 ENV_ctm_setting=LS_CTMRG_settings();
 ENV_ctm_setting.CTM_conv_tol=1e-6;
-ENV_ctm_setting.CTM_ite_nums=10;
+ENV_ctm_setting.CTM_ite_nums=50;
 ENV_ctm_setting.CTM_trun_tol=1e-8;
 ENV_ctm_setting.svd_lanczos_tol=1e-8;
 ENV_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"

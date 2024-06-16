@@ -1,0 +1,299 @@
+Svd_settings
+  svd_trun_method: String "tol"
+  chi_max: Int64 500
+  tol: Float64 0.0001
+load state: optim_4x4_D_3_chi_100_13.89035.jld2
+initial energy: -13.890350482554183
+[2, 2]
+123
+[1, 1]
+123
+[1, 3]
+123
+[3, 1]
+123
+[3, 3]
+123
+x bond: [1.5, 1.0]
+  1.955473 seconds (2.13 M allocations: 210.652 MiB, 58.51% compilation time)
+  0.505978 seconds (792.93 k allocations: 63.010 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.231639331035166e-6 + 7.93583352416883e-11im -> 5.234393682125615e-6 - 4.389875619787526e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -1.0000000000000002 -> -1.0
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999999999999999 -> -0.9999999999999999
+choose direct trun
+x bond: [2.5, 1.0]
+  1.188492 seconds (1.51 M allocations: 157.887 MiB, 26.48% gc time, 2.67% compilation time)
+  0.464955 seconds (823.02 k allocations: 66.720 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.234393682125589e-6 - 5.021198089645582e-22im -> 5.236777355613844e-6 - 1.3491842148298444e-21im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999439695807122 -> -0.9999717739064989
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999637185204688 -> -0.9999717739064987
+choose direct trun
+x bond: [3.5, 1.0]
+  0.645791 seconds (1.53 M allocations: 159.392 MiB, 2.33% compilation time)
+  0.469889 seconds (840.90 k allocations: 68.220 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.23662954184601e-6 + 1.4277598637672937e-19im -> 5.237236860902288e-6 - 5.676736049921242e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -1.0 -> -1.0
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999999999999998 -> -0.9999999999999999
+choose direct trun
+x bond: [1.5, 2.0]
+  0.920333 seconds (2.06 M allocations: 320.717 MiB, 1.69% compilation time)
+  0.771196 seconds (910.29 k allocations: 72.643 MiB, 23.48% gc time, 0.01% compilation time)
+optimized overlap from bond tensor: 5.237236860902303e-6 - 1.1696237092845225e-21im -> 5.239273123607811e-6 - 1.288874590229811e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999868892655033 -> -0.9999951917879704
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999851577323734 -> -0.9999951917879697
+choose gauge fix trun
+x bond: [2.5, 2.0]
+  0.819532 seconds (2.25 M allocations: 273.831 MiB, 5.02% compilation time)
+  0.510080 seconds (965.46 k allocations: 79.672 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.239247932070697e-6 - 4.996082699191718e-19im -> 5.240277245045152e-6 - 7.443838027432639e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999906227635351 -> -0.999993649570008
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999897847468145 -> -0.9999944751675945
+choose gauge fix trun
+x bond: [3.5, 2.0]
+  0.811328 seconds (2.08 M allocations: 227.957 MiB, 0.01% compilation time)
+  0.560347 seconds (955.45 k allocations: 79.272 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.240248293391639e-6 + 8.247748646294114e-21im -> 5.2405576823194905e-6 + 1.3070695333253297e-21im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9998742536328867 -> -0.9999824032934903
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9998964939123387 -> -0.9999824032934902
+choose gauge fix trun
+x bond: [1.5, 3.0]
+┌ Warning: chi not enough, extend chi to 267.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  1.290580 seconds (2.28 M allocations: 269.737 MiB, 17.36% gc time, 9.83% compilation time)
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.556821 seconds (1.15 M allocations: 106.133 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.240465465763375e-6 - 1.687444981071204e-18im -> 5.242654927717532e-6 + 1.4637231237197784e-21im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9998191872808286 -> -0.9999733630842017
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9998896743859063 -> -0.9999733630842021
+choose gauge fix trun
+x bond: [2.5, 3.0]
+┌ Warning: chi not enough, extend chi to 267.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.908724 seconds (2.03 M allocations: 350.717 MiB, 0.00% compilation time)
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.632780 seconds (1.18 M allocations: 109.536 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.242515279556836e-6 + 1.8576938108954297e-18im -> 5.243682344742543e-6 - 1.102924682677341e-21im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999246406682086 -> -0.9999602862711661
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999420920716124 -> -0.9999721242427844
+choose gauge fix trun
+x bond: [3.5, 3.0]
+┌ Warning: chi not enough, extend chi to 267.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  1.029732 seconds (1.96 M allocations: 260.229 MiB, 16.28% gc time, 0.00% compilation time)
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.549550 seconds (1.14 M allocations: 105.708 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.243536173126602e-6 + 3.9665124011789383e-20im -> 5.244887598681919e-6 + 1.8969717862800922e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9998539179935437 -> -0.9999495580908658
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9998539179935471 -> -0.9999495580908656
+choose direct trun
+x bond: [1.5, 4.0]
+┌ Warning: chi not enough, extend chi to 267.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.813791 seconds (1.89 M allocations: 245.903 MiB, 0.01% compilation time)
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.614108 seconds (1.09 M allocations: 103.111 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.244623036538593e-6 - 1.784939390689298e-18im -> 5.245710219685848e-6 - 8.114677379257019e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -1.0000000000000002 -> -0.9999999999999997
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -1.0000000000000002 -> -1.0000000000000002
+choose direct trun
+x bond: [2.5, 4.0]
+┌ Warning: chi not enough, extend chi to 267.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.798086 seconds (1.86 M allocations: 238.282 MiB, 0.01% compilation time)
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.645278 seconds (1.10 M allocations: 102.862 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.245710219685849e-6 - 9.438201684251388e-22im -> 5.246409490059346e-6 + 4.631790432125164e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999702000063058 -> -0.999983705351006
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999702000063028 -> -0.9999837053510057
+choose gauge fix trun
+x bond: [3.5, 4.0]
+┌ Warning: chi not enough, extend chi to 267.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.732866 seconds (1.71 M allocations: 224.952 MiB, 0.01% compilation time)
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.573595 seconds (1.08 M allocations: 102.234 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.246324001658057e-6 + 4.367328863089179e-20im -> 5.246774491996312e-6 - 6.73780029872606e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -1.0 -> -1.0
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -1.0 -> -1.0
+choose direct trun
+y bond: [1.5, 1.0]->[4.0, 1.5]
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  1.733254 seconds (2.76 M allocations: 337.159 MiB, 47.29% compilation time)
+  0.662958 seconds (1.30 M allocations: 133.192 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.2467714474607366e-6 + 2.7869599015777612e-11im -> 5.24719016353451e-6 + 1.1975677588654809e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1)'
+optimized overlap from site tensor: -0.9999480858667327 -> -0.9999706748149806
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999622674390177 -> -0.9999819347173505
+choose gauge fix trun
+y bond: [2.5, 1.0]->[4.0, 2.5]
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.969484 seconds (1.63 M allocations: 217.090 MiB, 19.81% gc time, 0.01% compilation time)
+  0.599297 seconds (1.24 M allocations: 126.297 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.2470953713005895e-6 - 3.9188081158884115e-17im -> 5.24728989311132e-6 - 4.991232988649276e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1)'
+optimized overlap from site tensor: -0.9999658399239894 -> -0.9999784588546837
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.999965774500232 -> -0.9999798973088544
+choose gauge fix trun
+y bond: [3.5, 1.0]->[4.0, 3.5]
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.770392 seconds (1.74 M allocations: 227.613 MiB, 0.01% compilation time)
+  0.602356 seconds (1.20 M allocations: 121.476 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.247184408463219e-6 - 2.433279477020869e-19im -> 5.247622036535178e-6 + 1.2795937322102788e-21im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999523295881292 -> -0.9999877473589018
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999575160546789 -> -0.999972034896363
+choose direct trun
+y bond: [1.5, 2.0]->[3.0, 1.5]
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  1.049324 seconds (2.04 M allocations: 299.559 MiB, 16.29% gc time, 0.01% compilation time)
+  0.647301 seconds (1.45 M allocations: 155.469 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.2475577391281684e-6 - 9.131235955424226e-17im -> 5.247730148050471e-6 - 1.4298136693397556e-21im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1)'
+optimized overlap from site tensor: -0.9999624874617659 -> -0.9999706690996929
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1)'
+optimized overlap from site tensor: -0.9999625922907399 -> -0.999970669099693
+choose gauge fix trun
+y bond: [2.5, 2.0]->[3.0, 2.5]
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  0.851840 seconds (2.67 M allocations: 386.301 MiB, 0.01% compilation time)
+  0.738545 seconds (1.38 M allocations: 162.198 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.247576227399116e-6 + 4.643468356551904e-19im -> 5.247729783122159e-6 - 4.014345954417119e-23im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.999995189288226 -> -0.9999973626104536
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999962262293105 -> -0.9999973626104535
+choose gauge fix trun
+y bond: [3.5, 2.0]->[3.0, 3.5]
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+  1.151489 seconds (2.18 M allocations: 301.860 MiB, 13.22% gc time, 0.01% compilation time)
+  0.678952 seconds (1.52 M allocations: 173.644 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.247715942814354e-6 + 2.08828618479617e-19im -> 5.24791668532903e-6 - 5.124469677319782e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999384872581488 -> -0.9999850967102938
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999402245787308 -> -0.9999850967102943
+choose direct trun
+y bond: [1.5, 3.0]->[2.0, 1.5]
+┌ Warning: chi not enough, extend chi to 1080.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+┌ Warning: chi too large, restrict to chi_max.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:268
+  0.983712 seconds (2.51 M allocations: 384.727 MiB, 2.35% compilation time)
+  0.948720 seconds (1.99 M allocations: 326.250 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.2478401995878246e-6 - 2.7758964686593506e-11im -> 5.24805217761666e-6 + 4.213026516016203e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999873205448899 -> -0.9999939335998228
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999873205448891 -> -0.9999939335998227
+choose gauge fix trun
+y bond: [2.5, 3.0]->[2.0, 2.5]
+┌ Warning: chi not enough, extend chi to 1080.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+┌ Warning: chi too large, restrict to chi_max.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:268
+  0.924891 seconds (1.96 M allocations: 343.751 MiB, 0.00% compilation time)
+  0.903637 seconds (1.86 M allocations: 323.266 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.248020340832287e-6 + 3.5879529250937266e-19im -> 5.2483442373334045e-6 - 6.655298742637464e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999948077693761 -> -0.9999985615980669
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999948077693757 -> -0.9999985615980671
+choose direct trun
+y bond: [3.5, 3.0]->[2.0, 3.5]
+┌ Warning: chi not enough, extend chi to 1080.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+┌ Warning: chi too large, restrict to chi_max.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:268
+  1.154766 seconds (2.42 M allocations: 361.241 MiB, 14.06% gc time, 0.00% compilation time)
+  0.936036 seconds (2.07 M allocations: 341.130 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.248336688104902e-6 - 6.168693978123934e-20im -> 5.248530887801807e-6 - 2.3189354140434417e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999788840640965 -> -0.999987436291083
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999788840640971 -> -0.999987436291083
+choose direct trun
+y bond: [1.5, 4.0]->[1.0, 1.5]
+┌ Warning: chi not enough, extend chi to 1080.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+┌ Warning: chi too large, restrict to chi_max.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:268
+  0.823124 seconds (1.92 M allocations: 310.274 MiB, 0.01% compilation time)
+  0.882617 seconds (1.78 M allocations: 312.175 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.248464946787674e-6 - 1.3666399486962377e-18im -> 5.2486746952367606e-6 - 1.9285274773735323e-21im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999776718027898 -> -0.9999893839819772
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999784266511982 -> -0.9999851243211991
+choose direct trun
+y bond: [2.5, 4.0]->[1.0, 2.5]
+┌ Warning: chi not enough, extend chi to 1080.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+┌ Warning: chi too large, restrict to chi_max.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:268
+  0.839631 seconds (2.00 M allocations: 313.796 MiB, 0.00% compilation time)
+  0.857653 seconds (1.76 M allocations: 309.650 MiB, 0.01% compilation time)
+optimized overlap from bond tensor: 5.248618975157818e-6 + 2.2052050712304885e-18im -> 5.24870967191372e-6 - 1.8049928806759403e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999868253753867 -> -0.9999924920822604
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999943260645093 -> -0.9999960215735325
+choose gauge fix trun
+y bond: [3.5, 4.0]->[1.0, 3.5]
+┌ Warning: chi not enough, extend chi to 1080.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+┌ Warning: chi too large, restrict to chi_max.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:268
+  0.933527 seconds (2.31 M allocations: 354.829 MiB, 0.04% compilation time)
+  1.018830 seconds (1.86 M allocations: 321.979 MiB, 15.30% gc time, 0.00% compilation time)
+optimized overlap from bond tensor: 5.248688790307674e-6 + 4.756323249464042e-19im -> 5.248747345936244e-6 + 4.469375485463735e-22im
+virtual space from direct svd: Rep[SU₂](0=>1, 1/2=>2)'
+optimized overlap from site tensor: -0.9999903493725637 -> -0.9999977909866309
+virtual space from gauge fix: Rep[SU₂](0=>1, 1/2=>1, 1=>1)'
+optimized overlap from site tensor: -0.9999956108734599 -> -0.9999972893958371
+choose direct trun
+┌ Warning: chi not enough, extend chi to 575.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+┌ Warning: chi too large, restrict to chi_max.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:268
+┌ Warning: chi not enough, extend chi to 324.
+└ @ Main d:\My Documents\Code\Julia_codes\Tensor network\finite_PEPS\environment\AD\mps_methods.jl:265
+overlap after sweep: 5.2316393310351354e-6 - 7.935833524130977e-11im->5.2487379461810165e-6 - 4.25234527717033e-12im

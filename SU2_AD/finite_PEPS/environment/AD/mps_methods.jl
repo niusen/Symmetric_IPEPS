@@ -142,6 +142,8 @@ function pinv_canonical(T)
 end
 
 function right_canonical(mps_set)
+    
+    Lx=length(mps_set);
     global use_AD;
     mps_set=deepcopy(mps_set);
     Lx=length(mps_set);

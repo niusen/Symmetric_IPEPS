@@ -51,6 +51,19 @@ function iPESS_to_iPEPS_tuple(A_set::Tuple)
     return A_cell
 end
 
+
+function iPESS_to_iPEPS_matrix(A_set::Matrix{Triangle_iPESS})    
+    Lx,Ly=size(A_set)
+    A_cell=Matrix{Square_iPEPS}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            A=iPESS_to_iPEPS(A_set[cx,cy]::Triangle_iPESS);
+            A_cell[cx,cy]=A;
+        end
+    end
+    return A_cell
+end
+
 # function Ham_triangle_RU_LD_RD(parameters, space_type,Lx)
 
 #     if space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}

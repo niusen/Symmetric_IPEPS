@@ -32,7 +32,7 @@ Random.seed!(888)
 D=12;
 
 
-filenm="SU_iPESS_SU2_csl_D12.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+filenm="FU_iPESS_LS_D_10_chi_80.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 data=load(filenm);
 Tset=data["T_set"];
 Bset=data["B_set"];
@@ -51,6 +51,6 @@ end
 
 
 
-save_filenm="iPESS_SU_D_"*string(D)*".jld2"
+save_filenm="iPESS_"*filenm
 jldsave(save_filenm;x=state_new);
 

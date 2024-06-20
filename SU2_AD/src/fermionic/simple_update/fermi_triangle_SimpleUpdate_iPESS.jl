@@ -528,8 +528,6 @@ function Hofstadter_triangle_update_iPESS(D_max,ct,Bset, Tset, lambdaset1, lambd
     end
 
 
-
-
     return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
 end
 

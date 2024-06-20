@@ -223,6 +223,19 @@ function prepare_hopping_LD_RU(O1,O2,A_cell)
     return AA_LD_double,  AA_RU_double,   AA_RD_double
 end
 
+function norm_ob_2x2(mps_bot_set,mps_top_set, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range)
+
+    mps_bot=mps_bot_set[y_range[1]-1];
+    mps_top=mps_top_set[y_range[2]+1];
+
+    VL0=VL_set_set[y_range[1]][x_range[1]-1];
+    VR0=VR_set_set[y_range[1]][x_range[2]+1];
+    ###############################################
+
+    Norm_=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+
+    return Norm_
+end
 
 function compute_ob_2x2_triangle(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range)
     iPEPS_2x2=[iPEPS_2x2_[1,1].T iPEPS_2x2_[1,2].T; iPEPS_2x2_[2,1].T iPEPS_2x2_[2,2].T];

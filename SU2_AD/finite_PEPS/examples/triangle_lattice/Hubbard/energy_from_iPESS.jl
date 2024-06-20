@@ -1,4 +1,4 @@
-    using LinearAlgebra
+using LinearAlgebra:diag,I,diagm 
     using TensorKit
     using KrylovKit
     using JSON
@@ -24,7 +24,10 @@
     include("..\\..\\..\\environment\\AD\\fermion\\fermi_CTM_observables.jl")
     include("..\\..\\..\\environment\\AD\\truncations.jl")
     include("..\\..\\..\\environment\\Variational\\mps_methods_projector.jl")
-    include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter.jl")
+    include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2.jl")
+
+    include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_methods.jl")
+    include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple_update.jl")
 
     D=4;
 
@@ -75,64 +78,7 @@
 
 
 
-    #unit-cell of iPESS: 2x2
-    iPESS_cell=[2,2];
-    psi=Matrix{Triangle_iPESS}(undef,Lx,Ly);#PBC-PBC
-    for cx=1:Lx
-        for cy=1:Ly
-            psi[cx,cy]=Triangle_iPESS(T_phy_set[mod1(cx,iPESS_cell[1]),mod1(cy,iPESS_cell[2])],T_virt_set[mod1(cx,iPESS_cell[1]),mod1(cy,iPESS_cell[2])]);
-        end
-    end
-
-    #left boundary
-    cx=1;
-    for cy=1:Ly
-        VL=Rep[SU₂](0=>1);
-        V=space(psi[1,cy].Tm,1);
-        iso=create_isometry(V,VL);
-        T=psi[cx,cy].Tm;
-        @tensor T[:]:=T[1,-2,-3]*iso'[-1,1];
-        T=permute(T,(1,2,),(3,));
-        psi[cx,cy].Tm=T;
-    end
-
-    #right boundary
-    cx=Lx;
-    for cy=1:Ly
-        VL=Rep[SU₂](0=>1)';
-        V=space(psi[cx,cy].Bm,3);
-        iso=create_isometry(V,VL);
-        T=psi[cx,cy].Bm;
-        @tensor T[:]:=T[-1,-2,1,-4]*iso'[-3,1];
-        T=permute(T,(1,),(2,3,4,));
-        psi[cx,cy].Bm=T;
-    end
-
-
-    #bot boundary
-    cy=1;
-    for cx=1:Lx
-        VL=Rep[SU₂](0=>1)';
-        V=space(psi[cx,cy].Bm,4);
-        iso=create_isometry(V,VL);
-        T=psi[cx,cy].Bm;
-        @tensor T[:]:=T[-1,-2,-3,1]*iso'[-4,1];
-        T=permute(T,(1,),(2,3,4,));
-        psi[cx,cy].Bm=T;
-    end
-
-    #top boundary
-    cy=Ly;
-    for cx=1:Lx
-        VL=Rep[SU₂](0=>1);
-        V=space(psi[cx,cy].Tm,2);
-        iso=create_isometry(V,VL);
-        T=psi[cx,cy].Tm;
-        @tensor T[:]:=T[-1,1,-3]*iso'[-2,1];
-        T=permute(T,(1,2,),(3,));
-        psi[cx,cy].Tm=T;
-    end
-
+    psi=get_PESS_from_iPESS(T_phy_set,T_virt_set,Lx,Ly);
 
 
     psi_PEPS=iPESS_to_iPEPS_matrix(psi);
@@ -158,7 +104,7 @@
 
 
     E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_old(psi_PEPS,psi_double)
-
+    #sum(imag.(Ex_set*2))+sum(abs.(real.(Ey_set)))*2+sum(abs.(real.(E_ld_ru_set)))*2
 
 
 

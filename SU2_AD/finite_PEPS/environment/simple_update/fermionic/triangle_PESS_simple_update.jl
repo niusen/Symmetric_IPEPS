@@ -674,6 +674,11 @@ function tebd_PESS(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  
         if mod(ct,20)==0
             println("iteration "*string(ct)*", convergence= "*string(er));flush(stdout)
         end
+        if mod(ct,40)==0
+            for tt in Bset
+                println(space(tt))
+            end
+        end
         if er<tol
             break;
         end
@@ -737,6 +742,11 @@ function tebd_PESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdaset2
         er=max(maximum(err_1),maximum(err_2),maximum(err_3));
         if mod(ct,20)==0
             println("iteration "*string(ct)*", convergence= "*string(er));flush(stdout)
+        end
+        if mod(ct,40)==0
+            for tt in Bset
+                println(space(tt))
+            end
         end
         if er<tol
             break;

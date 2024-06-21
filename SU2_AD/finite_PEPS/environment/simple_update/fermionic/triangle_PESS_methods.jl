@@ -1,6 +1,17 @@
 
 using LinearAlgebra:diag,I,diagm 
 
+function PESS_to_PEPS_matrix(A_set::Matrix{Triangle_iPESS})    
+    Lx,Ly=size(A_set)
+    A_cell=Matrix{Square_iPEPS}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            A=iPESS_to_iPEPS(A_set[cx,cy]::Triangle_iPESS);
+            A_cell[cx,cy]=A;
+        end
+    end
+    return A_cell
+end
 
 function B_T_sets_to_PESS(Bset::Matrix{TensorMap},Tset::Matrix{TensorMap})    
     Lx,Ly=size(B_set)

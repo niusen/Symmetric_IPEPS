@@ -675,12 +675,219 @@ function energy_disk_new(A0,psi,psi_double,px,py,update_type)
 end
 
 
+function energy_disk_test(A0,psi,psi_double,px,py,update_type)
+    global chi, multiplet_tol
 
+    #     global chi, multiplet_tol
+
+    global mpo_mps_trun_method, left_right_env_method;
+    if mpo_mps_trun_method=="canonical"
+        mpo_mps_fun=truncate_mpo_mps;
+    elseif mpo_mps_trun_method=="simple_middle"
+        mpo_mps_fun=simple_truncate_to_moddle;
+    end
+
+    Lx=size(psi,1);
+    Ly=size(psi,2);
+    J1=parameters["J1"];
+    J2=parameters["J2"];
+    Jchi=parameters["Jchi"];
+
+    H_Heisenberg, H123chiral, H12, H31, H23=@ignore_derivatives Hamiltonians_spin_half("SU2");
+
+
+    """coordinate
+        (1,2),(2,2)
+        (1,1),(2,1)
+    """
+
+    Lx=size(psi,1);
+    Ly=size(psi,2);
+
+
+    ############################
+    if update_type=="local"
+        psi,psi_double=update_prepare_local(psi,psi_double,px,py,A0);
+    elseif update_type=="bond"
+        psi,psi_double=set_bond(psi,psi_double,px,py,A0);
+    elseif update_type=="global"
+        psi_double=construct_double_layer(psi, nothing);
+    end
+
+    ########################################
+    #construct top and bot environment
+
+    trun_history=[];
+    mps_bot_set=initial_tuple(Ly);
+    mps_top_set=initial_tuple(Ly);
+
+    mps_bot=(psi_double[:,1]...,);
+    mps_bot_set=vector_update(mps_bot_set,mps_bot,1);
+    mps_bot,trun_errs,_=left_truncate_simple(mps_bot, chi, multiplet_tol);
+    trun_history=vcat(trun_history,trun_errs);
+    for cy=2:Ly-2
+        mpo=(psi_double[:,cy]...,);
+        mps_bot,trun_errs,_=Zygote.checkpointed(mpo_mps_fun, mpo, mps_bot);
+        mps_bot_set=vector_update(mps_bot_set,mps_bot,cy);
+        trun_history=vcat(trun_history,trun_errs);
+    end
+
+
+    function treat_mps_top(mps_top)
+        #convert mps_top to normal order
+        mps_top=mps_top[end:-1:1];
+        for cx=2:Lx-1
+            mps_top=mps_update(mps_top,permute(mps_top[cx],(2,1,3,)),cx);
+        end
+        return mps_top
+    end
+
+    mps_top=(psi_double[:,Ly]...,);
+    mps_top=pi_rotate_mps(mps_top);
+    mps_top_set=vector_update(mps_top_set,treat_mps_top(mps_top),Ly);
+    mps_top,trun_errs,_=left_truncate_simple(mps_top, chi, multiplet_tol);
+    trun_history=vcat(trun_history,trun_errs);
+    for cy=Ly-1:-1:3
+        mpo=pi_rotate_mpo((psi_double[:,cy]...,));
+        mps_top,trun_errs,_=Zygote.checkpointed(mpo_mps_fun, mpo, mps_top);
+        mps_top_set=vector_update(mps_top_set,treat_mps_top(mps_top),cy);
+        trun_history=vcat(trun_history,trun_errs);
+    end
+    #global trun_history
+    #println(trun_history)
+    ########################################
+    #construct left anf right environment
+    VL_set_set=initial_tuple(Ly);
+    VR_set_set=initial_tuple(Ly);
+
+    cy=1;
+    VL_set=initial_tuple(Lx);
+    VR_set=initial_tuple(Lx);
+    mps_top=mps_top_set[cy+2];
+    mpo_top=(psi_double[:,cy+1]...,);
+    mps_bot=mps_bot_set[cy];
+    @tensor vl[:]:=mps_top[1][-1,1]*mpo_top[1][2,-2,1]*mps_bot[1][-3,2];
+    VL_set=vector_update(VL_set,vl,1);
+    for cx=2:Lx-2
+        @tensor vl[:]:=vl[1,3,5]*mps_top[cx][1,-1,2]*mpo_top[cx][3,4,-2,2]*mps_bot[cx][5,-3,4];
+        VL_set=vector_update(VL_set,vl,cx);
+    end
+    @tensor vr[:]:=mps_top[Lx][-1,1]*mpo_top[Lx][-2,2,1]*mps_bot[Lx][-3,2];
+    VR_set=vector_update(VR_set,vr,Lx);
+    for cx=Lx-1:-1:3
+        @tensor vr[:]:=vr[1,3,5]*mps_top[cx][-1,1,2]*mpo_top[cx][-2,4,3,2]*mps_bot[cx][-3,5,4];
+        VR_set=vector_update(VR_set,vr,cx);
+    end
+    VL_set_set=vector_update(VL_set_set,VL_set,cy);
+    VR_set_set=vector_update(VR_set_set,VR_set,cy);
+
+    for cy=2:Ly-2
+        VL_set=initial_tuple(Lx);
+        VR_set=initial_tuple(Lx);
+        mps_top=mps_top_set[cy+2];
+        mpo_top=(psi_double[:,cy+1]...,);
+        mpo_bot=(psi_double[:,cy]...,);
+        mps_bot=mps_bot_set[cy-1];
+        if left_right_env_method=="exact"
+            @tensor vl[:]:=mps_top[1][-1,1]*mpo_top[1][2,-2,1]*mpo_bot[1][3,-3,2]*mps_bot[1][-4,3];
+            VL_set=vector_update(VL_set,vl,1);
+            for cx=2:Lx-2
+                @tensor vl[:]:=vl[1,3,5,7]*mps_top[cx][1,-1,2]*mpo_top[cx][3,4,-2,2]*mpo_bot[cx][5,6,-3,4]*mps_bot[cx][7,-4,6];
+                VL_set=vector_update(VL_set,vl,cx);
+            end
+            @tensor vr[:]:=mps_top[Lx][-1,1]*mpo_top[Lx][-2,2,1]*mpo_bot[Lx][-3,3,2]*mps_bot[Lx][-4,3];
+            VR_set=vector_update(VR_set,vr,Lx);
+            for cx=Lx-1:-1:3
+                @tensor vr[:]:=vr[1,3,5,7]*mps_top[cx][-1,1,2]*mpo_top[cx][-2,4,3,2]*mpo_bot[cx][-3,6,5,4]*mps_bot[cx][-4,7,6];
+                VR_set=vector_update(VR_set,vr,cx);
+            end
+        elseif left_right_env_method=="trun"
+            @tensor vl[:]:=mps_top[1][-1,1]*mpo_top[1][2,-2,1]*mpo_bot[1][3,-3,2]*mps_bot[1][-4,3];
+            vl_up,vl_dn=split_vl_or_vr(vl);
+            VL_set=vector_update(VL_set,(vl_up,vl_dn,),1);
+            for cx=2:Lx-2
+                @tensor vl[:]:=vl_up[4,6,7]*vl_dn[7,2,1]*mps_top[cx][4,-1,5]*mpo_top[cx][6,8,-2,5]*mpo_bot[cx][2,3,-3,8]*mps_bot[cx][1,-4,3];
+                vl_up,vl_dn=split_vl_or_vr(vl);
+                VL_set=vector_update(VL_set,(vl_up,vl_dn,),cx);
+            end
+            @tensor vr[:]:=mps_top[Lx][-1,1]*mpo_top[Lx][-2,2,1]*mpo_bot[Lx][-3,3,2]*mps_bot[Lx][-4,3];
+            vr_up,vr_dn=split_vl_or_vr(vr);
+            VR_set=vector_update(VR_set,(vr_up,vr_dn,),Lx);
+            for cx=Lx-1:-1:3
+                @tensor vr[:]:=vr_up[1,3,8]*vr_dn[8,5,4]*mps_top[cx][-1,1,2]*mpo_top[cx][-2,7,3,2]*mpo_bot[cx][-3,6,5,7]*mps_bot[cx][-4,4,6];
+                vr_up,vr_dn=split_vl_or_vr(vr);
+                VR_set=vector_update(VR_set,(vr_up,vr_dn,),cx);
+            end
+        end
+        VL_set_set=vector_update(VL_set_set,VL_set,cy);
+        VR_set_set=vector_update(VR_set_set,VR_set,cy);
+    end
+
+    cy=Ly-1;
+    VL_set=initial_tuple(Lx);
+    VR_set=initial_tuple(Lx);
+    mps_top=mps_top_set[cy+1];
+    mpo_bot=(psi_double[:,cy]...,);
+    mps_bot=mps_bot_set[cy-1];
+    @tensor vl[:]:=mps_top[1][-1,1]*mpo_bot[1][2,-2,1]*mps_bot[1][-3,2];
+    VL_set=vector_update(VL_set,vl,1);
+    for cx=2:Lx-2
+        @tensor vl[:]:=vl[1,3,5]*mps_top[cx][1,-1,2]*mpo_bot[cx][3,4,-2,2]*mps_bot[cx][5,-3,4];
+        VL_set=vector_update(VL_set,vl,cx);
+    end
+    @tensor vr[:]:=mps_top[Lx][-1,1]*mpo_bot[Lx][-2,2,1]*mps_bot[Lx][-3,2];
+    VR_set=vector_update(VR_set,vr,Lx);
+    for cx=Lx-1:-1:3
+        @tensor vr[:]:=vr[1,3,5]*mps_top[cx][-1,1,2]*mpo_bot[cx][-2,4,3,2]*mps_bot[cx][-3,5,4];
+        VR_set=vector_update(VR_set,vr,cx);
+    end
+    VL_set_set=vector_update(VL_set_set,VL_set,cy);
+    VR_set_set=vector_update(VR_set_set,VR_set,cy);
+
+
+    ########################################
+
+
+    E_total=0;
+    E_set=@ignore_derivatives zeros(Lx-1,Ly-1)*im*1.0;
+
+    for cx=2:2#1:Lx-1
+        for cy=2:2#1:Ly-1
+            x_range=[cx,cx+1];
+            y_range=[cy,cy+1];
+            iPEPS_2x2=psi[x_range,y_range];
+            rho_plaquatte,U_s_s=build_density_matrix_2x2_new(mps_bot_set,mps_top_set,iPEPS_2x2, VL_set_set,VR_set_set, x_range,y_range, chi, multiplet_tol);
+            E=normfun(rho_plaquatte,U_s_s);
+            # E=H_plaquatte(J1,J2,Jchi,H_Heisenberg, H123chiral, x_range,y_range,Lx,Ly,rho_plaquatte);
+            @ignore_derivatives E_set[cx,cy]=E;
+            E_total=E_total+E;
+        end
+    end
+
+    return E_total
+end
+
+function normfun(rho,U_s_s)
+    @tensor rho[:]:=rho[1,2,3,4]*U_s_s[-1,-5,1]*U_s_s[-2,-6,2]*U_s_s[-3,-7,3]*U_s_s[-4,-8,4];
+    rho=@tensor rho[1,2,3,4,1,2,3,4];
+
+    return rho
+end
 
 function cost_fun_local(x) #variational parameters are vector of TensorMap
     global chi, parameters, psi,psi_double,px,py
 
     E=energy_disk_new(x,psi,psi_double,px,py,"local");
+    E=real(E);
+    global E_tem;
+    E_tem=E;
+    return E
+end
+
+function cost_fun_local_test(x) #variational parameters are vector of TensorMap
+    global chi, parameters, psi,psi_double,px,py
+
+    E=energy_disk_test(x,psi,psi_double,px,py,"local");
     E=real(E);
     global E_tem;
     E_tem=E;

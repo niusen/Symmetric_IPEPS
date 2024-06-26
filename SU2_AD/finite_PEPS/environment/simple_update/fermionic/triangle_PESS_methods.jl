@@ -1,19 +1,91 @@
 
 using LinearAlgebra:diag,I,diagm 
 
-function PESS_to_PEPS_matrix(A_set::Matrix{Triangle_iPESS})    
-    Lx,Ly=size(A_set)
-    A_cell=Matrix{Square_iPEPS}(undef,Lx,Ly);
+function initial_SU2_PESS(filenm,init_noise,is_complex)
+    data=load(filenm);
+    if (haskey(data, "T_set"))&&(haskey(data, "B_set"))
+        Lx,Ly=size(data["T_set"]);
+        Tset=data["T_set"];
+        Bset=data["B_set"];
+        psi=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                psi[cx,cy]=Triangle_iPESS(Tset[cx,cy],Bset[cx,cy]);
+            end
+        end
+    elseif (haskey(data, "psi"))
+        psi=data["psi"];
+    elseif (haskey(data, "x"))
+        psi=data["x"];
+    end
+    psi=add_noise(psi,init_noise,is_complex);
+    return psi
+
+end
+
+function add_noise(psi::Matrix,init_noise,is_complex)
+    Lx,Ly=size(psi);
     for cx=1:Lx
         for cy=1:Ly
-            A=iPESS_to_iPEPS(A_set[cx,cy]::Triangle_iPESS);
+            PESS=psi[cx,cy];
+            Bm=PESS.Bm;
+            Tm=PESS.Tm;
+            if is_complex
+                Bm_noise=TensorMap(randn,codomain(Bm),domain(Bm))+TensorMap(randn,codomain(Bm),domain(Bm))*im;
+                Tm_noise=TensorMap(randn,codomain(Tm),domain(Tm))+TensorMap(randn,codomain(Tm),domain(Tm))*im;
+            else
+                Bm_noise=TensorMap(randn,codomain(Bm),domain(Bm));
+                Tm_noise=TensorMap(randn,codomain(Tm),domain(Tm));
+            end
+            Bm_noise=Bm_noise/norm(Bm_noise);
+            Tm_noise=Tm_noise/norm(Tm_noise);
+            Bm=Bm/norm(Bm);
+            Tm=Tm/norm(Tm);
+            Bm_=Bm+Bm_noise*init_noise;
+            Tm_=Tm+Tm_noise*init_noise;
+
+            psi[cx,cy]=Triangle_iPESS(Bm_,Tm_);
+        end
+    end
+    return psi
+end
+
+function iPESS_to_iPEPS_tensor(Bm,Tm)
+    #|LU><M|
+    #|Md><|RD
+    Tm=permute(Tm,(1,2,),(3,));
+    Bm=permute(Bm,(1,),(2,3,4,));
+    T=permute(Tm*Bm,(1,5,4,2,3,));#L,D,R,U,d,
+    return T
+end
+
+
+function PESS_to_PEPS_matrix(A_set::Matrix{Triangle_iPESS})    
+    Lx,Ly=size(A_set)
+    A_cell=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            A=iPESS_to_iPEPS_tensor(A_set[cx,cy].Bm,A_set[cx,cy].Tm);
             A_cell[cx,cy]=A;
         end
     end
     return A_cell
 end
 
-function B_T_sets_to_PESS(Bset::Matrix{TensorMap},Tset::Matrix{TensorMap})    
+function PESS_to_PEPS_matrix(A_set::Matrix{Triangle_iPESS},A_cell::Matrix)    
+    Lx,Ly=size(A_set)
+    A_cell=deepcopy(A_cell);
+    #provide initial PEPS matrix for AD 
+    for cx=1:Lx
+        for cy=1:Ly
+            A=iPESS_to_iPEPS_tensor(A_set[cx,cy].Bm,A_set[cx,cy].Tm);
+            A_cell=matrix_update(A_cell,cx,cy,A);
+        end
+    end
+    return A_cell
+end
+
+function B_T_sets_to_PESS(Bset::Matrix,Tset::Matrix)    
     Lx,Ly=size(B_set)
     A_cell=Matrix{Triangle_iPESS}(undef,Lx,Ly);
     for cx=1:Lx

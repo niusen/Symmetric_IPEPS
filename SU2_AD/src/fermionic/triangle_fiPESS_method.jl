@@ -20,6 +20,8 @@ end
 function iPESS_to_iPEPS(A::Triangle_iPESS)
     Tm=A.Tm;#|LU><M|
     Bm=A.Bm;#|Md><|RD
+    Tm=permute(Tm,(1,2,),(3,));
+    Bm=permute(Bm,(1,),(2,3,4,));
     T=permute(Tm*Bm,(1,5,4,2,3,));#L,D,R,U,d,
     A_new=Square_iPEPS(T)
     return A_new

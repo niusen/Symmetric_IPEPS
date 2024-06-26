@@ -1,10 +1,81 @@
-function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Square_iPEPS},Lx,Ly)
+function construct_double_layer_swap_new(psi1::Matrix,Lx,Ly)
     psi1=deepcopy(psi1);
-    if psi2==nothing
-        psi2=deepcopy(psi1)
-    else
-        psi2=deepcopy(psi2);
+    @assert (Lx,Ly)==size(psi1);
+    
+    psi_double=Matrix{TensorMap}(undef,Lx,Ly);
+    UL_set=Matrix{TensorMap}(undef,Lx,Ly);
+    UD_set=Matrix{TensorMap}(undef,Lx,Ly);
+    UR_set=Matrix{TensorMap}(undef,Lx,Ly);
+    UU_set=Matrix{TensorMap}(undef,Lx,Ly);
+
+
+
+    #psi_double=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            AA, U_L,U_D,U_R,U_U=build_double_layer_swap(psi1[cx,cy]',psi1[cx,cy]);
+            psi_double[cx,cy]=AA;
+            UL_set[cx,cy]=U_L;
+            UD_set[cx,cy]=U_D;
+            UR_set[cx,cy]=U_R;
+            UU_set[cx,cy]=U_U;
+
+        end
     end
+
+    for cx=1:Lx
+        for cy=1:Ly
+            if (cx in 2:Lx-1)&&(cy in 2:Ly-1)
+                continue
+            else
+                T=psi_double[cx,cy];
+                Tnew=remove_trivial_boundary(T,cx,cy,Lx,Ly);
+                psi_double=matrix_update(psi_double,cx,cy,Tnew);
+            end
+        end
+    end
+
+    return psi_double,UL_set,UD_set,UR_set,UU_set
+end
+
+function remove_trivial_boundary(T,cx,cy,Lx,Ly)
+    #remove trivial boundary legs
+    
+    if (cx==1)&& (cy in 2:Ly-1) #left boundary
+        Uni=@ignore_derivatives unitary(space(T,2),space(T,1)*space(T,2));
+        @tensor Tnew[:]:=T[1,2,-2,-3]*Uni[-1,1,2];
+    elseif (cx==Lx)&&(cy in 2:Ly-1)#right boundary
+        Uni=@ignore_derivatives unitary(space(T,4),space(T,3)*space(T,4));
+        @tensor Tnew[:]:=T[-1,-2,1,2]*Uni[-3,1,2];
+    elseif (cy==1) && (cx in 2:Lx-1)#bot boundary
+        Uni=@ignore_derivatives unitary(space(T,1),space(T,1)*space(T,2));
+        @tensor Tnew[:]:=T[1,2,-2,-3]*Uni[-1,1,2];
+    elseif (cy==Ly)&& (cx in 2:Lx-1)#top boundary
+        Uni=@ignore_derivatives unitary(space(T,3),space(T,3)*space(T,4));
+        @tensor Tnew[:]:=T[-1,-2,1,2]*Uni[-3,1,2];
+    elseif (cx==1) && (cy==1)#left-bot
+        Uni=@ignore_derivatives unitary(space(T,3),space(T,1)*space(T,2)*space(T,3));
+        @tensor Tnew[:]:=T[1,2,3,-2]*Uni[-1,1,2,3];
+    elseif (cx==Lx)&& (cy==1)#right-bot
+        Uni=@ignore_derivatives unitary(space(T,1),space(T,1)*space(T,2)*space(T,3));
+        @tensor Tnew[:]:=T[1,2,3,-2]*Uni[-1,1,2,3];
+    elseif (cx==1)&& (cy==Ly)#left-top
+        Uni=@ignore_derivatives unitary(space(T,2),space(T,1)*space(T,2)*space(T,4));
+        @tensor Tnew[:]:=T[1,2,-2,3]*Uni[-1,1,2,3];
+    elseif (cx==Lx) && (cy==Ly)#right-top
+        Uni=@ignore_derivatives unitary(space(T,2),space(T,2)*space(T,3)*space(T,4));
+        @tensor Tnew[:]:=T[-1,1,2,3,]*Uni[-2,1,2,3];
+    elseif (cx in 2:Lx-1) && (cy in 2:Ly-1)#bulk
+        return T
+    else 
+        error("unknown case")
+    end
+    return Tnew
+end
+
+function construct_double_layer_swap(psi1::Matrix,Lx,Ly)
+    psi1=deepcopy(psi1);
+
     
     @assert (Lx,Ly)==size(psi1);
     
@@ -28,7 +99,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #psi_double=Matrix{TensorMap}(undef,Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            AA, U_L,U_D,U_R,U_U=build_double_layer_swap(psi1[cx,cy].T',psi2[cx,cy].T);
+            AA, U_L,U_D,U_R,U_U=build_double_layer_swap(psi1[cx,cy]',psi1[cx,cy]);
             psi_double=matrix_update(psi_double,cx+1,cy+1,AA);
             UL_set=matrix_update(UL_set,cx+1,cy+1,U_L);
             UD_set=matrix_update(UD_set,cx+1,cy+1,U_D);
@@ -45,7 +116,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #left boundary
     cx=1;
     for cy=1+1:Ly+1
-        T=TensorMap(randn,V_trivial*space(psi_double[cx+1,cy],1)',V_trivial);
+        @ignore_derivatives T=TensorMap(randn,V_trivial*space(psi_double[cx+1,cy],1)',V_trivial);
         mm=T.data.values[1];
         @assert length(mm)==1
         @ignore_derivatives mm[1]=1;
@@ -57,7 +128,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #right boundary
     cx=Lx+2;
     for cy=1+1:Ly+1
-        T=TensorMap(randn,space(psi_double[cx-1,cy],3)'*V_trivial,V_trivial);
+        @ignore_derivatives T=TensorMap(randn,space(psi_double[cx-1,cy],3)'*V_trivial,V_trivial);
         mm=T.data.values[1];
         @assert length(mm)==1
         @ignore_derivatives mm[1]=1;
@@ -70,7 +141,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #bot boundary
     cy=1;
     for cx=1+1:Lx+1
-        T=TensorMap(randn,V_trivial*V_trivial',space(psi_double[cx,cy+1],2));
+        @ignore_derivatives T=TensorMap(randn,V_trivial*V_trivial',space(psi_double[cx,cy+1],2));
         mm=T.data.values[1];
         @assert length(mm)==1
         @ignore_derivatives mm[1]=1;
@@ -82,7 +153,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #top boundary
     cy=Ly+2;
     for cx=1+1:Lx+1
-        T=TensorMap(randn,V_trivial*space(psi_double[cx,cy-1],4)',V_trivial);
+        @ignore_derivatives T=TensorMap(randn,V_trivial*space(psi_double[cx,cy-1],4)',V_trivial);
         mm=T.data.values[1];
         @assert length(mm)==1
         @ignore_derivatives mm[1]=1;
@@ -95,7 +166,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #left-bot
     cx=1;
     cy=1;
-    T=TensorMap(randn,V_trivial',V_trivial);
+    @ignore_derivatives T=TensorMap(randn,V_trivial',V_trivial);
     mm=T.data.values[1];
     @assert length(mm)==1
     @ignore_derivatives mm[1]=1;
@@ -106,7 +177,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #right-bot
     cx=Lx+2;
     cy=1;
-    T=TensorMap(randn,V_trivial,V_trivial);
+    @ignore_derivatives T=TensorMap(randn,V_trivial,V_trivial);
     mm=T.data.values[1];
     @assert length(mm)==1
     @ignore_derivatives mm[1]=1;
@@ -117,7 +188,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #left-top
     cx=1;
     cy=Ly+2;
-    T=TensorMap(randn,V_trivial,V_trivial);
+    @ignore_derivatives T=TensorMap(randn,V_trivial,V_trivial);
     mm=T.data.values[1];
     @assert length(mm)==1
     @ignore_derivatives mm[1]=1;
@@ -128,7 +199,7 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
     #right-top
     cx=Lx+2;
     cy=Ly+2;
-    T=TensorMap(randn,V_trivial,V_trivial');
+    @ignore_derivatives T=TensorMap(randn,V_trivial,V_trivial');
     mm=T.data.values[1];
     @assert length(mm)==1
     @ignore_derivatives mm[1]=1;
@@ -142,4 +213,61 @@ function construct_double_layer_swap(psi1::Matrix{Square_iPEPS},psi2::Matrix{Squ
 end
 
 
+
+function construct_double_layer_swap_sites(psi1::Matrix,psi_double, Lx,Ly)
+    #construct double layer tensors for sites, 
+    #the boundary trivial envs already exist
+    psi_double=deepcopy(psi_double);
+    psi1=deepcopy(psi1);
+
+
+    @assert (Lx,Ly)==size(psi1);
+    
+
+    #psi_double=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            AA, U_L,U_D,U_R,U_U=build_double_layer_swap(psi1[cx,cy]',psi1[cx,cy]);
+            #AA,_=build_double_layer_bulk(psi1[cx,cy],psi1[cx,cy],[]);
+            psi_double=matrix_update(psi_double,cx+1,cy+1,AA);
+
+
+        end
+    end
+
+    return psi_double
+end
+
+
+function construct_double_layer_swap_sites_new(psi1::Matrix,psi_double, Lx,Ly)
+    #construct double layer tensors for sites, 
+    #the boundary trivial envs already exist
+    psi_double=deepcopy(psi_double);
+    psi1=deepcopy(psi1);
+
+
+    @assert (Lx,Ly)==size(psi1);
+    
+
+    #psi_double=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            AA, U_L,U_D,U_R,U_U=build_double_layer_swap(psi1[cx,cy]',psi1[cx,cy]);
+            #AA,_=build_double_layer_bulk(psi1[cx,cy],psi1[cx,cy],[]);
+
+            if (cx in 2:Lx-1)&&(cy in 2:Ly-1)
+                psi_double=matrix_update(psi_double,cx,cy,AA);
+            else
+                AA=remove_trivial_boundary(AA,cx,cy,Lx,Ly);
+                psi_double=matrix_update(psi_double,cx,cy,AA);
+            end
+
+        end
+    end
+
+
+
+
+    return psi_double
+end
 

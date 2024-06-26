@@ -60,14 +60,19 @@ global svd_settings, backward_settings
     (1,1),(2,1)
 """
 
-Lx=6;
-Ly=6;
+Lx=4;
+Ly=4;
 
-filenm="CSL_D"*string(D)*"_L"*string(Lx)*".jld2";
+filenm="CSL_D3_Lx4_Ly4.jld2";
+filenm="test.jld2";
 data=load(filenm);
 
 
-psi=data["psi"];
+psi=data["PEPS_init"];
+
+psi=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi));
+
+
 
 psi_double=construct_double_layer(psi,psi);
 
@@ -97,14 +102,17 @@ global psi,psi_double,px,py
 px=2;
 py=2;
 A0=psi[px,py];
-E=cost_fun_local(A0);
+E=cost_fun_local_test(A0);
 println(E)
 
 #f(A0)
 # E_tem,∂E=get_grad(A0);
-@time grad1=cost_fun_local'(A0);
-_,grad2=FinteDiff(A0);
+@time grad1=cost_fun_local_test'(A0);
+_,grad2=FinteDiff_test(A0);
 
-err=norm(grad1-grad2)/norm(grad2);
-println(err)
+err1=norm(grad1-grad2)/min(norm(grad1),norm(grad2));
+println(err1)
+err2=dot(grad1,grad2)/sqrt(dot(grad1,grad1)*dot(grad2,grad2));
+println(err2)
+
 

@@ -238,7 +238,7 @@ function norm_ob_2x2(mps_bot_set,mps_top_set, iPEPS_double_2x2, VL_set_set,VR_se
 end
 
 function compute_ob_2x2_triangle(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range)
-    iPEPS_2x2=[iPEPS_2x2_[1,1].T iPEPS_2x2_[1,2].T; iPEPS_2x2_[2,1].T iPEPS_2x2_[2,2].T];
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
 
     mps_bot=mps_bot_set[y_range[1]-1];
     mps_top=mps_top_set[y_range[2]+1];
@@ -289,8 +289,48 @@ end
 
 
 
+
+
+function compute_ob_2x2_test(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range)
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
+
+    mps_bot=mps_bot_set[y_range[1]-1];
+    mps_top=mps_top_set[y_range[2]+1];
+
+    VL0=VL_set_set[y_range[1]][x_range[1]-1];
+    VR0=VR_set_set[y_range[1]][x_range[2]+1];
+    ###############################################
+    
+    if isa(space(psi_double[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        Hamiltonian_terms=Hamiltonians_spinful_Z2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_SU2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+    end
+
+    Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+    ##########################
+
+
+    Norm_=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    return Norm_
+ 
+
+    # AA_LD, AA_RU, AA_RD=prepare_hopping_LD_RU(Cdag_set[mod1(x_range[1]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#t_ld_ru
+    # e_ld_ru=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],AA_RU,AA_LD,AA_RD);
+    #e_ld_ru=e_ld_ru/Norm_;
+
+    # return e_ld_ru
+end
+
+
+
 function compute_ob_2x2_top(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range)
-    iPEPS_2x2=[iPEPS_2x2_[1,1].T iPEPS_2x2_[1,2].T; iPEPS_2x2_[2,1].T iPEPS_2x2_[2,2].T];
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
 
     mps_bot=mps_bot_set[y_range[1]-1];
     mps_top=mps_top_set[y_range[2]+1];
@@ -333,7 +373,7 @@ end
 
 
 function compute_ob_2x2_left(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range)
-    iPEPS_2x2=[iPEPS_2x2_[1,1].T iPEPS_2x2_[1,2].T; iPEPS_2x2_[2,1].T iPEPS_2x2_[2,2].T];
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
 
     mps_bot=mps_bot_set[y_range[1]-1];
     mps_top=mps_top_set[y_range[2]+1];
@@ -376,7 +416,7 @@ end
 
 
 function compute_ob_2x2_left_top(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range)
-    iPEPS_2x2=[iPEPS_2x2_[1,1].T iPEPS_2x2_[1,2].T; iPEPS_2x2_[2,1].T iPEPS_2x2_[2,2].T];
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
 
     mps_bot=mps_bot_set[y_range[1]-1];
     mps_top=mps_top_set[y_range[2]+1];
@@ -409,6 +449,287 @@ function compute_ob_2x2_left_top(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_doubl
     
     AA_LU=prepare_LU(n_double_set[mod1(x_range[2]-1,2)]-(1/2)*N_occu_set[mod1(x_range[2]-1,2)]+(1/4)*Ident_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#U
     eU=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,AA_LU,iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    eU=eU/Norm_;
+
+    return occu,eU
+end
+
+##################################################################################################################################################
+
+function compute_ob_2x2_triangle_new(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
+
+    # mps_bot=mps_bot_set[y_range[1]-1];
+    # mps_top=mps_top_set[y_range[2]+1];
+
+    # VL0=VL_set_set[y_range[1]][x_range[1]-1];
+    # VR0=VR_set_set[y_range[1]][x_range[2]+1];
+    ###############################################
+    
+    if isa(space(psi_double[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        Hamiltonian_terms=Hamiltonians_spinful_Z2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_SU2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+    end
+
+    Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+    ##########################
+
+
+    #Norm_=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    Norm_=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+
+
+    AA_LD,AA_RD=prepare_hopping_x_LD_RD(Cdag_set[mod1(x_range[1]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#tx
+    AA_LD=remove_trivial_boundary(AA_LD,x_range[1],y_range[1],Lx,Ly);
+    AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    #ex=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,AA_RD);
+    ex=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    ex=ex/Norm_;
+
+    AA_RD,AA_RU=prepare_hopping_y_RU_RD(Cdag_set[mod1(x_range[2]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#ty
+    AA_RU=remove_trivial_boundary(AA_RU,x_range[2],y_range[2],Lx,Ly);
+    AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    #ey=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],AA_RD);
+    ey=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    ey=ey/Norm_;
+
+    AA_LD, AA_RU, AA_RD=prepare_hopping_LD_RU(Cdag_set[mod1(x_range[1]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#t_ld_ru
+    AA_RU=remove_trivial_boundary(AA_RU,x_range[2],y_range[2],Lx,Ly);
+    AA_LD=remove_trivial_boundary(AA_LD,x_range[1],y_range[1],Lx,Ly);
+    AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    #e_ld_ru=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],AA_RU,AA_LD,AA_RD);
+    e_ld_ru=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],AA_RU,AA_LD,AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    e_ld_ru=e_ld_ru/Norm_;
+
+    AA_RD=prepare_RD(N_occu_set[mod1(x_range[1]-1,2)],iPEPS_2x2);#e0
+    AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    #occu=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD);
+    occu=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    occu=occu/Norm_;
+    
+    AA_RD=prepare_RD(n_double_set[mod1(x_range[2]-1,2)]-(1/2)*N_occu_set[mod1(x_range[2]-1,2)]+(1/4)*Ident_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#U
+    AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    #eU=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD);
+    eU=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    eU=eU/Norm_;
+
+    return ex,ey,e_ld_ru,occu,eU
+end
+
+function compute_ob_2x2_triangle_new_test(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
+
+    # mps_bot=mps_bot_set[y_range[1]-1];
+    # mps_top=mps_top_set[y_range[2]+1];
+
+    # VL0=VL_set_set[y_range[1]][x_range[1]-1];
+    # VR0=VR_set_set[y_range[1]][x_range[2]+1];
+    ###############################################
+    
+    if isa(space(psi_double[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        Hamiltonian_terms=Hamiltonians_spinful_Z2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_SU2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+    end
+
+    Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+    ##########################
+
+
+    #Norm_=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    Norm_=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    return Norm_
+
+    # AA_LD,AA_RD=prepare_hopping_x_LD_RD(Cdag_set[mod1(x_range[1]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#tx
+    # AA_LD=remove_trivial_boundary(AA_LD,x_range[1],y_range[1],Lx,Ly);
+    # AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    # #ex=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,AA_RD);
+    # ex=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    # ex=ex/Norm_;
+
+    # AA_RD,AA_RU=prepare_hopping_y_RU_RD(Cdag_set[mod1(x_range[2]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#ty
+    # AA_RU=remove_trivial_boundary(AA_RU,x_range[2],y_range[2],Lx,Ly);
+    # AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    # #ey=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],AA_RD);
+    # ey=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    # ey=ey/Norm_;
+
+    # AA_LD, AA_RU, AA_RD=prepare_hopping_LD_RU(Cdag_set[mod1(x_range[1]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#t_ld_ru
+    # AA_RU=remove_trivial_boundary(AA_RU,x_range[2],y_range[2],Lx,Ly);
+    # AA_LD=remove_trivial_boundary(AA_LD,x_range[1],y_range[1],Lx,Ly);
+    # AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    # #e_ld_ru=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],AA_RU,AA_LD,AA_RD);
+    # e_ld_ru=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],AA_RU,AA_LD,AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    # e_ld_ru=e_ld_ru/Norm_;
+
+    # AA_RD=prepare_RD(N_occu_set[mod1(x_range[1]-1,2)],iPEPS_2x2);#e0
+    # AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    # #occu=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD);
+    # occu=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    # occu=occu/Norm_;
+    
+    # AA_RD=prepare_RD(n_double_set[mod1(x_range[2]-1,2)]-(1/2)*N_occu_set[mod1(x_range[2]-1,2)]+(1/4)*Ident_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#U
+    # AA_RD=remove_trivial_boundary(AA_RD,x_range[2],y_range[1],Lx,Ly);
+    # #eU=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD);
+    # eU=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],AA_RD, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    # eU=eU/Norm_;
+
+    # return ex,ey,e_ld_ru,occu,eU
+end
+
+function compute_ob_2x2_top_new(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
+
+    # mps_bot=mps_bot_set[y_range[1]-1];
+    # mps_top=mps_top_set[y_range[2]+1];
+
+    # VL0=VL_set_set[y_range[1]][x_range[1]-1];
+    # VR0=VR_set_set[y_range[1]][x_range[2]+1];
+    ###############################################
+    
+    if isa(space(psi_double[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        Hamiltonian_terms=Hamiltonians_spinful_Z2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_SU2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+    end
+
+    Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+    ##########################
+
+
+    #Norm_=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    Norm_=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+
+
+    AA_LU,AA_RU=prepare_hopping_x_LU_RU(Cdag_set[mod1(x_range[1]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#tx
+    AA_LU=remove_trivial_boundary(AA_LU,x_range[1],y_range[2],Lx,Ly);
+    AA_RU=remove_trivial_boundary(AA_RU,x_range[2],y_range[2],Lx,Ly);
+    #ex=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,AA_LU,AA_RU,iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    ex=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,AA_LU,AA_RU,iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly);
+    ex=ex/Norm_;
+
+    AA_RU=prepare_RU(N_occu_set[mod1(x_range[1]-1,2)],iPEPS_2x2);#e0
+    AA_RU=remove_trivial_boundary(AA_RU,x_range[2],y_range[2],Lx,Ly);
+    #occu=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    occu=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    occu=occu/Norm_;
+    
+    AA_RU=prepare_RU(n_double_set[mod1(x_range[2]-1,2)]-(1/2)*N_occu_set[mod1(x_range[2]-1,2)]+(1/4)*Ident_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#U
+    AA_RU=remove_trivial_boundary(AA_RU,x_range[2],y_range[2],Lx,Ly);
+    #eU=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    eU=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],AA_RU,iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    eU=eU/Norm_;
+
+    return ex,occu,eU
+end
+
+
+function compute_ob_2x2_left_new(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
+
+    # mps_bot=mps_bot_set[y_range[1]-1];
+    # mps_top=mps_top_set[y_range[2]+1];
+
+    # VL0=VL_set_set[y_range[1]][x_range[1]-1];
+    # VR0=VR_set_set[y_range[1]][x_range[2]+1];
+    ###############################################
+    
+    if isa(space(psi_double[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        Hamiltonian_terms=Hamiltonians_spinful_Z2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_SU2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+    end
+
+    Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+    ##########################
+
+
+    #Norm_=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    Norm_=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+
+    AA_LD,AA_LU=prepare_hopping_y_LU_LD(Cdag_set[mod1(x_range[2]-1,2)],C_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#ty
+    AA_LU=remove_trivial_boundary(AA_LU,x_range[1],y_range[2],Lx,Ly);
+    AA_LD=remove_trivial_boundary(AA_LD,x_range[1],y_range[1],Lx,Ly);
+    #ey=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,AA_LU,iPEPS_double_2x2[2,2],AA_LD,iPEPS_double_2x2[2,1]);
+    ey=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,AA_LU,iPEPS_double_2x2[2,2],AA_LD,iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    ey=ey/Norm_;
+
+    AA_LD=prepare_LD(N_occu_set[mod1(x_range[1]-1,2)],iPEPS_2x2);#e0
+    AA_LD=remove_trivial_boundary(AA_LD,x_range[1],y_range[1],Lx,Ly);
+    #occu=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,iPEPS_double_2x2[2,1]);
+    occu=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    occu=occu/Norm_;
+    
+    AA_LD=prepare_LD(n_double_set[mod1(x_range[2]-1,2)]-(1/2)*N_occu_set[mod1(x_range[2]-1,2)]+(1/4)*Ident_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#U
+    AA_LD=remove_trivial_boundary(AA_LD,x_range[1],y_range[1],Lx,Ly);
+    #eU=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,iPEPS_double_2x2[2,1]);
+    eU=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],AA_LD,iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    eU=eU/Norm_;
+
+    return ey,occu,eU
+end
+
+
+function compute_ob_2x2_left_top_new(mps_bot_set,mps_top_set,iPEPS_2x2_, iPEPS_double_2x2, VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    iPEPS_2x2=[iPEPS_2x2_[1,1] iPEPS_2x2_[1,2]; iPEPS_2x2_[2,1] iPEPS_2x2_[2,2]];
+
+    # mps_bot=mps_bot_set[y_range[1]-1];
+    # mps_top=mps_top_set[y_range[2]+1];
+
+    # VL0=VL_set_set[y_range[1]][x_range[1]-1];
+    # VR0=VR_set_set[y_range[1]][x_range[2]+1];
+    ###############################################
+    
+    if isa(space(psi_double[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        #Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        Hamiltonian_terms=Hamiltonians_spinful_Z2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_SU2;
+    elseif isa(space(psi_double[1,1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+    end
+
+    Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+    ##########################
+
+
+    #Norm_=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    Norm_=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,iPEPS_double_2x2[1,2],iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+
+
+    AA_LU=prepare_LU(N_occu_set[mod1(x_range[1]-1,2)],iPEPS_2x2);#e0
+    AA_LU=remove_trivial_boundary(AA_LU,x_range[1],y_range[2],Lx,Ly);
+    #occu=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,AA_LU,iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    occu=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,AA_LU,iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
+    occu=occu/Norm_;
+    
+    AA_LU=prepare_LU(n_double_set[mod1(x_range[2]-1,2)]-(1/2)*N_occu_set[mod1(x_range[2]-1,2)]+(1/4)*Ident_set[mod1(x_range[2]-1,2)],iPEPS_2x2);#U
+    AA_LU=remove_trivial_boundary(AA_LU,x_range[1],y_range[2],Lx,Ly);
+    #eU=contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,AA_LU,iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1]);
+    eU=build_fermi_cluster_2x2(mps_bot_set,mps_top_set,AA_LU,iPEPS_double_2x2[2,2],iPEPS_double_2x2[1,1],iPEPS_double_2x2[2,1], VL_set_set,VR_set_set, x_range,y_range,Lx,Ly)
     eU=eU/Norm_;
 
     return occu,eU

@@ -208,10 +208,17 @@ end
 
 function split_vl_or_vr(Vl)
     global use_AD,chi;
-    u,s,v=my_tsvd(permute(Vl,(1,2,),(3,4,)); trunc=truncdim(chi+20));
+    if dim(space(Vl,1))*dim(space(Vl,2))>chi
+        u,s,v=my_tsvd(permute(Vl,(1,2,),(3,4,)); trunc=truncdim(chi+20));
 
-    vl_up=u*s;
-    vl_dn=v;
+        vl_up=u*s;
+        vl_dn=v;
+    else
+        Vl=permute(Vl,(1,2,),(3,4,));
+        Un=@ignore_derivatives unitary(fuse(space(Vl,1)*space(Vl,2)),space(Vl,1)*space(Vl,2));
+        vl_up=Un';
+        vl_dn=Un*Vl;
+    end
     return vl_up,vl_dn
 end
 

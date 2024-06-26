@@ -271,3 +271,26 @@ function construct_double_layer_swap_sites_new(psi1::Matrix,psi_double, Lx,Ly)
     return psi_double
 end
 
+function construct_double_layer_swap_position(psi1::Matrix,psi_double, ppx,ppy, Lx,Ly)
+    #construct double layer tensors for sites, 
+    #the boundary trivial envs already exist
+    psi_double=deepcopy(psi_double);
+    psi1=deepcopy(psi1);
+
+    @assert (Lx,Ly)==size(psi1);
+    
+    cx=ppx;
+    cy=ppy;
+
+    AA, U_L,U_D,U_R,U_U=build_double_layer_swap(psi1[cx,cy]',psi1[cx,cy]);
+    #AA,_=build_double_layer_bulk(psi1[cx,cy],psi1[cx,cy],[]);
+
+    if (cx in 2:Lx-1)&&(cy in 2:Ly-1)
+        psi_double=matrix_update(psi_double,cx,cy,AA);
+    else
+        AA=remove_trivial_boundary(AA,cx,cy,Lx,Ly);
+        psi_double=matrix_update(psi_double,cx,cy,AA);
+    end
+
+    return psi_double
+end

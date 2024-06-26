@@ -14,7 +14,11 @@ function initial_SU2_PESS(filenm,init_noise,is_complex)
             end
         end
     elseif (haskey(data, "psi"))
-        psi=data["psi"];
+        
+        psi_=data["psi"];
+        Lx,Ly=size(psi_);
+        psi=Matrix{TensorMap}(undef,Lx,Ly);
+        psi[:]=psi_[:];
     elseif (haskey(data, "x"))
         psi=data["x"];
     end
@@ -27,24 +31,37 @@ function add_noise(psi::Matrix,init_noise,is_complex)
     Lx,Ly=size(psi);
     for cx=1:Lx
         for cy=1:Ly
-            PESS=psi[cx,cy];
-            Bm=PESS.Bm;
-            Tm=PESS.Tm;
-            if is_complex
-                Bm_noise=TensorMap(randn,codomain(Bm),domain(Bm))+TensorMap(randn,codomain(Bm),domain(Bm))*im;
-                Tm_noise=TensorMap(randn,codomain(Tm),domain(Tm))+TensorMap(randn,codomain(Tm),domain(Tm))*im;
-            else
-                Bm_noise=TensorMap(randn,codomain(Bm),domain(Bm));
-                Tm_noise=TensorMap(randn,codomain(Tm),domain(Tm));
-            end
-            Bm_noise=Bm_noise/norm(Bm_noise);
-            Tm_noise=Tm_noise/norm(Tm_noise);
-            Bm=Bm/norm(Bm);
-            Tm=Tm/norm(Tm);
-            Bm_=Bm+Bm_noise*init_noise;
-            Tm_=Tm+Tm_noise*init_noise;
+            if isa(psi[cx,cy],Triangle_iPESS)
+                PESS=psi[cx,cy];
+                Bm=PESS.Bm;
+                Tm=PESS.Tm;
+                if is_complex
+                    Bm_noise=TensorMap(randn,codomain(Bm),domain(Bm))+TensorMap(randn,codomain(Bm),domain(Bm))*im;
+                    Tm_noise=TensorMap(randn,codomain(Tm),domain(Tm))+TensorMap(randn,codomain(Tm),domain(Tm))*im;
+                else
+                    Bm_noise=TensorMap(randn,codomain(Bm),domain(Bm));
+                    Tm_noise=TensorMap(randn,codomain(Tm),domain(Tm));
+                end
+                Bm_noise=Bm_noise/norm(Bm_noise);
+                Tm_noise=Tm_noise/norm(Tm_noise);
+                Bm=Bm/norm(Bm);
+                Tm=Tm/norm(Tm);
+                Bm_=Bm+Bm_noise*init_noise;
+                Tm_=Tm+Tm_noise*init_noise;
 
-            psi[cx,cy]=Triangle_iPESS(Bm_,Tm_);
+                psi[cx,cy]=Triangle_iPESS(Bm_,Tm_);
+            elseif isa(psi[cx,cy],TensorMap)
+                PEPS=psi[cx,cy];
+                if is_complex
+                    PEPS_noise=TensorMap(randn,codomain(PEPS),domain(PEPS))+TensorMap(randn,codomain(PEPS),domain(PEPS))*im;
+                else
+                    PEPS_noise=TensorMap(randn,codomain(PEPS),domain(PEPS));
+                end
+                PEPS_noise=PEPS_noise/norm(PEPS_noise);
+                PEPS=PEPS/norm(PEPS);
+                PEPS_=PEPS+PEPS_noise*init_noise;
+                psi[cx,cy]=PEPS_;
+            end
         end
     end
     return psi

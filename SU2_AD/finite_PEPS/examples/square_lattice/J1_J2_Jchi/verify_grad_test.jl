@@ -86,7 +86,7 @@ global starting_time
 starting_time=now();
 
 global mpo_mps_trun_method, left_right_env_method;
-mpo_mps_trun_method="simple_middle";#"simple_middle","canonical"
+mpo_mps_trun_method="exact";#"simple_middle","canonical","exact"
 left_right_env_method="trun";#"exact","trun"
 
 global n_mps_sweep
@@ -108,7 +108,7 @@ println(E)
 #f(A0)
 # E_tem,∂E=get_grad(A0);
 @time grad1=cost_fun_local_test'(A0);
-_,grad2=FinteDiff_test(A0);
+@time _,grad2=FinteDiff_test(A0);
 
 err1=norm(grad1-grad2)/min(norm(grad1),norm(grad2));
 println(err1)

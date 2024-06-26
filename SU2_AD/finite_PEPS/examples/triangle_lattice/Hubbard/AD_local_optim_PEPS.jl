@@ -34,6 +34,7 @@ include("..\\..\\..\\environment\\AD\\truncations.jl")
 include("..\\..\\..\\environment\\Variational\\mps_methods_projector.jl")
 include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2.jl")
 include("..\\..\\..\\optimization\\line_search_lib.jl")
+include("..\\..\\..\\optimization\\LineSearches\\My_Backtracking.jl")
 
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_methods.jl")
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple_update.jl")
@@ -56,6 +57,7 @@ multiplet_tol=1e-5;
 init_noise=0;
 
 filenm="SU_PESS_SU2_D4.jld2";
+# filenm="sweep_4x4_D_4_chi_100.jld2";
 
 println("D,chi="*string([D,chi]));
 println("init_noise="*string(init_noise));
@@ -67,9 +69,9 @@ import LinearAlgebra.BLAS as BLAS
 n_cpu=6;
 BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()));flush(stdout);
-Base.Sys.set_process_title("C"*string(n_cpu)*"_stoc_D"*string(D))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_sweep_D"*string(D))
 pid=getpid();
-println("pid="*string(pid));;flush(stdout);
+println("pid="*string(pid));flush(stdout);
 ####################
 
 global use_AD;
@@ -117,13 +119,18 @@ println("Lx,Ly="*string([Lx,Ly]))
 
 
 
-psi_PEPS=PESS_to_PEPS_matrix(psi);
-psi_init=deepcopy(psi);
-global PEPS_init,psi_init
-PEPS_init=deepcopy(psi_PEPS);#prepare for AD
 
-psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap_new(psi_PEPS,Lx,Ly);
-global psi_double
+global psi,psi_double
+
+if isa(psi[1,1],Triangle_iPESS)
+    psi=PESS_to_PEPS_matrix(psi);
+end
+psi=normalize_tensor_group(psi);
+
+
+
+
+psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap_new(psi,Lx,Ly);
 
 
 global mpo_mps_trun_method, left_right_env_method;
@@ -133,11 +140,10 @@ left_right_env_method="trun";#"exact","trun"
 global n_mps_sweep
 n_mps_sweep=5;
 
-global px,py
+global ppx,ppy
 
-coord=[2,2];
-px,py=coord;
-E=cost_fun_local(psi_PEPS[px,py]);
+
+E=cost_fun_global(psi);
 println("E= "*string(E));
 
 
@@ -161,24 +167,60 @@ E_history=[E];
 
 
 #########################################
-
+E_opt=E;
 
 # ls = BackTracking(order=3)
 ls = BackTracking(c_1=0.0001,ρ_hi=0.5,ρ_lo=0.1,iterations=7,order=3,maxstep=Inf);
 println(ls)
 
 optim_maxiter=5;
-LS_maxiter=20;#number of gradient optimization for each site
+LS_maxiter=10;#number of gradient optimization for each site
 grad_tol=1e-3;
 
 
 
 
-global px,py
-px=2;
-py=2;
+# global ppx,ppy
+# ppx=1;
+# ppy=2;
 
-E_opt_new, T, iter_bt3 = gdoptimize(f, g!, fg!, psi_PEPS[px,py]::TensorMap, ls,LS_maxiter, 1e-8, grad_tol);
+# psi=normalize_tensor_group(psi);
+# E_opt_new, T, iter_bt3 = gdoptimize(f, g!, fg!, psi[ppx,ppy]::TensorMap, ls,LS_maxiter, 1e-8, grad_tol);
+# if E_opt_new<E_opt
+#     psi[ppx,ppy]=T;
+#     E_opt=E_opt_new;
+# end
 
+
+##########################################
+
+
+for ite=1:optim_maxiter
+    println("Optimization iteration: "*string(ite));
+    for cx=1:Lx
+        for cy=1:Ly
+            global E_opt,psi,psi_double
+            
+            ppx=cx;
+            ppy=cy;
+            println("coordinate: "*string([ppx,ppy]));
+            # try
+                E_opt_new, T, iter_bt3 = gdoptimize(f, g!, fg!, psi[ppx,ppy]::TensorMap, ls,LS_maxiter, 1e-8, grad_tol);
+            # catch e
+            #     continue
+            # end
+            if E_opt_new<E_opt
+                psi[ppx,ppy]=T;
+                #psi=gauge_fix_global(psi,1,false);
+                psi[ppx,ppy]=psi[ppx,ppy]/norm(psi[ppx,ppy]);
+                psi_double=construct_double_layer_swap_position(psi,psi_double,ppx,ppy,Lx,Ly);
+                E_opt=E_opt_new;
+                println("Energy of updated state: "*string(E_opt));flush(stdout);
+            else
+                println("Energy not improved, change to next site")
+            end
+        end
+    end
+end
 
 

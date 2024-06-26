@@ -132,20 +132,20 @@ global n_mps_sweep
 n_mps_sweep=0;
 
 
-global px,py
+global ppx,ppy
 
 coord=[2,2];
-px,py=coord;
+ppx,ppy=coord;
 
 # tt=load("sweep_4x4_D_4_chi_100.jld2")["x"]
-# # E=cost_fun_local(psi_PEPS[px,py]);
+# # E=cost_fun_local(psi_PEPS[ppx,ppy]);
 # tt=tt/norm(tt);
 
-# PEPS_init[px,py]=tt;
+# PEPS_init[ppx,ppy]=tt;
 
 # E,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=cost_fun_local(tt);
-E=cost_fun_local(PEPS_init[px,py]);
-#ttt=TensorMap(randn,codomain(PEPS_init[px,py]),domain(PEPS_init[px,py]));
+E=cost_fun_local(PEPS_init[ppx,ppy]);
+#ttt=TensorMap(randn,codomain(PEPS_init[ppx,ppy]),domain(PEPS_init[ppx,ppy]));
 #E,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=cost_fun_local(ttt);
 println("E= "*string(E));
 
@@ -160,15 +160,15 @@ n_mps_sweep=0;
 
 
 
-# ∂E=gradient(x ->cost_fun_local(x), psi[px,py])[1];
+# ∂E=gradient(x ->cost_fun_local(x), psi[ppx,ppy])[1];
 
-# ∂E_=finite_diff_local(psi[px,py]::Triangle_iPESS);
+# ∂E_=finite_diff_local(psi[ppx,ppy]::Triangle_iPESS);
 
-# psi[px,py].Bm=permute(psi[px,py].Bm,(1,2,3,4,));
-# psi[px,py].Tm=permute(psi[px,py].Tm,(1,2,3,));
-# grad_Bm1=gradient(x ->cost_fun_local_Bm(x), psi[px,py].Bm)[1];
-# grad_Tm1=gradient(x ->cost_fun_local_Tm(x), psi[px,py].Tm)[1];
-# grad_Bm2,grad_Tm2=finite_diff2(psi[px,py]::Triangle_iPESS);
+# psi[ppx,ppy].Bm=permute(psi[ppx,ppy].Bm,(1,2,3,4,));
+# psi[ppx,ppy].Tm=permute(psi[ppx,ppy].Tm,(1,2,3,));
+# grad_Bm1=gradient(x ->cost_fun_local_Bm(x), psi[ppx,ppy].Bm)[1];
+# grad_Tm1=gradient(x ->cost_fun_local_Tm(x), psi[ppx,ppy].Tm)[1];
+# grad_Bm2,grad_Tm2=finite_diff2(psi[ppx,ppy]::Triangle_iPESS);
 
 
 
@@ -185,8 +185,8 @@ n_mps_sweep=0;
 #PEPS_init=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(PEPS_init));
 
 chi=100;
-# T=PEPS_init[px,py];
-println(cost_fun_local(PEPS_init[px,py]))
+T=PEPS_init[ppx,ppy];
+println(cost_fun_local(PEPS_init[ppx,ppy]))
 @time grad1=gradient(x ->cost_fun_local(x), T)[1];
 @time grad2=finite_diff3(T::TensorMap,cost_fun_local);
 println(dot(grad1,grad2)/sqrt(dot(grad1,grad1)*dot(grad2,grad2)))

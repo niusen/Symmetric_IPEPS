@@ -110,6 +110,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set)
         trun_errs=vcat(trun_errs,trun_err);
         u=u*s;
         mps_set=mps_update(mps_set,permute(v,(1,2,3,)),cx);
+
         @tensor A[:]:=mpo_set[cx-1][-1,2,3,-4]*mps_set[cx-1][-2,1,2]*u[3,1,-3];
         mps_set=mps_update(mps_set,A,cx-1);
     end

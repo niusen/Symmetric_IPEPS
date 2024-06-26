@@ -4,6 +4,12 @@ function truncate_mpo_mps(mpo,mps_old)
     mps,trun_errs,_=left_truncate_simple(mps_new, chi, multiplet_tol);
     return mps,trun_errs
 end
+function truncate_mpo_mps_exact(mpo,mps_old)
+    global chi, multiplet_tol
+    mps_new,_=apply_mpo(mpo,mps_old);
+    # mps,trun_errs,_=left_truncate_simple(mps_new, chi, multiplet_tol);
+    return mps_new,nothing
+end
 function normalize_rho(rho,U_s_s)
     @tensor rho[:]:=rho[1,2,3,4]*U_s_s[-1,-5,1]*U_s_s[-2,-6,2]*U_s_s[-3,-7,3]*U_s_s[-4,-8,4];
     rho=permute(rho,(1,2,3,4,),(5,6,7,8,));

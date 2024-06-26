@@ -253,12 +253,13 @@ function f(x::TensorMap)
     println("E= "*string(E));flush(stdout);
 
     global E_history,save_opt_filenm
-    global psi,px,py
+    global psi,ppx,ppy
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
         #save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
-
-        jldsave(save_opt_filenm; psi,px,py,x);
+        psi_=deepcopy(psi);
+        psi_[ppx,ppy]=x;
+        jldsave(save_opt_filenm; psi=psi_,ppx,ppy,x,E_history);
         global starting_time
         Now=now();
         Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
@@ -280,7 +281,7 @@ function g!(gvec::TensorMap, x)# this function changes the value of gvec
         copyto!(block,blocks(∂E)[k]);
     end
 
-    println("norm of grad: "*string(norm(gvec)))
+    
     return gvec
 end
 
@@ -304,6 +305,9 @@ function get_grad(x::TensorMap)
         end
     end
     
+    println("norm of grad: "*string(norm(∂E)))
+    ∂E=∂E/norm(∂E);
+    ∂E=∂E*0.1;
     return E_tem,∂E
 end
 
@@ -391,12 +395,12 @@ function f(x::Triangle_iPESS)
     println("E= "*string(E));flush(stdout);
 
     global E_history,save_opt_filenm
-    global psi,px,py
+    global psi,ppx,ppy
     if E<minimum(E_history)
         E_history=vcat(E_history,E);
         #save_filenm="Optim_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 
-        jldsave(save_filenm; psi,px,py,x);
+        jldsave(save_filenm; psi,ppx,ppy,x);
         global starting_time
         Now=now();
         Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
@@ -528,9 +532,9 @@ function FinteDiff_test(state_vec::TensorMap)
         end
     return E0, grad
 end
-function get_grad_double_layer(x,px,py,psi_double_open,U_s_s,funtype)
+function get_grad_double_layer(x,ppx,ppy,psi_double_open,U_s_s,funtype)
     psi_double=contract_physical_all(psi_double_open, U_s_s);
-    ∂E=gradient(x ->cost_fun_double_layer(x,px,py,psi_double_open,psi_double,U_s_s,funtype), x)[1];
+    ∂E=gradient(x ->cost_fun_double_layer(x,ppx,ppy,psi_double_open,psi_double,U_s_s,funtype), x)[1];
     #E=fun(state_vec)
     global E_tem
     # x_tem=x;

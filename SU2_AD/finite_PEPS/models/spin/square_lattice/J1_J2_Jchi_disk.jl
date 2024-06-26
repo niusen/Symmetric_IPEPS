@@ -490,6 +490,8 @@ function energy_disk_new(A0,psi,psi_double,px,py,update_type)
     global mpo_mps_trun_method, left_right_env_method;
     if mpo_mps_trun_method=="canonical"
         mpo_mps_fun=truncate_mpo_mps;
+    elseif mpo_mps_trun_method=="exact"
+            mpo_mps_fun=truncate_mpo_mps_exact;
     elseif mpo_mps_trun_method=="simple_middle"
         mpo_mps_fun=simple_truncate_to_moddle;
     end
@@ -683,6 +685,8 @@ function energy_disk_test(A0,psi,psi_double,px,py,update_type)
     global mpo_mps_trun_method, left_right_env_method;
     if mpo_mps_trun_method=="canonical"
         mpo_mps_fun=truncate_mpo_mps;
+    elseif mpo_mps_trun_method=="exact"
+            mpo_mps_fun=truncate_mpo_mps_exact;
     elseif mpo_mps_trun_method=="simple_middle"
         mpo_mps_fun=simple_truncate_to_moddle;
     end
@@ -723,11 +727,11 @@ function energy_disk_test(A0,psi,psi_double,px,py,update_type)
 
     mps_bot=(psi_double[:,1]...,);
     mps_bot_set=vector_update(mps_bot_set,mps_bot,1);
-    mps_bot,trun_errs,_=left_truncate_simple(mps_bot, chi, multiplet_tol);
-    trun_history=vcat(trun_history,trun_errs);
+    # mps_bot,trun_errs,_=left_truncate_simple(mps_bot, chi, multiplet_tol);
+    # trun_history=vcat(trun_history,trun_errs);
     for cy=2:Ly-2
         mpo=(psi_double[:,cy]...,);
-        mps_bot,trun_errs,_=Zygote.checkpointed(mpo_mps_fun, mpo, mps_bot);
+        mps_bot,trun_errs=Zygote.checkpointed(mpo_mps_fun, mpo, mps_bot);
         mps_bot_set=vector_update(mps_bot_set,mps_bot,cy);
         trun_history=vcat(trun_history,trun_errs);
     end
@@ -745,11 +749,11 @@ function energy_disk_test(A0,psi,psi_double,px,py,update_type)
     mps_top=(psi_double[:,Ly]...,);
     mps_top=pi_rotate_mps(mps_top);
     mps_top_set=vector_update(mps_top_set,treat_mps_top(mps_top),Ly);
-    mps_top,trun_errs,_=left_truncate_simple(mps_top, chi, multiplet_tol);
-    trun_history=vcat(trun_history,trun_errs);
+    # mps_top,trun_errs,_=left_truncate_simple(mps_top, chi, multiplet_tol);
+    # trun_history=vcat(trun_history,trun_errs);
     for cy=Ly-1:-1:3
         mpo=pi_rotate_mpo((psi_double[:,cy]...,));
-        mps_top,trun_errs,_=Zygote.checkpointed(mpo_mps_fun, mpo, mps_top);
+        mps_top,trun_errs=Zygote.checkpointed(mpo_mps_fun, mpo, mps_top);
         mps_top_set=vector_update(mps_top_set,treat_mps_top(mps_top),cy);
         trun_history=vcat(trun_history,trun_errs);
     end
@@ -851,13 +855,14 @@ function energy_disk_test(A0,psi,psi_double,px,py,update_type)
     E_total=0;
     E_set=@ignore_derivatives zeros(Lx-1,Ly-1)*im*1.0;
 
-    for cx=2:2#1:Lx-1
-        for cy=2:2#1:Ly-1
+    for cx=1:1#1:Lx-1
+        for cy=3:3#1:Ly-1
             x_range=[cx,cx+1];
             y_range=[cy,cy+1];
             iPEPS_2x2=psi[x_range,y_range];
             rho_plaquatte,U_s_s=build_density_matrix_2x2_new(mps_bot_set,mps_top_set,iPEPS_2x2, VL_set_set,VR_set_set, x_range,y_range, chi, multiplet_tol);
             E=normfun(rho_plaquatte,U_s_s);
+            # rho_plaquatte=normalize_rho(rho_plaquatte,U_s_s);
             # E=H_plaquatte(J1,J2,Jchi,H_Heisenberg, H123chiral, x_range,y_range,Lx,Ly,rho_plaquatte);
             @ignore_derivatives E_set[cx,cy]=E;
             E_total=E_total+E;

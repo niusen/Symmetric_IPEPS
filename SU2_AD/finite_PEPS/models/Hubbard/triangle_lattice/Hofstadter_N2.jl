@@ -574,7 +574,10 @@ function overlap(psi1::Matrix{TensorMap},ppx,ppy)
     return norm_coe*Norm
 end
 
-
+# function energy_disk_PESS(psi::Matrix{})
+#     E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_global(psi::Matrix,psi_double::Matrix);
+#     return E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set
+# end
 
 
 function energy_disk_global(psi::Matrix,psi_double::Matrix)

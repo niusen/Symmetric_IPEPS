@@ -43,6 +43,50 @@ function stochastic_opt(x0::Matrix{T}, delta, maxiter, gtol) where T<:iPEPS_ansa
     return x
 end
 
+
+
+
+function stochastic_opt(x0::Matrix{TensorMap}, delta, maxiter, gtol) 
+    global chi,D
+    println("stochastic optimization")
+    println("D="*string(D));flush(stdout);
+    println("chi="*string(chi));flush(stdout);
+    
+    x = deepcopy(x0);
+    gvec = similar(x);
+    gnorm=10000;
+    iter = 0
+    while iter < maxiter && gnorm > gtol
+        println("optim iteration "*string(iter))
+        x=normalize_tensor_group(x);
+
+        global n_mps_sweep;
+        n_mps_sweep=0;
+        gvec0=gradient(x ->cost_fun_global(x), x)[1];
+
+        #convert gvec to Matrix{Triangle_iPESS}
+        Lx,Ly=size(gvec);
+        gvec=Matrix{TensorMap}(undef,Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                gvec[cx,cy]=gvec0[cx,cy];
+            end
+        end
+
+        #gvec=g!(gvec,x);#get grad
+        x_updated=x-get_random_grad(gvec,delta);#get random grad
+        println("norm of random grad:"*string(norm(x_updated-x)))
+
+
+        E_updated=fx(x_updated);
+        x=x_updated;
+
+        iter += 1
+        gnorm = norm(gvec);
+    end
+    return x
+end
+
 function fx(x::Matrix{T},Lx,Ly) where T<:iPEPS_ansatz
     global n_mps_sweep;
     n_mps_sweep=5;
@@ -79,6 +123,41 @@ function fx(x::Matrix{T},Lx,Ly) where T<:iPEPS_ansatz
 end
 
 
+
+
+function fx(x::Matrix{TensorMap}) 
+    global n_mps_sweep;
+    n_mps_sweep=5;
+
+    global psi_double
+    E,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_global(x,psi_double);
+
+    println("E_total="*string(E));
+    println(Ex_set)
+    println(Ey_set)
+    println(E_ld_ru_set)
+    println(occu_set)
+    println(EU_set);flush(stdout);
+    
+    E=real(E);
+ 
+    
+    global E_history,E_all_history,delta_history
+    E_all_history=vcat(E_all_history,E);
+    delta_history=vcat(delta_history,delta);
+    if E<minimum(E_history)
+        E_history=vcat(E_history,E);
+        # filenm="Optim_cell_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
+        #jldsave(filenm; B_a=x[1],B_b=x[2],B_c=x[3],T_u=x[4],T_d=x[5]);
+        global save_filenm
+        jldsave(save_filenm; psi=x,E_all_history,E_history,delta_history);
+        global starting_time
+        Now=now();
+        Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+        println("Time consumed: "*string(Time));flush(stdout);
+    end
+    return E;
+end
 
 
 
@@ -128,7 +207,7 @@ function random_tensor_sign(T::TensorMap)
     return T
 end
 
-function get_random_grad(x::Matrix{T},delta) where T<:iPEPS_ansatz
+function get_random_grad(x::Matrix,delta) 
     x_new=deepcopy(x);
     for cc in eachindex(x)
         ansatz=x[cc];
@@ -165,6 +244,10 @@ function get_random_grad(x::Matrix{T},delta) where T<:iPEPS_ansatz
             A=ansatz.T;
             A=random_tensor_sign(A)*delta;
             ansatz_new=Square_iPEPS(A);
+        elseif isa(x[cc],TensorMap)
+            A=ansatz;
+            A=random_tensor_sign(A)*delta;
+            ansatz_new=A;
         else
             error("unknown type")
         end

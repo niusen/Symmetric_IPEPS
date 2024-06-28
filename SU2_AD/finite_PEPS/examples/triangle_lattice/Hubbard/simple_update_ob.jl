@@ -23,6 +23,7 @@ include("..\\..\\..\\environment\\AD\\mps_methods_new.jl")
 include("..\\..\\..\\environment\\AD\\svd_AD_lib.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\peps_double_layer_methods_fermion.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\fermi_CTM_observables.jl")
+include("..\\..\\..\\environment\\AD\\fermion\\fermi_contract.jl")
 include("..\\..\\..\\environment\\AD\\truncations.jl")
 include("..\\..\\..\\environment\\Variational\\mps_methods_projector.jl")
 include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2.jl")
@@ -106,7 +107,7 @@ psi_PEPS=PESS_to_PEPS_matrix(psi);
 # filenm="CSL_D3_Lx"*string(Lx)*"_Ly"*string(Ly)*".jld2";
 # jldsave(filenm;psi);
 
-psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,psi_PEPS,Lx,Ly);
+psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,Lx,Ly);
 
 
 multiplet_tol=1e-5;
@@ -149,7 +150,7 @@ jldsave(filenm; B_set, T_set)
 
 psi=B_T_sets_to_PESS(B_set,T_set);
 psi_PEPS=PESS_to_PEPS_matrix(psi);
-psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,psi_PEPS,Lx,Ly);
+psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,Lx,Ly);
 
 
 

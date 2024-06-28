@@ -28,6 +28,7 @@ include("..\\..\\..\\environment\\AD\\mps_methods_new.jl")
 include("..\\..\\..\\environment\\AD\\svd_AD_lib.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\peps_double_layer_methods_fermion.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\fermi_CTM_observables.jl")
+include("..\\..\\..\\environment\\AD\\fermion\\fermi_contract.jl")
 include("..\\..\\..\\environment\\AD\\truncations.jl")
 include("..\\..\\..\\environment\\Variational\\mps_methods_projector.jl")
 include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2.jl")
@@ -35,12 +36,9 @@ include("..\\..\\..\\optimization\\stochastic_opt.jl")
 
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_methods.jl")
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple_update.jl")
+include("..\\..\\..\\optimization\\line_search_lib.jl")
 
-
-
-
-
-#include("..\\..\\..\\optimization\\line_search_lib.jl")
+include("..\\..\\..\\environment\\simple_update\\fermionic\\gauge_fix.jl")
 
 Random.seed!(666)
 
@@ -53,7 +51,8 @@ chi=100;
 multiplet_tol=1e-5;
 init_noise=0;
 
-filenm="SU_PESS_SU2_D4.jld2";
+#filenm="SU_PESS_SU2_D4.jld2";
+filenm="stochastic_4x4_D_8_chi_100.jld2";
 
 println("D,chi="*string([D,chi]));
 println("init_noise="*string(init_noise));
@@ -72,6 +71,9 @@ println("pid="*string(pid));;flush(stdout);
 
 global use_AD;
 use_AD=true;
+
+global use_canonical_form
+use_canonical_form=true;
 
 t1=1;
 t2=1;
@@ -113,20 +115,16 @@ Lx,Ly=size(psi);
 println("Lx,Ly="*string([Lx,Ly]))
 
 
+global psi,psi_double
 
-
-psi_PEPS=PESS_to_PEPS_matrix(psi);
-global PEPS_init
-PEPS_init=deepcopy(psi_PEPS);#prepare for AD
-
-psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,psi_PEPS,Lx,Ly);
-global psi_double_env
-psi_double_env=deepcopy(psi_double);
-for cx=1:Lx
-    for cy=1:Ly
-        psi_double_env[cx+1,cy+1]=0;
-    end
+if isa(psi[1,1],Triangle_iPESS)
+    psi=PESS_to_PEPS_matrix(psi);
 end
+psi=normalize_tensor_group(psi);
+
+
+psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap_new(psi,Lx,Ly);
+
 
 
 global mpo_mps_trun_method, left_right_env_method;
@@ -140,11 +138,8 @@ n_mps_sweep=5;
 E=cost_fun_global(psi);
 println("E= "*string(E));
 
-# E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_old(psi_PEPS,psi_double)
-# #-sum(imag.(Ex_set*2))-sum(abs.(real.(Ey_set)))*2-sum(abs.(real.(E_ld_ru_set)))*2+(sum(EU_set)*U)
-# println("E_total="*string(E_total));flush(stdout);
 
-
+n_mps_sweep=0;
 
 save_filenm="stochastic_"*string(Lx)*"x"*string(Ly)*"_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 global save_filenm
@@ -155,9 +150,7 @@ starting_time=now();
 
 
 #########################################
-
-
-
+E_opt=E;
 
 
 global E_history,E_all_history,delta_history
@@ -168,7 +161,7 @@ delta_history=[10000];
 maxiter=500;
 gtol=1e-3;
 delta=1e-3;
-state_vec=stochastic_opt(psi, delta, maxiter, gtol);
+state_vec=stochastic_opt(psi::Matrix{TensorMap}, delta, maxiter, gtol);
 
 
 

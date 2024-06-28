@@ -39,15 +39,10 @@ include("..\\..\\..\\optimization\\LineSearches\\My_Backtracking.jl")
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_methods.jl")
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple_update.jl")
 
-
-
-
-
+include("..\\..\\..\\environment\\simple_update\\fermionic\\gauge_fix.jl")
 
 
 Random.seed!(666)
-
-
 
 global D,chi,multiplet_tol
 
@@ -76,6 +71,9 @@ println("pid="*string(pid));flush(stdout);
 
 global use_AD;
 use_AD=true;
+
+global use_canonical_form
+use_canonical_form=true;
 
 t1=1;
 t2=1;
@@ -150,7 +148,6 @@ println("E= "*string(E));
 n_mps_sweep=0;
 
 
-
 save_opt_filenm="sweep_"*string(Lx)*"x"*string(Ly)*"_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 global save_opt_filenm
 
@@ -199,7 +196,7 @@ for ite=1:optim_maxiter
     println("Optimization iteration: "*string(ite));
     for cx=1:Lx
         for cy=1:Ly
-            global E_opt,psi,psi_double
+            global E_opt,psi,psi_double,ppx,ppy
             
             ppx=cx;
             ppy=cy;
@@ -221,6 +218,12 @@ for ite=1:optim_maxiter
             end
         end
     end
+    E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_global(psi::Matrix,psi_double::Matrix);
+    println(Ex_set)
+    println(Ey_set)
+    println(E_ld_ru_set)
+    println(occu_set)
+    println(EU_set)
 end
 
 

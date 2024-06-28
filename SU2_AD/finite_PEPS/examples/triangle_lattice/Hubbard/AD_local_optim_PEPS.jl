@@ -72,8 +72,7 @@ println("pid="*string(pid));flush(stdout);
 global use_AD;
 use_AD=true;
 
-global use_canonical_form
-use_canonical_form=true;
+
 
 t1=1;
 t2=1;
@@ -126,9 +125,15 @@ end
 psi=normalize_tensor_group(psi);
 
 
+use_canonical_form=true;
 
-
-psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap_new(psi,Lx,Ly);
+global use_canonical_form
+if use_canonical_form
+    println("convert to canonical form")
+    psi,_=fermiPEPS_gauge_fix_simple(psi,100);
+    psi_double,_=construct_double_layer_swap_new(psi,Lx,Ly);
+end
+# psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap_new(psi,Lx,Ly);
 
 
 global mpo_mps_trun_method, left_right_env_method;
@@ -216,6 +221,13 @@ for ite=1:optim_maxiter
             else
                 println("Energy not improved, change to next site")
             end
+            global use_canonical_form
+            if use_canonical_form
+                println("convert to canonical form")
+                psi,_=fermiPEPS_gauge_fix_simple(psi,100);
+                psi_double,_=construct_double_layer_swap_new(psi,Lx,Ly);
+            end
+
         end
     end
     E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_global(psi::Matrix,psi_double::Matrix);

@@ -72,8 +72,7 @@ println("pid="*string(pid));;flush(stdout);
 global use_AD;
 use_AD=true;
 
-global use_canonical_form
-use_canonical_form=true;
+
 
 t1=1;
 t2=1;
@@ -123,7 +122,16 @@ end
 psi=normalize_tensor_group(psi);
 
 
-psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap_new(psi,Lx,Ly);
+
+use_canonical_form=true;
+
+global use_canonical_form
+if use_canonical_form
+    println("convert to canonical form")
+    psi,_=fermiPEPS_gauge_fix_simple(psi,100);
+    psi_double,_=construct_double_layer_swap_new(psi,Lx,Ly);
+end
+# psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap_new(psi,Lx,Ly);
 
 
 

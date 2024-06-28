@@ -37,6 +37,17 @@ function stochastic_opt(x0::Matrix{T}, delta, maxiter, gtol) where T<:iPEPS_ansa
         E_updated=fx(x_updated,Lx,Ly);
         x=x_updated;
 
+
+        global use_canonical_form
+        if use_canonical_form
+            println("convert to canonical form")
+            x,_=fermiPEPS_gauge_fix_simple(x,100);
+            # psi_double,_=construct_double_layer_swap_new(psi,Lx,Ly);
+        end
+
+
+
+
         iter += 1
         gnorm = norm(gvec);
     end

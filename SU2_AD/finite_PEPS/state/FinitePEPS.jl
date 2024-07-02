@@ -1,4 +1,3 @@
-using TensorKit, Zygote, LinearAlgebra, ChainRulesCore
 
 const PEPSTensor{S} = AbstractTensorMap{S, 4,1} where {S}
 

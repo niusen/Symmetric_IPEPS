@@ -103,7 +103,7 @@ function PESS_to_PEPS_matrix(A_set::Matrix{Triangle_iPESS},A_cell::Matrix)
 end
 
 function B_T_sets_to_PESS(Bset::Matrix,Tset::Matrix)    
-    Lx,Ly=size(B_set)
+    Lx,Ly=size(Bset)
     A_cell=Matrix{Triangle_iPESS}(undef,Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
@@ -116,7 +116,7 @@ end
 
 
 function convert_PESS_to_PEPS(Bset,Tset)
-    global Lx,Ly
+    Lx,Ly=size(Bset);
     
     A_cell_iPEPS=initial_tuple_cell(Lx,Ly);
     for ca=1:Lx
@@ -246,6 +246,7 @@ end
 
 
 function PESS_to_B_T_sets(psi)
+    Lx,Ly=size(psi);
     B_set=Matrix{TensorMap}(undef,Lx,Ly);
     T_set=Matrix{TensorMap}(undef,Lx,Ly);
     for cx=1:Lx
@@ -258,6 +259,7 @@ function PESS_to_B_T_sets(psi)
 end
 
 function get_trivial_lambda(Bset)
+    Lx,Ly=size(Bset);
     lambdaset1=Matrix{Any}(undef,Lx,Ly);
     lambdaset2=Matrix{Any}(undef,Lx,Ly);
     lambdaset3=Matrix{Any}(undef,Lx,Ly);

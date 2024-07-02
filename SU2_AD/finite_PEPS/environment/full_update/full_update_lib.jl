@@ -1,4 +1,37 @@
 
+function rotate_doublelayer(psi)
+    psi=deepcopy(psi);
+    Lx,Ly=size(psi);
+    psi_rotated=Matrix{TensorMap}(undef,Ly,Lx);
+    for cca=1:Lx
+        for ccb=1:Ly
+            T=psi[cca,ccb];
+            if Rank(T)==2
+                if ccb==Ly
+                    T=permute(T,(1,2,));
+                elseif ccb==1
+                    T=permute(T,(2,1,));
+                end
+            elseif Rank(T)==3
+                if ccb==1
+                    T=permute(T,(3,1,2,));
+                elseif ccb==Ly
+                    T=permute(T,(1,2,3,));
+                elseif cca==1
+                    T=permute(T,(3,1,2,));
+                elseif cca==Lx
+                    T=permute(T,(3,1,2,));
+                end
+            elseif Rank(T)==4
+                T=permute(T,(4,1,2,3,));
+            end
+            coord_new=coord_rotate([cca,ccb],Lx,Ly);
+            psi_rotated[coord_new[1],coord_new[2]]=T;
+        end
+    end
+    return psi_rotated
+end
+
 function rotate_psi(psi)
     psi=deepcopy(psi);
     Lx,Ly=size(psi);

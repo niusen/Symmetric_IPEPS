@@ -690,9 +690,32 @@ function tebd_PESS(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  
 end
 
 
+function get_max_dim_general(psi::Matrix{TensorMap})
+    #get maximum bond dimension of a PEPS
+    dim_max=0;
+    for cc in eachindex(psi)
+        T=psi[cc];
+        if Rank(T)==5 # rank 5 PEPS tensor
+            dim_m=maximum([dim(space(T,1)), dim(space(T,2)), dim(space(T,3)), dim(space(T,4))]);
+            dim_max=max(dim_max,dim_m);
+        elseif Rank(T)==4 #PESS tensor
+            dim_m=maximum([dim(space(T,1)), dim(space(T,3)), dim(space(T,4))]);
+            dim_max=max(dim_max,dim_m);
+        elseif Rank(T)==3 #PESS tensor
+            dim_m=maximum([dim(space(T,1)), dim(space(T,2)), dim(space(T,3))]);
+            dim_max=max(dim_max,dim_m);
+        end
+    end
+    return dim_max
+end
 
-function tebd_PESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  Nstep, Dmax, trun_tol)
+
+function tebd_PESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  Nstep, trun_tol)
     tol=1e-6;
+
+    Dmax1=get_max_dim_general(Bset);
+    Dmax2=get_max_dim_general(Tset);
+    Dmax=max(Dmax1,Dmax2);
 
     # println("one step")
     # println(space(T_u))

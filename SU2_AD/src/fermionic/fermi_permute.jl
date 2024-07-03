@@ -167,7 +167,64 @@ function permute_neighbour_ind(A,ind1,ind2,total_ind)
     return A
 end
 
+function permute_neighbour_ind_Rank6_fast(A,ind1,ind2)
+    if (ind1==1)&&(ind2==2)
+        #gate=swap_gate(A,1,2); @tensor A[:]:=A[1,2,-3,-4,-5,-6]*gate[-1,-2,1,2]; 
+        P_odd,P_even=projector_parity(space(A,1));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=A[1,-2,-3,-4,-5,-6]*P_odd[-1,1];
+        P_odd,P_even=projector_parity(space(A,2));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=Anew[-1,1,-3,-4,-5,-6]*P_odd[-2,1];
 
+        A=permute(A-2*Anew,(2,1,3,4,5,6,));
+
+    elseif (ind1==2)&&(ind2==3)
+        #gate=swap_gate(A,2,3); @tensor A[:]:=A[-1,1,2,-4,-5,-6]*gate[-2,-3,1,2]; 
+        P_odd,P_even=projector_parity(space(A,2));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=A[-1,1,-3,-4,-5,-6]*P_odd[-2,1];
+        P_odd,P_even=projector_parity(space(A,3));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=Anew[-1,-2,1,-4,-5,-6]*P_odd[-3,1];
+
+        A=permute(A-2*Anew,(1,3,2,4,5,6,));
+
+    elseif (ind1==3)&&(ind2==4)
+        #gate=swap_gate(A,3,4); @tensor A[:]:=A[-1,-2,1,2,-5,-6]*gate[-3,-4,1,2]; 
+        P_odd,P_even=projector_parity(space(A,3));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=A[-1,-2,1,-4,-5,-6]*P_odd[-3,1];
+        P_odd,P_even=projector_parity(space(A,4));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=Anew[-1,-2,-3,1,-5,-6]*P_odd[-4,1];
+
+        A=permute(A-2*Anew,(1,2,4,3,5,6,));
+
+    elseif (ind1==4)&&(ind2==5)
+        #gate=swap_gate(A,4,5); @tensor A[:]:=A[-1,-2,-3,1,2,-6]*gate[-4,-5,1,2]; 
+        P_odd,P_even=projector_parity(space(A,4));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=A[-1,-2,-3,1,-5,-6]*P_odd[-4,1];
+        P_odd,P_even=projector_parity(space(A,5));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=Anew[-1,-2,-3,-4,1,-6]*P_odd[-5,1];
+
+        A=permute(A-2*Anew,(1,2,3,5,4,6,));
+    elseif (ind1==5)&&(ind2==6)
+        #gate=swap_gate(A,5,6); @tensor A[:]:=A[-1,-2,-3,-4,1,2]*gate[-5,-6,1,2]; 
+        P_odd,P_even=projector_parity(space(A,5));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=A[-1,-2,-3,-4,1,-6]*P_odd[-5,1];
+        P_odd,P_even=projector_parity(space(A,6));
+        P_odd=P_odd'*P_odd;
+        @tensor Anew[:]:=Anew[-1,-2,-3,-4,-5,1]*P_odd[-6,1];
+
+        A=permute(A-2*Anew,(1,2,3,4,6,5,));
+
+    end
+    return A
+end
 
 
 

@@ -401,10 +401,38 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     end
 
 
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, M2_D2, d1, d2, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,1,2,6);# M2_D2, M1_R1, d1, d2, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,3,4,6);# M2_D2, M1_R1, d2, d1, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M2_D2, d2, M1_R1, d1, d3, R3_D3
+    # T1_T2_B_T3_a=permute_neighbour_ind(T1_T2_B_T3,1,2,6);
+    # T1_T2_B_T3_b=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,1,2);
+    # @assert norm(T1_T2_B_T3_a-T1_T2_B_T3_b)/norm(T1_T2_B_T3_a)<1e-14;
+
+    # T1_T2_B_T3_a=permute_neighbour_ind(T1_T2_B_T3,2,3,6);
+    # T1_T2_B_T3_b=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,2,3);
+    # @assert norm(T1_T2_B_T3_a-T1_T2_B_T3_b)/norm(T1_T2_B_T3_a)<1e-14;
+
+    # T1_T2_B_T3_a=permute_neighbour_ind(T1_T2_B_T3,3,4,6);
+    # T1_T2_B_T3_b=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,3,4);
+    # @assert norm(T1_T2_B_T3_a-T1_T2_B_T3_b)/norm(T1_T2_B_T3_a)<1e-14;
+
+    # T1_T2_B_T3_a=permute_neighbour_ind(T1_T2_B_T3,4,5,6);
+    # T1_T2_B_T3_b=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,4,5);
+    # @assert norm(T1_T2_B_T3_a-T1_T2_B_T3_b)/norm(T1_T2_B_T3_a)<1e-14;
+
+    # T1_T2_B_T3_a=permute_neighbour_ind(T1_T2_B_T3,5,6,6);
+    # T1_T2_B_T3_b=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,5,6);
+    # @assert norm(T1_T2_B_T3_a-T1_T2_B_T3_b)/norm(T1_T2_B_T3_a)<1e-14;
+
+
+
+    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, M2_D2, d1, d2, d3, R3_D3
+    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,1,2,6);# M2_D2, M1_R1, d1, d2, d3, R3_D3
+    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,3,4,6);# M2_D2, M1_R1, d2, d1, d3, R3_D3
+    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M2_D2, d2, M1_R1, d1, d3, R3_D3
+
+    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,2,3);# M1_R1, M2_D2, d1, d2, d3, R3_D3
+    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,1,2);# M2_D2, M1_R1, d1, d2, d3, R3_D3
+    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,3,4);# M2_D2, M1_R1, d2, d1, d3, R3_D3
+    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,2,3);# M2_D2, d2, M1_R1, d1, d3, R3_D3
+
     T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
     if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)

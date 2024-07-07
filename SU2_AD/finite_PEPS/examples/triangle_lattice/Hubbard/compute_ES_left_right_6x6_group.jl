@@ -296,11 +296,27 @@ TL1,TL2,TL3,TL4,TL5,TL6=TL_set;
 TR1,TR2,TR3,TR4,TR5,TR6=TR_set;
 
 #############################
+U12a=unitary(fuse(space(TL1,1)*space(TL2,1)),space(TL1,1)*space(TL2,1));
+U34a=unitary(fuse(space(TL3,1)*space(TL4,1)),space(TL3,1)*space(TL4,1));
+U56a=unitary(fuse(space(TL5,1)*space(TL6,1)),space(TL5,1)*space(TL6,1));
+
+U12b=unitary(fuse(space(TL1,3)*space(TL2,3)),space(TL1,3)*space(TL2,3));
+U34b=unitary(fuse(space(TL3,3)*space(TL4,3)),space(TL3,3)*space(TL4,3));
+U56b=unitary(fuse(space(TL5,3)*space(TL6,3)),space(TL5,3)*space(TL6,3));
+
+@tensor TL12[:]:=TL1[2,1,4,-4]*TL2[3,-2,5,1]*U12a[-1,2,3]*U12b[-3,4,5];
+@tensor TL34[:]:=TL3[2,1,4,-4]*TL4[3,-2,5,1]*U34a[-1,2,3]*U34b[-3,4,5];
+@tensor TL56[:]:=TL5[2,1,4,-4]*TL6[3,-2,5,1]*U56a[-1,2,3]*U56b[-3,4,5];
+
+
+@tensor TR12[:]:=TR1[2,1,4,-4]*TR2[3,-2,5,1]*U12b'[2,3,-1]*U12a'[4,5,-3];
+@tensor TR34[:]:=TR3[2,1,4,-4]*TR4[3,-2,5,1]*U34b'[2,3,-1]*U34a'[4,5,-3];
+@tensor TR56[:]:=TR5[2,1,4,-4]*TR6[3,-2,5,1]*U56b'[2,3,-1]*U56a'[4,5,-3];
 
 
 
 
-function vr_ML_MR(vr0,  TL1,TL2,TL3,TL4,TL5,TL6,TR1,TR2,TR3,TR4,TR5,TR6)
+function vr_ML_MR(vr0,  TL12,TL34,TL56,TR12,TR34,TR56)
     println("apply Mr");flush(stdout);
 
     ################
@@ -313,24 +329,14 @@ function vr_ML_MR(vr0,  TL1,TL2,TL3,TL4,TL5,TL6,TR1,TR2,TR3,TR4,TR5,TR6)
 
     vr=deepcopy(vr0)*0;
     for ca=1:1#parity of index U in ML
-        TL1_tem=TL1;
-        TL2_tem=TL2;
-        TL3_tem=TL3;
-        TL4_tem=TL4;
-        TL5_tem=TL5;
-        TL6_tem=TL6;
+
 
         for cb=1:1#parity of index U in MR
-            TR1_tem=TR1;
-            TR2_tem=TR2;
-            TR3_tem=TR3;
-            TR4_tem=TR4;
-            TR5_tem=TR5;
-            TR6_tem=TR6;
+
 
             
-            @tensor vr_temp[:]:=TR1_tem[-1,2,1,12]*TR2_tem[-2,4,3,2]*TR3_tem[-3,6,5,4]*TR4_tem[-4,8,7,6]*TR5_tem[-5,10,9,8]*TR6_tem[-6,12,11,10]*vr0[1,3,5,7,9,11,-7];
-            @tensor vr_temp[:]:=TL1_tem[-1,2,1,12]*TL2_tem[-2,4,3,2]*TL3_tem[-3,6,5,4]*TL4_tem[-4,8,7,6]*TL5_tem[-5,10,9,8]*TL6_tem[-6,12,11,10]*vr_temp[1,3,5,7,9,11,-7];
+            @tensor vr_temp[:]:=TR12[-1,2,1,6]*TR34[-2,4,3,2]*TR56[-3,6,5,4]*vr0[1,3,5,-4];
+            @tensor vr_temp[:]:=TL12[-1,2,1,6]*TL34[-2,4,3,2]*TL56[-3,6,5,4]*vr_temp[1,3,5,-4];
             vr=vr+vr_temp;
         end
     end
@@ -360,17 +366,17 @@ k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 for ss=1:length(Spin_set)
     if isa(space(TL1,1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
-        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1)*space(TL5,1)*space(TL6,1),Rep[ℤ₂](Spin_set[ss]=>1));
+        v_init=TensorMap(randn, space(TL12,1)*space(TL34,1)*space(TL56,1),Rep[ℤ₂](Spin_set[ss]=>1));
     elseif isa(space(TL1,1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
-        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1)*space(TL5,1)*space(TL6,1),Rep[SU₂](Spin_set[ss]=>1));
+        v_init=TensorMap(randn, space(TL12,1)*space(TL34,1)*space(TL56,1),Rep[SU₂](Spin_set[ss]=>1));
     end
     
-    v_init=permute(v_init,(1,2,3,4,5,6,7,),());#L1,L2,L3,L4,dummy
+    v_init=permute(v_init,(1,2,3,4,),());#L1,L2,L3,L4,dummy
     
     if norm(v_init)==0
         continue;
     end
-    contraction_fun_R(x)=vr_ML_MR(x, TL1,TL2,TL3,TL4,TL5,TL6,TR1,TR2,TR3,TR4,TR5,TR6);
+    contraction_fun_R(x)=vr_ML_MR(x, TL12,TL34,TL56,TR12,TR34,TR56);
     contraction_fun_R(v_init)
     # println(norm(v_init))
     # println(norm(contraction_fun_R(v_init)))

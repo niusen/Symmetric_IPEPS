@@ -115,7 +115,7 @@ ENV_ctm_setting.CTM_ite_info=true;
 ENV_ctm_setting.CTM_conv_info=true;
 ENV_ctm_setting.CTM_trun_svd=false;
 ENV_ctm_setting.construct_double_layer=true;
-ENV_ctm_setting.grad_checkpoint=true;
+ENV_ctm_setting.grad_checkpoint=false;
 dump(ENV_ctm_setting);
 
 

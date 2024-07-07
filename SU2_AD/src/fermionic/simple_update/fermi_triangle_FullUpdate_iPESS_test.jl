@@ -916,6 +916,9 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
 
     (c1,c2)=coord;
 
+println("aaaaa");;flush(stdout);
+@time begin
+
     gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
     #gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
     gates_ru_ld_rd=gates_ru_ld_rd[mod1(c1,Lx)];
@@ -942,8 +945,10 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
     BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));#L M U = L D U
 
     @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env[1,2,3]*U_L[1,-1,-4]*U_D[2,-2,-5]*U_U[-3,-6,3]; # storage order: L', D', U',   L, D, U,  fermionic order: L',L,U',U,D,D'
-    
+end
 
+println("bbbbbb1");flush(stdout);
+@time begin
         BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));# storage order: L', D', U',       L, D, U
         #the fowllowing swap gates are taken from  function "build_double_layer_swap_Tm"
         gate=swap_gate(BigTriangle_double_env_expand,1,3);#L'U'
@@ -960,7 +965,9 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,-6]*gate[-3,1];
 
         BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));
-
+end
+println("bbbb2")
+@time begin
         #eu,ev=eigen(BigTriangle_double_env_expand);
         eu,ev=eigh(BigTriangle_double_env_expand);
         eu=check_positive(eu);
@@ -969,13 +976,15 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
         # env_top=ev;# 1,2,3, new_ind
         env_bot=sqrt(eu)*ev';#new_ind,2,3,1
         env_top=ev*sqrt(eu);# 2,3,1, new_ind
-
+end
     
     # @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,2,3,4,5,6]*U_L'[1,4,-1]*U_D'[2,5,-2]*U_U'[-3,3,6];
     # ov1=@tensor BigTriangle_double_env_expand[1,2,3]*BigTriangle_double_Noswap[1,2,3];
     # ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
     # E=E+ov1/ov2;
 
+println("ccccc1");;flush(stdout);
+@time begin
     ############################################
     #direct truncation
     B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_direct(B1_B2_T_B3_op,D_max, trun_order, trun_tol)
@@ -989,9 +998,14 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
     println("overlap without optimization:"*string(norm(ov)))
 
     println("overlap with environmen after optimization:");
+end
+println("ccccc2");flush(stdout);
+@time begin
     B_new_a,T1_new_a,T2_new_a,T3_new_a,big_T_compressed_opt_a, ov_a=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top,env_bot, B_new,T1_new,T2_new,T3_new)
+end
 
-
+println("ccccc3");flush(stdout);
+@time begin
     ####################################
     #truncation with env gauge
     B_new,T1_new,T2_new,T3_new, big_T_compressed=truncation_Env_gauge(env_top,env_bot, B1_B2_T_B3_op,D_max, trun_order, trun_tol)
@@ -1003,10 +1017,13 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
     ov=ov12/sqrt(ov11*ov22);
     println("overlap without optimization:"*string(norm(ov)))
     
+end
+println("cccccc4");flush(stdout);
+@time begin
     # println([ov12,ov11,ov22])
     println("overlap with environmen after optimization:");
     B_new_b,T1_new_b,T2_new_b,T3_new_b,big_T_compressed_opt_b, ov_b=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top,env_bot, B_new,T1_new,T2_new,T3_new)
-
+end
     #########################################
     if ov_a>ov_b 
         println("direct truncation better")
@@ -1035,7 +1052,8 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
     #T3_new: (M3, d3), (new3)
     #B_new: (R2, D1), (M3)
 
-
+println("ddddd");flush(stdout);
+@time begin
 
     #T1=|M1, d1><D1, R1|=|M1, d1><|R1, D1 
     #T1_res:(M1), (R1, new1)
@@ -1076,7 +1094,7 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
     T_set[c1,mod1(c2+1,Ly)]=T2_new_opt;
     T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)]=T3_new_opt;
     B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)]=B_new_opt;
-
+end
     return B_set, T_set
 end
 
@@ -1087,11 +1105,14 @@ end
 function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
     println("tau, dt="*string([tau,dt]))
 
+println("OOOOOOOO1");;flush(stdout);
+@time begin
     #get initial CTM tensors
     A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
     ENV_ctm_setting.CTM_ite_info=false;
+end
 
 
     for ct=1:Int(round(tau/abs(dt)))
@@ -1103,16 +1124,21 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
                 B_set, T_set=triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
                 
                 #get CTM tensors for energy and next optimization
+            println("OOOOOO2");;flush(stdout);
+            @time begin
                 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
                 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-                @time CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
+                CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
                 println("ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            end
             end
         end
 
+    println("ZZZZZZ")
+    @time begin
         E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
         println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
-
+    end
         global E_history
         if E_total<minimum(E_history)
             E_history=vcat(E_history,E_total);

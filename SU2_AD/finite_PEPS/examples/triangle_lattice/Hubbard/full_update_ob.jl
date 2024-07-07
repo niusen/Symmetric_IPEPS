@@ -16,7 +16,7 @@ include("..\\..\\..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 include("..\\..\\..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 include("..\\..\\..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 include("..\\..\\..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
-include("..\\..\\..\\..\\src\\fermionic\\simple_update\\Full_update_lib.jl")
+include("..\\..\\..\\..\\src\\fermionic\\simple_update\\Full_Update_lib.jl")
 
 include("..\\..\\..\\setting\\Settings.jl")
 include("..\\..\\..\\setting\\tuple_methods.jl")
@@ -43,7 +43,7 @@ import LinearAlgebra.BLAS as BLAS
 n_cpu=6;
 BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()));flush(stdout);
-Base.Sys.set_process_title("C"*string(n_cpu)*"_PESS_D"*string(Dmax))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_FU_PESS_D"*string(Dmax))
 pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################

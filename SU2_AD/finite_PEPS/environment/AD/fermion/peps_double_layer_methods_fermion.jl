@@ -111,7 +111,12 @@ function construct_double_layer_swap(psi1::Matrix,Lx,Ly)
 
 
     #add trivial boundary tensors
-    V_trivial=Rep[SU₂](0=>1);
+    if isa(space(psi1[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})#SU(2)
+        V_trivial=Rep[SU₂](0=>1);
+    elseif isa(space(psi1[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        V_trivial=Rep[U₁](0=>1);
+    end
+
 
     #left boundary
     cx=1;

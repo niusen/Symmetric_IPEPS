@@ -28,6 +28,7 @@ function my_pinv(T)
     else
         for cc=1:length(T_new.data.values)
             mm=T_new.data.values[cc];
+            # println((norm(diag(mm))-norm(mm))/norm(mm))
             @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
             for i = 1:size(mm,1)
                 mm[i,i] = mm[i,i]/(mm[i,i]^2+epsilon)

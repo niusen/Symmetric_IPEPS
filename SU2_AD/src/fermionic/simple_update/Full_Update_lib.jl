@@ -299,6 +299,7 @@ end
 
 
 function sweep_iteration(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new)
+    # jldsave("test1.jld2";B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new)
     ####################################
     T1_left,T1_right,T1_new=partial_triangle_partial_B1(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
     T2_left,T2_right,T2_new=partial_triangle_partial_B2(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);

@@ -354,34 +354,65 @@ function delet_zero_block(U,Σ,V)
         Σ_dict[:domain]=sec_str
         Σ_dict[:codomain]=sec_str
     else
-        for cc =1:length(secs)
-            c=secs[cc];
-            if (size(diag(Σ_dict[:data][string(c)]),1)>0) & (sum(abs.(diag(Σ_dict[:data][string(c)])))>0)
-                inds=findall(x->(abs.(x).>0), diag(Σ_dict[:data][string(c)]));
-                U_dict[:data][string(c)]=U_dict[:data][string(c)][:,inds];
-                Σ_dict[:data][string(c)]=Σ_dict[:data][string(c)][inds,inds];
-                V_dict[:data][string(c)]=V_dict[:data][string(c)][inds,:];
+        if isa(space(Σ,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}) #SU(2)
+            for cc =1:length(secs)
+                c=secs[cc];
+                if (size(diag(Σ_dict[:data][string(c)]),1)>0) & (sum(abs.(diag(Σ_dict[:data][string(c)])))>0)
+                    inds=findall(x->(abs.(x).>0), diag(Σ_dict[:data][string(c)]));
+                    U_dict[:data][string(c)]=U_dict[:data][string(c)][:,inds];
+                    Σ_dict[:data][string(c)]=Σ_dict[:data][string(c)][inds,inds];
+                    V_dict[:data][string(c)]=V_dict[:data][string(c)][inds,:];
 
-                sec_length[cc]=length(inds);
-            else
-                delete!(U_dict[:data], string(c))
-                delete!(V_dict[:data], string(c))
-                delete!(Σ_dict[:data], string(c))
-                sec_length[cc]=0;
+                    sec_length[cc]=length(inds);
+                else
+                    delete!(U_dict[:data], string(c))
+                    delete!(V_dict[:data], string(c))
+                    delete!(Σ_dict[:data], string(c))
+                    sec_length[cc]=0;
+                end
             end
-        end
 
-        #define sector string
-        sec_str="ProductSpace(Rep[SU₂](" *string(((dim(secs[1])-1)/2)) * "=>" * string(sec_length[1]);
-        for cc=2:length(secs)
-            sec_str=sec_str*", " * string(((dim(secs[cc])-1)/2)) * "=>" * string(sec_length[cc]);
-        end
-        sec_str=sec_str*"))"
+            #define sector string
+            sec_str="ProductSpace(Rep[SU₂](" *string(((dim(secs[1])-1)/2)) * "=>" * string(sec_length[1]);
+            for cc=2:length(secs)
+                sec_str=sec_str*", " * string(((dim(secs[cc])-1)/2)) * "=>" * string(sec_length[cc]);
+            end
+            sec_str=sec_str*"))"
 
-        U_dict[:domain]=sec_str
-        V_dict[:codomain]=sec_str
-        Σ_dict[:domain]=sec_str
-        Σ_dict[:codomain]=sec_str
+            U_dict[:domain]=sec_str
+            V_dict[:codomain]=sec_str
+            Σ_dict[:domain]=sec_str
+            Σ_dict[:codomain]=sec_str
+        elseif isa(space(Σ,1), GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}) #U(1)
+            for cc =1:length(secs)
+                c=secs[cc];
+                if (size(diag(Σ_dict[:data][string(c)]),1)>0) & (sum(abs.(diag(Σ_dict[:data][string(c)])))>0)
+                    inds=findall(x->(abs.(x).>0), diag(Σ_dict[:data][string(c)]));
+                    U_dict[:data][string(c)]=U_dict[:data][string(c)][:,inds];
+                    Σ_dict[:data][string(c)]=Σ_dict[:data][string(c)][inds,inds];
+                    V_dict[:data][string(c)]=V_dict[:data][string(c)][inds,:];
+
+                    sec_length[cc]=length(inds);
+                else
+                    delete!(U_dict[:data], string(c))
+                    delete!(V_dict[:data], string(c))
+                    delete!(Σ_dict[:data], string(c))
+                    sec_length[cc]=0;
+                end
+            end
+
+            #define sector string
+            sec_str="ProductSpace(Rep[U₁](" *string(secs[1].charge) * "=>" * string(sec_length[1]);
+            for cc=2:length(secs)
+                sec_str=sec_str*", " * string(secs[cc].charge) * "=>" * string(sec_length[cc]);
+            end
+            sec_str=sec_str*"))"
+
+            U_dict[:domain]=sec_str
+            V_dict[:codomain]=sec_str
+            Σ_dict[:domain]=sec_str
+            Σ_dict[:codomain]=sec_str
+        end
     end
 
     # T1=convert(TensorMap, U_dict)*convert(TensorMap, Σ_dict)*convert(TensorMap, V_dict);

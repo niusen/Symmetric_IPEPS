@@ -138,6 +138,10 @@ for cx=1:Lx
         Qs=Qn_set[cx,cy,:];
         A=TensorMap(randn,Rep[U₁](Qs[1]=>1)*Rep[U₁](Qs[4]=>1)*Rep[U₁](Qs[5]=>1),Rep[U₁](Qs[3]=>1)*Rep[U₁](Qs[2]=>1));#LUdRD
 
+        P=TensorMap(randn,Rep[U₁](0=>1,1=>1),Rep[U₁](Qs[5]=>1));
+        @tensor A[:]:=A[-1,-2,1,-4,-5]*P[-3,1];
+        A=A/norm(A);
+        
         u,s,v=tsvd(permute(A,(1,2,),(3,4,5,)));
         Tm=u*s;#|LU><M|
         Bm=v;#|Md><|RD
@@ -146,7 +150,7 @@ for cx=1:Lx
 
 
         A=permute(A,(1,5,4,2,3,));
-        A=A/norm(A);
+        
         psi[cx,cy]=A;
     end
 end

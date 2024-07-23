@@ -761,6 +761,11 @@ function truncation_direct(big_T,D_max, trun_order, trun_tol)
             U1,S1,V1=Truncations(U1,S1,V1,D_max,trun_tol);#println(norm(U1*S1*V1-M_old)/norm(M_old))
             U3,S3,V3=tsvd(big_T,(1,2,3,4,),(5,6,));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
             U3,S3,V3=Truncations(U3,S3,V3,D_max,trun_tol);#println(norm(U3*S3*V3-M_old)/norm(M_old))
+        elseif isa(space(big_T,1), GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+            U1,S1,V1=tsvd(big_T,(1,2,),(3,4,5,6,));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
+            U1,S1,V1=Truncations(U1,S1,V1,D_max,trun_tol);#println(norm(U1*S1*V1-M_old)/norm(M_old))
+            U3,S3,V3=tsvd(big_T,(1,2,3,4,),(5,6,));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
+            U3,S3,V3=Truncations(U3,S3,V3,D_max,trun_tol);#println(norm(U3*S3*V3-M_old)/norm(M_old))
         end
     
     
@@ -772,6 +777,9 @@ function truncation_direct(big_T,D_max, trun_order, trun_tol)
         if isa(space(big_T,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
             U2,S2,V2=tsvd(big_T,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
         elseif isa(space(big_T,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+            U2,S2,V2=tsvd(big_T,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+            U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
+        elseif isa(space(big_T,1), GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
             U2,S2,V2=tsvd(big_T,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
             U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
         end

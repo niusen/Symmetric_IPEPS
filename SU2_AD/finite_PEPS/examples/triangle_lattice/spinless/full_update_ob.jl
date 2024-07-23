@@ -25,11 +25,11 @@ include("..\\..\\..\\environment\\AD\\mps_methods.jl")
 include("..\\..\\..\\environment\\AD\\mps_methods_new.jl")
 include("..\\..\\..\\environment\\AD\\svd_AD_lib.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\peps_double_layer_methods_fermion.jl")
-include("..\\..\\..\\environment\\AD\\fermion\\fermi_CTM_observables.jl")
+include("..\\..\\..\\environment\\AD\\fermion\\fermi_CTM_observables_spinless.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\fermi_contract.jl")
 include("..\\..\\..\\environment\\AD\\truncations.jl")
 include("..\\..\\..\\environment\\Variational\\mps_methods_projector.jl")
-include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2.jl")
+include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2_spinless.jl")
 
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_methods.jl")
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple_update.jl")
@@ -55,8 +55,8 @@ t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=0;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+V=0;
+parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("V",  V)]);
 global parameters
 
 
@@ -89,14 +89,15 @@ global svd_settings, backward_settings
 Lx=4;
 Ly=4;
 
-data=load("SU_PESS_SU2_D4.jld2");
-# data=load("SU_iPESS_SU2_csl_D6_2.259.jld2")
+# data=load("product_state_Lx4_Ly4_N8.jld2");
+data=load("SU_PESS_U1_D4.jld2");
 B_set=data["B_set"];
 T_set=data["T_set"];
 
 
-
 psi=B_T_sets_to_PESS(B_set,T_set);
+B_set,T_set=PESS_to_B_T_sets(psi);
+
 psi_PEPS=PESS_to_PEPS_matrix(psi);
 
 
@@ -129,7 +130,7 @@ E_history=[real(E_total)];
 global starting_time
 starting_time=now();
 
-save_filenm="FU_PESS_SU2_D"*string(Dmax)*".jld2";
+save_filenm="FU_PESS_U1_D"*string(Dmax)*".jld2";
 global save_filenm
 
 trun_tol=1e-8;
@@ -141,7 +142,7 @@ ov_sweep=10;
 
 tau=10;
 dt=0.02;
-B_set, T_set=Full_update_PESS(parameters, B_set, T_set,  tau, dt, Dmax, trun_tol, ov_sweep)
+B_set, T_set=Full_update_PESS_spinless(parameters, B_set, T_set,  tau, dt, Dmax, trun_tol, ov_sweep)
 
 
 

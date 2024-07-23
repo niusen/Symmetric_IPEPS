@@ -51,8 +51,8 @@ t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=0;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+V=0;
+parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("V",  V)]);
 global parameters
 
 
@@ -80,8 +80,8 @@ global svd_settings, backward_settings
     (1,1),(2,1)
 """
 
-Lx=4;
-Ly=4;
+Lx=6;
+Ly=6;
 
 nu=1/2;
 N=Int(Lx*Ly*nu);

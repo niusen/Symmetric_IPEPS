@@ -36,6 +36,7 @@ include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_full_update.jl")
 
 Dmax=4;
+println("D="*string(Dmax));
 
 
 ####################
@@ -43,7 +44,7 @@ import LinearAlgebra.BLAS as BLAS
 n_cpu=6;
 BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()));flush(stdout);
-Base.Sys.set_process_title("C"*string(n_cpu)*"_FU_PESS_D"*string(Dmax))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_FU_D"*string(Dmax))
 pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################
@@ -89,8 +90,8 @@ global svd_settings, backward_settings
 Lx=4;
 Ly=4;
 
-# data=load("product_state_Lx4_Ly4_N8.jld2");
-data=load("SU_PESS_U1_D4.jld2");
+data=load("product_state_Lx4_Ly4_N8.jld2");
+# data=load("SU_PESS_U1_D4.jld2");
 B_set=data["B_set"];
 T_set=data["T_set"];
 

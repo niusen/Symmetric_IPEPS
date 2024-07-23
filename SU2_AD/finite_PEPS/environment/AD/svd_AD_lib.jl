@@ -18,9 +18,12 @@ function my_pinv(T)
     epsilon=epsilon0*maximum(abs.(diag(convert(Array,T))))^2
     T_new=deepcopy(T);
     
+    tt_dense=convert(Array,T);
+    @assert (norm(diag(tt_dense))-norm(tt_dense))/norm(tt_dense)<1e-14;
+
     if sectortype(space(T_new,1)) == Trivial
         mm=T_new.data;
-        @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
+        # @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
         for i=1:size(mm,1)
             mm[i,i] = mm[i,i]/(mm[i,i]^2+epsilon)
         end
@@ -28,8 +31,7 @@ function my_pinv(T)
     else
         for cc=1:length(T_new.data.values)
             mm=T_new.data.values[cc];
-            # println((norm(diag(mm))-norm(mm))/norm(mm))
-            @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
+            # @assert (norm(diag(mm))-norm(mm))/norm(mm)<1e-14;
             for i = 1:size(mm,1)
                 mm[i,i] = mm[i,i]/(mm[i,i]^2+epsilon)
             end

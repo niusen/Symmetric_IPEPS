@@ -32,14 +32,14 @@ include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_method
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple_update.jl")
 
 Dmax=2;
-
+println("D="*string(Dmax));
 
 ####################
 import LinearAlgebra.BLAS as BLAS
 n_cpu=6;
 BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()));flush(stdout);
-Base.Sys.set_process_title("C"*string(n_cpu)*"_PESS_D"*string(Dmax))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_SU_D"*string(Dmax))
 pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################
@@ -150,43 +150,51 @@ psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,Lx,L
 
 
 chi=40
-E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_old(psi_PEPS,psi_double);
+E_total,Ex_set,Ey_set,E_ld_ru_set, nnx_set,nny_set,nn_ld_ru_set, occu_set=energy_disk_old(psi_PEPS,psi_double);
 println("chi= "*string(chi))
 println(E_total)
 println(Ex_set)
 println(Ey_set)
 println(E_ld_ru_set)
-println(occu_set)
-println(EU_set);flush(stdout);
+println(nnx_set)
+println(nny_set)
+println(nn_ld_ru_set)
+println(occu_set);flush(stdout);
 
 chi=80
-E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_old(psi_PEPS,psi_double);
+E_total,Ex_set,Ey_set,E_ld_ru_set, nnx_set,nny_set,nn_ld_ru_set, occu_set=energy_disk_old(psi_PEPS,psi_double);
 println("chi= "*string(chi))
 println(E_total)
 println(Ex_set)
 println(Ey_set)
 println(E_ld_ru_set)
-println(occu_set)
-println(EU_set);flush(stdout);
+println(nnx_set)
+println(nny_set)
+println(nn_ld_ru_set)
+println(occu_set);flush(stdout);
 
 chi=120
-E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_old(psi_PEPS,psi_double);
+E_total,Ex_set,Ey_set,E_ld_ru_set, nnx_set,nny_set,nn_ld_ru_set, occu_set=energy_disk_old(psi_PEPS,psi_double);
 println("chi= "*string(chi))
 println(E_total)
 println(Ex_set)
 println(Ey_set)
 println(E_ld_ru_set)
-println(occu_set)
-println(EU_set);flush(stdout);
+println(nnx_set)
+println(nny_set)
+println(nn_ld_ru_set)
+println(occu_set);flush(stdout);
 
 chi=160
-E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_old(psi_PEPS,psi_double);
+E_total,Ex_set,Ey_set,E_ld_ru_set, nnx_set,nny_set,nn_ld_ru_set, occu_set=energy_disk_old(psi_PEPS,psi_double);
 println("chi= "*string(chi))
 println(E_total)
 println(Ex_set)
 println(Ey_set)
 println(E_ld_ru_set)
-println(occu_set)
-println(EU_set);flush(stdout);
+println(nnx_set)
+println(nny_set)
+println(nn_ld_ru_set)
+println(occu_set);flush(stdout);
 
 

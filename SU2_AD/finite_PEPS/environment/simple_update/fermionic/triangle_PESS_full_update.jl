@@ -797,14 +797,17 @@ function Full_update_PESS_spinless(parameters, Bset, Tset,  tau, dt, Dmax, trun_
 
         psi_=deepcopy(psi[1+trivial_layer_xL:Lx+trivial_layer_xL,1+trivial_layer_yD:Ly+trivial_layer_yD]);
         psi_double_=deepcopy(psi_double[1+trivial_layer_xL:Lx+trivial_layer_xL,1+trivial_layer_yD:Ly+trivial_layer_yD]);
-        E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_global(psi_,psi_double_);
+        E_total,Ex_set,Ey_set,E_ld_ru_set, nnx_set,nny_set,nn_ld_ru_set, occu_set=energy_disk_global(psi_,psi_double_);
         println("energy terms:");
         println("E="*string(E_total));
         println(Ex_set);
         println(Ey_set);
         println(E_ld_ru_set);
-        println(occu_set);
-        println(EU_set);flush(stdout);
+        println(nnx_set);
+        println(nny_set);
+        println(nn_ld_ru_set);
+        println(occu_set);flush(stdout);
+
 
         E_total=real(E_total);
 

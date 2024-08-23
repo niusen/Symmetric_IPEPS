@@ -80,8 +80,8 @@ global svd_settings, backward_settings
     (1,1),(2,1)
 """
 
-Lx=6;
-Ly=6;
+Lx=8;
+Ly=8;
 
 nu=1/2;
 N=Int(Lx*Ly*nu);

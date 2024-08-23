@@ -827,3 +827,235 @@ function Full_update_PESS_spinless(parameters, Bset, Tset,  tau, dt, Dmax, trun_
 
     return Bset, Tset
 end
+
+
+
+function Full_update_real_time_PESS_spinless(save_filenm, parameters, Bset, Tset,  tau, dt, Dmax, trun_tol,n_sweep,trotter_order)
+    println("real time dynamics with extra particle")
+    tol=dt*1e-3;#for determining convergence 
+    println("tau, dt="*string([tau,dt]))
+
+    trivial_layer_xL=2;#trivial layer from left side
+    trivial_layer_xR=1;#trivial layer from right side
+    trivial_layer_yD=1;#trivial layer from bot side
+    trivial_layer_yU=2;#trivial layer from top side
+
+
+    Lx,Ly=size(Tset);
+    Lx_large=Lx+trivial_layer_xL+trivial_layer_xR;
+    Ly_large=Ly+trivial_layer_yD+trivial_layer_yU;
+
+
+    #put tensors into a larger cluster with trivial boundaries
+    Bset_large=Matrix{TensorMap}(undef,Lx_large,Ly_large);
+    Tset_large=Matrix{TensorMap}(undef,Lx_large,Ly_large);
+    for cx=1:Lx
+        for cy=1:Ly
+            Bset_large[cx+trivial_layer_xL,cy+trivial_layer_yD]=Bset[cx,cy];
+            Tset_large[cx+trivial_layer_xL,cy+trivial_layer_yD]=Tset[cx,cy];
+        end
+    end
+
+    Vphy=space(Tset[1,1],2);
+    if isa(Vphy,GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Vtrivial=Rep[SU₂](0=>1);
+    elseif isa(Vphy,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Vtrivial=Rep[U₁](0=>1);
+    end
+    
+    for cx=1:Lx_large
+        for cy=1:Ly_large
+            if ~isassigned(Tset_large, cx,cy)
+                if (cx==trivial_layer_xL+1)&&(cy==trivial_layer_yD+1-1) #the site with extra particle
+                    VD=space(Tset_large[cx,cy+1],4)';
+                    T=TensorMap(randn,VD,VD*Vtrivial*Vtrivial);
+                else
+                    if cx<Lx_large
+                        T=TensorMap(randn,Vtrivial,Vphy'*Vtrivial*Vtrivial);
+                    elseif cx==Lx_large
+                        VL=space(Tset_large[cx-1,cy],3)';
+                        T=TensorMap(randn,VL,VL*Vtrivial*Vtrivial);
+                        # println([cx,cy]);
+                        # println(space(T))
+                    end
+                end
+                T=T/norm(T);
+                Tset_large[cx,cy]=T;
+            end
+            if ~isassigned(Bset_large, cx,cy)
+                if (cx==trivial_layer_xL+1)&&(cy==trivial_layer_yD+1-1) #the site with extra particle
+                    VD=space(Tset_large[cx,cy+1],4)';
+                    B=TensorMap(randn,Vtrivial*VD,VD);
+                else
+                    if cx<Lx_large
+                        B=TensorMap(randn,Vtrivial*Vtrivial,Vtrivial);
+                    elseif cx==Lx_large
+                        VL=space(Tset_large[cx-1,cy],3)';
+                        B=TensorMap(randn,VL*Vtrivial,VL);
+                        # println([cx,cy]);
+                        # println(space(B));
+                    end
+                end
+                B=B/norm(B);
+                Bset_large[cx,cy]=B;
+            end
+        end
+    end
+
+
+
+    ###################################
+    psi=Matrix{TensorMap}(undef,Lx_large,Ly_large);
+    psi_double=Matrix{TensorMap}(undef,Lx_large,Ly_large);
+    for cx=1:Lx_large
+        for cy=1:Ly_large
+            psi[cx,cy]=iPESS_to_iPEPS_tensor(Tset_large[cx,cy],Bset_large[cx,cy]);
+            # AA, _=build_double_layer_swap(psi[cx,cy]',psi[cx,cy]);
+            # psi_double[cx,cy]=AA;
+        end
+    end
+
+    # jldsave("test.jld2";psi,Bset_large,Tset_large);
+
+    psi_double,_=construct_double_layer_swap_new(psi,Lx_large,Ly_large);
+
+    #verify trivial virtual index
+    for cx=1:Lx_large-1
+        for cy=1:Ly_large
+            # println([cx,cy])
+            # println(space(psi[cx,cy],3))
+            # println(space(psi[cx+1,cy],1)')
+            @assert space(psi[cx,cy],3)==space(psi[cx+1,cy],1)';
+        end
+    end 
+    for cx=1:Lx_large
+        for cy=1:Ly_large-1
+            @assert space(psi[cx,cy+1],2)==space(psi[cx,cy],4)';
+        end
+    end 
+
+    # jldsave("test.jld2";psi)
+
+    ###################################
+
+    tx=parameters["t1"];
+    ty=parameters["t1"];
+    t2=parameters["t2"];
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_bulk=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    tx=parameters["t1"];
+    ty=0;
+    t2=0;
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_top=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    tx=0;
+    ty=parameters["t1"];
+    t2=0;
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_left=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    tx=0;
+    ty=0;
+    t2=0;
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_left_top=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    all_triangles=get_triangles(Lx,Ly);
+    println("all triangles:");
+    println(all_triangles);
+
+    ##########################################
+    obs_times=Vector{Number}(undef,0);
+    obs_hop_x=Vector{Matrix}(undef,0);
+    obs_hop_y=Vector{Matrix}(undef,0);
+    obs_hop_ld_ru=Vector{Matrix}(undef,0);
+    obs_hop_occu=Vector{Matrix}(undef,0);
+    obs_E=Vector{Number}(undef,0);
+
+
+    psi_=B_T_sets_to_PESS(Bset,Tset);
+    psi_PEPS_=PESS_to_PEPS_matrix(psi_);
+    psi_double_,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS_,Lx,Ly);
+    E_total,Ex_set,Ey_set,E_ld_ru_set, NNx_set,NNy_set,NN_ld_ru_set, occu_set=energy_disk_old(psi_PEPS_,psi_double_)
+
+    push!(obs_times,0);
+    push!(obs_hop_x,Ex_set);
+    push!(obs_hop_y,Ey_set);
+    push!(obs_hop_ld_ru,E_ld_ru_set);
+    push!(obs_hop_occu,occu_set);
+    push!(obs_E,E_total);
+
+
+
+
+    for ct=1:Int(round(tau/abs(dt)))
+        println("iteration "*string(ct));flush(stdout)
+
+
+
+
+        if trotter_order==1
+            Bset_large, Tset_large, psi,psi_double= triangle_full_update_PESS(all_triangles, Lx,Ly,Dmax, Bset_large, Tset_large, psi,psi_double, gates_ru_ld_rd_bulk,gates_ru_ld_rd_left,gates_ru_ld_rd_top,gates_ru_ld_rd_left_top, trun_tol, n_sweep, trivial_layer_xL,trivial_layer_xR,trivial_layer_yD,trivial_layer_yU);
+        elseif trotter_order==2 #second order trotter
+            if mod(ct,2)==1
+                Bset_large, Tset_large, psi,psi_double= triangle_full_update_PESS(all_triangles, Lx,Ly,Dmax, Bset_large, Tset_large, psi,psi_double, gates_ru_ld_rd_bulk,gates_ru_ld_rd_left,gates_ru_ld_rd_top,gates_ru_ld_rd_left_top, trun_tol, n_sweep, trivial_layer_xL,trivial_layer_xR,trivial_layer_yD,trivial_layer_yU);
+            elseif mod(ct,2)==0
+                Bset_large, Tset_large, psi,psi_double= triangle_full_update_PESS(all_triangles[end:-1:1], Lx,Ly,Dmax, Bset_large, Tset_large, psi,psi_double, gates_ru_ld_rd_bulk,gates_ru_ld_rd_left,gates_ru_ld_rd_top,gates_ru_ld_rd_left_top, trun_tol, n_sweep, trivial_layer_xL,trivial_layer_xR,trivial_layer_yD,trivial_layer_yU);
+            end
+        else
+            error("unknown case");
+        end
+        Bset=deepcopy(Bset_large[1+trivial_layer_xL:Lx+trivial_layer_xL,1+trivial_layer_yD:Ly+trivial_layer_yD]);
+        Tset=deepcopy(Tset_large[1+trivial_layer_xL:Lx+trivial_layer_xL,1+trivial_layer_yD:Ly+trivial_layer_yD]);
+
+        psi_=deepcopy(psi[1+trivial_layer_xL:Lx+trivial_layer_xL,1+trivial_layer_yD:Ly+trivial_layer_yD]);
+        psi_double_=deepcopy(psi_double[1+trivial_layer_xL:Lx+trivial_layer_xL,1+trivial_layer_yD:Ly+trivial_layer_yD]);
+        # E_total,Ex_set,Ey_set,E_ld_ru_set, nnx_set,nny_set,nn_ld_ru_set, occu_set=energy_disk_global(psi_,psi_double_);
+        # println("energy terms:");
+        # println("E="*string(E_total));
+        # println(Ex_set);
+        # println(Ey_set);
+        # println(E_ld_ru_set);
+        # println(nnx_set);
+        # println(nny_set);
+        # println(nn_ld_ru_set);
+
+        if (abs(rem(ct*dt,0.1, RoundNearest))<1e-12)
+            if (trotter_order==1)|((trotter_order==2)&&(mod(ct,2)==0))#even ct if second-order trotter
+                E_total,Ex_set,Ey_set,E_ld_ru_set, NNx_set,NNy_set,NN_ld_ru_set, occu_set=energy_disk_global(psi_,psi_double_);
+
+                push!(obs_times,ct*dt);
+                push!(obs_hop_x,Ex_set);
+                push!(obs_hop_y,Ey_set);
+                push!(obs_hop_ld_ru,E_ld_ru_set);
+                push!(obs_hop_occu,occu_set);
+                push!(obs_E,E_total);
+
+                matwrite(save_filenm*".mat", Dict(
+                    "obs_times" => obs_times,
+                    "obs_hop_x"=>obs_hop_x,
+                    "obs_hop_y"=>obs_hop_y,
+                    "obs_hop_ld_ru"=>obs_hop_ld_ru,
+                    "obs_hop_occu"=>obs_hop_occu,
+                    "obs_E"=>obs_E,
+                ); compress = false)
+            end
+        end
+
+        global starting_time
+        Now=now();
+        Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+        println("Time consumed: "*string(Time));flush(stdout);
+        
+    end
+
+
+
+    return Bset, Tset
+end

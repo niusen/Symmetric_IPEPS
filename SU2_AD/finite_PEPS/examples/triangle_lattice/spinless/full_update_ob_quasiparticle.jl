@@ -5,6 +5,7 @@ using JSON
 using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
 using Random
+using Dates
 cd(@__DIR__)
 
 include("..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
@@ -14,6 +15,8 @@ include("..\\..\\..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
 include("..\\..\\..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 include("..\\..\\..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 include("..\\..\\..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
+include("..\\..\\..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
+include("..\\..\\..\\..\\src\\fermionic\\simple_update\\Full_Update_lib.jl")
 
 include("..\\..\\..\\setting\\Settings.jl")
 include("..\\..\\..\\setting\\tuple_methods.jl")
@@ -30,16 +33,18 @@ include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2_spinless.j
 
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_methods.jl")
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_simple_update.jl")
+include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_full_update.jl")
 
 Dmax=6;
 println("D="*string(Dmax));
+
 
 ####################
 import LinearAlgebra.BLAS as BLAS
 n_cpu=6;
 BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()));flush(stdout);
-Base.Sys.set_process_title("C"*string(n_cpu)*"_SU_D"*string(Dmax))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_FU_D"*string(Dmax))
 pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################
@@ -71,6 +76,8 @@ global svd_settings, backward_settings
 
 
 
+
+
 #Hamiltonian
 # H_Heisenberg, H123chiral, H12, H31, H23=@ignore_derivatives Hamiltonians_spin_half("SU2");
 
@@ -84,7 +91,7 @@ Lx=4;
 Ly=4;
 
 data=load("FU_PESS_U1_D6_15.14566.jld2");
-# data=load("SU_iPESS_SU2_csl_D6_2.259.jld2")
+# data=load("SU_PESS_U1_D4.jld2");
 B_set=data["B_set"];
 T_set=data["T_set"];
 
@@ -93,6 +100,7 @@ psi=B_T_sets_to_PESS(B_set,T_set);
 B_set,T_set=PESS_to_B_T_sets(psi);
 
 psi_PEPS=PESS_to_PEPS_matrix(psi);
+
 
 # psi=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi));
 
@@ -113,9 +121,10 @@ global n_mps_sweep
 n_mps_sweep=5;
 
 
-@time E_total,Ex_set,Ey_set,E_ld_ru_set, NNx_set,NNy_set,NN_ld_ru_set, occu_set=energy_disk_old(psi_PEPS,psi_double)
+E_total,Ex_set,Ey_set,E_ld_ru_set,occu_set,EU_set=energy_disk_old(psi_PEPS,psi_double)
 #-sum(imag.(Ex_set*2))-sum(abs.(real.(Ey_set)))*2-sum(abs.(real.(E_ld_ru_set)))*2+(sum(EU_set)*U)
 println(E_total);flush(stdout);
+
 
 
 
@@ -152,34 +161,31 @@ psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,Lx,L
 @time E_total,Ex_set,Ey_set,E_ld_ru_set, NNx_set,NNy_set,NN_ld_ru_set, occu_set=energy_disk_old(psi_PEPS,psi_double)
 #-sum(imag.(Ex_set*2))-sum(abs.(real.(Ey_set)))*2-sum(abs.(real.(E_ld_ru_set)))*2+(sum(EU_set)*U)
 println(E_total);flush(stdout);
+############################################
 
 
+global starting_time
+starting_time=now();
 
-
-
-
-
-
-lambdaset1,lambdaset2,lambdaset3=get_trivial_lambda(B_set);
 
 
 trun_tol=1e-8;
-
-ite_num=100;
-B_set, T_set, lambdaset1, lambdaset2, lambdaset3=tebd_noHam_spinless(B_set, T_set, lambdaset1, lambdaset2, lambdaset3,  ite_num, trun_tol)
+ov_sweep=10;
 
 
 
-save_filenm="evolve_SU_PESS_U1_"*string(Lx)*"x"*string(Ly)*"_D"*string(Dmax);
+####################################
 
 tau=10;
 dt=0.02;
-B_set, T_set, lambdaset1, lambdaset2, lambdaset3=tebd_real_time_PESS_spinless(save_filenm, parameters, B_set, T_set, lambdaset1, lambdaset2, lambdaset3,  tau, dt, Dmax, trun_tol)
+
+trotter_order=2;
+save_filenm="trotter"*string(trotter_order)*"_FU_PESS_U1_"*string(Lx)*"x"*string(Ly)*"_D"*string(Dmax)*"_dt"*string(dt);
+
+B_set, T_set=Full_update_real_time_PESS_spinless(save_filenm, parameters, B_set, T_set,  tau, dt, Dmax, trun_tol, ov_sweep,trotter_order)
+# B_set, T_set=Full_update_PESS_spinless(parameters, B_set, T_set,  tau, dt, Dmax, trun_tol, ov_sweep)
 
 
-
-
-# jldsave(filenm; B_set, T_set)
 
 
 

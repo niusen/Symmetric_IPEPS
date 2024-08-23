@@ -268,7 +268,7 @@ function get_boundary_mps(psi_double,U_set)
 end
 
 
-U_set=UR_set[Int(Lx/2),:];
+U_set=UR_set[Int(Lx/2),end:-1:1];
 mps_L,mps_R=get_boundary_mps(psi_double,U_set);
 mps_L=mps_L*10;
 mps_R=mps_R*10;

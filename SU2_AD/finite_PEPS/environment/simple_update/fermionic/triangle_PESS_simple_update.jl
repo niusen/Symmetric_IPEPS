@@ -905,6 +905,169 @@ function tebd_PESS_spinless(parameters, Bset, Tset, lambdaset1, lambdaset2, lamb
 end
 
 
+function tebd_noHam_spinless(Bset, Tset, lambdaset1, lambdaset2, lambdaset3, ite_num, trun_tol)
+    Dmax1=get_max_dim_general(Bset);
+    Dmax2=get_max_dim_general(Tset);
+    Dmax=max(Dmax1,Dmax2);
+
+    tol=1e-6;#for determining convergence 
+
+    # println("one step")
+    # println(space(T_u))
+    # println(space(T_d))
+    Lx,Ly=size(Tset);
+    lambdaset1_old=deepcopy(lambdaset1);
+    lambdaset2_old=deepcopy(lambdaset2);
+    lambdaset3_old=deepcopy(lambdaset3);
+
+
+
+    tx=0;
+    ty=0;
+    t2=0;
+    ϕ=0;
+    V=0;
+    dt=0;
+    gates_ru_ld_rd=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt, typeof(space(Bset[1],1)),Lx);
+
+    for ct=1:ite_num
+        #println("iteration "*string(ct));flush(stdout)
+        Bset, Tset, lambdaset1, lambdaset2, lambdaset3= triangle_update_iPESS(Dmax, ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd,gates_ru_ld_rd,gates_ru_ld_rd,gates_ru_ld_rd, trun_tol);
+        err_1=check_convergence(lambdaset1,lambdaset1_old,Lx,Ly);
+        err_2=check_convergence(lambdaset2,lambdaset2_old,Lx,Ly);
+        err_3=check_convergence(lambdaset3,lambdaset3_old,Lx,Ly);
+        er=max(maximum(err_1),maximum(err_2),maximum(err_3));
+        if mod(ct,20)==0
+            println("iteration "*string(ct)*", convergence= "*string(er));flush(stdout)
+        end
+
+        if mod(ct,40)==0
+            for tt in Bset
+                println(space(tt))
+            end
+        end
+        if er<tol
+            break;
+        end
+        lambdaset1_old=deepcopy(lambdaset1);
+        lambdaset2_old=deepcopy(lambdaset2);
+        lambdaset3_old=deepcopy(lambdaset3);
+    end
+    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
+end
+
+
+
+function tebd_real_time_PESS_spinless(save_filenm, parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  tau, dt, Dmax, trun_tol)
+    println("real time dynamics with extra particle")
+    tol=dt*1e-3;#for determining convergence 
+    println("tau, dt="*string([tau,dt]))
+    # println("one step")
+    # println(space(T_u))
+    # println(space(T_d))
+    Lx,Ly=size(Tset);
+    lambdaset1_old=deepcopy(lambdaset1);
+    lambdaset2_old=deepcopy(lambdaset2);
+    lambdaset3_old=deepcopy(lambdaset3);
+
+    tx=parameters["t1"];
+    ty=parameters["t1"];
+    t2=parameters["t2"];
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_bulk=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    tx=parameters["t1"];
+    ty=0;
+    t2=0;
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_top=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    tx=0;
+    ty=parameters["t1"];
+    t2=0;
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_left=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    tx=0;
+    ty=0;
+    t2=0;
+    ϕ=parameters["ϕ"];
+    V=parameters["V"];
+    gates_ru_ld_rd_left_top=spinless_gate_RU_LD_RD(tx,ty,t2,ϕ,V,dt*im, typeof(space(Bset[1],1)),Lx);
+
+    obs_times=Vector{Number}(undef,0);
+    obs_hop_x=Vector{Matrix}(undef,0);
+    obs_hop_y=Vector{Matrix}(undef,0);
+    obs_hop_ld_ru=Vector{Matrix}(undef,0);
+    obs_hop_occu=Vector{Matrix}(undef,0);
+    obs_E=Vector{Number}(undef,0);
+    for ct=0:Int(round(tau/abs(dt)))
+        println("iteration "*string(ct));flush(stdout)
+
+
+        if abs(rem(ct*dt,0.1, RoundNearest))<1e-12
+            psi=B_T_sets_to_PESS(Bset,Tset);
+            psi_PEPS=PESS_to_PEPS_matrix(psi);
+            psi_double,UL_set,UD_set,UR_set,UU_set=construct_double_layer_swap(psi_PEPS,Lx,Ly);
+            E_total,Ex_set,Ey_set,E_ld_ru_set, NNx_set,NNy_set,NN_ld_ru_set, occu_set=energy_disk_old(psi_PEPS,psi_double)
+
+            push!(obs_times,ct*dt);
+            push!(obs_hop_x,Ex_set);
+            push!(obs_hop_y,Ey_set);
+            push!(obs_hop_ld_ru,E_ld_ru_set);
+            push!(obs_hop_occu,occu_set);
+            push!(obs_E,E_total);
+
+            matwrite(save_filenm*".mat", Dict(
+                "obs_times" => obs_times,
+                "obs_hop_x"=>obs_hop_x,
+                "obs_hop_y"=>obs_hop_y,
+                "obs_hop_ld_ru"=>obs_hop_ld_ru,
+                "obs_hop_occu"=>obs_hop_occu,
+                "obs_E"=>obs_E,
+              ); compress = false)
+        end
+
+          
+
+
+
+
+
+        Bset, Tset, lambdaset1, lambdaset2, lambdaset3= triangle_update_iPESS(Dmax, ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd_bulk,gates_ru_ld_rd_left,gates_ru_ld_rd_top,gates_ru_ld_rd_left_top, trun_tol);
+        err_1=check_convergence(lambdaset1,lambdaset1_old,Lx,Ly);
+        err_2=check_convergence(lambdaset2,lambdaset2_old,Lx,Ly);
+        err_3=check_convergence(lambdaset3,lambdaset3_old,Lx,Ly);
+        er=max(maximum(err_1),maximum(err_2),maximum(err_3));
+        if mod(ct,20)==0
+            println("iteration "*string(ct)*", convergence= "*string(er));flush(stdout)
+        end
+        if mod(ct,40)==0
+            for tt in Bset
+                println(space(tt))
+            end
+        end
+        if er<tol
+            break;
+        end
+        lambdaset1_old=deepcopy(lambdaset1);
+        lambdaset2_old=deepcopy(lambdaset2);
+        lambdaset3_old=deepcopy(lambdaset3);
+
+
+
+
+
+
+    end
+    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
+end
+
+
+
 
 function get_max_dim_general(psi::Matrix{TensorMap})
     #get maximum bond dimension of a PEPS

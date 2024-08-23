@@ -27,11 +27,11 @@ include("..\\..\\..\\environment\\AD\\mps_methods.jl")
 include("..\\..\\..\\environment\\AD\\mps_methods_new.jl")
 include("..\\..\\..\\environment\\AD\\svd_AD_lib.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\peps_double_layer_methods_fermion.jl")
-include("..\\..\\..\\environment\\AD\\fermion\\fermi_CTM_observables.jl")
+include("..\\..\\..\\environment\\AD\\fermion\\fermi_CTM_observables_spinless.jl")
 include("..\\..\\..\\environment\\AD\\fermion\\fermi_contract.jl")
 include("..\\..\\..\\environment\\AD\\truncations.jl")
 include("..\\..\\..\\environment\\Variational\\mps_methods_projector.jl")
-include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2.jl")
+include("..\\..\\..\\models\\Hubbard\\triangle_lattice\\Hofstadter_N2_spinless.jl")
 include("..\\..\\..\\optimization\\stochastic_opt.jl")
 
 include("..\\..\\..\\environment\\simple_update\\fermionic\\triangle_PESS_methods.jl")
@@ -47,13 +47,13 @@ Random.seed!(666)
 
 global D,chi,multiplet_tol
 
-D=4;
-chi=100;
+D=6;
+chi=20;
 multiplet_tol=1e-5;
 init_noise=0;
 
 #filenm="SU_PESS_SU2_D4.jld2";
-filenm="stochastic_4x4_D_8_chi_100.jld2";
+filenm="FU_PESS_U1_D4_35.832.jld2";
 
 println("D,chi="*string([D,chi]));
 println("init_noise="*string(init_noise));
@@ -79,8 +79,8 @@ t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=0;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+V=0;
+parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("V",  V)]);
 global parameters
 
 
@@ -113,8 +113,8 @@ psi=initial_SU2_PESS(filenm,init_noise,true);
 
 Lx,Ly=size(psi);
 println("Lx,Ly="*string([Lx,Ly]))
-@assert Lx==4;#for larger size, need to change code for ES
-@assert Ly==4;
+@assert Lx==6;#for larger size, need to change code for ES
+@assert Ly==6;
 
 
 global psi,psi_double
@@ -225,7 +225,7 @@ function get_boundary_mps(psi_double,U_set)
         # A=psi[cx,cy];
 
 
-        V_trivial=Rep[SU₂](0=>1);
+        V_trivial=Rep[U₁](0=>1);
         if cx==1
             T=mps_L[cx];
             uni=unitary(V_trivial*space(T,1), space(T,1));
@@ -273,13 +273,13 @@ mps_L,mps_R=get_boundary_mps(psi_double,U_set);
 mps_L=mps_L*10;
 mps_R=mps_R*10;
 ###################################
-TL1,TL2,TL3,TL4=mps_L;
-TR1,TR2,TR3,TR4=mps_R;
+TL1,TL2,TL3,TL4,TL5,TL6=mps_L;
+TR1,TR2,TR3,TR4,TR5,TR6=mps_R;
 ###################################
 
 #apply on-site swap gate on T tensors
-TL_set=[TL1,TL2,TL3,TL4];
-TR_set=[TR1,TR2,TR3,TR4];
+TL_set=[TL1,TL2,TL3,TL4,TL5,TL6];
+TR_set=[TR1,TR2,TR3,TR4,TR5,TR6];
 for cc=1:length(TL_set)-1
     tl=TL_set[cc];
     gate=swap_gate(tl,2,3);
@@ -292,16 +292,32 @@ for cc=1:length(TL_set)-1
     TR_set[cc]=tr;
 end
 
-TL1,TL2,TL3,TL4=TL_set;
-TR1,TR2,TR3,TR4=TR_set;
+TL1,TL2,TL3,TL4,TL5,TL6=TL_set;
+TR1,TR2,TR3,TR4,TR5,TR6=TR_set;
 
 #############################
+U12a=unitary(fuse(space(TL1,1)*space(TL2,1)),space(TL1,1)*space(TL2,1));
+U34a=unitary(fuse(space(TL3,1)*space(TL4,1)),space(TL3,1)*space(TL4,1));
+U56a=unitary(fuse(space(TL5,1)*space(TL6,1)),space(TL5,1)*space(TL6,1));
+
+U12b=unitary(fuse(space(TL1,3)*space(TL2,3)),space(TL1,3)*space(TL2,3));
+U34b=unitary(fuse(space(TL3,3)*space(TL4,3)),space(TL3,3)*space(TL4,3));
+U56b=unitary(fuse(space(TL5,3)*space(TL6,3)),space(TL5,3)*space(TL6,3));
+
+@tensor TL12[:]:=TL1[2,1,4,-4]*TL2[3,-2,5,1]*U12a[-1,2,3]*U12b[-3,4,5];
+@tensor TL34[:]:=TL3[2,1,4,-4]*TL4[3,-2,5,1]*U34a[-1,2,3]*U34b[-3,4,5];
+@tensor TL56[:]:=TL5[2,1,4,-4]*TL6[3,-2,5,1]*U56a[-1,2,3]*U56b[-3,4,5];
+
+
+@tensor TR12[:]:=TR1[2,1,4,-4]*TR2[3,-2,5,1]*U12b'[2,3,-1]*U12a'[4,5,-3];
+@tensor TR34[:]:=TR3[2,1,4,-4]*TR4[3,-2,5,1]*U34b'[2,3,-1]*U34a'[4,5,-3];
+@tensor TR56[:]:=TR5[2,1,4,-4]*TR6[3,-2,5,1]*U56b'[2,3,-1]*U56a'[4,5,-3];
 
 
 
 
-function vr_ML_MR(vr0,  TL1,TL2,TL3,TL4,TR1,TR2,TR3,TR4)
-    println("apply Mr")
+function vr_ML_MR(vr0,  TL12,TL34,TL56,TR12,TR34,TR56)
+    println("apply Mr");flush(stdout);
 
     ################
 
@@ -313,20 +329,14 @@ function vr_ML_MR(vr0,  TL1,TL2,TL3,TL4,TR1,TR2,TR3,TR4)
 
     vr=deepcopy(vr0)*0;
     for ca=1:1#parity of index U in ML
-        TL1_tem=TL1;
-        TL2_tem=deepcopy(TL2);
-        TL3_tem=deepcopy(TL3);
-        TL4_tem=TL4;
+
 
         for cb=1:1#parity of index U in MR
-            TR1_tem=TR1;
-            TR2_tem=deepcopy(TR2);
-            TR3_tem=deepcopy(TR3);
-            TR4_tem=TR4;
+
 
             
-            @tensor vr_temp[:]:=TR1_tem[-1,2,1,8]*TR2_tem[-2,4,3,2]*TR3_tem[-3,6,5,4]*TR4_tem[-4,8,7,6]*vr0[1,3,5,7,-5];
-            @tensor vr_temp[:]:=TL1_tem[-1,2,1,8]*TL2_tem[-2,4,3,2]*TL3_tem[-3,6,5,4]*TL4_tem[-4,8,7,6]*vr_temp[1,3,5,7,-5];
+            @tensor vr_temp[:]:=TR12[-1,2,1,6]*TR34[-2,4,3,2]*TR56[-3,6,5,4]*vr0[1,3,5,-4];
+            @tensor vr_temp[:]:=TL12[-1,2,1,6]*TL34[-2,4,3,2]*TL56[-3,6,5,4]*vr_temp[1,3,5,-4];
             vr=vr+vr_temp;
         end
     end
@@ -356,16 +366,18 @@ k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 for ss=1:length(Spin_set)
     if isa(space(TL1,1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
-        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1),Rep[ℤ₂](Spin_set[ss]=>1));
+        v_init=TensorMap(randn, space(TL12,1)*space(TL34,1)*space(TL56,1),Rep[ℤ₂](Spin_set[ss]=>1));
     elseif isa(space(TL1,1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
-        v_init=TensorMap(randn, space(TL1,1)*space(TL2,1)*space(TL3,1)*space(TL4,1),Rep[SU₂](Spin_set[ss]=>1));
+        v_init=TensorMap(randn, space(TL12,1)*space(TL34,1)*space(TL56,1),Rep[SU₂](Spin_set[ss]=>1));
     end
     
-    v_init=permute(v_init,(1,2,3,4,5,),());#L1,L2,L3,L4,dummy
+    v_init=permute(v_init,(1,2,3,4,),());#L1,L2,L3,L4,dummy
+    
     if norm(v_init)==0
         continue;
     end
-    contraction_fun_R(x)=vr_ML_MR(x, TL1,TL2,TL3,TL4,TR1,TR2,TR3,TR4);
+    contraction_fun_R(x)=vr_ML_MR(x, TL12,TL34,TL56,TR12,TR34,TR56);
+    contraction_fun_R(v_init)
     # println(norm(v_init))
     # println(norm(contraction_fun_R(v_init)))
     @time eu0,ev=eigsolve(contraction_fun_R, v_init, 30,:LM,Arnoldi(krylovdim=40));
@@ -402,7 +414,7 @@ Spin=Spin[order]
 Dmax=get_max_dim(psi);
 
 
-matnm="ES_4x4_D"*string(Dmax)*"_chi"*string(chi)*".mat";
+matnm="ES_6x6_D"*string(Dmax)*"_chi"*string(chi)*".mat";
 
 matwrite(matnm, Dict(
     "eu" => eu,

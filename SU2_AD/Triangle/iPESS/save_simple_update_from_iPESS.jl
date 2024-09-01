@@ -32,7 +32,7 @@ Random.seed!(888)
 
 
 
-filenm="stochastic_iPESS_LS_D_8_chi_40_3.4728.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+filenm="stochastic_iPESS_LS_D_8_chi_80.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 data=load(filenm);
 state=data["x"];
 Lx,Ly=size(state)

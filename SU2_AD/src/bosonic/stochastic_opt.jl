@@ -59,9 +59,10 @@ function fx(x::Matrix{T}) where T<:iPEPS_ansatz
         elseif energy_setting.model == "spinless_triangle_lattice";
             E, ex_set, ey_set, e_diagonal1_set, e0_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
             println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonal1_set= "*string(e_diagonal1_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
-        elseif energy_setting.model == "spinful_triangle_lattice";
+        elseif energy_setting.model in ("spinful_triangle_lattice", "standard_triangle_Hubbard",);
             E, ex_set, ey_set, e_diagonal1_set, e0_set, eU_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
             println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonal1_set= "*string(e_diagonal1_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
         end
 
     end

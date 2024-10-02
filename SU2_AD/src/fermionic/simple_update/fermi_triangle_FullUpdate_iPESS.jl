@@ -900,7 +900,7 @@ end
 
 
 
-function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
+function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
     # """
     #          M1     R1
     #            \   /
@@ -923,10 +923,7 @@ function triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_o
     # """
 
     (c1,c2)=coord;
-
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
-    #gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
-    gates_ru_ld_rd=gates_ru_ld_rd[mod1(c1,Lx)];
+    gates_ru_ld_rd=gate;
     
 
     B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd);
@@ -1101,14 +1098,25 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
     ENV_ctm_setting.CTM_ite_info=false;
 
+    if energy_setting.model=="spinful_triangle_lattice" #oldest code
+        gates_ru_ld_rd_=gate_RU_LD_RD(energy_setting,parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+    elseif energy_setting.model=="Triangle_Hofstadter_Hubbard" #for general magnetic unitcell M
+        @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting,parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+    elseif energy_setting.model=="standard_triangle_Hubbard" #uniform
+        gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting,parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+    end
+
+    #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+    #gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
 
     for ct=1:Int(round(tau/abs(dt)))
         println("iteration "*string(ct));flush(stdout)
         for ca=1:Lx
             for cb=1:Ly
                 coord=[ca,cb];
-
-                B_set, T_set=triangle_FullUpdate(dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
+                gate=gates_ru_ld_rd[ca,cb];
+                B_set, T_set=triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
                 
                 #get CTM tensors for energy and next optimization
                 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
@@ -1120,6 +1128,13 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
 
         E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
         println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
+        println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
+        if isa(space(A_cell_iPEPS[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting);
+            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
+            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
+        end
+        
 
         global E_history
         if E_total<minimum(E_history)

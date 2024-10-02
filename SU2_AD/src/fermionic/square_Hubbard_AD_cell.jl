@@ -222,25 +222,22 @@ function initial_fPEPS_state_spinful_Z2_from_simple_update(init_statenm="nothing
 
     else
         println("load state: "*init_statenm);flush(stdout);
-        x=load(init_statenm)["x"];
-        state=similar(x);
-        for cc in eachindex(x)
-            ansatz=x[cc];
-            A0=ansatz.T;
-            A=permute(A0,(1,2,3,4,5,));
+        data=load(init_statenm);
 
-            if init_complex_tensor
-                A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
-            else
-                A_noise=TensorMap(randn,codomain(A),domain(A));
+
+        Tset=data["T_set"];
+        Bset=data["B_set"];
+        Lx,Ly=size(Tset);
+        
+        state_new=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                state_new[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+                iPESS_to_iPEPS(state_new[ca,cb]);
             end
-
-            A_new=A+A_noise*init_noise*norm(A)/norm(A_noise);
-            A_new=permute(A_new,(1,2,3,4,5,));
-            ansatz_new=Square_iPEPS(A_new);
-            state[cc]=ansatz_new;
         end
-        return state
+        
+        return state_new
     end
 end
 
@@ -522,9 +519,16 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
         E=real(E_total);
         return E, ex_set, ey_set, e_diagonala_set, e0_set, ite_num,ite_err,CTM_cell
-    elseif energy_setting.model=="spinful_triangle_lattice"
+    elseif energy_setting.model in ("spinful_triangle_lattice","standard_triangle_Hubbard",)
         E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
         E=real(E_total);
+
+        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
+            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
+            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
+        end
+
         return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, ite_num,ite_err,CTM_cell
     end
 end

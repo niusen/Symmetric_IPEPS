@@ -515,6 +515,53 @@ function Hamiltonians_spinful_Z2()
     return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
 end
 
+function spin_operator_Z2()
+    
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order of kron() command: (0,0), (0,1), (1,0), (1,1)
+    order=[1,4,3,2];
+
+
+
+    Ident=kron(Id,Id);
+    Ident=TensorMap(Ident[[1,4,3,2],[1,4,3,2]],  V  ←  V);
+
+    N_occu=kron(occu,Id)+kron(Id,occu);
+    N_occu=TensorMap(N_occu[[1,4,3,2],[1,4,3,2]],  V ←  V);
+    n_double=kron(occu,occu)
+    n_double=TensorMap(n_double[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+    
+    Cdagup_Cup=zeros(4,4);
+    Cdagup_Cup[[1,4,3,2],[1,4,3,2]]=kron(sp*sm,Id);
+    Cdagup_Cup=TensorMap(Cdagup_Cup,  V ← V);
+
+    Cdagdn_Cdn=zeros(4,4);
+    Cdagdn_Cdn[[1,4,3,2],[1,4,3,2]]=kron(Id,sp*sm);
+    Cdagdn_Cdn=TensorMap(Cdagdn_Cdn,  V ← V);
+
+    Cdagup_Cdn=zeros(4,4);
+    Cdagup_Cdn[[1,4,3,2],[1,4,3,2]]=kron(sp,sm);
+    Cdagup_Cdn=TensorMap(Cdagup_Cdn,  V ← V);
+
+    Cdagdn_Cup=zeros(4,4);
+    Cdagdn_Cup[[1,4,3,2],[1,4,3,2]]=kron(sm,sp);
+    Cdagdn_Cup=TensorMap(Cdagdn_Cup,  V ← V);
+
+
+    sx=Cdagup_Cdn+Cdagdn_Cup;
+    sy=-im*Cdagup_Cdn+im*Cdagdn_Cup;
+    sz=Cdagup_Cup-Cdagdn_Cdn;
+
+
+    return sx,sy,sz
+end
+
 function special_Hamiltonians_spinful_Z2()
     
 
@@ -581,6 +628,33 @@ function special_Hamiltonians_spinful_Z2()
 
 
     return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
+end
+
+
+function B_field_fun(Lx,Ly,coord)
+    #120 degree magnetic order
+    @assert mod(Lx,3)==0;
+    @assert mod(Ly,3)==0;
+    #coordnate:
+    # (1,1)(2,1)(3,2)
+    # (1,2)(2,2)(3,2)
+    # (1,3)(2,3)(3,3)
+
+    #A triangle:
+    #      (2,0)
+    # (1,1)(2,1)
+
+    px=coord[1];
+    py=coord[2];
+    #reshape square lattice to triangle lattice
+    #step1: 
+    px1= px+py/2;
+    #step2: 
+    py1->py*sqrt(3)/2;
+
+
+
+    return [sin(-2*pi/3*(px-py)) cos(-2*pi/3*(px-py)) 0]
 end
 
 
@@ -1018,6 +1092,39 @@ function hopping_diagonala_split(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
 end
 
 
+
+
+function evaluate_spin_cell(A_cell::Tuple, AA_cell, CTM_cell, ctm_setting)
+    """change of coordinate 
+    (1,1)  (2,1)
+    (1,2)  (2,2)
+
+    coordinate of C1 tensor: (cx,cy)
+    """    
+    global Lx,Ly
+    if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        sx_op,sy_op,sz_op=spin_operator_Z2();
+    else
+        println("Virtual symmetry is not Z2, no need to compute spin polarization.")
+    end
+    sx_set=zeros(Lx,Ly)*im;
+    sy_set=zeros(Lx,Ly)*im;
+    sz_set=zeros(Lx,Ly)*im;
+    for cx=1:Lx
+        for cy=1:Ly
+            #(cx,cy): coordinate of left-top C1 tensor
+
+            sx0=ob_onsite(CTM_cell,sx_op,A_cell,AA_cell,cx,cy,ctm_setting);
+            sy0=ob_onsite(CTM_cell,sy_op,A_cell,AA_cell,cx,cy,ctm_setting);
+            sz0=ob_onsite(CTM_cell,sz_op,A_cell,AA_cell,cx,cy,ctm_setting);
+            @ignore_derivatives sx_set[cx,cy]=sx0;
+            @ignore_derivatives sy_set[cx,cy]=sy0;
+            @ignore_derivatives sz_set[cx,cy]=sz0;
+        end
+    end 
+    return sx_set,sy_set,sz_set
+end
+
 function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting)
     """change of coordinate 
     (1,1)  (2,1)
@@ -1030,7 +1137,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         
-        if (energy_setting.model == "Triangle_Hofstadter_Hubbard")|(energy_setting.model == "spinful_triangle_lattice")
+        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard")
             Hamiltonian_terms=Hamiltonians_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
             Hamiltonian_terms=Hamiltonians_spinless_Z2;
@@ -1327,18 +1434,60 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             
             E_total=E_total/(Lx*Ly);
             return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
+        else#if (Lx==6) & (Ly==3)
+            @assert mod(Lx,2)==0
+            #for 120 degree magnetic order in the Hofstadter M2 model. Unit-cell for 120 degree order should be at least 3x3.  
+            Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+            t1=parameters["t1"];
+            t2=parameters["t2"];
+            ϕ=parameters["ϕ"];
+            μ=parameters["μ"];
+            U=parameters["U"];
+
+            ex_set=zeros(Lx,Ly)*im;
+            ey_set=zeros(Lx,Ly)*im;
+            e_diagonala_set=zeros(Lx,Ly)*im;
+            e0_set=zeros(Lx,Ly)*im;
+            eU_set=zeros(Lx,Ly)*im;
+
+            
+            E_total=0;
+
+            for cx=1:Lx
+                for cy=1:Ly
+                    
+                    ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                    ey=hopping_y(CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                    e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                    e0=ob_onsite(CTM_cell,N_occu_set[mod1(cx+1,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                    eU=ob_onsite(CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                    @ignore_derivatives ex_set[cx,cy]=ex;
+                    @ignore_derivatives ey_set[cx,cy]=ey;
+                    @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
+                    @ignore_derivatives e0_set[cx,cy]=e0;
+                    @ignore_derivatives eU_set[cx,cy]=eU;
+                    if mod(cx,2)==1
+                        E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
+                    else
+                        E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
+                    end
+                end
+            end
+
+            E_total=E_total/(Lx*Ly);
+            return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
         end
 
     elseif energy_setting.model in ("Triangle_Hofstadter_Hubbard","Triangle_Hofstadter_spinless")
         @assert mod(Lx,energy_setting.Magnetic_cell)==0;
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
 
-        pasrmeters_site=@ignore_derivatives get_Hofstadter_coefficients(Lx,Ly,parameters,energy_setting);
-        tx_coe_set=pasrmeters_site["tx_coe_set"];
-        ty_coe_set=pasrmeters_site["ty_coe_set"];
-        t2_coe_set=pasrmeters_site["t2_coe_set"];
-        U_coe_set=pasrmeters_site["U_coe_set"];
-        μ_coe_set=pasrmeters_site["μ_coe_set"];
+        parameters_site=@ignore_derivatives get_Hofstadter_coefficients(Lx,Ly,parameters,energy_setting);
+        tx_coe_set=parameters_site["tx_coe_set"];
+        ty_coe_set=parameters_site["ty_coe_set"];
+        t2_coe_set=parameters_site["t2_coe_set"];
+        U_coe_set=parameters_site["U_coe_set"];
+        μ_coe_set=parameters_site["μ_coe_set"];
 
         ex_set=zeros(Lx,Ly)*im;
         ey_set=zeros(Lx,Ly)*im;
@@ -1374,8 +1523,48 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         end 
         E_total=E_total/(Lx*Ly);
         return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
+    elseif energy_setting.model =="standard_triangle_Hubbard" 
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+        t1=parameters["t1"];
+        t2=parameters["t2"];
+        μ=parameters["μ"];
+        U=parameters["U"];
+
+        ex_set=zeros(Lx,Ly)*im;
+        ey_set=zeros(Lx,Ly)*im;
+        e_diagonala_set=zeros(Lx,Ly)*im;
+        e0_set=zeros(Lx,Ly)*im;
+        eU_set=zeros(Lx,Ly)*im;
+        
+        E_total=0;
+        for px=1:Lx
+            for py=1:Ly
+                #(cx,cy): coordinate of left-top C1 tensor
+                cx=mod1(px-1,Lx);
+                cy=mod1(py-1,Ly);
+                ex=hopping_x(CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                ey=hopping_y(CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py+1,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(py+1,2)],C_set[mod1(py,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                e0=ob_onsite(CTM_cell,N_occu_set[mod1(py,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                eU=ob_onsite(CTM_cell,n_double_set[mod1(py,2)]-(1/2)*N_occu_set[mod1(py,2)]+(1/4)*Ident_set[mod1(py,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+                @ignore_derivatives ex_set[px,py]=ex;
+                @ignore_derivatives ey_set[px,py]=ey;
+                @ignore_derivatives e_diagonala_set[px,py]=e_diagonala;
+                @ignore_derivatives e0_set[px,py]=e0;
+                @ignore_derivatives eU_set[px,py]=eU;
+
+                # E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;
+                E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
+                E_total=E_total+real(E_temp+E_temp');
+                
+            end
+        end 
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
     end
 end
+
+
 
 
 function get_Hofstadter_coefficients(Lx,Ly,parameters,energy_setting)

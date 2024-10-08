@@ -853,8 +853,9 @@ function gate_RU_LD_RD(energy_setting, parameters,dt, space_type,Lx,Ly)
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_SU2();
     elseif space_type==GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_U1_SU2();
-        sx_op,sy_op,sz_op=spin_operator_Z2();
+        
     elseif space_type==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+        sx_op,sy_op,sz_op=spin_operator_Z2();
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_Z2();
     end
     

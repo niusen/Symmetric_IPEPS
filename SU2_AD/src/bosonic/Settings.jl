@@ -166,3 +166,22 @@ Base.@kwdef struct IPESS_IRREP
     nonchiral :: String = "No"; #"No", "A1_even", "A1_odd"
 
 end
+
+
+
+
+function remove_small_elements(T::TensorMap,tol=1e-20)
+    #delete super small elements, otherwise svd could send error
+    Norm=norm(T);
+    for cb in eachindex(T.data.values)
+        mm=T.data.values[cb];
+        mm1=deepcopy(mm);
+        for ci in eachindex(mm1)
+            if abs(mm1[ci])/Norm<tol;
+                mm1[ci]=0;
+            end
+        end 
+        T.data.values[cb]=mm1;
+    end
+    return T
+end

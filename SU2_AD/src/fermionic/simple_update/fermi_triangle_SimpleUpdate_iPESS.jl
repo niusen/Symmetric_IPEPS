@@ -137,7 +137,7 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, d1, M2_D2, d2, d3, R3_D3
     T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
 
-    T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-20);
+    T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
 
 
     if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
@@ -163,7 +163,7 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
 
     T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
 
-    T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-20);
+    T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
     
     if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)

@@ -1099,12 +1099,12 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
     ENV_ctm_setting.CTM_ite_info=false;
 
     if energy_setting.model=="spinful_triangle_lattice" #oldest code
-        gates_ru_ld_rd_=gate_RU_LD_RD(energy_setting,parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+        gates_ru_ld_rd=gate_RU_LD_RD(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     elseif energy_setting.model=="Triangle_Hofstadter_Hubbard" #for general magnetic unitcell M
         @assert mod(Lx,energy_setting.Magnetic_cell)==0;
-        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting,parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     elseif energy_setting.model=="standard_triangle_Hubbard" #uniform
-        gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting,parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+        gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     end
 
     #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);

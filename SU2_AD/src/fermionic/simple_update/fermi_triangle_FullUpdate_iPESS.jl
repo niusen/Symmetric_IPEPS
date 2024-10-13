@@ -1110,10 +1110,15 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
     #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
     #gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
 
+    triangle_groups=get_triangles_PBC(Lx,Ly);
+    @show triangle_groups;
+
     for ct=1:Int(round(tau/abs(dt)))
         println("iteration "*string(ct));flush(stdout)
-        for ca=1:Lx
-            for cb=1:Ly
+        for cg in eachindex(triangle_groups)
+            group=triangle_groups[cg];
+            for ccc in eachindex(group)
+                ca,cb=group[ccc];
                 coord=[ca,cb];
                 gate=gates_ru_ld_rd[ca,cb];
                 B_set, T_set=triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)

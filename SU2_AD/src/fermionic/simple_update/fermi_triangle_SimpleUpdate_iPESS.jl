@@ -141,8 +141,18 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
 
 
     if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        U1,S1,V1=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
-        U3,S3,V3=tsvd(T1_T2_B_T3,(1,2,3,4,),(5,6,);trunc=truncdim(D_max));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
+        try
+            U1,S1,V1=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
+        catch e 
+            T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-12);
+            U1,S1,V1=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
+        end
+        try 
+            U3,S3,V3=tsvd(T1_T2_B_T3,(1,2,3,4,),(5,6,);trunc=truncdim(D_max));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
+        catch e 
+            T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-12);
+            U3,S3,V3=tsvd(T1_T2_B_T3,(1,2,3,4,),(5,6,);trunc=truncdim(D_max));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
+        end
     elseif isa(space(T1,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
         U1,S1,V1=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
         U1,S1,V1=Truncations(U1,S1,V1,D_max,trun_tol);#println(norm(U1*S1*V1-M_old)/norm(M_old))
@@ -166,7 +176,12 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
     
     if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+        try
+            U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+        catch e 
+            T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-12);
+            U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+        end
     elseif isa(space(T1,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
         U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
         U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
@@ -360,7 +375,7 @@ function itebd_iPESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdase
     return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
 end
 
-function Hofstadter_triangle_update_iPESS(D_max,ct,Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates, trun_tol)
+function Hofstadter_triangle_update_iPESS(triangle_groups,D_max,ct,Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates, trun_tol)
     """
     ABABABAB
     CDCDCDCD
@@ -368,8 +383,11 @@ function Hofstadter_triangle_update_iPESS(D_max,ct,Bset, Tset, lambdaset1, lambd
     CDCDCDCD
     """
     Lx,Ly=size(Bset);
-    for ca=1:Lx
-        for cb=1:Ly
+
+    for cg in eachindex(triangle_groups)
+        group=triangle_groups[cg];
+        Threads.@threads for ccc in eachindex(group)
+            ca,cb=group[ccc];
             # B
             #CD
             #position of left-top corner: (ca,cb)
@@ -433,8 +451,6 @@ function Hofstadter_triangle_update_iPESS(D_max,ct,Bset, Tset, lambdaset1, lambd
             end
         end
     end
-
-
     return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
 end
 
@@ -445,6 +461,7 @@ function itebd_iPESS_Hofstadter(energy_setting, parameters, Bset, Tset, lambdase
     # println(space(T_u))
     # println(space(T_d))
     Lx,Ly=size(Tset);
+
     
     lambdaset1_old=deepcopy(lambdaset1);
     lambdaset2_old=deepcopy(lambdaset2);
@@ -459,9 +476,12 @@ function itebd_iPESS_Hofstadter(energy_setting, parameters, Bset, Tset, lambdase
         gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
     end
 
+    triangle_groups=get_triangles_PBC(Lx,Ly);
+    @show triangle_groups;
+
     for ct=1:Int(round(tau/abs(dt)))
         #println("iteration "*string(ct));flush(stdout)
-        Bset, Tset, lambdaset1, lambdaset2, lambdaset3= Hofstadter_triangle_update_iPESS(Dmax, ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd, trun_tol);
+        Bset, Tset, lambdaset1, lambdaset2, lambdaset3= Hofstadter_triangle_update_iPESS(triangle_groups,Dmax, ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd, trun_tol);
         err_1=check_convergence(lambdaset1,lambdaset1_old);
         err_2=check_convergence(lambdaset2,lambdaset2_old);
         err_3=check_convergence(lambdaset3,lambdaset3_old);

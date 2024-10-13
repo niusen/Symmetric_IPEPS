@@ -119,6 +119,103 @@ function initial_iPEPS_U1_SU2(Lx,Ly,Vp,Vv_set)
 end
 
 
+function get_triangles_PBC(Lx,Ly)
+    #coordinate of 3 sites in a triangle: 
+    #(px+1,py)
+    #(px,py+1)
+    #(px+1,py+1)
+    function distant_triangles(T1::Array,T2::Array)
+        #if they share any common index, return false
+        for cc=1:length(T1)
+            if T1[cc] in T2
+                return false
+            end
+        end
+        return true
+    end
+
+    triangle_order=reshape(1:Lx*Ly,Lx,Ly);
+    list_all_triangles=zeros(Int,Lx*Ly,2);
+    for c1=1:Lx
+        for c2=1:Ly
+            list_all_triangles[triangle_order[c1,c2],1:2]=[c1 c2];
+        end
+    end
+
+    list_triangle_sites=zeros(Int,Lx*Ly,3);
+    for cc=1:Lx*Ly
+        coord=list_all_triangles[cc,:];
+        list_triangle_sites[cc,1:3]=[triangle_order[mod1(coord[1]+1,Lx),coord[2]] triangle_order[coord[1],mod1(coord[2]+1,Ly)] triangle_order[mod1(coord[1]+1,Lx),mod1(coord[2]+1,Ly)]];
+    end
+    
+    triangle_groups=Matrix{Vector}(undef,2+mod(Lx,2),2+mod(Ly,2));
+    for ca=1:size(triangle_groups,1)
+        for cb=1:size(triangle_groups,2)
+            group=Vector{Int64}(undef,0);
+            # push!(group,1);
+            triangle_groups[ca,cb]=group;
+        end
+    end
+    
+    
+    for cc in axes(list_all_triangles,1)
+        px,py=list_all_triangles[cc,:];
+        if (mod(Lx,2)==1)&&(px==Lx)
+            tx=3;
+        else
+            if mod(px,2)==1
+                tx=1;
+            elseif mod(px,2)==0
+                tx=2;
+            end
+        end
+        if (mod(Ly,2)==1)&&(py==Ly)
+            ty=3;
+        else
+            if mod(py,2)==1
+                ty=1;
+            elseif mod(py,2)==0
+                ty=2;
+            end
+        end
+        group=triangle_groups[tx,ty];
+        push!(group,cc);
+        triangle_groups[tx,ty]=group;
+    end
+
+    #verify in each group triangles has no overlap
+    for group in triangle_groups
+        for c1 in eachindex(group)
+            for c2=c1+1:length(group)
+                @assert distant_triangles(list_triangle_sites[group[c1],:],list_triangle_sites[group[c2],:])==true; 
+            end
+        end
+    end
+
+    #verify all triangles are included
+    vec=[];
+    for cc in triangle_groups
+        vec=vcat(vec,cc);
+    end
+    @assert sum(abs.(sort(vec)[:]-Vector(1:Lx*Ly)))<1e-10;
+
+
+    triangle_groups_=Vector{Vector{Tuple}}(undef,length(triangle_groups));
+    for cc in eachindex(triangle_groups)
+        group=triangle_groups[cc];
+        group_=Vector{Tuple}(undef,length(group));
+        for tt in eachindex(group)
+            group_[tt]=(list_all_triangles[group[tt],1],list_all_triangles[group[tt],2],)
+        end
+        triangle_groups_[cc]=group_;
+    end
+
+    return triangle_groups_
+end
+
+
+
+
 function Rank(T::TensorMap)
     return length(domain(T))+length(codomain(T))
 end

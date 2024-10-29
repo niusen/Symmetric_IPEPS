@@ -501,3 +501,47 @@ end
 
 
 
+function itebd_iPESS_Hofstadter_noHam(energy_setting, parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  tau, dt, Dmax, trun_tol)
+    tol=dt*1e-3;#for determining convergence 
+    println("tau, dt="*string([tau,dt]))
+    # println("one step")
+    # println(space(T_u))
+    # println(space(T_d))
+    Lx,Ly=size(Tset);
+
+    
+    lambdaset1_old=deepcopy(lambdaset1);
+    lambdaset2_old=deepcopy(lambdaset2);
+    lambdaset3_old=deepcopy(lambdaset3);
+
+    if energy_setting.model=="Triangle_Hofstadter_Hubbard"
+        @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly)*0;
+    elseif energy_setting.model=="standard_triangle_Hubbard"
+        gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly)*0;
+    elseif energy_setting.model=="spinful_triangle_lattice"
+        gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly)*0;
+    end
+
+    triangle_groups=get_triangles_PBC(Lx,Ly);
+    @show triangle_groups;
+
+    for ct=1:Int(round(tau/abs(dt)))
+        #println("iteration "*string(ct));flush(stdout)
+        Bset, Tset, lambdaset1, lambdaset2, lambdaset3= Hofstadter_triangle_update_iPESS(triangle_groups,Dmax, ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd, trun_tol);
+        err_1=check_convergence(lambdaset1,lambdaset1_old);
+        err_2=check_convergence(lambdaset2,lambdaset2_old);
+        err_3=check_convergence(lambdaset3,lambdaset3_old);
+        er=max(maximum(err_1),maximum(err_2),maximum(err_3));
+        if mod(ct,20)==0
+            println("iteration "*string(ct)*", convergence= "*string(er));flush(stdout)
+        end
+        if er<tol
+            break;
+        end
+        lambdaset1_old=deepcopy(lambdaset1);
+        lambdaset2_old=deepcopy(lambdaset2);
+        lambdaset3_old=deepcopy(lambdaset3);
+    end
+    return Bset, Tset, lambdaset1, lambdaset2, lambdaset3
+end

@@ -29,10 +29,10 @@ include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
 Random.seed!(888)
 
-D=12;
+D=6;
 
 
-filenm="FU_iPESS_LS_D_10_chi_80.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+filenm="SU_iPESS_Z2_csl_D6.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 data=load(filenm);
 Tset=data["T_set"];
 Bset=data["B_set"];

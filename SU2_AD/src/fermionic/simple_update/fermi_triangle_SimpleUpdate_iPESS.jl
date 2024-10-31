@@ -516,11 +516,11 @@ function itebd_iPESS_Hofstadter_noHam(energy_setting, parameters, Bset, Tset, la
 
     if energy_setting.model=="Triangle_Hofstadter_Hubbard"
         @assert mod(Lx,energy_setting.Magnetic_cell)==0;
-        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly)*0;
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="standard_triangle_Hubbard"
-        gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly)*0;
+        gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="spinful_triangle_lattice"
-        gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly)*0;
+        gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
     end
 
     triangle_groups=get_triangles_PBC(Lx,Ly);

@@ -628,10 +628,14 @@ function group_svd_components(U_set,S_set,V_set,spins,VL,VR)
         spin_dim[cs]=length(spin_range[cs])
     end
 
-
-    Vtotal=Rep[SU₂](allspin[1]=>spin_dim[1]);
-    for cs=2:length(allspin)
-        Vtotal=Vtotal⊕ Rep[SU₂](allspin[cs]=>spin_dim[cs]);
+    if typeof(VL)==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+        @assert length(spin_dim)==2
+        Vtotal=Rep[ℤ₂](Int(allspin[1])=>spin_dim[1],Int(allspin[2])=>spin_dim[2]);
+    else
+        Vtotal=Rep[SU₂](allspin[1]=>spin_dim[1]);
+        for cs=2:length(allspin)
+            Vtotal=Vtotal⊕ Rep[SU₂](allspin[cs]=>spin_dim[cs]);
+        end
     end
 
     Um=TensorMap(randn,VL,Vtotal)*(0*im);
@@ -725,37 +729,64 @@ function truncated_svd_method(M,chi,svd_lanczos_tol,construct_double_layer)
 
     
     for cs=1:length(M.data.keys)
-        spin=M.data.keys[cs].j;
-        #println(spin)
-        mm=M.data.values[cs];
-        Random.seed!(1234)
-        vr_init=randn(size(mm,2))+im*randn(size(mm,2));
-        n_keep=min(size(mm,1),size(mm,2),Int(round(chi/(2*spin+1))));
-    
-
-        vr_temp=deepcopy(vr_init);
-        ite_test=4;
-        for cccc=1:ite_test
-            vr_temp=mm*vr_temp;
-            vr_temp=mm'*vr_temp;
-        end
-        norm_coe=norm(vr_temp)/norm(vr_init);
-        norm_coe=norm_coe^(1/ite_test);
-        if norm_coe<1e-14
-            continue;
-        end
-    
-    #@suppress begin
-        S,U,V,info=svdsolve(mm, n_keep,:LR, krylovdim=n_keep*3,tol=svd_lanczos_tol);
-        S_set=vcat(S_set,S);U_set=vcat(U_set,U);V_set=vcat(V_set,V);
-        spins=vcat(spins,spin*ones(length(S)));
-        #@assert info.converged >= minimum([n_eff,dim(full_space,sec)])
+        if typeof(space(M,1))==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+            spin=M.data.keys[cs].n;
+            #println(spin)
+            mm=M.data.values[cs];
+            Random.seed!(1234)
+            vr_init=randn(size(mm,2))+im*randn(size(mm,2));
+            n_keep=min(size(mm,1),size(mm,2),Int(round(chi/(2*spin+1))));
         
-        # if ((S[1]/S_set[1])<1e-16)
-        #     println("truncate at spin= "*string(spin))
-        #     break;
-        # end
-    #end
+    
+            vr_temp=deepcopy(vr_init);
+            ite_test=4;
+            for cccc=1:ite_test
+                vr_temp=mm*vr_temp;
+                vr_temp=mm'*vr_temp;
+            end
+            norm_coe=norm(vr_temp)/norm(vr_init);
+            norm_coe=norm_coe^(1/ite_test);
+            if norm_coe<1e-14
+                continue;
+            end
+        
+            S,U,V,info=svdsolve(mm, n_keep,:LR, krylovdim=n_keep*3,tol=svd_lanczos_tol);
+            S_set=vcat(S_set,S);U_set=vcat(U_set,U);V_set=vcat(V_set,V);
+            spins=vcat(spins,spin*ones(length(S)));
+
+        else
+            spin=M.data.keys[cs].j;
+            #println(spin)
+            mm=M.data.values[cs];
+            Random.seed!(1234)
+            vr_init=randn(size(mm,2))+im*randn(size(mm,2));
+            n_keep=min(size(mm,1),size(mm,2),Int(round(chi/(2*spin+1))));
+        
+
+            vr_temp=deepcopy(vr_init);
+            ite_test=4;
+            for cccc=1:ite_test
+                vr_temp=mm*vr_temp;
+                vr_temp=mm'*vr_temp;
+            end
+            norm_coe=norm(vr_temp)/norm(vr_init);
+            norm_coe=norm_coe^(1/ite_test);
+            if norm_coe<1e-14
+                continue;
+            end
+        
+        #@suppress begin
+            S,U,V,info=svdsolve(mm, n_keep,:LR, krylovdim=n_keep*3,tol=svd_lanczos_tol);
+            S_set=vcat(S_set,S);U_set=vcat(U_set,U);V_set=vcat(V_set,V);
+            spins=vcat(spins,spin*ones(length(S)));
+            #@assert info.converged >= minimum([n_eff,dim(full_space,sec)])
+            
+            # if ((S[1]/S_set[1])<1e-16)
+            #     println("truncate at spin= "*string(spin))
+            #     break;
+            # end
+        #end
+        end
         
         
 

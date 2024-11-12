@@ -1,3 +1,4 @@
+using Distributed
 using Revise, TensorKit, Zygote
 using JLD2,ChainRulesCore,MAT
 using KrylovKit
@@ -20,7 +21,7 @@ include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
 include("..\\..\\src\\bosonic\\optimkit_lib.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell_iPESS.jl")
+include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell_iPESS_speed.jl")
 include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
 include("..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
 include("..\\..\\src\\fermionic\\swap_funs.jl")
@@ -90,7 +91,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU_iPESS_Z2_csl_D4.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="SU_iPESS_SU2_csl_D4.jld2";#"SU_iPESS_Z2_csl_D4.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -132,8 +133,8 @@ multiplet_tol=1e-5;
 projector_trun_tol=LS_ctm_setting.CTM_trun_tol
 ###################################
 global Lx,Ly
-Lx=6;
-Ly=6;
+Lx=2;
+Ly=2;
 @assert mod(Lx,2)==0; #even unitcell in x direction due to the flux
 
 
@@ -182,7 +183,7 @@ println("pid="*string(pid));
 ###########################
 
 
-chi_set=[40 80 120 160];
+chi_set=[100 80 120 160];
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);

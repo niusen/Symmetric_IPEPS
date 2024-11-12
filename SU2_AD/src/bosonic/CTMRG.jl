@@ -666,9 +666,6 @@ function group_svd_components(U_set,S_set,V_set,spins,VL,VR)
         Vm.data.values[cs]=V_block;
         Sm.data.values[cs]=S_block;
     end
-
-
-    
     return Um,Sm,Vm
 end
 
@@ -680,8 +677,6 @@ function truncated_svd_truncate(spins,S_set,chi)
         S_set_dense=vcat(S_set_dense,S_set[cc]*ones(Int(2*spins[cc]+1)));
     end
     sorted=sort(S_set_dense,rev=true);
-
-
 
     if length(sorted)>chi
         value_trun=sorted[chi+1];
@@ -695,13 +690,10 @@ function truncated_svd_truncate(spins,S_set,chi)
         end
     end
 
-
     pos=findall(sorted.>0);
     value_trun=sorted[pos[end]];
     pos=findall(S_set.>value_trun)
-
     return pos
-
 end
 
 
@@ -735,7 +727,7 @@ function truncated_svd_method(M,chi,svd_lanczos_tol,construct_double_layer)
             mm=M.data.values[cs];
             Random.seed!(1234)
             vr_init=randn(size(mm,2))+im*randn(size(mm,2));
-            n_keep=min(size(mm,1),size(mm,2),Int(round(chi/(2*spin+1))));
+            n_keep=min(size(mm,1),size(mm,2),chi);
         
     
             vr_temp=deepcopy(vr_init);
@@ -883,3 +875,222 @@ function _elementwise_mult(a::AbstractTensorMap,b::AbstractTensorMap)
     end
     dst
 end
+
+
+
+function truncate_block_svd(U_set,S_set,V_set,M,chi)
+    # JLDnm="test.jld2";
+    # init___=Dict([("M",M),("chi",chi),("trun_tol",trun_tol)]);
+    # save(JLDnm, "init",init___);
+
+    spins=Vector(undef,0);
+
+
+    #######
+
+    
+    for cs=1:length(M.data.keys)
+        if typeof(space(M,1))==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+            spin=M.data.keys[cs].n;
+            spins=vcat(spins,spin);
+        elseif typeof(space(M,1))==GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}
+            spin=M.data.keys[cs].charge;
+            spins=vcat(spins,spin);
+        elseif typeof(space(M,1))==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+            spin=M.data.keys[cs].j;
+            spins=vcat(spins,spin);
+        elseif typeof(space(M,1))==GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
+            spin=M.data.keys[cs].sectors[2].j;
+            spins=vcat(spins,spin);
+        end
+    end
+    
+    function truncate_S(spins,S_set,chi)
+        S_set_dense=[];
+        for cc=1:length(S_set)
+            for dd=1:length(S_set[cc])
+                if typeof(space(M,1))==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]);
+                elseif typeof(space(M,1))==GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}
+                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]);
+                elseif typeof(space(M,1))==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]*ones(Int(2*spins[cc]+1))*sqrt(Int(2*spins[cc]+1)));#large spin have larger weight
+                elseif typeof(space(M,1))==GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
+                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]*ones(Int(2*spins[cc]+1))*sqrt(Int(2*spins[cc]+1)));#large spin have larger weight
+                end
+            end
+        end
+        sorted=sort(S_set_dense,rev=true);
+    
+        if length(sorted)>chi
+            value_trun=sorted[chi+1];
+        else
+            value_trun=sorted[end];
+        end
+    
+        for cd=1:length(S_set)
+            if typeof(space(M,1))==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+                pos=findall(x->x>value_trun,S_set[cd]);
+            elseif typeof(space(M,1))==GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}
+                pos=findall(x->x>value_trun,S_set[cd]);
+            elseif typeof(space(M,1))==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+                pos=findall(x->x>value_trun,S_set[cd]*sqrt(Int(2*spins[cd]+1)));#large spin have larger weight
+            elseif typeof(space(M,1))==GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
+                pos=findall(x->x>value_trun,S_set[cd]*sqrt(Int(2*spins[cd]+1)));#large spin have larger weight
+            end
+            
+            if length(pos)>0
+                S_set[cd]=S_set[cd][pos];
+            elseif length(pos)==0
+                S_set[cd]=[];
+            end
+        end
+    
+        return S_set
+    end
+    
+    if (length(domain(M))==2)&&(length(codomain(M))==2)
+        VL=space(M,1)*space(M,2);
+        VR=space(M,3)*space(M,4);
+    elseif (length(domain(M))==1)&&(length(codomain(M))==1)
+        VL=space(M,1);
+        VR=space(M,2);
+    end
+
+
+    S_set=truncate_S(spins,S_set,chi);
+    for cc=1:length(spins)
+        dim=length(S_set[cc]);
+        U_set[cc]=U_set[cc][:,1:dim];
+        V_set[cc]=V_set[cc][1:dim,:];
+    end
+
+    block_dims=Vector{Int64}(undef,length(spins));
+    Sector_name=Vector{Sector}(undef,length(spins));
+    for cc=1:length(S_set);
+        block_dims[cc]=length(S_set[cc]);
+        Sector_name[cc]=M.data.keys[cc];
+    end
+    pos=findall(x->x>0,block_dims);
+    U_set=U_set[pos];
+    S_set=S_set[pos];
+    V_set=V_set[pos];
+    spins=spins[pos];
+    Sector_name=Sector_name[pos];
+    
+    
+    function group_components(U_set,S_set,V_set,spins,Sector_name,VL,VR)
+        VL=fuse(VL);
+        VR=fuse(VR);
+
+        spin_dim=deepcopy(spins);
+
+        for cs=1:length(spins)
+            spin_dim[cs]=length(S_set[cs]);
+        end
+
+        if typeof(VL)==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+            @assert length(spin_dim)<=2
+            Vtotal=Rep[ℤ₂](spins[1]=>spin_dim[1]);
+            for cs=2:length(spins)
+                Vtotal=Vtotal⊕ Rep[ℤ₂](spins[cs]=>spin_dim[cs]);
+            end
+            # Vtotal=Rep[ℤ₂](Int(spins[1])=>spin_dim[1],Int(spins[2])=>spin_dim[2]);
+        elseif typeof(space(M,1))==GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}
+            Vtotal=Rep[U₁](spins[1]=>spin_dim[1]);
+            for cs=2:length(spins)
+                Vtotal=Vtotal⊕ Rep[U₁](spins[cs]=>spin_dim[cs]);
+            end
+        elseif typeof(space(M,1))==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+            Vtotal=Rep[SU₂](spins[1]=>spin_dim[1]);
+            for cs=2:length(spins)
+                Vtotal=Vtotal⊕ Rep[SU₂](spins[cs]=>spin_dim[cs]);
+            end
+        elseif typeof(space(M,1))==GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
+            cs=1;
+            Vtotal=Rep[U₁ × SU₂]((Sector_name[cs].sectors[1].charge,spins[cs])=>spin_dim[cs]);
+            for cs=2:length(spins)
+                Vtotal=Vtotal⊕ Rep[U₁ × SU₂]((Sector_name[cs].sectors[1].charge,spins[cs])=>spin_dim[cs]);
+            end
+        end
+
+
+        Um=TensorMap(randn,VL,Vtotal)*(0*im);
+        Vm=TensorMap(randn,Vtotal,VR')*(0*im);
+        Sm=TensorMap(randn,Vtotal,Vtotal)*(0);
+
+        for cs=1:length(spins)
+            Um.data.values[cs]=U_set[cs];
+            Vm.data.values[cs]=V_set[cs];
+            Sm.data.values[cs]=diagm(S_set[cs]);
+        end
+        return Um,Sm,Vm
+    end
+
+
+
+
+
+    Um,Sm,Vm=group_components(U_set,S_set,V_set,spins,Sector_name,VL,VR);
+
+    if (length(domain(M))==2)&&(length(codomain(M))==2)
+        U1=@ignore_derivatives unitary(space(M,1)*space(M,2),space(Um,1));
+        Um=U1*Um;
+        U2=@ignore_derivatives unitary(space(Vm,2)',space(M,3)'*space(M,4)');
+        Vm=Vm*U2;
+    elseif (length(domain(M))==1)&&(length(codomain(M))==1)
+        U1=@ignore_derivatives unitary(space(M,1),space(Um,1));
+        Um=U1*Um;
+        U2=@ignore_derivatives unitary(space(Vm,2)',space(M,2)');
+        Vm=Vm*U2;
+    end
+
+
+    
+    
+    return Um,Sm,Vm, M
+
+end
+
+
+
+
+function verify_truncate_svd()
+    V1=Rep[SU₂](0=>30, 1/2=>15,1=>8,3/2=>8,2=>8);
+    V2=Rep[ℤ₂](0=>25,1=>25);
+    V3=Rep[U₁ × SU₂]((0, 0)=>10, (2, 0)=>10, (1, 1/2)=>5,(2, 1)=>5,(3, 1/2)=>5);
+    V4=Rep[U₁](-1=>10, -2=>20, 1=>10,0=>10,2=>10);
+    V_set=[V1,V2,V3,V4];
+    for cc=1:length(V_set)
+        V=V_set[cc]
+        M=TensorMap(randn,V*V,V*V);
+        # M=TensorMap(randn,V,V);
+
+
+
+        chi=Int(round(dim(V)/2));
+
+        uM1,sM1,vM1 = my_tsvd(M; trunc=truncdim(chi));
+
+
+
+        N_blocks=length(M.data.values);
+        uu_set=Vector{Array}(undef,N_blocks);
+        ss_set=Vector{Array}(undef,N_blocks);
+        vv_set=Vector{Array}(undef,N_blocks);
+        for ccc =1:N_blocks
+            uu,ss,vv = svd(M.data.values[ccc]);
+            vv=vv';
+            uu_set[ccc]=uu;
+            ss_set[ccc]=ss;
+            vv_set[ccc]=vv;
+        end
+        # println(ss_set)
+        uM2,sM2,vM2 = truncate_block_svd(uu_set,ss_set,vv_set,M,chi);
+
+
+        @assert norm(uM1*sM1*vM1-uM2*sM2*vM2)/norm(M)<1e-13;
+        # @show norm(uM1*sM1*vM1-uM2*sM2*vM2)/norm(M)
+    end
+end
+verify_truncate_svd()

@@ -172,8 +172,10 @@ function Fermionic_CTMRG_cell_iPESS(B_set::Matrix,T_set::Matrix,A_cell::Tuple,ch
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
-        for direction in direction_order
-            Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, double_B_cell,double_T_cell, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+        @time begin
+            for direction in direction_order
+                Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, double_B_cell,double_T_cell, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            end
         end
 
         print_corner=false;
@@ -276,6 +278,70 @@ function get_AA_direction(double_B_cell,double_T_cell,direction,pos)
 end
 
 
+function build_corner_MMup(coord_,direction_,double_B_cell_,double_T_cell_,Cset_cell_,Tset_cell_,Lx,Ly)
+    global Lx,Ly
+    Pos=convert_cell_posit(coord_[1],coord_[2],1,1,direction_);
+    AA=get_AA_direction(double_B_cell_,double_T_cell_,direction_,Pos);
+    Pos=convert_cell_posit(coord_[1],coord_[2],0,0,direction_);
+    C1=get_Cset(Cset_cell_[Pos[1]][Pos[2]], mod1(direction_,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],1,0,direction_);
+    T1=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],0,1,direction_);
+    T4=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_-1,4));
+    @tensor MMup_[:]:=C1[1,2]*T1[2,3,-3]*T4[-1,4,1]*AA[4,-2,-4,3];
+    return MMup_
+end
+
+function build_corner_MMlow(coord_,direction_,double_B_cell_,double_T_cell_,Cset_cell_,Tset_cell_,Lx,Ly)
+    global Lx,Ly
+    Pos=convert_cell_posit(coord_[1],coord_[2],1,2,direction_);
+    AA=get_AA_direction(double_B_cell_,double_T_cell_,direction_,Pos);
+    Pos=convert_cell_posit(coord_[1],coord_[2],0,2,direction_);
+    T4=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_-1,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],0,3,direction_);
+    C4=get_Cset(Cset_cell_[Pos[1]][Pos[2]], mod1(direction_-1,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],1,3,direction_);
+    T3=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_-2,4));
+    @tensor MMlow_[:]:=T4[1,3,-1]*AA[3,4,-4,-2]*C4[2,1]*T3[-3,4,2];
+    return MMlow_
+end
+
+
+function build_corner_MMup_reflect(coord_,direction_,double_B_cell_,double_T_cell_,Cset_cell_,Tset_cell_,Lx,Ly)
+    global Lx,Ly
+    Pos=convert_cell_posit(coord_[1],coord_[2],2,1,direction_);
+    AA=get_AA_direction(double_B_cell_,double_T_cell_,direction_,Pos);
+    Pos=convert_cell_posit(coord_[1],coord_[2],2,0,direction_);
+    T1=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],3,0,direction_);
+    C2=get_Cset(Cset_cell_[Pos[1]][Pos[2]], mod1(direction_+1,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],3,1,direction_);
+    T2=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_+1,4));
+    @tensor MMup_reflect_[:]:=T1[-1,3,1]* C2[1,2]* AA[-2,-4,4,3]* T2[2,4,-3];
+    return MMup_reflect_
+end
+
+function build_corner_MMlow_reflect(coord_,direction_,double_B_cell_,double_T_cell_,Cset_cell_,Tset_cell_,Lx,Ly)
+    global Lx,Ly
+    Pos=convert_cell_posit(coord_[1],coord_[2],2,2,direction_);
+    AA=get_AA_direction(double_B_cell_,double_T_cell_,direction_,Pos);
+    Pos=convert_cell_posit(coord_[1],coord_[2],3,2,direction_);
+    T2=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_+1,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],2,3,direction_);
+    T3=get_Tset(Tset_cell_[Pos[1]][Pos[2]], mod1(direction_-2,4));
+    Pos=convert_cell_posit(coord_[1],coord_[2],3,3,direction_);
+    C3=get_Cset(Cset_cell_[Pos[1]][Pos[2]], mod1(direction_-2,4));
+    @tensor MMlow_reflect_[:]:=T2[-4,-3,2]*T3[1,-2,-1]*C3[2,1];
+    @tensor MMlow_reflect_[:]:=MMlow_reflect_[-1,1,2,-3]*AA[-2,1,2,-4];
+    return MMlow_reflect_
+end
+
+
+function append_data(d1,d2)
+    append!(d1,d2)
+    d1
+end
+
 function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,double_T_cell, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer)
     global Lx,Ly
     #println(direction)    
@@ -286,13 +352,17 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
 
     coordinate of C1 tensor: (cx,cy)
     """
-    if direction in [1,3]
-        cx_max=Lx;
-        cy_max=Ly;
-    elseif direction in [2,4]
-        cx_max=Ly;
-        cy_max=Lx;
-    end
+
+    # if (direction==1)|(direction==3)
+    #     cx_max=Lx;
+    #     cy_max=Ly;
+    # elseif (direction==2)|(direction==4)
+    #     cx_max=Ly;
+    #     cy_max=Lx;
+    # end
+    cx_cy_matrix=[Lx Ly;Ly Lx;Lx Ly;Ly Lx];
+    cx_max=cx_cy_matrix[direction,1];
+    cy_max=cx_cy_matrix[direction,2];
 
     for cx=1:cx_max
 
@@ -305,48 +375,37 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
         for cy=1:cy_max
             coord=[cx,cy];
 
-            Pos=convert_cell_posit(coord[1],coord[2],1,1,direction);
-            AA=get_AA_direction(double_B_cell,double_T_cell,direction,Pos);
-            Pos=convert_cell_posit(coord[1],coord[2],0,0,direction);
-            C1=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction,4));
-            Pos=convert_cell_posit(coord[1],coord[2],1,0,direction);
-            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
-            Pos=convert_cell_posit(coord[1],coord[2],0,1,direction);
-            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
-            @tensor MMup[:]:=C1[1,2]*T1[2,3,-3]*T4[-1,4,1]*AA[4,-2,-4,3];
+            ##########################
+            parall_data=[];
+            parall_data=@sync @distributed  (append_data)  for ccc=1:4
+                BLAS.set_num_threads(5);
+                if ccc==1
+                    MM=build_corner_MMup(coord,direction,double_B_cell,double_T_cell,Cset_cell,Tset_cell,Lx,Ly);
+                elseif ccc==2
+                    MM=build_corner_MMlow(coord,direction,double_B_cell,double_T_cell,Cset_cell,Tset_cell,Lx,Ly);
+                elseif ccc==3
+                    MM=build_corner_MMup_reflect(coord,direction,double_B_cell,double_T_cell,Cset_cell,Tset_cell,Lx,Ly);
+                elseif ccc==4
+                    MM=build_corner_MMlow_reflect(coord,direction,double_B_cell,double_T_cell,Cset_cell,Tset_cell,Lx,Ly);
+                end
+                [(myid(), ccc, MM)]
+            end
 
-            Pos=convert_cell_posit(coord[1],coord[2],1,2,direction);
-            AA=get_AA_direction(double_B_cell,double_T_cell,direction,Pos);
-            Pos=convert_cell_posit(coord[1],coord[2],0,2,direction);
-            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
-            Pos=convert_cell_posit(coord[1],coord[2],0,3,direction);
-            C4=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
-            Pos=convert_cell_posit(coord[1],coord[2],1,3,direction);
-            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
-            @tensor MMlow[:]:=T4[1,3,-1]*AA[3,4,-4,-2]*C4[2,1]*T3[-3,4,2];
+            for ccc=1:4
+                if parall_data[ccc][2]==1
+                    MMup=parall_data[ccc][3];
+                elseif parall_data[ccc][2]==2
+                    MMlow=parall_data[ccc][3];
+                elseif parall_data[ccc][2]==3
+                    MMup_reflect=parall_data[ccc][3];
+                elseif parall_data[ccc][2]==4
+                    MMlow_reflect=parall_data[ccc][3];
+                end
+            end
+            parall_data=[];
+            ############################
 
 
-            
-            Pos=convert_cell_posit(coord[1],coord[2],2,1,direction);
-            AA=get_AA_direction(double_B_cell,double_T_cell,direction,Pos);
-            Pos=convert_cell_posit(coord[1],coord[2],2,0,direction);
-            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
-            Pos=convert_cell_posit(coord[1],coord[2],3,0,direction);
-            C2=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
-            Pos=convert_cell_posit(coord[1],coord[2],3,1,direction);
-            T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
-            @tensor MMup_reflect[:]:=T1[-1,3,1]* C2[1,2]* AA[-2,-4,4,3]* T2[2,4,-3];
-
-            Pos=convert_cell_posit(coord[1],coord[2],2,2,direction);
-            AA=get_AA_direction(double_B_cell,double_T_cell,direction,Pos);
-            Pos=convert_cell_posit(coord[1],coord[2],3,2,direction);
-            T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
-            Pos=convert_cell_posit(coord[1],coord[2],2,3,direction);
-            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
-            Pos=convert_cell_posit(coord[1],coord[2],3,3,direction);
-            C3=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
-            @tensor MMlow_reflect[:]:=T2[-4,-3,2]*T3[1,-2,-1]*C3[2,1];
-            @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
 
             MMup=permute(MMup,(1,2,),(3,4,))
 
@@ -379,7 +438,37 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
                 chi_extra=20;
             end
 
-            uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
+            #####################################
+
+
+            # uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
+
+ 
+            N_blocks=length(M.data.values);
+            parall_svd_data=[];
+            parall_svd_data=@sync @distributed (append_data) for ccc =1:N_blocks
+                BLAS.set_num_threads(6);
+                uu,ss,vv = svd(M.data.values[ccc]);
+                vv=vv';
+                [(myid(), ccc, uu,ss,vv)]
+            end
+
+            uu_set=Vector{Array}(undef,N_blocks);
+            ss_set=Vector{Array}(undef,N_blocks);
+            vv_set=Vector{Array}(undef,N_blocks);
+            for ccc=1:N_blocks
+                ind=parall_svd_data[ccc][2];
+                uu_set[ind]=parall_svd_data[ccc][3];
+                ss_set[ind]=parall_svd_data[ccc][4];
+                vv_set[ind]=parall_svd_data[ccc][5];
+            end
+            parall_svd_data=[];
+            uM,sM,vM = truncate_block_svd(uu_set,ss_set,vv_set,M,chi+chi_extra);
+
+            #println(norm(uM*sM*vM-M)/norm(M));
+            #############################################
+        
+
 
             sM_norm=norm(sM);
             sM=sM/sM_norm;
@@ -437,12 +526,13 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
             Pos=convert_cell_posit(coord[1],coord[2],1,3,direction);
             #M7tem_cell[Pos[1]][Pos[2]]=M7tem;
             M7tem_cell=fill_tuple(M7tem_cell, M7tem, Pos[1],Pos[2]);
-
+            
         end
 
 
         for cy=1:cy_max
             coord=[cx,cy];
+
 
             Pos=convert_cell_posit(coord[1],coord[2],1,0,direction);
             #Cset_cell[Pos[1]][Pos[2]][mod1(direction,4)]=M1tem_cell[Pos[1]][Pos[2]];
@@ -461,6 +551,7 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
             Cset_old=Cset_cell[Pos[1]][Pos[2]];
             Cset_new=set_Cset(Cset_old, M7tem_cell[Pos[1]][Pos[2]], mod1(direction-1,4))
             Cset_cell=fill_tuple(Cset_cell, Cset_new, Pos[1],Pos[2]);
+            
         end
     end
     return Cset_cell,Tset_cell

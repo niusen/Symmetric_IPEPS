@@ -364,11 +364,13 @@ function Fermionic_CTMRG_cell(A_cell::Tuple,chi,init,CTM0, ctm_setting)
         direction_order=[3,4,1,2];
         for direction in direction_order
 
-            if ctm_setting.grad_checkpoint #use checkpoint to save memory
-                Cset_cell,Tset_cell= Zygote.checkpointed(CTM_ite_cell, Cset_cell, Tset_cell, get_Tset(AA_rotated_cell, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
-            else
-                Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, get_Tset(AA_rotated_cell, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
-            end
+            # @time begin
+                if ctm_setting.grad_checkpoint #use checkpoint to save memory
+                    Cset_cell,Tset_cell= Zygote.checkpointed(CTM_ite_cell, Cset_cell, Tset_cell, get_Tset(AA_rotated_cell, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                else
+                    Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, get_Tset(AA_rotated_cell, direction), chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                end
+            # end
         end
 
         print_corner=false;

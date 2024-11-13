@@ -172,8 +172,10 @@ function Fermionic_CTMRG_cell_iPESS(B_set::Matrix,T_set::Matrix,A_cell::Tuple,ch
         #direction_order=[1,2,3,4];
         #direction_order=[4,1,2,3];
         direction_order=[3,4,1,2];
-        for direction in direction_order
-            Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, double_B_cell,double_T_cell, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+        @time begin
+            for direction in direction_order
+                Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, double_B_cell,double_T_cell, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            end
         end
 
         print_corner=false;
@@ -481,11 +483,11 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
 
             end
 
-            println("time of tsvd");flush(stdout);
-            @time begin
-            uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
-            println(norm(uM*sM*vM-M)/norm(M));
-            end
+            # println("time of tsvd");flush(stdout);
+            # @time begin
+            # uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
+            # println(norm(uM*sM*vM-M)/norm(M));
+            # end
 
 
 
@@ -500,7 +502,6 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
                 [(myid(), ccc, uu,ss,vv)]
             end
 
-            
             uu_set=Vector{Array}(undef,N_blocks);
             ss_set=Vector{Array}(undef,N_blocks);
             vv_set=Vector{Array}(undef,N_blocks);
@@ -509,14 +510,12 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
                 uu_set[ind]=parall_svd_data[ccc][3];
                 ss_set[ind]=parall_svd_data[ccc][4];
                 vv_set[ind]=parall_svd_data[ccc][5];
-
             end
             parall_svd_data=[];
             uM,sM,vM = truncate_block_svd(uu_set,ss_set,vv_set,M,chi+chi_extra);
 
-            println(norm(uM*sM*vM-M)/norm(M));
+            #println(norm(uM*sM*vM-M)/norm(M));
         end
-
 
 
             sM_norm=norm(sM);

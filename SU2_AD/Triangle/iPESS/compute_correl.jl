@@ -38,19 +38,19 @@ chi=40
 t=1;
 ϕ=pi/2;
 μ=0;
-U=0;
+U=15;
 parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
 
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=50;
+LS_ctm_setting.CTM_ite_nums=30;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
 LS_ctm_setting.conv_check="singular_value";
-LS_ctm_setting.CTM_ite_info=false;
+LS_ctm_setting.CTM_ite_info=true;
 LS_ctm_setting.CTM_conv_info=true;
 LS_ctm_setting.CTM_trun_svd=false;
 LS_ctm_setting.construct_double_layer=true;
@@ -64,7 +64,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="Optim_iPESS_LS_D_4_chi_40.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="stochastic_iPESS_LS_D_8_chi_80_4.05745.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -112,30 +112,44 @@ A_cell=initial_tuple_cell(Lx,Ly);
 for cx=1:Lx
     for cy=1:Ly
         A_cell=fill_tuple(A_cell, iPESS_to_iPEPS(state_vec[cx,cy]).T, cx,cy);
+        # A=A_cell[cx][cy];
+        # AA_,_=build_double_layer_swap(A',A);
+        # println(norm(AA_))
+
     end
 end
 
-###############
-# test for unitcell
-A11=A_cell[1][1];
-A21=A_cell[2][1];
-Vr=space(A11,3);
-Vr1=Vr⊕Rep[SU₂](0=>1)';
-UU=TensorMap(randn,Vr1,Vr);
-@tensor A11[:]:=A11[-1,-2,1,-4,-5]*UU[-3,1];
-@tensor A21[:]:=A21[1,-2,-3,-4,-5]*UU'[1,-1];
-A_cell=fill_tuple(A_cell, A11, 1,1);
-A_cell=fill_tuple(A_cell, A21, 2,1);
+# data=load(optim_setting.init_statenm);
+# x=data["x"];
+# for cx=1:Lx
+#     for cy=1:Ly
+#         A=iPESS_to_iPEPS(x[cx,cy]).T;
+#         AA_,_=build_double_layer_swap(A',A);
+#         println(norm(AA_))
+#     end
+# end
 
-A11=A_cell[1][1];
-A12=A_cell[1][2];
-Vd=space(A11,2);
-Vd1=Vd⊕Rep[SU₂](0=>1)';
-UU=TensorMap(randn,Vd1,Vd);
-@tensor A11[:]:=A11[-1,1,-3,-4,-5]*UU[-2,1];
-@tensor A12[:]:=A12[-1,-2,-3,1,-5]*UU'[1,-4];
-A_cell=fill_tuple(A_cell, A11, 1,1);
-A_cell=fill_tuple(A_cell, A12, 1,2);
+###############
+# # test for unitcell
+# A11=A_cell[1][1];
+# A21=A_cell[2][1];
+# Vr=space(A11,3);
+# Vr1=Vr⊕Rep[SU₂](0=>1)';
+# UU=TensorMap(randn,Vr1,Vr);
+# @tensor A11[:]:=A11[-1,-2,1,-4,-5]*UU[-3,1];
+# @tensor A21[:]:=A21[1,-2,-3,-4,-5]*UU'[1,-1];
+# A_cell=fill_tuple(A_cell, A11, 1,1);
+# A_cell=fill_tuple(A_cell, A21, 2,1);
+
+# A11=A_cell[1][1];
+# A12=A_cell[1][2];
+# Vd=space(A11,2);
+# Vd1=Vd⊕Rep[SU₂](0=>1)';
+# UU=TensorMap(randn,Vd1,Vd);
+# @tensor A11[:]:=A11[-1,1,-3,-4,-5]*UU[-2,1];
+# @tensor A12[:]:=A12[-1,-2,-3,1,-5]*UU'[1,-4];
+# A_cell=fill_tuple(A_cell, A11, 1,1);
+# A_cell=fill_tuple(A_cell, A12, 1,2);
 ###############
 
 
@@ -148,6 +162,10 @@ println(ey_set)
 println(e_diagonala_set)
 println(e0_set)
 println(eU_set)
+
+# jldname="CTM_iPESS_D"*string(D_max_)*"_chi"*string(chi)*".jld2";
+# data=load(jldname);
+# CTM_cell=data["CTM_cell"];
 
 
 

@@ -1,26 +1,130 @@
+function build_MM_LU(Cset,Tset,AA_LU_,cx,cy,Lx,Ly)
+    @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-3]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-1,4,1]*AA_LU_[4,-2,-4,3]; 
+    MM_LU=permute(MM_LU,(1,2,),(3,4,));
+    return MM_LU
+end
+
+function build_MM_RU(Cset,Tset,AA_RU_,cx,cy,Lx,Ly)
+    @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
+    MM_RU=permute(MM_RU,(1,2,),(3,4,));
+    return MM_RU
+end
+function build_MM_LD(Cset,Tset,AA_LD_,cx,cy,Lx,Ly)
+    @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
+    MM_LD=permute(MM_LD,(1,2,),(3,4,));
+    return MM_LD
+end
+function build_MM_RD(Cset,Tset,AA_RD_,cx,cy,Lx,Ly)
+    @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
+    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4]; 
+    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+    return MM_RD
+end
+
+function build_MM_up(MM_LU,MM_RU)
+    up=MM_LU*MM_RU;
+    return up
+end
+
+function build_MM_down(MM_LD,MM_RD)
+    down=MM_LD*MM_RD;
+    return down
+end
 
 function ob_2x2_iPESS(CTM,AA_LU_,AA_RU_,AA_LD_,AA_RD_,cx,cy)
     global Lx,Ly
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-3]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-1,4,1]*AA_LU_[4,-2,-4,3]; 
-    @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
+    parall_data=[];
+    parall_data=@sync @distributed (append_data) for cm=1:4
+        if cm==1
+            MM=build_MM_LU(Cset,Tset,AA_LU_,cx,cy,Lx,Ly);
+        elseif cm==2
+            MM=build_MM_RU(Cset,Tset,AA_RU_,cx,cy,Lx,Ly);
+        elseif cm==3
+            MM=build_MM_LD(Cset,Tset,AA_LD_,cx,cy,Lx,Ly);
+        elseif cm==4
+            MM=build_MM_RD(Cset,Tset,AA_RD_,cx,cy,Lx,Ly);
+        end
+        [(myid(), cm, MM)]
+    end
 
-    @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
-    @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
-    @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4]; 
+    # for cm=1:4
+    #     if parall_data[cm][2]==1
+    #         MM_LU=parall_data[cm][3];
+    #     elseif parall_data[cm][2]==2
+    #         MM_RU=parall_data[cm][3];
+    #     elseif parall_data[cm][2]==3
+    #         MM_LD=parall_data[cm][3];
+    #     elseif parall_data[cm][2]==4
+    #         MM_RD=parall_data[cm][3];
+    #     end
+    # end
 
-    MM_LU=permute(MM_LU,(1,2,),(3,4,));
-    MM_RU=permute(MM_RU,(1,2,),(3,4,));
-    MM_LD=permute(MM_LD,(1,2,),(3,4,));
-    MM_RD=permute(MM_RD,(1,2,),(3,4,));
+    order=[parall_data[1][2],parall_data[2][2],parall_data[3][2],parall_data[4][2]];
+    pos1=findall(x->x==1,order);
+    pos2=findall(x->x==2,order);
+    pos3=findall(x->x==3,order);
+    pos4=findall(x->x==4,order);
+    pos1=pos1[1];
+    pos2=pos2[1];
+    pos3=pos3[1];
+    pos4=pos4[1];
+    # parall_data=[];
+    
+    ################################
+    parall_data_2=[];
+    parall_data_2=@sync @distributed (append_data) for cm=1:2
+        if cm==1
+            MM=build_MM_up(parall_data[pos1][3],parall_data[pos2][3]);
+        elseif cm==2
+            MM=build_MM_down(parall_data[pos3][3],parall_data[pos4][3]);
+        end
+        [(myid(), cm, MM)]
+    end
 
-    up=MM_LU*MM_RU;
-    down=MM_LD*MM_RD;
-    rho=@tensor up[1,2,3,4,]*down[1,2,3,4];
+    # for cm=1:2
+    #     if parall_data_2[cm][2]==1
+    #         up=parall_data_2[cm][3];
+    #     elseif parall_data_2[cm][2]==2
+    #         down=parall_data_2[cm][3];
+    #     end
+    # end
+    parall_data=[];
+    
+    
+    M1=parall_data_2[1][3];
+    M2=parall_data_2[2][3];
+    parall_data_2=[];
+    # rho=@tensor up[1,2,3,4,]*down[1,2,3,4];
+    rho=@tensor M1[1,2,3,4,]*M2[1,2,3,4];
     return rho
 end
+
+
+# function ob_2x2_iPESS(CTM,AA_LU_,AA_RU_,AA_LD_,AA_RD_,cx,cy)
+#     global Lx,Ly
+#     Cset=CTM.Cset;
+#     Tset=CTM.Tset;
+
+#     @tensor MM_LU[:]:=Cset[mod1(cx,Lx)][mod1(cy,Ly)].C1[1,2]*Tset[mod1(cx+1,Lx)][mod1(cy,Ly)].T1[2,3,-3]*Tset[mod1(cx,Lx)][mod1(cy+1,Ly)].T4[-1,4,1]*AA_LU_[4,-2,-4,3]; 
+#     @tensor MM_RU[:]:=Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T1[-1,3,1]* Cset[mod1(cx+3,Lx)][mod1(cy,Ly)].C2[1,2]* AA_RU_[-2,-4,4,3]* Tset[mod1(cx+3,Lx)][mod1(cy+1,Ly)].T2[2,4,-3];
+
+#     @tensor MM_LD[:]:=Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T4[1,3,-2]*AA_LD_[3,4,-5,-3]*Cset[mod1(cx,Lx)][mod1(cy+3,Ly)].C4[2,1]*Tset[mod1(cx+1,Lx)][mod1(cy+3,Ly)].T3[-4,4,2]; 
+#     @tensor MM_RD[:]:=Tset[mod1(cx+3,Lx)][mod1(cy+2,Ly)].T2[-4,-3,2]*Tset[mod1(cx+2,Lx)][mod1(cy+3,Ly)].T3[1,-2,-1]*Cset[mod1(cx+3,Lx)][mod1(cy+3,Ly)].C3[2,1]; 
+#     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*AA_RD_[-2,1,2,-4]; 
+
+#     MM_LU=permute(MM_LU,(1,2,),(3,4,));
+#     MM_RU=permute(MM_RU,(1,2,),(3,4,));
+#     MM_LD=permute(MM_LD,(1,2,),(3,4,));
+#     MM_RD=permute(MM_RD,(1,2,),(3,4,));
+
+#     up=MM_LU*MM_RU;
+#     down=MM_LD*MM_RD;
+#     rho=@tensor up[1,2,3,4,]*down[1,2,3,4];
+#     return rho
+# end
 
 function get_AA_simple(double_B_set,double_T_set,pos)
     @tensor AA[:]:=double_B_set[pos[1]][pos[2]][-1,1,-4]*double_T_set[pos[1]][pos[2]][-2,-3,1];

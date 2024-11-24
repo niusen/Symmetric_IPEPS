@@ -63,17 +63,16 @@ function evaluate_correl(pos,coe,direction, AA_fused, AA_op1, AA_op2, CTM, dista
     
     if direction=="x"
         @tensor va[:]:=Cset[mod1(px-1,Lx)][mod1(py-1,Ly)].C1[1,3]*Tset[mod1(px-1,Lx)][mod1(py,Ly)].T4[2,5,1]*Cset[mod1(px-1,Lx)][mod1(py+1,Ly)].C4[7,2]*Tset[mod1(px,Lx)][mod1(py-1,Ly)].T1[3,4,-1]*AA_op1[mod1(px,Lx)][mod1(py,Ly)][5,6,-2,4]*Tset[mod1(px,Lx)][mod1(py+1,Ly)].T3[-3,6,7];
+        # println([norm(AA_op1[mod1(px,Lx)][mod1(py,Ly)]),norm(va)])
+
         qx=px+1;
         qy=py;
-        # println(" ")
-        # println(space(Tset[mod1(qx,Lx)][mod1(qy-1,Ly)].T1))
-        # println(space(AA_op2[mod1(qx,Lx)][mod1(qy,Ly)]))
-        # println(space(Tset[mod1(qx,Lx)][mod1(qy+1,Ly)].T3))
-        # println(space(Cset[mod1(qx+1,Lx)][mod1(qy-1,Ly)].C2))
-        # println(space(Tset[mod1(qx+1,Lx)][mod1(qy,Ly)].T2))
-        # println(space(Cset[mod1(qx+1,Lx)][mod1(qy+1,Ly)].C3))
         @tensor vb[:]:=Tset[mod1(qx,Lx)][mod1(qy-1,Ly)].T1[-1,4,3]*AA_op2[mod1(qx,Lx)][mod1(qy,Ly)][-2,6,5,4]*Tset[mod1(qx,Lx)][mod1(qy+1,Ly)].T3[7,6,-3]*Cset[mod1(qx+1,Lx)][mod1(qy-1,Ly)].C2[3,1]*Tset[mod1(qx+1,Lx)][mod1(qy,Ly)].T2[1,5,2]*Cset[mod1(qx+1,Lx)][mod1(qy+1,Ly)].C3[2,7];
+        
+        
+
         ov=@tensor va[1,2,3]*vb[1,2,3]
+        # println(norm(ov))
         correl_funs[1]=ov;
         
         for dis=2:distance
@@ -265,25 +264,26 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
                 
 
                 @tensor A1[:]:= A1[-1,-2,-3,-4,1]*Cdag[-6,-5,1]
-                U=unitary(fuse(space(A1,3)⊗space(A1,6)), space(A1,3)⊗space(A1,6)); 
+                U1=unitary(fuse(space(A1,3)⊗space(A1,6)), space(A1,3)⊗space(A1,6)); 
                 gate=parity_gate(A1,1); @tensor A1[:]:=A1[1,-2,-3,-4,-5,-6]*gate[-1,1];
                 gate=parity_gate(A1,2); @tensor A1[:]:=A1[-1,1,-3,-4,-5,-6]*gate[-2,1];
                 #gate=parity_gate(A1,3); @tensor A1[:]:=A1[-1,-2,1,-4,-5,-6]*gate[-3,1];
                 gate=parity_gate(A1,4); @tensor A1[:]:=A1[-1,-2,-3,1,-5,-6]*gate[-4,1];
-                @tensor A1_new[:]:=A1[-1,-2,1,-4,-5,2]*U[-3,1,2];
+                @tensor A1_new[:]:=A1[-1,-2,1,-4,-5,2]*U1[-3,1,2];
                 A1_double,_,_,_,_=build_double_layer_swap(A_cell[ca][cb]',A1_new)
                 AA_CdagC_L_set=fill_tuple(AA_CdagC_L_set, A1_double, ca,cb);
                 
                 O_string=unitary(space(Cdag,1),space(Cdag,1));
                 gate=parity_gate(A_mid,2); @tensor A_mid[:]:=A_mid[-1,1,-3,-4,-5]*gate[-2,1];
-                @tensor A_mid_new[:]:=A_mid[1,-2,3,-4,-5]*O_string[4,2]*U'[1,2,-1]*U[-3,3,4];
+                U2=unitary(fuse(space(A_mid,3)⊗space(A1,6)), space(A_mid,3)⊗space(A1,6)); 
+                @tensor A_mid_new[:]:=A_mid[1,-2,3,-4,-5]*O_string[4,2]*U1'[1,2,-1]*U2[-3,3,4];
                 A_mid_double,_,_,_,_=build_double_layer_swap(A_cell[mod1(ca+1,Lx)][cb]',A_mid_new)
                 AA_CdagC_mid_set=fill_tuple(AA_CdagC_mid_set, A_mid_double, mod1(ca+1,Lx),cb);
     
                 @tensor A2[:]:= A2[-1,-2,-3,-4,1]*C[-6,-5,1]
                 gate=parity_gate(A2,1); @tensor A2[:]:=A2[1,-2,-3,-4,-5,-6]*gate[-1,1];
                 gate=parity_gate(A2,4); @tensor A2[:]:=A2[-1,-2,-3,1,-5,-6]*gate[-4,1];
-                @tensor A2_new[:]:=A2[1,-2,-3,-4,-5,2]*U'[1,2,-1];
+                @tensor A2_new[:]:=A2[1,-2,-3,-4,-5,2]*U2'[1,2,-1];
                 A2_double,_,_,_,_=build_double_layer_swap(A_cell[mod1(ca+2,Lx)][cb]',A2_new)
                 AA_CdagC_R_set=fill_tuple(AA_CdagC_R_set, A2_double, mod1(ca+2,Lx),cb);
             end
@@ -294,12 +294,13 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
     for ca=1:Lx
         for cb=1:Ly
             norms=evaluate_correl([ca,cb],1,"x", AA_cell, AA_cell, AA_cell, CTM_cell, distance);
+            # println(norms)
             norm_coe=(norms[4+Lx]/norms[4])^(1/Lx); #get a rough normalization coefficient to avoid that the number becomes two small
             norms=evaluate_correl([ca,cb],1/norm_coe,"x", AA_cell, AA_cell, AA_cell, CTM_cell, distance);
             Spin_ob=evaluate_correl([ca,cb], 1/norm_coe, "x", AA_spin_mid_set, AA_spin_L_set, AA_spin_R_set, CTM_cell, distance);
             hopping_ob=evaluate_correl([ca,cb], 1/norm_coe, "x", AA_CdagC_mid_set, AA_CdagC_L_set, AA_CdagC_R_set, CTM_cell, distance);
 
-
+            
             Spin_ob=Spin_ob./norms;
             hopping_ob=hopping_ob./norms;
             SS_ob_set[step]=Spin_ob;

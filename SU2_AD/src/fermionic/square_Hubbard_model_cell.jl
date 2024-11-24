@@ -413,6 +413,86 @@ function Operators_spinful_SU2()
     return (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb)
 end
 
+function Operators_spinful_Z2()
+    
+    Vdummy=Rep[ℤ₂](1=>2);
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order: (0,0), (0,1), (1,0), (1,1)
+    
+    Ident=kron(Id,Id);
+    Ident=TensorMap(Ident[[1,4,3,2],[1,4,3,2]],  V  ←  V);
+
+    N_occu=kron(occu,Id)+kron(Id,occu);
+    N_occu=TensorMap(N_occu[[1,4,3,2],[1,4,3,2]],  V ←  V);
+    n_double=kron(occu,occu)
+    n_double=TensorMap(n_double[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+
+    n_hole=kron(Id-occu,Id-occu);
+    n_hole=TensorMap(n_hole[[1,4,3,2],[1,4,3,2]],  V ←  V);
+
+    # method 1
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,Id);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
+    Cdag=TensorMap(Cdagup+Cdagdn,  V ← V ⊗Vdummy);
+    Cdag=permute(Cdag,(3,1,),(2,))
+
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+    C=TensorMap(Cup+Cdn, Vdummy ⊗ V ← V);
+
+
+    CdagupCdagdn=zeros(4,4);
+    CdagupCdagdn[[1,4,3,2],[1,4,3,2]]=kron(sp,sp);
+    CdagupCdagdn=TensorMap(CdagupCdagdn,  V ← V );
+
+    Vdummy0=Rep[ℤ₂](0=>1);
+    Pairinga=zeros(4,4,1);#CdagupCdagdn
+    Pairinga[[1,4,3,2],[1,4,3,2],1]=kron(sp,sp);
+    Pairinga=TensorMap(Pairinga,  V ← V ⊗Vdummy0);
+    Pairinga=permute(Pairinga,(3,1,),(2,))
+
+    Pairingb=zeros(1,4,4);#CupCdn
+    Pairingb[1,[1,4,3,2],[1,4,3,2]]=kron(sm,sm);
+    Pairingb=TensorMap(Pairingb, Vdummy0 ⊗ V ← V);
+
+    #Spin operator
+    Sp=zeros(4,4);
+    Sp[[1,4,3,2],[1,4,3,2]]=kron(sp,sm);
+    Sm=zeros(4,4);
+    Sm[[1,4,3,2],[1,4,3,2]]=kron(sm,sp);
+    Sz=zeros(4,4);
+    Sz[[1,4,3,2],[1,4,3,2]]=kron(occu,Id)/2-kron(Id,occu)/2;
+    @tensor SpSm[:]:=Sp[-1,-2]*Sm[-3,-4];
+    @tensor SmSp[:]:=Sm[-1,-2]*Sp[-3,-4];
+    @tensor SzSz[:]:=Sz[-1,-2]*Sz[-3,-4];
+    SS=SpSm/2+SmSp/2+SzSz;
+    SS=permutedims(SS,(1,3,2,4));#s1's2's1s2
+    SS=TensorMap(SS, V ⊗ V ← V ⊗ V);
+    SS=permute(SS,(1,3,),(2,4,));#V,s1',s1,s2',s2
+    u0,s0,v0=tsvd(SS);
+    
+    P=create_isometry(space(v0,1),Rep[ℤ₂](0=>3))
+    s0=s0*P;
+    v0=P'*v0;
+    @assert norm(u0*s0*v0-SS)<1e-14;
+    Sa=permute(u0*s0,(3,1,),(2,));
+    Sb=permute(v0,(1,2,),(3,));
+
+    return (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb)
+end
+
+
 function special_Hamiltonians_spinful_SU2()
     
 

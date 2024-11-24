@@ -9,7 +9,7 @@ function build_doublelayer_swap_iPESS(B_set,T_set, pos)
     B_double, U_L,U_M,U_U = build_double_layer_swap_Tm(B',B, false);#L M U
     T=T_set[c1,c2];
     T_double, U_D,U_R,U_M = build_double_layer_swap_Bm(T',T, true);#D R M
-    @tensor AA[:]:=B_double[-1,1,-4]*T_double[-2,-3,1];
+    @tensor AA[:]:=B_double[-1,1,-4]*T_double[-2,-3,1];#(L M U),(D R M) =>(L,D,R,U)
     return AA, T_double, B_double, U_L,U_D,U_R,U_U
 end
 

@@ -144,6 +144,7 @@ end
 
 
 function update_x_bond(Tset,λx_set,λy_set, bond_coord,Dmax)
+    coe_total=1;
     Lx,Ly=size(Tset);
     pos1=[Int(bond_coord[1]-0.5),bond_coord[2]];
     pos2=[Int(bond_coord[1]+0.5),bond_coord[2]];
@@ -163,7 +164,7 @@ function update_x_bond(Tset,λx_set,λy_set, bond_coord,Dmax)
     u,s,v=tsvd(permute(bond,(1,2,),(3,4,));trunc=truncdim(Dmax));
     u=u*sqrt(s);
     v=sqrt(s)*v;
-    
+ 
     @tensor TL[:]:=TL_res[-1,-2,-3,1]*u[1,-4,-5];
     @tensor TR[:]:=v[-1,-2,1]*TR_res[1,-3,-4,-5];
 
@@ -171,14 +172,21 @@ function update_x_bond(Tset,λx_set,λy_set, bond_coord,Dmax)
     TR=back_TR(TR);
 
     λ_new=sqrt(s);
-    λ_new=λ_new/norm(λ_new);
+
+
+    λ_new=λ_new/norm(λ_new);#coefficient of normalizing lambda should not be tracked, since the lambda tensor does not enter final state  
     λx_set[Int(bond_coord[1]+0.5),bond_coord[2]]=λ_new;
     ################################
     TL=unprepare_λ_L(TL,pos1[1],pos1[2],λx_set,λy_set);
     TR=unprepare_λ_R(TR,pos2[1],pos2[2],λx_set,λy_set);
 
-    TL=TL/norm(TL);
-    TR=TR/norm(TR);
+    # coe_=norm(TL);
+    # coe_total=coe_total*coe_;
+    # TL=TL/coe_;
+
+    # coe_=norm(TR);
+    # coe_total=coe_total*coe_;
+    # TR=TR/coe_;
 
     # println(space(TL))
     # println(space(TR))
@@ -186,10 +194,11 @@ function update_x_bond(Tset,λx_set,λy_set, bond_coord,Dmax)
     Tset[pos1[1],pos1[2]]=TL;
     Tset[pos2[1],pos2[2]]=TR;
     # println(space(λ_new))
-    return Tset,λx_set,λy_set
+    return Tset,λx_set,λy_set,coe_total
 end
 
 function update_y_bond(Tset,λx_set,λy_set, bond_coord,Dmax)
+    coe_total=1;
     Lx,Ly=size(Tset);
     pos1=[bond_coord[1],Int(bond_coord[2]+0.5)];
     pos2=[bond_coord[1],Int(bond_coord[2]-0.5)];
@@ -214,18 +223,24 @@ function update_y_bond(Tset,λx_set,λy_set, bond_coord,Dmax)
     TD=back_TD(TD);
 
     λ_new=sqrt(s);
-    λ_new=λ_new/norm(λ_new);
+
+    λ_new=λ_new/norm(λ_new);#coefficient of normalizing lambda should not be tracked, since the lambda tensor does not enter final state 
     λy_set[bond_coord[1],Int(bond_coord[2]+0.5)]=λ_new;
     ################################
     TU=unprepare_λ_U(TU,pos1[1],pos1[2],λx_set,λy_set);
     TD=unprepare_λ_D(TD,pos2[1],pos2[2],λx_set,λy_set);
 
-    TU=TU/norm(TU);
-    TD=TD/norm(TD);
+    # coe_=norm(TU);
+    # coe_total=coe_total*coe_;
+    # TU=TU/coe_;
+
+    # coe_=norm(TD);
+    # coe_total=coe_total*coe_;
+    # TD=TD/coe_;
 
     Tset[pos1[1],pos1[2]]=TU;
     Tset[pos2[1],pos2[2]]=TD;
-    return Tset,λx_set,λy_set
+    return Tset,λx_set,λy_set, coe_total
 end
 
 
@@ -234,11 +249,14 @@ function tebd_step(Tset,λx_set,λy_set,Dmax)
     λx_set=deepcopy(λx_set);
     λy_set=deepcopy(λy_set);
 
+    log_coe=0;
+
     #odd x bond
     for bx in Vector(1.5:2:Lx-0.5)
         for by=1:Ly
             # println("bond: "*string((bx,by)))
-            Tset,λx_set,λy_set=update_x_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            Tset,λx_set,λy_set,coe_=update_x_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            log_coe=log_coe+log(coe_);
         end
     end
 
@@ -246,7 +264,8 @@ function tebd_step(Tset,λx_set,λy_set,Dmax)
     for bx in Vector(2.5:2:Lx-0.5)
         for by=1:Ly
             # println("bond: "*string((bx,by)))
-            Tset,λx_set,λy_set=update_x_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            Tset,λx_set,λy_set,coe_=update_x_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            log_coe=log_coe+log(coe_);
         end
     end
 
@@ -254,7 +273,8 @@ function tebd_step(Tset,λx_set,λy_set,Dmax)
     for bx =1:Lx
         for by in Vector(1.5:2:Ly-0.5)
             # println("bond: "*string((bx,by)))
-            Tset,λx_set,λy_set=update_y_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            Tset,λx_set,λy_set,coe_=update_y_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            log_coe=log_coe+log(coe_);
         end
     end
 
@@ -262,19 +282,20 @@ function tebd_step(Tset,λx_set,λy_set,Dmax)
     for bx =1:Lx
         for by in Vector(2.5:2:Ly-0.5)
             # println("bond: "*string((bx,by)))
-            Tset,λx_set,λy_set=update_y_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            Tset,λx_set,λy_set,coe_=update_y_bond(Tset,λx_set,λy_set, (bx,by), Dmax);
+            log_coe=log_coe+log(coe_);
         end
     end
-    return Tset,λx_set,λy_set
+    return Tset,λx_set,λy_set,log_coe
 end
 
-function PEPS_gauge_fix_simple(psi::Matrix{TensorMap},Nstep)
+function PEPS_gauge_fix_simple(psi::finite_PEPS_with_coe,Nstep)
     #use simple tebd to obtain approximate canonical form
-    D0=get_max_dim(psi);
+    D0=get_max_dim(psi.Tset);
 
 
-
-    Tset=deepcopy(psi);
+    log_coe=psi.logcoe;
+    Tset=deepcopy(psi.Tset);
     Lx,Ly=size(Tset);
     λx_set=Matrix{TensorMap}(undef,Lx+1,Ly);
     λy_set=Matrix{TensorMap}(undef,Lx,Ly+1);
@@ -299,7 +320,8 @@ function PEPS_gauge_fix_simple(psi::Matrix{TensorMap},Nstep)
     end
 
     for ite=1:Nstep
-        Tset,λx_set_new,λy_set_new=tebd_step(Tset,λx_set,λy_set,D0);
+        Tset,λx_set_new,λy_set_new,log_coe_=tebd_step(Tset,λx_set,λy_set,D0);
+        log_coe=log_coe+log_coe_;
         errx_set=check_convergence(λx_set_new,λx_set,Lx+1,Ly);
         erry_set=check_convergence(λy_set_new,λy_set,Lx,Ly+1);
         # println(maximum(errx_set))
@@ -311,10 +333,11 @@ function PEPS_gauge_fix_simple(psi::Matrix{TensorMap},Nstep)
         end
     end
 
-
     
 
-    Tset=normalize_tensor_group(Tset);
-    return Tset,λx_set,λy_set
+    psinew=finite_PEPS_with_coe(Tset,log_coe);
+
+    #Tset=normalize_tensor_group(Tset);
+    return psinew,λx_set,λy_set
 end
 

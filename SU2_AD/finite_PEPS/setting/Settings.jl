@@ -50,6 +50,12 @@ Base.@kwdef mutable struct Backward_settings
 end
 
 
+Base.@kwdef mutable struct finite_PEPS_with_coe
+    Tset :: Matrix{TensorMap} 
+    logcoe :: Float64
+end
+
+
 function coordinate_2d_to_1d(L1::Int,L2::Int,pos::Vector{Int})
     px,py=pos;
     return (px-1)*L1+py

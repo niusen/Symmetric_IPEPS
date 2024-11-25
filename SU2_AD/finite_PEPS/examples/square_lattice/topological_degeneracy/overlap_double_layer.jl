@@ -7,7 +7,13 @@ using HDF5, JLD2, MAT
 using Random
 cd(@__DIR__)
 
+include("..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+# include("..\\..\\..\\..\\src\\bosonic\\line_search_lib.jl")
+# include("..\\..\\..\\..\\src\\bosonic\\line_search_lib_cell.jl")
+
 include("..\\..\\..\\setting\\Settings.jl")
+include("..\\..\\..\\optimization\\line_search_lib.jl")
+include("..\\..\\..\\state\\FinitePEPS.jl")
 include("..\\..\\..\\setting\\tuple_methods.jl")
 include("..\\..\\..\\symmetry\\parity_funs.jl")
 include("..\\..\\..\\environment\\AD\\convert_boundary_condition.jl")
@@ -16,6 +22,9 @@ include("..\\..\\..\\environment\\AD\\mps_methods_new.jl")
 include("..\\..\\..\\environment\\AD\\peps_double_layer_methods.jl")
 include("..\\..\\..\\environment\\AD\\peps_double_layer_methods_new.jl")
 include("..\\..\\..\\environment\\AD\\truncations.jl")
+include("..\\..\\..\\environment\\AD\\svd_AD_lib.jl")
+include("..\\..\\..\\environment\\simple_update\\gauge_fix_spin.jl")
+include("..\\..\\..\\environment\\simple_update\\simple_update_lib.jl")
 
 """coordinate
     (1,2),(2,2)
@@ -26,7 +35,9 @@ include("..\\..\\..\\environment\\AD\\truncations.jl")
 global use_AD;
 use_AD=false;
 
-
+global chi,multiplet_tol
+chi=100;
+multiplet_tol=1e-5;
 
 
 svd_settings=Svd_settings();
@@ -90,9 +101,12 @@ psi_0_pi=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi_0_pi));
 psi_pi_0=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi_pi_0));
 psi_pi_pi=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi_pi_pi));
 
+
+#verify whether gauge fix will change energy
 if use_canonical_form
     println("convert to canonical form")
-    psi,_=gauge_fix_simple(psi,100);
+    psi,_=PEPS_gauge_fix_simple(disk_to_torus(psi_0_0),100);
+    psi=remove_trivial_boundary_leg(psi);
 
 end
 

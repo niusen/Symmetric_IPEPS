@@ -105,27 +105,7 @@ function Truncations(uM,sM,vM,bond_dim,trun_tol)
     sM=sM/norm(sM)
     return uM,sM,vM
 end
-function check_convergence(lambdaset,lambdaset_old,Lx,Ly)
-    Lx,Ly=size(lambdaset);
-    err_set=Matrix{Float64}(undef,Lx,Ly);
-    for ca=1:Lx
-        for cb=1:Ly
-            if isassigned(lambdaset_old,ca,cb)
-                es1=convert(Array,lambdaset[ca,cb]);
-                es2=convert(Array,lambdaset_old[ca,cb]);
-                if size(es1)==size(es2)
-                    err_set[ca,cb]=norm(es1-es2);
-                else
-                    err_set[ca,cb]=100;
-                end
-            else
-                err_set[ca,cb]=0;
-            end
-        end
-    end
 
-    return err_set
-end
 
 
 function H_RU_LD_RD(tx,ty,t2,ϕ,U, dt, space_type,Lx)

@@ -39,8 +39,8 @@ include("..\\..\\..\\environment\\MC\\sampling_eliminate_physical_leg.jl")
     (1,1),(2,1)
 """
 
-Lx=8;
-Ly=8;
+Lx=10;
+Ly=10;
 
 #note: when copy a variable, use deepcopy()
 
@@ -50,7 +50,7 @@ global use_AD;
 use_AD=false;
 
 global chi,multiplet_tol
-chi=300;
+chi=600;
 multiplet_tol=1e-5;
 
 
@@ -116,9 +116,9 @@ psi_sample=add_trivial_physical_leg(psi_sample);
 psi_sample=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi_sample));
 psi_sample=remove_trivial_physical_leg(psi_sample);
 
-@time Norm1,trunerr1=norm_2D_simple(psi_sample,chi,multiplet_tol);#contraction 1
+# @time Norm1,trunerr1=norm_2D_simple(psi_sample,chi,multiplet_tol);#contraction 1
 @time Norm2,trunerr2=overlap(psi_sample);#contraction 2
-@show [Norm1,sum(abs.(trunerr1))]
+# @show [Norm1,sum(abs.(trunerr1))]
 @show [Norm2,sum(abs.(trunerr2))]
 
 

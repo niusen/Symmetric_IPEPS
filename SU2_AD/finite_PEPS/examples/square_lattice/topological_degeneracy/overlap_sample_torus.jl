@@ -16,6 +16,7 @@ include("..\\..\\..\\environment\\MC\\svd_AD_lib.jl")
 include("..\\..\\..\\environment\\MC\\density_matrix.jl")
 include("..\\..\\..\\environment\\MC\\density_matrix_new.jl")
 include("..\\..\\..\\environment\\MC\\contract_torus.jl")
+include("..\\..\\..\\environment\\MC\\build_degenerate_states.jl")
 
 include("..\\..\\..\\setting\\Settings.jl")
 include("..\\..\\..\\setting\\tuple_methods.jl")
@@ -96,6 +97,9 @@ for cx=1:Lx
         psi[cx,cy]=A;
     end
 end
+
+psi_00,psi_0pi,psi_pi0,psi_pipi =construct_4_states(psi,Vv);#four states
+#################################
 
 #initial spin config, total sz=0
 config=zeros(Int8,Lx,Ly);

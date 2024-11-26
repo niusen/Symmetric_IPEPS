@@ -53,7 +53,7 @@ global use_AD;
 use_AD=false;
 
 global chi,multiplet_tol
-chi=20;
+chi=40;
 multiplet_tol=1e-5;
 
 

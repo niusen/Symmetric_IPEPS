@@ -116,12 +116,14 @@ psi_sample=shift_pleg(psi_sample);
 
 
 ##############################
-#compute coefficient of wavefunction
 
+#convert to OBC PEPS
 psi_sample=add_trivial_physical_leg(psi_sample);
 psi_sample=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi_sample));
 psi_sample=remove_trivial_physical_leg(psi_sample);
 
+
+#do contraction
 # @time Norm1,trunerr1=norm_2D_simple(psi_sample,chi,multiplet_tol);#contraction 1
 @time Norm2,trunerr2=overlap(psi_sample);#contraction 2
 # @show [Norm1,sum(abs.(trunerr1))]

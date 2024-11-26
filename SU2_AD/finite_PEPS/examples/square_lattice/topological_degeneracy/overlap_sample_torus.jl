@@ -115,7 +115,7 @@ psi_sample=apply_sampling_projector(psi,config);
 psi_sample=shift_pleg(psi_sample);
 
 
-
+#do contraction
 @time Norm,trun_err=contract_whole_torus(psi_sample,chi);
 @show [Norm,sum(abs.(trun_err))]
 # ##############################

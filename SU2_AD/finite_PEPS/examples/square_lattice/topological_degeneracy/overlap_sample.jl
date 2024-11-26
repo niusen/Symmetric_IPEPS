@@ -39,8 +39,8 @@ include("..\\..\\..\\environment\\MC\\sampling_eliminate_physical_leg.jl")
     (1,1),(2,1)
 """
 
-Lx=10;
-Ly=10;
+Lx=4;
+Ly=4;
 
 #note: when copy a variable, use deepcopy()
 

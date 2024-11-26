@@ -118,7 +118,11 @@ function disk_to_torus(psi)
     if sectortype(space(psi[1,1],1)) == Trivial
         Vtrivial=(ℂ^1);
     else
-        Vtrivial=Rep[SU₂](0=>1);
+        if isa(space(psi[1],1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+            Vtrivial=Rep[SU₂](0=>1);
+        elseif isa(space(psi[1],1), GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+            Vtrivial=Rep[U₁](0=>1);
+        end
     end
     Vl=Vtrivial;
     Vd=Vl;

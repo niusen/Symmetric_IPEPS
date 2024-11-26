@@ -31,7 +31,9 @@ function prepare_λ_R(A,px,py,λx_set,λy_set)
     λ2=λy_set[px,py];
     λ3=λx_set[px+1,py];
     λ4=λy_set[px,py+1];
+
     @tensor A[:]:=A[-1,2,3,4,-5]*λ2[2,-2]*λ3[3,-3]*λ4[-4,4];
+    # @tensor A[:]:=A[-1,2,3,4,-5]*λ2[2,-2]*λ3[-3,3]*λ4[-4,4];
     return A
 end
 function unprepare_λ_R(A,px,py,λx_set,λy_set)

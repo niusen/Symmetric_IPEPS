@@ -1,4 +1,4 @@
-function overlap(psi1::Matrix{TensorMap},psi2::Matrix{TensorMap})
+function overlap(psi_double::Matrix)
     function contract_2x2(VL0,VR0,x_range,y_range,mps_top,mps_bot,AA_LU,AA_RU,AA_LD,AA_RD)
         global left_right_env_method;
         if left_right_env_method=="exact"
@@ -25,7 +25,8 @@ function overlap(psi1::Matrix{TensorMap},psi2::Matrix{TensorMap})
         return Norm_
     end
 
-    Lx,Ly=size(psi1);#original cluster size without adding trivial boundary
+    Lx,Ly=size(psi_double);#original cluster size without adding trivial boundary
+
 
     ppx=Int(round(Lx/2));
     ppy=Int(round(Ly/2));
@@ -41,14 +42,9 @@ function overlap(psi1::Matrix{TensorMap},psi2::Matrix{TensorMap})
     end
 
     global n_mps_sweep
-    #disable sweep, otherwise norm_coe is incorrect
+    #disable sweep, otherwise trunerr is quite large, norm_coe is incorrect
     n_mps_sweep=0;
 
-    
-
-
-
-    psi_double=construct_double_layer(psi1,psi2);
 
 
 
@@ -72,7 +68,7 @@ function overlap(psi1::Matrix{TensorMap},psi2::Matrix{TensorMap})
     trun_history=vcat(trun_history,trun_errs);
     for cy=2:ppy-1
         mpo=psi_double[:,cy];
-        mps_bot,trun_errs,norm_coe=Zygote.checkpointed(mpo_mps_fun, mpo, mps_bot);
+        mps_bot,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot);
         mps_bot_set[cy]=mps_bot;
         trun_history=vcat(trun_history,trun_errs);
         norm_coe_set[cy]=norm_coe;
@@ -96,14 +92,14 @@ function overlap(psi1::Matrix{TensorMap},psi2::Matrix{TensorMap})
     norm_coe_set[Ly]=1;
     for cy=Ly-1:-1:ppy+2
         mpo=pi_rotate_mpo(psi_double[:,cy]);
-        mps_top,trun_errs,norm_coe=Zygote.checkpointed(mpo_mps_fun, mpo, mps_top);
+        mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top);
         mps_top_set[cy]=treat_mps_top(mps_top);
         trun_history=vcat(trun_history,trun_errs);
         norm_coe_set[cy]=norm_coe;
     end
     #global trun_history
     #println(trun_history)
-    println(norm_coe_set)
+    # println(norm_coe_set)
     ########################################
     #construct left anf right environment
     VL_set_set=Vector{Any}(undef,Ly);
@@ -174,7 +170,7 @@ function overlap(psi1::Matrix{TensorMap},psi2::Matrix{TensorMap})
 
 
 
-    return norm_coe*Norm
+    return norm_coe*Norm,trun_history
 end
 
 
@@ -282,10 +278,13 @@ function simple_truncate_to_moddle(mpo_set, mps_set)
     @tensor A[:]:=mpo_set[cx-1][-1,2,3,-4]*mps_set[cx-1][-2,1,2]*u[3,1,-3];
     mps_set[cx-1]=A;
     for cx=Lx-1:-1:3
-        u,s,v=my_tsvd(permute(mps_set[cx],(1,2,),(3,4,)); trunc=truncdim(chi+20));
+        T=permute(mps_set[cx],(1,2,),(3,4,))
+        u,s,v=my_tsvd(T; trunc=truncdim(chi+20));
+        # println("aaa")
+        # println(norm(u*s*v-T)/norm(T))
 
-        trun_err=@ignore_derivatives 1-dot(s,s)/dot(mps_set[cx],mps_set[cx]);
-        trun_errs=vcat(trun_errs,trun_err);
+        trun_err=@ignore_derivatives 1-dot(s,s)/dot(T,T);
+        trun_errs=vcat(trun_errs,trun_err);#println(trun_err)
         u=u*s;
         mps_set[cx]=permute(v,(1,2,3,));
 

@@ -8,12 +8,14 @@ using Random
 cd(@__DIR__)
 
 include("..\\..\\..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
+
 include("..\\..\\..\\environment\\MC\\truncations.jl")
 include("..\\..\\..\\environment\\MC\\mps_methods.jl")
 include("..\\..\\..\\environment\\MC\\mps_methods_new.jl")
 include("..\\..\\..\\environment\\MC\\svd_AD_lib.jl")
 include("..\\..\\..\\environment\\MC\\density_matrix.jl")
 include("..\\..\\..\\environment\\MC\\density_matrix_new.jl")
+include("..\\..\\..\\environment\\MC\\contract_torus.jl")
 
 include("..\\..\\..\\setting\\Settings.jl")
 include("..\\..\\..\\setting\\tuple_methods.jl")
@@ -39,8 +41,8 @@ include("..\\..\\..\\environment\\MC\\sampling_eliminate_physical_leg.jl")
     (1,1),(2,1)
 """
 
-Lx=8;
-Ly=8;
+Lx=12;
+Ly=12;
 
 #note: when copy a variable, use deepcopy()
 
@@ -50,7 +52,7 @@ global use_AD;
 use_AD=false;
 
 global chi,multiplet_tol
-chi=600;
+chi=30;
 multiplet_tol=1e-5;
 
 
@@ -109,17 +111,8 @@ psi_sample=apply_sampling_projector(psi,config);
 psi_sample=shift_pleg(psi_sample);
 
 
-##############################
-#compute coefficient of wavefunction
 
-psi_sample=add_trivial_physical_leg(psi_sample);
-psi_sample=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi_sample));
-psi_sample=remove_trivial_physical_leg(psi_sample);
+@time Norm,trun_err=contract_whole_torus(psi_sample,chi);
+@show [Norm,sum(abs.(trun_err))]
+# ##############################
 
-# @time Norm1,trunerr1=norm_2D_simple(psi_sample,chi,multiplet_tol);#contraction 1
-@time Norm2,trunerr2=overlap(psi_sample);#contraction 2
-# @show [Norm1,sum(abs.(trunerr1))]
-@show [Norm2,sum(abs.(trunerr2))]
-
-
-###############

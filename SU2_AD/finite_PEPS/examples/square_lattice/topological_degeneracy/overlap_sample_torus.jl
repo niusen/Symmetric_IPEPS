@@ -42,8 +42,8 @@ include("..\\..\\..\\environment\\MC\\sampling_eliminate_physical_leg.jl")
     (1,1),(2,1)
 """
 
-Lx=12;
-Ly=12;
+Lx=8;
+Ly=8;
 
 #note: when copy a variable, use deepcopy()
 
@@ -53,7 +53,7 @@ global use_AD;
 use_AD=false;
 
 global chi,multiplet_tol
-chi=30;
+chi=20;
 multiplet_tol=1e-5;
 
 

@@ -351,8 +351,8 @@ function itebd_iPESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdase
     lambdaset1_old=deepcopy(lambdaset1);
     lambdaset2_old=deepcopy(lambdaset2);
     lambdaset3_old=deepcopy(lambdaset3);
-
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,0, typeof(space(Bset[1],1)),Lx);
+    gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
+    #gates_ru_ld_rd=gate_RU_LD_RD(parameters,0, typeof(space(Bset[1],1)),Lx);
 
     for ct=1:10000
         println(ct)

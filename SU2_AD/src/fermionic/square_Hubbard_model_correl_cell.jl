@@ -345,5 +345,5 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
         # "allspin_y"=> allspin_y
     ); compress = false)
 
-    return SS_ob_set,CdagC_ob_set
+    return SS_ob_set,CdagC_ob_set,rhorho_ob_set
 end

@@ -1,5 +1,5 @@
 using Revise, TensorKit
-using LinearAlgebra, OptimKit
+using LinearAlgebra:I,diagm
 using TensorKit
 using JSON
 using ChainRulesCore,Zygote

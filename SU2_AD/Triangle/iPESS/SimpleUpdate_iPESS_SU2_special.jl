@@ -46,14 +46,15 @@ import LinearAlgebra.BLAS as BLAS
 # BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()))
 
-D_max=9;
+D_max=8;
 
 t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
 U=15;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+B=0;
+parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
 
 
 
@@ -87,7 +88,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="stochastic_iPESS_LS_D_6_chi_40_4.079_csl.jld2";#"Gutzwiller_stochastic_iPESS_LS_D_6_chi_40_2.3592.jld2";#"nothing";
+optim_setting.init_statenm="stochastic_iPESS_LS_D_8_chi_80_4.07678.jld2";#"Gutzwiller_stochastic_iPESS_LS_D_6_chi_40_2.3592.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -156,29 +157,39 @@ global chi, parameters, energy_setting, grad_ctm_setting
 # end
 
 data=load(optim_setting.init_statenm);
-x=data["x"];
-Lx,Ly=size(x);
-B_set=Matrix{Any}(undef,Lx,Ly);
-T_set=Matrix{Any}(undef,Lx,Ly);
-λ_set1=Matrix{Any}(undef,Lx,Ly);
-λ_set2=Matrix{Any}(undef,Lx,Ly);
-λ_set3=Matrix{Any}(undef,Lx,Ly);
+if haskey(data,"x")
+    x=data["x"];
+    Lx,Ly=size(x);
+    B_set=Matrix{Any}(undef,Lx,Ly);
+    T_set=Matrix{Any}(undef,Lx,Ly);
+    λ_set1=Matrix{Any}(undef,Lx,Ly);
+    λ_set2=Matrix{Any}(undef,Lx,Ly);
+    λ_set3=Matrix{Any}(undef,Lx,Ly);
 
-for ca=1:Lx
-    for cb=1:Ly
-        bm=x[ca,cb].Tm;
-        tm=x[ca,cb].Bm;
-        T_set[ca,cb]=tm;
-        B_set[ca,cb]=bm;
-        t_A=bm;
-        λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
-        λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
-        λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
-        λ_set1[ca,cb]=λ_A_1;
-        λ_set2[ca,cb]=λ_A_2;
-        λ_set3[ca,cb]=λ_A_3;
+    for ca=1:Lx
+        for cb=1:Ly
+            bm=x[ca,cb].Tm;
+            tm=x[ca,cb].Bm;
+            T_set[ca,cb]=tm;
+            B_set[ca,cb]=bm;
+            t_A=bm;
+            λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
+            λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
+            λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+            λ_set1[ca,cb]=λ_A_1;
+            λ_set2[ca,cb]=λ_A_2;
+            λ_set3[ca,cb]=λ_A_3;
+        end
     end
+else
+    B_set=data["B_set"];
+    T_set=data["T_set"];
+    λ_set1=data["λ_set1"];
+    λ_set2=data["λ_set2"];
+    λ_set3=data["λ_set3"];
 end
+
+
 
 
 
@@ -229,9 +240,10 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters,
 
 
 tau=20;
-tau=0.1;
-dt=0.01;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+tau=0.06;
+dt=0.02;
+#B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 # tau=20;
 # dt=0.002;
@@ -251,7 +263,7 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, 
 # println(eU_set)
 
 
-filenm="SU_iPESS_SU2_csl_D"*string(D_max)*".jld2";
+filenm="SU_iPESS_SU2_D"*string(D_max)*".jld2";
 jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 

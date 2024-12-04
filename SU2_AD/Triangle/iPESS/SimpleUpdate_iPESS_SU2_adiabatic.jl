@@ -46,7 +46,7 @@ import LinearAlgebra.BLAS as BLAS
 # BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()))
 
-D_max=9;
+D_max=8;
 
 t1=1;
 t2=1;
@@ -87,7 +87,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="stochastic_iPESS_LS_D_6_chi_40_4.079_csl.jld2";#"Gutzwiller_stochastic_iPESS_LS_D_6_chi_40_2.3592.jld2";#"nothing";
+optim_setting.init_statenm="stochastic_iPESS_LS_D_8_chi_60_4.0297.jld2";#"Gutzwiller_stochastic_iPESS_LS_D_6_chi_40_2.3592.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);

@@ -410,7 +410,22 @@ function Operators_spinful_SU2()
     Sa=permute(u0*s0,(3,1,),(2,));
     Sb=permute(v0,(1,2,),(3,));
 
-    return (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb)
+
+    Sx=(Sp+Sm)/2;
+    Sy=(Sp-Sm)/(2*im);
+    @tensor Hchiral[:]:=Sx[-1,-4]*Sy[-2,-5]*Sz[-3,-6]-Sx[-1,-4]*Sz[-2,-5]*Sy[-3,-6]+Sy[-1,-4]*Sz[-2,-5]*Sx[-3,-6]-Sy[-1,-4]*Sx[-2,-5]*Sz[-3,-6]+Sz[-1,-4]*Sx[-2,-5]*Sy[-3,-6]-Sz[-1,-4]*Sy[-2,-5]*Sx[-3,-6];
+    Hchiral=TensorMap(Hchiral, V ⊗ V ⊗ V ← V ⊗ V ⊗ V);
+    u,s,v=tsvd(permute(Hchiral,(1,4,),(2,3,5,6)); trunc=truncerr(1e-12));
+    chirality_S1=u;
+    S2S3=s*v;
+    u,s,v=tsvd(permute(S2S3,(1,2,4,),(3,5)); trunc=truncerr(1e-12));
+    chirality_S2=u;
+    chirality_S3=s*v;
+    @tensor Hchiral_[:]:=chirality_S1[-1,-4,1]*chirality_S2[1,-2,-5,2]*chirality_S3[2,-3,-6];
+    Hchiral_=permute(Hchiral_,(1,2,3,),(4,5,6,));
+    @assert norm(Hchiral-Hchiral_)/norm(Hchiral)<1e-12;
+
+    return (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3
 end
 
 function Operators_spinful_Z2()
@@ -489,7 +504,21 @@ function Operators_spinful_Z2()
     Sa=permute(u0*s0,(3,1,),(2,));
     Sb=permute(v0,(1,2,),(3,));
 
-    return (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb)
+    Sx=(Sp+Sm)/2;
+    Sy=(Sp-Sm)/(2*im);
+    @tensor Hchiral[:]:=Sx[-1,-4]*Sy[-2,-5]*Sz[-3,-6]-Sx[-1,-4]*Sz[-2,-5]*Sy[-3,-6]+Sy[-1,-4]*Sz[-2,-5]*Sx[-3,-6]-Sy[-1,-4]*Sx[-2,-5]*Sz[-3,-6]+Sz[-1,-4]*Sx[-2,-5]*Sy[-3,-6]-Sz[-1,-4]*Sy[-2,-5]*Sx[-3,-6];
+    Hchiral=TensorMap(Hchiral, V ⊗ V ⊗ V ← V ⊗ V ⊗ V);
+    u,s,v=tsvd(permute(Hchiral,(1,4,),(2,3,5,6)); trunc=truncerr(1e-12));
+    chirality_S1=u;
+    S2S3=s*v;
+    u,s,v=tsvd(permute(S2S3,(1,2,4,),(3,5)); trunc=truncerr(1e-12));
+    chirality_S2=u;
+    chirality_S3=s*v;
+    @tensor Hchiral_[:]:=chirality_S1[-1,-4,1]*chirality_S2[1,-2,-5,2]*chirality_S3[2,-3,-6];
+    Hchiral_=permute(Hchiral_,(1,2,3,),(4,5,6,));
+    @assert norm(Hchiral-Hchiral_)/norm(Hchiral)<1e-12;
+
+    return (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3
 end
 
 
@@ -1077,14 +1106,7 @@ function hopping_diagonala_no_sign(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     # @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-5,1]
     O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
 
-
-
-
-
     A_RD=A_cell[pos_RD[1]][pos_RD[2]];
-
-
-
 
     U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
     U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
@@ -1431,7 +1453,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
             @ignore_derivatives eU_set[cx,cy]=eU;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
 
             cx=2;cy=1;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
@@ -1445,7 +1467,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
             @ignore_derivatives eU_set[cx,cy]=eU;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
             
                 
             
@@ -1479,7 +1501,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
             @ignore_derivatives eU_set[cx,cy]=eU;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
 
             cx=1;cy=2;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
@@ -1492,7 +1514,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
             @ignore_derivatives eU_set[cx,cy]=eU;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
 
             cx=2;cy=1;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
@@ -1505,7 +1527,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
             @ignore_derivatives eU_set[cx,cy]=eU;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
 
             cx=2;cy=2;
             ex=hopping_x(CTM_cell,Cdag_set[mod1(cx+1,Lx)],C_set[mod1(cx+2,Lx)],A_cell,AA_cell,cx,cy,ctm_setting);
@@ -1518,7 +1540,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
             @ignore_derivatives e0_set[cx,cy]=e0;
             @ignore_derivatives eU_set[cx,cy]=eU;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
+            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
              
             
             E_total=E_total/(Lx*Ly);
@@ -1556,9 +1578,9 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
                     @ignore_derivatives e0_set[cx,cy]=e0;
                     @ignore_derivatives eU_set[cx,cy]=eU;
                     if mod(cx,2)==1
-                        E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
+                        E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
                     else
-                        E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
+                        E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU -μ*e0);
                     end
                 end
             end
@@ -1642,8 +1664,8 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
                 @ignore_derivatives e0_set[px,py]=e0;
                 @ignore_derivatives eU_set[px,py]=eU;
 
-                # E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;
-                E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
+                E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;
+                #E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
                 E_total=E_total+real(E_temp+E_temp');
                 
             end
@@ -1654,6 +1676,141 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
 end
 
 
+##########################
+function ob_up_triangle(CTM,S1,S2,S3,A_cell,AA_cell,cx,cy,ctm_setting)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+
+    @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*S1[-5,1,-6]
+    @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*S3[-6,-5,1]
+
+    A_RD=A_cell[pos_RD[1]][pos_RD[2]];
+
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
+    @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
+    @tensor A_RD[:]:=A_RD[1,-2,-3,4,3]*S2[2,-5,3,5]*U1'[1,2,-1]*U2'[4,5,-4];
+
+
+    if ctm_setting.grad_checkpoint
+        AA_LD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+        AA_RD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+    else
+        AA_LD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+        AA_RD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RD[1]][pos_RD[2]]',A_RD);
+    end
+
+    ob=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_RU_double,AA_LD_double,AA_RD_double,cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob        
+end
+
+function ob_dn_triangle(CTM,S1,S2,S3,A_cell,AA_cell,cx,cy,ctm_setting)
+    global Lx,Ly
+    pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+    pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+    pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+    pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+
+    @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*S1[-5,1,-6]
+    @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*S3[-6,-5,1]
+
+    A_LU=A_cell[pos_LU[1]][pos_LU[2]];
+
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,4)⊗space(A_LD,6)), space(A_LD,4)⊗space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,1)⊗space(A_RU,6)), space(A_RU,1)⊗space(A_RU,6)); 
+    @tensor A_LD[:]:=A_LD[-1,-2,-3,1,-5,2]*U1[-4,1,2];
+    @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,2]*U2[-1,1,2];
+    @tensor A_LU[:]:=A_LU[-1,1,4,-4,3]*S2[2,-5,3,5]*U1'[1,2,-2]*U2'[4,5,-3];
+
+
+    if ctm_setting.grad_checkpoint
+        AA_LD_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+        AA_RU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+        AA_LU_double,_,_,_,_=Zygote.checkpointed(build_double_layer_swap, A_cell[pos_LU[1]][pos_LU[2]]',A_LU);
+    else
+        AA_LD_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LD[1]][pos_LD[2]]',A_LD);
+        AA_RU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_RU[1]][pos_RU[2]]',A_RU);
+        AA_LU_double,_,_,_,_=build_double_layer_swap(A_cell[pos_LU[1]][pos_LU[2]]',A_LU);
+    end
+
+    ob=ob_2x2(CTM,AA_LU_double,AA_RU_double,AA_LD_double,AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    Norm=ob_2x2(CTM,AA_cell[pos_LU[1]][pos_LU[2]],AA_cell[pos_RU[1]][pos_RU[2]],AA_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+    ob=ob/Norm;
+    return ob        
+end
+
+function evaluate_spin_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting)
+    """change of coordinate 
+    (1,1)  (2,1)
+    (1,2)  (2,2)
+
+    coordinate of C1 tensor: (cx,cy)
+    """    
+
+    global Lx,Ly
+
+    if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}}) 
+        Hamiltonian_terms=Operators_spinful_Z2;
+    elseif isa(space(A_cell[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        Hamiltonian_terms=Operators_spinful_SU2;
+    end
+
+    (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3 =@ignore_derivatives  Hamiltonian_terms();
+
+    if energy_setting.model=="spinful_triangle_lattice"
+
+        @assert mod(Lx,2)==0
+        #for 120 degree magnetic order in the Hofstadter M2 model. Unit-cell for 120 degree order should be at least 3x3.  
+        
+
+        triangle_up_set=zeros(Lx,Ly)*im;
+        triangle_dn_set=zeros(Lx,Ly)*im;
+
+        SS_x_set=zeros(Lx,Ly)*im;
+        SS_y_set=zeros(Lx,Ly)*im;
+        SS_diagonal_set=zeros(Lx,Ly)*im;
+
+        
+        
+
+        for cx=1:Lx
+            for cy=1:Ly
+                
+                #expectation value for chirality operator
+                up_triangle=ob_up_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,RD,RU
+                dn_triangle=ob_dn_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,LU,RU
+                dn_triangle=-dn_triangle;
+
+                #expectation value for Heisenberg operator
+                SS_x=hopping_x_no_sign(CTM_cell,Sa,Sb,A_cell,AA_cell,cx,cy,ctm_setting);
+                SS_y=hopping_y_no_sign(CTM_cell,Sa,Sb,A_cell,AA_cell,cx,cy,ctm_setting);
+                SS_diagonal=hopping_diagonala_no_sign(CTM_cell,Sa,Sb,A_cell,AA_cell,cx,cy,ctm_setting);
+
+                @ignore_derivatives triangle_up_set[cx,cy]=up_triangle;
+                @ignore_derivatives triangle_dn_set[cx,cy]=dn_triangle;
+                @ignore_derivatives SS_x_set[cx,cy]=SS_x;
+                @ignore_derivatives SS_y_set[cx,cy]=SS_y;
+                @ignore_derivatives SS_diagonal_set[cx,cy]=SS_diagonal;
+
+
+            end
+        end
+
+
+        return triangle_up_set,triangle_dn_set,SS_x_set,SS_y_set,SS_diagonal_set
+        
+    elseif energy_setting.model =="standard_triangle_Hubbard" 
+
+    end
+end
 
 
 

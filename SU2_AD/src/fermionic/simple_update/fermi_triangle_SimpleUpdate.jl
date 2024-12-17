@@ -969,6 +969,7 @@ function gate_RU_LD_RD(energy_setting, parameters,dt, space_type,Lx,Ly)
     ty_coe_set=repeat([1,-1]*t1/2, Int(Lx/2));
     t2_coe_set=repeat([1,-1]*t2/2, Int(Lx/2));
     U_coe=U/6;
+    μ_coe=parameters["μ"]/6;
     B_coe=parameters["B"]/6;
 
     if abs(B_coe)>0
@@ -1031,7 +1032,18 @@ function gate_RU_LD_RD(energy_setting, parameters,dt, space_type,Lx,Ly)
             @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
             hh_U=(hh_LD+hh_RU+hh_RD)*U_coe;
             #################
-            hh=hh_tx+hh_ty+hh_t2+hh_U;
+            OU_LD=N_occu_set[mod1(cy+1,2)];
+            OU_RU=N_occu_set[mod1(cy,2)];
+            OU_RD=N_occu_set[mod1(cy+1,2)];
+            Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
+            Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
+            Id_RD=unitary(space(OU_RD,1),space(OU_RD,1));
+            @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_RD[-2,-5]*Id_RU[-3,-6];
+            @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_RD[-2,-5]*OU_RU[-3,-6];
+            @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
+            hh_μ=(hh_LD+hh_RU+hh_RD)*μ_coe;
+            #################
+            hh=hh_tx+hh_ty+hh_t2+hh_U-hh_μ;
             #################
             if abs(B_coe)>0
                 OU_LD=N_occu_set[mod1(cy+1,2)];

@@ -529,9 +529,9 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
                 @ignore_derivatives e0_set[cx,cy]=e0;
                 @ignore_derivatives eU_set[cx,cy]=eU;
                 if mod(cx,2)==1
-                    E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala')  +U*eU);
+                    E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala') -μ*e0 +U*eU);
                 else
-                    E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala')  +U*eU);
+                    E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala') -μ*e0 +U*eU);
                 end
             end
         end
@@ -615,8 +615,8 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
                 @ignore_derivatives e0_set[px,py]=e0;
                 @ignore_derivatives eU_set[px,py]=eU;
 
-                # E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;
-                E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
+                E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;
+                #E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
                 E_total=E_total+real(E_temp+E_temp');
                 
             end
@@ -669,3 +669,5 @@ function evaluate_spin_cell_iPESS(B_set,T_set, double_B_set, double_T_set, CTM_c
     end 
     return sx_set,sy_set,sz_set
 end
+
+

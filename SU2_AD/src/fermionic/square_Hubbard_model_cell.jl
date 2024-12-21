@@ -1247,9 +1247,9 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
     global Lx,Ly
 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        
         if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard")
             Hamiltonian_terms=Hamiltonians_spinful_Z2;
+            operator_terms=Operators_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
             Hamiltonian_terms=Hamiltonians_spinless_Z2;
         end
@@ -1257,6 +1257,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         Hamiltonian_terms=Hamiltonians_spinless_U1;
     elseif isa(space(A_cell[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
         Hamiltonian_terms=Hamiltonians_spinful_SU2;
+        operator_terms=Operators_spinful_SU2;
     elseif isa(space(A_cell[1][1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
         if mod(energy_setting.Magnetic_cell,2)==1 #odd number of sites in unitcell
             @assert mod(Ly,2)==0;
@@ -1636,16 +1637,22 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
     elseif energy_setting.model =="standard_triangle_Hubbard" 
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+        (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3 =@ignore_derivatives  operator_terms();
+        
         t1=parameters["t1"];
         t2=parameters["t2"];
         μ=parameters["μ"];
         U=parameters["U"];
+        Chi_up_triangle=parameters["Chi_up_triangle"];
+        Chi_dn_triangle=parameters["Chi_dn_triangle"];
 
         ex_set=zeros(Lx,Ly)*im;
         ey_set=zeros(Lx,Ly)*im;
         e_diagonala_set=zeros(Lx,Ly)*im;
         e0_set=zeros(Lx,Ly)*im;
         eU_set=zeros(Lx,Ly)*im;
+        triangle_up_set=zeros(Lx,Ly)*im;
+        triangle_dn_set=zeros(Lx,Ly)*im;
         
         E_total=0;
         for px=1:Lx
@@ -1658,20 +1665,34 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
                 e_diagonala=hopping_diagonala(CTM_cell,Cdag_set[mod1(py+1,2)],C_set[mod1(py,2)],A_cell,AA_cell,cx,cy,ctm_setting);
                 e0=ob_onsite(CTM_cell,N_occu_set[mod1(py,2)],A_cell,AA_cell,cx,cy,ctm_setting);
                 eU=ob_onsite(CTM_cell,n_double_set[mod1(py,2)]-(1/2)*N_occu_set[mod1(py,2)]+(1/4)*Ident_set[mod1(py,2)],A_cell,AA_cell,cx,cy,ctm_setting);
+
+                up_triangle=ob_up_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,RD,RU
+                dn_triangle=-ob_dn_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,LU,RU
+
+
                 @ignore_derivatives ex_set[px,py]=ex;
                 @ignore_derivatives ey_set[px,py]=ey;
                 @ignore_derivatives e_diagonala_set[px,py]=e_diagonala;
                 @ignore_derivatives e0_set[px,py]=e0;
                 @ignore_derivatives eU_set[px,py]=eU;
+                @ignore_derivatives triangle_up_set[px,py]=up_triangle;
+                @ignore_derivatives triangle_dn_set[px,py]=dn_triangle;
 
                 E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;
                 #E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
                 E_total=E_total+real(E_temp+E_temp');
+
+                if abs(Chi_up_triangle)>0
+                    E_total=E_total+Chi_up_triangle*real(up_triangle);
+                end
+                if abs(Chi_dn_triangle)>0
+                    E_total=E_total+Chi_dn_triangle*real(dn_triangle);
+                end
                 
             end
         end 
         E_total=E_total/(Lx*Ly);
-        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
+        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set
     end
 end
 
@@ -1808,6 +1829,45 @@ function evaluate_spin_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm
         return triangle_up_set,triangle_dn_set,SS_x_set,SS_y_set,SS_diagonal_set
         
     elseif energy_setting.model =="standard_triangle_Hubbard" 
+        
+        #for 120 degree magnetic order in the Hofstadter M2 model. Unit-cell for 120 degree order should be at least 3x3.  
+        
+
+        triangle_up_set=zeros(Lx,Ly)*im;
+        triangle_dn_set=zeros(Lx,Ly)*im;
+
+        SS_x_set=zeros(Lx,Ly)*im;
+        SS_y_set=zeros(Lx,Ly)*im;
+        SS_diagonal_set=zeros(Lx,Ly)*im;
+
+        
+        
+
+        for cx=1:Lx
+            for cy=1:Ly
+                
+                #expectation value for chirality operator
+                up_triangle=ob_up_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,RD,RU
+                dn_triangle=-ob_dn_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,LU,RU
+                
+
+                #expectation value for Heisenberg operator
+                SS_x=hopping_x_no_sign(CTM_cell,Sa,Sb,A_cell,AA_cell,cx,cy,ctm_setting);
+                SS_y=hopping_y_no_sign(CTM_cell,Sa,Sb,A_cell,AA_cell,cx,cy,ctm_setting);
+                SS_diagonal=hopping_diagonala_no_sign(CTM_cell,Sa,Sb,A_cell,AA_cell,cx,cy,ctm_setting);
+
+                @ignore_derivatives triangle_up_set[cx,cy]=up_triangle;
+                @ignore_derivatives triangle_dn_set[cx,cy]=dn_triangle;
+                @ignore_derivatives SS_x_set[cx,cy]=SS_x;
+                @ignore_derivatives SS_y_set[cx,cy]=SS_y;
+                @ignore_derivatives SS_diagonal_set[cx,cy]=SS_diagonal;
+
+
+            end
+        end
+
+
+        return triangle_up_set,triangle_dn_set,SS_x_set,SS_y_set,SS_diagonal_set
 
     end
 end

@@ -1,6 +1,6 @@
 function initial_tuple_cell(Lx,Ly)
     if (Lx==1)&(Ly==1)
-        M=(1,);
+        M=((1,),);
     elseif (Lx==2)&(Ly==1)
         M=((1,), (1,));
     elseif (Lx==1)&(Ly==2)
@@ -30,8 +30,7 @@ function fill_tuple(M0,a, cx,cy) #avoid mutating matrix, which is necessary for 
     @assert 1<=cy<=Ly;
 
     global Lx,Ly
-    # if (Lx==1)&(Ly==1)
-    #     M=(a,);
+
 
     # elseif (Lx==2)&(Ly==1)
     #     if (cx==1)&(cy==1)
@@ -112,8 +111,11 @@ function fill_tuple(M0,a, cx,cy) #avoid mutating matrix, which is necessary for 
 
         
     # end
-
-    M=(M0[1:cx-1]...,(M0[cx][1:cy-1]...,a,M0[cx][cy+1:Ly]...,), M0[cx+1:Lx]...);
+    if (Lx==1)&(Ly==1)
+        M=((a,),);
+    else
+        M=(M0[1:cx-1]...,(M0[cx][1:cy-1]...,a,M0[cx][cy+1:Ly]...,), M0[cx+1:Lx]...);
+    end
     return M
 end
 

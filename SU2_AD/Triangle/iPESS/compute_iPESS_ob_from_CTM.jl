@@ -45,7 +45,7 @@ ABABABAB
 CDCDCDCD
 """
 ###########################
-let
+# let
 Random.seed!(888);
 @show workers()
 
@@ -91,7 +91,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU_iPESS_Z2_csl_D4.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="stochastic_iPESS_LS_D_8_chi_80.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -147,17 +147,41 @@ global chi, parameters, energy_setting, grad_ctm_setting
 
 
 if optim_setting.init_statenm=="nothing"
-    Vp=Rep[ℤ₂](0=>2,1=>2);
-    V=Rep[ℤ₂](0=>1,1=>1);
-    B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp);    
+    V=Rep[SU₂](0=>2, 1/2=>1);
+    Vp=Rep[SU₂](0=>2, 1/2=>1);
+    B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp); 
+    # B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS_uniform(Lx,Ly,V,Vp);    
 else
     data=load(optim_setting.init_statenm);
-    T_set=data["T_set"];
-    B_set=data["B_set"];
-    # λ_set1=data["λ_set1"];
-    # λ_set2=data["λ_set2"];
-    # λ_set3=data["λ_set3"];
+    if haskey(data,"T_set")
+        T_set=data["T_set"];
+        B_set=data["B_set"];
+    else
+        state=data["x"];
+        Lx,Ly=size(state);
+        B_set=Matrix{TensorMap}(undef,Lx,Ly);
+        T_set=Matrix{TensorMap}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                B_set[ca,cb]=state[ca,cb].Tm;
+                T_set[ca,cb]=state[ca,cb].Bm;
+                # state_new[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+                # iPESS_to_iPEPS(state_new[ca,cb]);
+            end
+        end
+    end
+
 end
+# if optim_setting.init_statenm=="nothing"
+#     Vp=Rep[ℤ₂](0=>2,1=>2);
+#     V=Rep[ℤ₂](0=>1,1=>1);
+#     B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp);    
+# else
+#     data=load(optim_setting.init_statenm);
+#     T_set=data["T_set"];
+#     B_set=data["B_set"];
+
+# end
 
 
 D_max_=0;
@@ -184,6 +208,7 @@ println("pid="*string(pid));
 
 
 chi_set=[40 80 120 160];
+chi_set=[40];
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
@@ -212,8 +237,8 @@ for cx=1:Lx
 end
 ##########################
 
-
-for cc in eachindex(chi_set)
+cc=1;
+# for cc in eachindex(chi_set)
     chi=chi_set[cc];
     @show chi
 
@@ -236,6 +261,7 @@ for cc in eachindex(chi_set)
         println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
     end
 
+    triangle_up_set,triangle_dn_set,SS_x_set,SS_y_set,SS_diagonal_set=evaluate_spin_ob_cell_iPESS(B_set,T_set, double_B_cell, double_T_cell, CTM_cell, LS_ctm_setting, energy_setting);
 
     filenm_="ob_SU_iPESS_Z2_D"*string(D_max_)*"_chi"*string(chi);
     matwrite(filenm_*".mat", Dict(
@@ -248,7 +274,12 @@ for cc in eachindex(chi_set)
         "sx_set" => sx_set,
         "sy_set" => sy_set,
         "sz_set" => sz_set,
-        "S2" => S2
+        "S2" => S2,
+        "triangle_up_set"=>triangle_up_set,
+        "triangle_dn_set"=>triangle_dn_set,
+        "SS_x_set"=>SS_x_set,
+        "SS_y_set"=>SS_y_set,
+        "SS_diagonal_set"=>SS_diagonal_set
     ); compress = false)
 
 
@@ -257,8 +288,8 @@ for cc in eachindex(chi_set)
 
     init=initial_condition(init_type="PBC", reconstruct_CTM=false, reconstruct_AA=true);
 
-end
+# end
 
 
 
-end
+# end

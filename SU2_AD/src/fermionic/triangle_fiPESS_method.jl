@@ -1,3 +1,16 @@
+function convert_iPESS_to_iPEPS(Bset,Tset)
+    global Lx,Ly
+    
+    A_cell_iPEPS=initial_tuple_cell(Lx,Ly);
+    for ca=1:Lx
+        for cb=1:Ly
+            A_A=iPESS_to_iPEPS(Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]));
+            A_cell_iPEPS=fill_tuple(A_cell_iPEPS, A_A.T, ca,cb);
+        end
+    end
+    return A_cell_iPEPS
+end
+
 function iPEPS_to_iPESS(A::Square_iPEPS)
     T=A.T;
     T=permute(T,(1,4,5,3,2,));#L,U,d,R,D,
@@ -64,6 +77,132 @@ function iPESS_to_iPEPS_matrix(A_set::Matrix{Triangle_iPESS})
         end
     end
     return A_cell
+end
+
+
+function to_C3_symmetric_iPESS(B_set,T_set)
+    B_set=deepcopy(B_set);
+    T_set=deepcopy(T_set);#M,d,R,D
+    Lx,Ly=size(B_set);
+
+    function C3rotate_B(Bm)
+        return permute(Bm,(2,3,1,));
+    end
+    function C3rotate_T(Tm)
+        return permute(Tm,(3,2,4,1,));
+    end
+    for cx=1:Lx
+        for cy=1:Ly
+            Bm=permute(B_set[cx,cy],(1,2,3,));#L,U,M
+            Tm=permute(T_set[cx,cy],(1,2,3,4,));#MdRD
+            @assert space(Bm,1)==space(Bm,2)
+            @assert space(Bm,1)==space(Bm,3)
+            @assert space(Tm,1)==space(Tm,3)
+            @assert space(Tm,1)==space(Tm,4)
+
+            Bm=Bm+C3rotate_B(Bm)+C3rotate_B(C3rotate_B(Bm));
+            Tm=Tm+C3rotate_T(Tm)+C3rotate_T(C3rotate_T(Tm));
+            Bm=permute(Bm,(1,2,),(3,));
+            Tm=permute(Tm,(1,),(2,3,4,));
+
+            B_set[cx,cy]=Bm;
+            T_set[cx,cy]=Tm;
+        end
+    end
+
+    return B_set,T_set
+end
+
+function to_C3_symmetric_fiPESS(B_set,T_set,k)
+    @assert k in (0,1,2,);
+    omega=exp(im*2*pi/3);
+    B_set=deepcopy(B_set);
+    T_set=deepcopy(T_set);#M,d,R,D
+    Lx,Ly=size(B_set);
+
+    function C3rotate_B(Bm)
+        
+        Bm=deepcopy(Bm);#L,U,M
+        Bm=permute_neighbour_ind(Bm,1,2,3);#U,L,M
+        Bm=permute_neighbour_ind(Bm,2,3,3);#U,M,L
+        return Bm
+    end
+    function C3rotate_T(Tm)
+        Tm=deepcopy(Tm);#MdRD
+        Tm=permute_neighbour_ind(Tm,2,3,4);#M,R,d,D
+        Tm=permute_neighbour_ind(Tm,1,2,4);#R,M,d,D
+        Tm=permute_neighbour_ind(Tm,2,3,4);#R,d,M,D
+        Tm=permute_neighbour_ind(Tm,3,4,4);#R,d,D,M
+        return Tm
+    end
+    for cx=1:Lx
+        for cy=1:Ly
+            Bm=permute(B_set[cx,cy],(1,2,3,));#L,U,M
+            Tm=permute(T_set[cx,cy],(1,2,3,4,));#MdRD
+            @assert space(Bm,1)==space(Bm,2)
+            @assert space(Bm,1)==space(Bm,3)
+            @assert space(Tm,1)==space(Tm,3)
+            @assert space(Tm,1)==space(Tm,4)
+
+            Bm=Bm+C3rotate_B(Bm)*(omega^k)+C3rotate_B(C3rotate_B(Bm))*(omega^k)*(omega^k);
+            Tm=Tm+C3rotate_T(Tm)*(omega^k)+C3rotate_T(C3rotate_T(Tm))*(omega^k)*(omega^k);
+            Bm=permute(Bm,(1,2,),(3,));
+            Tm=permute(Tm,(1,),(2,3,4,));
+
+            B_set[cx,cy]=Bm;
+            T_set[cx,cy]=Tm;
+        end
+    end
+
+    return B_set,T_set
+end
+
+
+function inversion_projection_fiPESS(B_set,T_set)
+
+    B_even_set=deepcopy(B_set);
+    B_odd_set=deepcopy(B_set);
+    T_even_set=deepcopy(T_set);#M,d,R,D
+    T_odd_set=deepcopy(T_set);#M,d,R,D
+    Lx,Ly=size(B_set);
+
+    function reflect_B(Bm)
+        
+        Bm=deepcopy(Bm);#L,U,M
+        Bm=permute_neighbour_ind(Bm,1,2,3);#U,L,M
+        return Bm
+    end
+    function reflect_T(Tm)
+        Tm=deepcopy(Tm);#MdRD
+        Tm=permute_neighbour_ind(Tm,3,4,4);#M,d,D,R
+        return Tm
+    end
+    for cx=1:Lx
+        for cy=1:Ly
+            Bm=permute(B_set[cx,cy],(1,2,3,));#L,U,M
+            Tm=permute(T_set[cx,cy],(1,2,3,4,));#MdRD
+            @assert space(Bm,1)==space(Bm,2)
+            @assert space(Bm,1)==space(Bm,3)
+            @assert space(Tm,1)==space(Tm,3)
+            @assert space(Tm,1)==space(Tm,4)
+
+            Bm_even=Bm+reflect_B(Bm);
+            Bm_odd=Bm-reflect_B(Bm);
+            Tm_even=Tm+reflect_T(Tm);
+            Tm_odd=Tm-reflect_T(Tm);
+            Bm_even=permute(Bm_even,(1,2,),(3,));
+            Bm_odd=permute(Bm_odd,(1,2,),(3,));
+            Tm_even=permute(Tm_even,(1,),(2,3,4,));
+            Tm_odd=permute(Tm_odd,(1,),(2,3,4,));
+
+            B_even_set[cx,cy]=Bm_even;
+            B_odd_set[cx,cy]=Bm_odd;
+            T_even_set[cx,cy]=Tm_even;
+            T_odd_set[cx,cy]=Tm_odd;
+        end
+    end
+
+    return B_even_set,B_odd_set,T_even_set,T_odd_set
 end
 
 # function Ham_triangle_RU_LD_RD(parameters, space_type,Lx)

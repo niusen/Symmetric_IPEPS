@@ -401,11 +401,7 @@ function Operators_spinful_SU2()
     SS=permutedims(SS,(1,3,2,4));#s1's2's1s2
     SS=TensorMap(SS, V ⊗ V ← V ⊗ V);
     SS=permute(SS,(1,3,),(2,4,));#V,s1',s1,s2',s2
-    u0,s0,v0=tsvd(SS);
-    
-    P=create_isometry(space(v0,1),Rep[SU₂](1=>1))
-    s0=s0*P;
-    v0=P'*v0;
+    u0,s0,v0=tsvd(SS; trunc=truncerr(1e-12));
     @assert norm(u0*s0*v0-SS)<1e-14;
     Sa=permute(u0*s0,(3,1,),(2,));
     Sb=permute(v0,(1,2,),(3,));
@@ -495,12 +491,9 @@ function Operators_spinful_Z2()
     SS=permutedims(SS,(1,3,2,4));#s1's2's1s2
     SS=TensorMap(SS, V ⊗ V ← V ⊗ V);
     SS=permute(SS,(1,3,),(2,4,));#V,s1',s1,s2',s2
-    u0,s0,v0=tsvd(SS);
-    
-    P=create_isometry(space(v0,1),Rep[ℤ₂](0=>3))
-    s0=s0*P;
-    v0=P'*v0;
+    u0,s0,v0=tsvd(SS; trunc=truncerr(1e-12));
     @assert norm(u0*s0*v0-SS)<1e-14;
+    
     Sa=permute(u0*s0,(3,1,),(2,));
     Sb=permute(v0,(1,2,),(3,));
 
@@ -1247,7 +1240,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
     global Lx,Ly
 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard")
+        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard","standard_triangle_Hubbard_spiral","standard_triangle_Hubbard_Bfield")
             Hamiltonian_terms=Hamiltonians_spinful_Z2;
             operator_terms=Operators_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
@@ -1693,6 +1686,202 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         end 
         E_total=E_total/(Lx*Ly);
         return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set
+
+    elseif energy_setting.model =="standard_triangle_Hubbard_spiral" 
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+        (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3 =@ignore_derivatives  operator_terms();
+        @assert Lx==1;
+        @assert Ly==1;
+
+        t1=parameters["t1"];
+        t2=parameters["t2"];
+        μ=parameters["μ"];
+        U=parameters["U"];
+        J=parameters["J"];
+        # Chi_up_triangle=parameters["Chi_up_triangle"];
+        # Chi_dn_triangle=parameters["Chi_dn_triangle"];
+
+        ex_set=zeros(Lx,Ly)*im;
+        ey_set=zeros(Lx,Ly)*im;
+        e_diagonala_set=zeros(Lx,Ly)*im;
+        e0_set=zeros(Lx,Ly)*im;
+        eU_set=zeros(Lx,Ly)*im;
+        SSx_set=zeros(Lx,Ly)*im;
+        SSy_set=zeros(Lx,Ly)*im;
+        SSdiagonal_set=zeros(Lx,Ly)*im;
+        # triangle_up_set=zeros(Lx,Ly)*im;
+        # triangle_dn_set=zeros(Lx,Ly)*im;
+        
+        E_total=0;
+        px=1;
+        py=1;
+
+        #(cx,cy): coordinate of left-top C1 tensor
+        cx=mod1(px-1,Lx);
+        cy=mod1(py-1,Ly);
+        cdag_origin=Cdag_set[1];
+        c_origin=C_set[1];
+
+        coord_LU=[1,1];
+        coord_LD=[1,2];
+        coord_RD=[2,2];
+        coord_RU=[2,1];
+
+        sx,sy,sz=@ignore_derivatives spin_operator_Z2();
+        sx=sx/2;
+        sy=sy/2;
+        sz=sz/2;
+
+        op_LU=@ignore_derivatives exp(-im*2*pi/3*(coord_LU[1]-coord_LU[2])*sz);
+        op_LD=@ignore_derivatives exp(-im*2*pi/3*(coord_LD[1]-coord_LD[2])*sz);
+        op_RD=@ignore_derivatives exp(-im*2*pi/3*(coord_RD[1]-coord_RD[2])*sz);
+        op_RU=@ignore_derivatives exp(-im*2*pi/3*(coord_RU[1]-coord_RU[2])*sz);
+
+        @tensor Cdag_LU[:]:=op_LU'[-2,1]*cdag_origin[-1,1,2]*op_LU[2,-3];
+        @tensor C_LU[:]:=op_LU'[-2,1]*c_origin[-1,1,2]*op_LU[2,-3];
+        @tensor Sa_LU[:]:=op_LU'[-2,1]*Sa[-1,1,2]*op_LU[2,-3];
+        @tensor Sb_LU[:]:=op_LU'[-2,1]*Sb[-1,1,2]*op_LU[2,-3];
+
+        @tensor Cdag_LD[:]:=op_LD'[-2,1]*cdag_origin[-1,1,2]*op_LD[2,-3];
+        @tensor C_LD[:]:=op_LD'[-2,1]*c_origin[-1,1,2]*op_LD[2,-3];
+        @tensor Sa_LD[:]:=op_LD'[-2,1]*Sa[-1,1,2]*op_LD[2,-3];
+        @tensor Sb_LD[:]:=op_LD'[-2,1]*Sb[-1,1,2]*op_LD[2,-3];
+
+        @tensor Cdag_RD[:]:=op_RD'[-2,1]*cdag_origin[-1,1,2]*op_RD[2,-3];
+        @tensor C_RD[:]:=op_RD'[-2,1]*c_origin[-1,1,2]*op_RD[2,-3];
+        @tensor Sa_RD[:]:=op_RD'[-2,1]*Sa[-1,1,2]*op_RD[2,-3];
+        @tensor Sb_RD[:]:=op_RD'[-2,1]*Sb[-1,1,2]*op_RD[2,-3];
+
+        @tensor Cdag_RU[:]:=op_RU'[-2,1]*cdag_origin[-1,1,2]*op_RU[2,-3];
+        @tensor C_RU[:]:=op_RU'[-2,1]*c_origin[-1,1,2]*op_RU[2,-3];
+        @tensor Sa_RU[:]:=op_RU'[-2,1]*Sa[-1,1,2]*op_RU[2,-3];
+        @tensor Sb_RU[:]:=op_RU'[-2,1]*Sb[-1,1,2]*op_RU[2,-3];
+
+        ex=hopping_x(CTM_cell,Cdag_LU,C_RU,A_cell,AA_cell,cx,cy,ctm_setting);
+        ey=hopping_y(CTM_cell,Cdag_RU,C_RD,A_cell,AA_cell,cx,cy,ctm_setting);
+        e_diagonala=hopping_diagonala(CTM_cell,Cdag_LD,C_RU,A_cell,AA_cell,cx,cy,ctm_setting);
+        e0=ob_onsite(CTM_cell,N_occu_set[1],A_cell,AA_cell,cx,cy,ctm_setting);
+        eU=ob_onsite(CTM_cell,n_double_set[1]-(1/2)*N_occu_set[1]+(1/4)*Ident_set[1],A_cell,AA_cell,cx,cy,ctm_setting);
+
+        # up_triangle=ob_up_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,RD,RU
+        # dn_triangle=-ob_dn_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,LU,RU
+
+        # if abs(J)>0
+            SS_x=hopping_x_no_sign(CTM_cell,Sa_LU,Sb_RU,A_cell,AA_cell,cx,cy,ctm_setting);
+            SS_y=hopping_y_no_sign(CTM_cell,Sa_RU,Sb_RD,A_cell,AA_cell,cx,cy,ctm_setting);
+            SS_diagonal=hopping_diagonala_no_sign(CTM_cell,Sa_LD,Sb_RU,A_cell,AA_cell,cx,cy,ctm_setting);
+        # end
+
+
+        @ignore_derivatives ex_set[cx,cy]=ex;
+        @ignore_derivatives ey_set[cx,cy]=ey;
+        @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
+        @ignore_derivatives e0_set[cx,cy]=e0;
+        @ignore_derivatives eU_set[cx,cy]=eU;
+        @ignore_derivatives SSx_set[cx,cy]=SS_x;
+        @ignore_derivatives SSy_set[cx,cy]=SS_y;
+        @ignore_derivatives SSdiagonal_set[cx,cy]=SS_diagonal;
+        # @ignore_derivatives triangle_up_set[px,py]=up_triangle;
+        # @ignore_derivatives triangle_dn_set[px,py]=dn_triangle;
+
+        E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;  
+        if abs(J)>0
+            E_temp=E_temp +J*(SS_x+SS_y+SS_diagonal)/2;
+        end
+        #E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
+        E_total=E_total+real(E_temp+E_temp');
+
+        # if abs(Chi_up_triangle)>0
+        #     E_total=E_total+Chi_up_triangle*real(up_triangle);
+        # end
+        # if abs(Chi_dn_triangle)>0
+        #     E_total=E_total+Chi_dn_triangle*real(dn_triangle);
+        # end
+                
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set
+
+    elseif energy_setting.model =="standard_triangle_Hubbard_Bfield" 
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+        #(Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3 =@ignore_derivatives  operator_terms();
+        @assert Lx==1;
+        @assert Ly==1;
+
+        t1=parameters["t1"];
+        t2=parameters["t2"];
+        μ=parameters["μ"];
+        U=parameters["U"];
+        Bx=parameters["Bx"];
+        By=parameters["By"];
+        Bz=parameters["Bz"];
+        # Chi_up_triangle=parameters["Chi_up_triangle"];
+        # Chi_dn_triangle=parameters["Chi_dn_triangle"];
+
+        ex_set=zeros(Lx,Ly)*im;
+        ey_set=zeros(Lx,Ly)*im;
+        e_diagonala_set=zeros(Lx,Ly)*im;
+        e0_set=zeros(Lx,Ly)*im;
+        eU_set=zeros(Lx,Ly)*im;
+        em_set=zeros(Lx,Ly)*im;
+        # triangle_up_set=zeros(Lx,Ly)*im;
+        # triangle_dn_set=zeros(Lx,Ly)*im;
+        
+        E_total=0;
+        px=1;
+        py=1;
+
+        #(cx,cy): coordinate of left-top C1 tensor
+        cx=mod1(px-1,Lx);
+        cy=mod1(py-1,Ly);
+        cdag_origin=Cdag_set[1];
+        c_origin=C_set[1];
+
+
+
+        sx,sy,sz=@ignore_derivatives spin_operator_Z2();
+        sx=sx/2;
+        sy=sy/2;
+        sz=sz/2;
+
+        Bfield=sx*Bx+sy*By+sz*Bz;
+
+
+
+
+
+        ex=hopping_x(CTM_cell,cdag_origin,c_origin,A_cell,AA_cell,cx,cy,ctm_setting);
+        ey=hopping_y(CTM_cell,cdag_origin,c_origin,A_cell,AA_cell,cx,cy,ctm_setting);
+        e_diagonala=hopping_diagonala(CTM_cell,cdag_origin,c_origin,A_cell,AA_cell,cx,cy,ctm_setting);
+        e0=ob_onsite(CTM_cell,N_occu_set[1],A_cell,AA_cell,cx,cy,ctm_setting);
+        eU=ob_onsite(CTM_cell,n_double_set[1]-(1/2)*N_occu_set[1]+(1/4)*Ident_set[1],A_cell,AA_cell,cx,cy,ctm_setting);
+        em=ob_onsite(CTM_cell,Bfield,A_cell,AA_cell,cx,cy,ctm_setting);
+
+        # up_triangle=ob_up_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,RD,RU
+        # dn_triangle=-ob_dn_triangle(CTM_cell,chirality_S1,chirality_S2,chirality_S3,A_cell,AA_cell,cx,cy,ctm_setting);#LD,LU,RU
+
+
+        @ignore_derivatives ex_set[px,py]=ex;
+        @ignore_derivatives ey_set[px,py]=ey;
+        @ignore_derivatives e_diagonala_set[px,py]=e_diagonala;
+        @ignore_derivatives e0_set[px,py]=e0;
+        @ignore_derivatives eU_set[px,py]=eU;
+        @ignore_derivatives em_set[px,py]=em;
+        # @ignore_derivatives triangle_up_set[px,py]=up_triangle;
+        # @ignore_derivatives triangle_dn_set[px,py]=dn_triangle;
+
+        E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2 +em/2;
+        #E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
+        E_total=E_total+real(E_temp+E_temp');
+
+        # if abs(Chi_up_triangle)>0
+        #     E_total=E_total+Chi_up_triangle*real(up_triangle);
+        # end
+        # if abs(Chi_dn_triangle)>0
+        #     E_total=E_total+Chi_dn_triangle*real(dn_triangle);
+        # end
+                
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set,em_set
     end
 end
 

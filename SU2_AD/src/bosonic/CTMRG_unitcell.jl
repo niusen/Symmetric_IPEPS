@@ -18,7 +18,18 @@ end
 
 function rotate_AA_cell(AA_fused_cell,construct_double_layer)
     if (Lx==1)&(Ly==1)
-        AA_rotated_cell=rotate_AA(AA_fused_cell[1][1],construct_double_layer); 
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer); 
+
+        direction=1;
+        AA_set1=((AA_11.T1,),);
+        direction=2;
+        AA_set2=((AA_11.T2,),);
+        direction=3;
+        AA_set3=((AA_11.T3,),);
+        direction=4;
+        AA_set4=((AA_11.T4,),);
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
     elseif (Lx==2)&(Ly==1)
         AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
         AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);

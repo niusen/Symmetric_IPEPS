@@ -58,6 +58,37 @@ function fx(x::Matrix{T}) where T<:iPEPS_ansatz
             println("eU_set= "*string(eU_set[:])); flush(stdout);
             println("triangle_up_set= "*string(triangle_up_set[:])); flush(stdout);
             println("triangle_dn_set= "*string(triangle_dn_set[:])); flush(stdout);
+        elseif energy_setting.model == "standard_triangle_Hubbard_spiral";
+            E, ex_set, ey_set, e_diagonal1_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            println("E= "*string(E));flush(stdout);
+            println("ex_set= "*string(ex_set[:])); flush(stdout);
+            println("ey_set= "*string(ey_set[:]));flush(stdout);
+            println("e_diagonal1_set= "*string(e_diagonal1_set[:]));flush(stdout);
+            println("e0_set= "*string(e0_set[:]));flush(stdout);
+            println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
+            println("eU_set= "*string(eU_set[:])); flush(stdout);
+            println("SSx_set= "*string(SSx_set[:])); flush(stdout);
+            println("SSy_set= "*string(SSy_set[:])); flush(stdout);
+            println("SSdiagonal_set= "*string(SSdiagonal_set[:])); flush(stdout);
+        elseif energy_setting.model == "standard_triangle_Hubbard_Bfield";
+            E, ex_set, ey_set, e_diagonal1_set, e0_set, eU_set, em_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            println("E= "*string(E));flush(stdout);
+            println("ex_set= "*string(ex_set[:])); flush(stdout);
+            println("ey_set= "*string(ey_set[:]));flush(stdout);
+            println("e_diagonal1_set= "*string(e_diagonal1_set[:]));flush(stdout);
+            println("e0_set= "*string(e0_set[:]));flush(stdout);
+            println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
+            println("eU_set= "*string(eU_set[:])); flush(stdout);
+            println("em_set= "*string(em_set[:])); flush(stdout);
+        elseif energy_setting.model == "triangle_spin_model_spiral";
+            E, SSx_set, SSy_set, SSdiagonal_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            println("E= "*string(E));flush(stdout);
+            println("SSx_set= "*string(SSx_set[:])); flush(stdout);
+            println("SSy_set= "*string(SSy_set[:])); flush(stdout);
+            println("SSdiagonal_set= "*string(SSdiagonal_set[:])); flush(stdout);
             
         end
     elseif isa(x[1],Square_iPEPS)

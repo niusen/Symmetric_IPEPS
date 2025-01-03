@@ -7,18 +7,7 @@ ABABABAB
 CDCDCDCD
 """
 ###########################
-function convert_iPESS_to_iPEPS(Bset,Tset)
-    global Lx,Ly
-    
-    A_cell_iPEPS=initial_tuple_cell(Lx,Ly);
-    for ca=1:Lx
-        for cb=1:Ly
-            A_A=iPESS_to_iPEPS(Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]));
-            A_cell_iPEPS=fill_tuple(A_cell_iPEPS, A_A.T, ca,cb);
-        end
-    end
-    return A_cell_iPEPS
-end
+
 
 function initial_iPESS_uniform(Lx,Ly,V,Vp)
     Bset=Matrix{Any}(undef,Lx,Ly);

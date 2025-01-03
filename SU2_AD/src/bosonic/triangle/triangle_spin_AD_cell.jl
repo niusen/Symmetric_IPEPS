@@ -18,6 +18,76 @@ function add_noise(A::TensorMap,nois,init_complex_tensor)
     A_new=A+A_noise*nois*norm(A)/norm(A_noise);
     return A_new
 end
+
+function initial_iPESS_Z2(V,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+    Vp=Rep[ℤ₂](1=>2);
+    global Lx,Ly
+
+    if init_statenm=="nothing" 
+        println("Random initial state");flush(stdout);
+        Bset=Matrix{Any}(undef,Lx,Ly);
+        Tset=Matrix{Any}(undef,Lx,Ly);
+        state=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                if init_complex_tensor
+                    BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,))+permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,))*im;
+                    TA=TensorMap(randn,V*V,V')+TensorMap(randn,V*V,V')*im;
+                else
+                    BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,));
+                    TA=TensorMap(randn,V*V,V');
+                end
+                Tset[ca,cb]=BA;
+                Bset[ca,cb]=TA;
+
+                state[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+                iPESS_to_iPEPS(state[ca,cb]);
+            end
+        end
+        return state
+    else
+        println("load iPESS state: "*init_statenm);flush(stdout);
+        state0=load(init_statenm)["x"];
+        
+        V0=space(state0[1].Tm,1);
+        D0=dim(V0);
+        state=deepcopy(state0);
+        if dim(V)==D0
+        elseif dim(V)>D0
+            println("extend bond dimension");
+            for cc in eachindex(state0)
+                if (V0==Rep[ℤ₂](0=>2,1=>2)) & (V==Rep[ℤ₂](0=>3,1=>3))
+                    Bm=state0[cc].Bm;#rank 4
+                    Tm=state0[cc].Tm;#rank 3
+                    bm=convert(Array,Bm);
+                    tm=convert(Array,Tm);
+                    bm_large=zeros(6,dim(Vp),6,6)*im;
+                    tm_large=zeros(6,6,6)*im;
+                    bm_large[[1,2,4,5],:,[1,2,4,5],[1,2,4,5]]=bm;
+                    tm_large[[1,2,4,5],[1,2,4,5],[1,2,4,5]]=tm;
+                    Bm=permute(TensorMap(bm_large,V'*Vp,V*V),(1,),(2,3,4,));
+                    Tm=TensorMap(tm_large,V*V,V');
+                    state0[cc]=Triangle_iPESS(Bm,Tm);
+                    iPESS_to_iPEPS(state0[cc]);
+                end
+            end
+        end
+
+        for cc in eachindex(state0)
+            ansatz=state0[cc];
+            tm=ansatz.Tm;
+            tm=add_noise(tm,init_noise,init_complex_tensor);
+            bm=ansatz.Bm;
+            bm=add_noise(bm,init_noise,init_complex_tensor);
+            ansatz_new=Triangle_iPESS(bm,tm);
+            state[cc]=ansatz_new;
+            println(space(tm))
+        end
+        return state
+    end
+end
+
+
 function initial_iPESS_SU2_SU2(init_statenm="nothing",init_noise=0,init_complex_tensor=false)
     Vp=SU2Space(0=>2,1/2=>1)';
     global Lx,Ly
@@ -118,8 +188,18 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
 
     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init, init_CTM,ctm_setting);
     
+    if energy_setting.model =="triangle_spin_model_spiral"
+        E_total, ex_set, ey_set, e_diagonal_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        E=real(E_total);
 
-    if energy_setting.model =="triangle_SU4_spin"
+        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
+            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
+            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
+        end
+
+        return E, ex_set, ey_set, e_diagonal_set, ite_num,ite_err,CTM_cell
+    elseif energy_setting.model =="triangle_SU4_spin"
         E_total,  ex_set, ey_set, e_diagonal_set, triangle_right_bot_set, triangle_left_top_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
         E=real(E_total);
 

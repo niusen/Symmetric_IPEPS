@@ -56,6 +56,73 @@ function initial_fiPESS_spinful_SU2(init_statenm="nothing",init_noise=0,init_com
         return state
     end
 end
+function initial_fiPESS_spinful_Z2(V,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+    Vp=Rep[ℤ₂](0=>2,1=>2);
+    global Lx,Ly
+
+    if init_statenm=="nothing" 
+        println("Random initial state");flush(stdout);
+        Bset=Matrix{Any}(undef,Lx,Ly);
+        Tset=Matrix{Any}(undef,Lx,Ly);
+        state=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                if init_complex_tensor
+                    BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,))+permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,))*im;
+                    TA=TensorMap(randn,V*V,V')+TensorMap(randn,V*V,V')*im;
+                else
+                    BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,));
+                    TA=TensorMap(randn,V*V,V');
+                end
+                Tset[ca,cb]=BA;
+                Bset[ca,cb]=TA;
+
+                state[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+                iPESS_to_iPEPS(state[ca,cb]);
+            end
+        end
+        return state
+    else
+        println("load iPESS state: "*init_statenm);flush(stdout);
+        state0=load(init_statenm)["x"];
+        
+        V0=space(state0[1].Tm,1);
+        D0=dim(V0);
+        state=deepcopy(state0);
+        if dim(V)==D0
+        elseif dim(V)>D0
+            println("extend bond dimension");
+            for cc in eachindex(state0)
+                if (V0==Rep[ℤ₂](0=>2,1=>2)) & (V==Rep[ℤ₂](0=>3,1=>3))
+                    Bm=state0[cc].Bm;#rank 4
+                    Tm=state0[cc].Tm;#rank 3
+                    bm=convert(Array,Bm);
+                    tm=convert(Array,Tm);
+                    bm_large=zeros(6,dim(Vp),6,6)*im;
+                    tm_large=zeros(6,6,6)*im;
+                    bm_large[[1,2,4,5],:,[1,2,4,5],[1,2,4,5]]=bm;
+                    tm_large[[1,2,4,5],[1,2,4,5],[1,2,4,5]]=tm;
+                    Bm=permute(TensorMap(bm_large,V'*Vp,V*V),(1,),(2,3,4,));
+                    Tm=TensorMap(tm_large,V*V,V');
+                    state0[cc]=Triangle_iPESS(Bm,Tm);
+                    iPESS_to_iPEPS(state0[cc]);
+                end
+            end
+        end
+
+        for cc in eachindex(state0)
+            ansatz=state0[cc];
+            tm=ansatz.Tm;
+            tm=add_noise(tm,init_noise,init_complex_tensor);
+            bm=ansatz.Bm;
+            bm=add_noise(bm,init_noise,init_complex_tensor);
+            ansatz_new=Triangle_iPESS(bm,tm);
+            state[cc]=ansatz_new;
+            println(space(tm))
+        end
+        return state
+    end
+end
 
 function initial_fPEPS_state_SimpleUpdate_U1_SU2(Vphy,init_statenm,init_noise=0,init_complex_tensor=false)
    
@@ -243,6 +310,7 @@ end
 
 function initial_fPEPS_state_spinful_Z2(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
     Vp=Rep[ℤ₂](0=>2,1=>2)';
+    Vv=Vspace;
     global Lx,Ly
     if init_statenm=="nothing" 
         
@@ -274,19 +342,19 @@ function initial_fPEPS_state_spinful_Z2(Vspace,init_statenm="nothing",init_noise
             else
                 println("Extend bond dimension of initial state")
                 
-                if space(A0,1)==Rep[ℤ₂](0=>2,1=>2)
-                    if Vspace==Rep[ℤ₂](0=>3,1=>3)
-                        M=zeros(6,6,6,6,4)*im;
-                        M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    end
-                elseif space(A0,1)==Rep[ℤ₂](0=>3,1=>3)
-                    if Vspace==Rep[ℤ₂](0=>4, 1=>4)
-                        M=zeros(8,8,8,8,4)*im;
-                        M[[1,2,3,5,6,7],[1,2,3,5,6,7],[1,2,3,5,6,7],[1,2,3,5,6,7],:]=convert(Array,A0);
-                        A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
-                    end
-                end
+                # if space(A0,1)==Rep[ℤ₂](0=>2,1=>2)
+                #     if Vspace==Rep[ℤ₂](0=>3,1=>3)
+                #         M=zeros(6,6,6,6,4)*im;
+                #         M[[1,2,4,5],[1,2,4,5],[1,2,4,5],[1,2,4,5],:]=convert(Array,A0);
+                #         A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                #     end
+                # elseif space(A0,1)==Rep[ℤ₂](0=>3,1=>3)
+                #     if Vspace==Rep[ℤ₂](0=>4, 1=>4)
+                #         M=zeros(8,8,8,8,4)*im;
+                #         M[[1,2,3,5,6,7],[1,2,3,5,6,7],[1,2,3,5,6,7],[1,2,3,5,6,7],:]=convert(Array,A0);
+                #         A=TensorMap(M,Vspace*Vspace'*Vspace'*Vspace,Vp);
+                #     end
+                # end
                 A=permute(A,(1,2,3,4,5,));
             end
 
@@ -543,6 +611,34 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         end
 
         return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set, ite_num,ite_err,CTM_cell
+    elseif energy_setting.model == "standard_triangle_Hubbard_spiral"
+        if ctm_setting.grad_checkpoint #use checkpoint to save memory
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set=Zygote.checkpointed(evaluate_ob_cell, parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        else
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        end
+        E=real(E_total);
+
+        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
+            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
+            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
+        end
+        return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set, ite_num,ite_err,CTM_cell
+    elseif energy_setting.model == "standard_triangle_Hubbard_Bfield"
+        if ctm_setting.grad_checkpoint #use checkpoint to save memory
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set,em_set=Zygote.checkpointed(evaluate_ob_cell, parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        else
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set,em_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        end
+        E=real(E_total);
+
+        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
+            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
+            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
+        end
+        return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, em_set, ite_num,ite_err,CTM_cell
     end
 end
 

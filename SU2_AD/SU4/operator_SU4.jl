@@ -9,10 +9,20 @@ using SUNRepresentations
 #https://github.com/QuantumKitHub/SUNRepresentations.jl
 cd(@__DIR__)
 
+SUNRepresentations.cache_info()
+SUNRepresentations.precompute_disk_cache(3)
+for mode in ["weight", "dynkin", "dimension"]
+    SUNRepresentations.display_mode(mode)
+    @show SUNIrrep(2,2,2,0)
+end
 
-Irrep[SU{3}]((2, 1, 0))
+SUNIrrep{3}("3")
+SUNIrrep{3}("3⁺")
 
-V0=Irrep[SU{4}]((1,0, 0,0))
+Rep[SU{3}]((2, 1, 0)=>1)
+#Rep[SU{3}]((a, b, c)=>1): it seems a,b,c corresponds to number of boxes in row 1,2,3 of Young-tableaux.
+
+V0=Rep[SU{4}]((1,0, 0,0)=>1)
 
 #SU(4) P_{ij} operator
 P_ij=zeros(4,4,4,4);#d1',d2',d1,d2

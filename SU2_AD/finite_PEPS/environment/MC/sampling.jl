@@ -1,3 +1,14 @@
+function load_fPEPS(Lx,Ly,filenm)
+    data=load(filenm*".jld2");
+    psi0=data["psi"];
+    @assert Lx==size(psi0,1);
+    @assert Ly==size(psi0,2);
+    psi=Matrix{TensorMap}(undef,Lx,Ly);
+    psi[:]=psi0[:];
+    Vp=space(psi[2,2],5);
+    return psi,Vp
+end
+
 function generate_obc_from_iPEPS(A,Lx,Ly)
 
     

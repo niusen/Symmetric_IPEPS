@@ -13,7 +13,7 @@ using BenchmarkTools
 using Profile
 # using ProfileView
 cd(@__DIR__)
-include("sq_constants.jl")
+
 
 
 include("../../../../state/iPEPS_ansatz.jl")
@@ -25,6 +25,11 @@ include("../../../../setting/tuple_methods.jl")
 include("../../../../environment/MC/contract_disk.jl")
 include("../../../../environment/MC/sampling.jl")
 
+const Lx = 6      # number of sites along x / number of columns in the lattice
+const Ly = 6      # number of sites along y / number of rows in the lattice
+
+
+include("sq_constants.jl")
 
 ####################
 #use single core
@@ -84,6 +89,18 @@ end
 
 
 function main()
+    #load saved fPEPS data
+    D=2;#bond dimension of state
+    chi=10;#bond dimension of environment
+
+    filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
+    psi,Vp=load_fPEPS(Lx,Ly,filenm);
+    
+    normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
+    
+    
+    contract_fun=contract_whole_disk;
+    ##########################################
 
     coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours(Lx,Ly,"OBC");
     # neighbor_file = "Neighbor_matrix/all_nearest_neighbors_$(Lx)x$(Ly).jld2"
@@ -101,8 +118,8 @@ function main()
     KEL = zeros(Int, L, N)  # Initialize KEL as a matrix of integers
 
     #######################
-    W_prime = zeros(Complex{Float64}, L, L_N)
-    W_oneflavor = zeros(Complex{Float64}, L, L_N)
+    # W_prime = zeros(Complex{Float64}, L, L_N)
+    # W_oneflavor = zeros(Complex{Float64}, L, L_N)
     #######################
 
 
@@ -119,13 +136,13 @@ function main()
     #display(KEL)
     #display(initial_iconf)
 
-    redU = U[1:L, 1:(L_N)]
+    # redU = U[1:L, 1:(L_N)]
 
 
     W = zeros(Complex{Float64}, L,L)
     println(typeof(W))
 
-    ftW!(redU, KEL, W)
+    # ftW!(redU, KEL, W)
 
     # Initialize variables
     iconf_new = copy(initial_iconf)
@@ -143,7 +160,7 @@ function main()
         @inbounds for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
             @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
                 randl = rand(1:L)  # Picking a site at random; "l"
-                rand2 = rand(1:length(NN_tuple[rand1]))  # Picking randomly one of the 4 neighbors
+                rand2 = rand(1:length(NN_tuple[randl]))  # Picking randomly one of the 4 neighbors
                 randK = NN_tuple[randl][rand2]  # Picking a neighbor at random to which electron wants to hop; "K"
 
                 amplitude,_=contract_sample(psi,Lx,Ly,iconf_new,Vp,contract_fun);

@@ -5,11 +5,11 @@ using Distributions
 # Constants related to the lattice
 # const fnn = 4           # number of first nearest neighbors
 # const snn = 4           # number of second nearest neighbors
-const Ly = 6      # number of sites along y / number of rows in the lattice
-const Lx = 6      # number of sites along x / number of columns in the lattice
+# const Ly = 6      # number of sites along y / number of rows in the lattice
+# const Lx = 6      # number of sites along x / number of columns in the lattice
 const L = Lx * Ly # total number of lattice sites
 const N = 2             # SU(N); number of spin flavors
-const L_N = L ÷ N
+# const L_N = L ÷ N
 const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
 const J = 1.0           # Coupling constant
 const t1 = 1.00         # Nearest neighbor hopping

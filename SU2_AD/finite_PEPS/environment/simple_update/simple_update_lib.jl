@@ -87,23 +87,27 @@ function initial_tensor(Lx,Ly,d,D)
     for ca=1:Lx
         for cb=1:Ly
             vr=space(T_set[ca,cb],1);
-            lambdax_set[ca,cb]=unitary(vr,vr);
+            # lambdax_set[ca,cb]=unitary(vr,vr);
+            lambdax_set[ca,cb]=DiagonalTensorMap(ones(dim(vr)),vr)
 
             vd=space(T_set[ca,cb],2);
-            lambday_set[ca,cb]=unitary(vd',vd');
+            # lambday_set[ca,cb]=unitary(vd',vd');
+            lambday_set[ca,cb]=DiagonalTensorMap(ones(dim(vd')),vd');
         end
     end
 
     ca=Lx+1;
     for cb=1:Ly
         vr=space(T_set[ca-1,cb],3);
-        lambdax_set[ca,cb]=unitary(vr',vr');
+        # lambdax_set[ca,cb]=unitary(vr',vr');
+        lambdax_set[ca,cb]=DiagonalTensorMap(ones(dim(vr')),vr');
     end
 
     cb=Ly+1;
     for ca=1:Lx
         vd=space(T_set[ca,cb-1],4);
-        lambday_set[ca,cb]=unitary(vd,vd);
+        # lambday_set[ca,cb]=unitary(vd,vd);
+        lambday_set[ca,cb]=DiagonalTensorMap(ones(dim(vd)),vd);
     end
 
     return T_set,lambdax_set,lambday_set
@@ -178,12 +182,12 @@ function tebd_xbond(Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     @tensor T1[:]:=T1_left[-1,-2,-4,1]*T1_keep[1,-5,-3];#L1,D1,U1,newbond1    newbond1,d1,R1
     @tensor T2[:]:=T2_keep[-1,1,-5]*T2_left[1,-2,-3,-4];#L2,newbond2,d2,     newbond2,D2,R2,U2 
     
-    λ1_inv=my_pinv(λ1);
-    λ2_inv=my_pinv(λ2);
-    λ3_inv=my_pinv(λ3);
-    λ4_inv=my_pinv(λ4);
-    λ5_inv=my_pinv(λ5);
-    λ6_inv=my_pinv(λ6);
+    λ1_inv=mypinv(λ1);
+    λ2_inv=mypinv(λ2);
+    λ3_inv=mypinv(λ3);
+    λ4_inv=mypinv(λ4);
+    λ5_inv=mypinv(λ5);
+    λ6_inv=mypinv(λ6);
     @tensor T1[:]:=T1[1,2,-3,3,-5]*λ1_inv[-1,1]*λ2_inv[2,-2]*λ3_inv[-4,3];
     @tensor T2[:]:=T2[-1,1,2,3,-5]*λ4_inv[1,-2]*λ5_inv[2,-3]*λ6_inv[-4,3];
 
@@ -229,12 +233,12 @@ function tebd_ybond(Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     @tensor T1[:]:=T1_left[-1,-3,-4,1]*T1_keep[1,-5,-2];#L1,R1,U1,newbond1,    newbond1,d1,D1
     @tensor T2[:]:=T2_keep[-4,1,-5]*T2_left[1,-1,-2,-3];#U2,newbond2,d2     newbond2,L2,D2,R2
     
-    λ1_inv=my_pinv(λ1);
-    λ2_inv=my_pinv(λ2);
-    λ3_inv=my_pinv(λ3);
-    λ4_inv=my_pinv(λ4);
-    λ5_inv=my_pinv(λ5);
-    λ6_inv=my_pinv(λ6);
+    λ1_inv=mypinv(λ1);
+    λ2_inv=mypinv(λ2);
+    λ3_inv=mypinv(λ3);
+    λ4_inv=mypinv(λ4);
+    λ5_inv=mypinv(λ5);
+    λ6_inv=mypinv(λ6);
     @tensor T1[:]:=T1[1,-2,2,3,-5]*λ1_inv[-1,1]*λ2_inv[2,-3]*λ3_inv[-4,3];
     @tensor T2[:]:=T2[1,2,3,-4,-5]*λ4_inv[-1,1]*λ5_inv[2,-2]*λ6_inv[3,-3];
 
@@ -300,17 +304,17 @@ function SU_triangle_trun(T_set,lambdax_set,lambday_set,plaquatte,sites,op,Dmax)
         T3_keep=sqrt(s3)*v3;#U3,newbond3,d3,
         @tensor T3_new[:]:=T3_keep[-4,1,-5]*T3_left[1,-1,-2,-3];#U3,newbond3,d3,  newbond3,L3,D3,R3,  
 
-        s1_inv_sqrt=sqrt(my_pinv(s1));
+        s1_inv_sqrt=sqrt(mypinv(s1));
         @tensor T2_new[:]:=T2_new[1,-2,-3,-4,-5]*s1_inv_sqrt[-1,1];
 
-        λ1_inv=my_pinv(λ1);
-        λ2_inv=my_pinv(λ2);
-        λ3_inv=my_pinv(λ3);
-        λ4_inv=my_pinv(λ4);
-        λ5_inv=my_pinv(λ5);
-        λ6_inv=my_pinv(λ6);
-        λ7_inv=my_pinv(λ7);
-        λ8_inv=my_pinv(λ8);
+        λ1_inv=mypinv(λ1);
+        λ2_inv=mypinv(λ2);
+        λ3_inv=mypinv(λ3);
+        λ4_inv=mypinv(λ4);
+        λ5_inv=mypinv(λ5);
+        λ6_inv=mypinv(λ6);
+        λ7_inv=mypinv(λ7);
+        λ8_inv=mypinv(λ8);
         @tensor T1_new[:]:=T1_new[1,2,-3,4,-5]*λ1_inv[-1,1]*λ2_inv[2,-2]*λ3_inv[-4,4];
         @tensor T2_new[:]:=T2_new[-1,-2,3,4,-5]*λ4_inv[3,-3]*λ5_inv[-4,4];
         @tensor T3_new[:]:=T3_new[1,2,3,-4,-5]*λ6_inv[-1,1]*λ7_inv[2,-2]*λ8_inv[3,-3];
@@ -369,17 +373,17 @@ function SU_triangle_trun(T_set,lambdax_set,lambday_set,plaquatte,sites,op,Dmax)
         T3_keep=sqrt(s3)*v3;#R3,newbond3,d3
         @tensor T3_new[:]:=T3_keep[-3,1,-5]*T3_left[1,-1,-2,-4];#R3,newbond3,d3    newbond3,L3,D3,U3 
 
-        s1_inv_sqrt=sqrt(my_pinv(s1));
+        s1_inv_sqrt=sqrt(mypinv(s1));
         @tensor T2_new[:]:=T2_new[-1,-2,-3,1,-5]*s1_inv_sqrt[-4,1];
 
-        λ1_inv=my_pinv(λ1);
-        λ2_inv=my_pinv(λ2);
-        λ3_inv=my_pinv(λ3);
-        λ4_inv=my_pinv(λ4);
-        λ5_inv=my_pinv(λ5);
-        λ6_inv=my_pinv(λ6);
-        λ7_inv=my_pinv(λ7);
-        λ8_inv=my_pinv(λ8);
+        λ1_inv=mypinv(λ1);
+        λ2_inv=mypinv(λ2);
+        λ3_inv=mypinv(λ3);
+        λ4_inv=mypinv(λ4);
+        λ5_inv=mypinv(λ5);
+        λ6_inv=mypinv(λ6);
+        λ7_inv=mypinv(λ7);
+        λ8_inv=mypinv(λ8);
         @tensor T1_new[:]:=T1_new[1,-2,3,4,-5]*λ1_inv[-1,1]*λ2_inv[3,-3]*λ3_inv[-4,4];
         @tensor T2_new[:]:=T2_new[-1,2,3,-4,-5]*λ4_inv[2,-2]*λ5_inv[3,-3];
         @tensor T3_new[:]:=T3_new[1,2,-3,4,-5]*λ6_inv[-1,1]*λ7_inv[2,-2]*λ8_inv[-4,4];
@@ -436,17 +440,17 @@ function SU_triangle_trun(T_set,lambdax_set,lambday_set,plaquatte,sites,op,Dmax)
         T3_keep=u3*sqrt(s3);#newbond3,d3,D3
         @tensor T3_new[:]:=T3_left[-1,-3,-4,1]*T3_keep[1,-5,-2];#L3,R3,U3,newbond3,    newbond3,d3,D3
         
-        s1_inv_sqrt=sqrt(my_pinv(s1));
+        s1_inv_sqrt=sqrt(mypinv(s1));
         @tensor T2_new[:]:=T2_new[-1,-2,1,-4,-5]*s1_inv_sqrt[1,-3];
 
-        λ1_inv=my_pinv(λ1);
-        λ2_inv=my_pinv(λ2);
-        λ3_inv=my_pinv(λ3);
-        λ4_inv=my_pinv(λ4);
-        λ5_inv=my_pinv(λ5);
-        λ6_inv=my_pinv(λ6);
-        λ7_inv=my_pinv(λ7);
-        λ8_inv=my_pinv(λ8);
+        λ1_inv=mypinv(λ1);
+        λ2_inv=mypinv(λ2);
+        λ3_inv=mypinv(λ3);
+        λ4_inv=mypinv(λ4);
+        λ5_inv=mypinv(λ5);
+        λ6_inv=mypinv(λ6);
+        λ7_inv=mypinv(λ7);
+        λ8_inv=mypinv(λ8);
         @tensor T1_new[:]:=T1_new[-1,2,3,4,-5]*λ1_inv[2,-2]*λ2_inv[3,-3]*λ3_inv[-4,4];
         @tensor T2_new[:]:=T2_new[1,2,-3,-4,-5]*λ4_inv[-1,1]*λ5_inv[2,-2];
         @tensor T3_new[:]:=T3_new[1,-2,3,4,-5]*λ6_inv[-1,1]*λ7_inv[3,-3]*λ8_inv[-4,4];
@@ -505,17 +509,17 @@ function SU_triangle_trun(T_set,lambdax_set,lambday_set,plaquatte,sites,op,Dmax)
         T3_keep=sqrt(s3)*v3;#L3,newbond3,d3,
         @tensor T3_new[:]:=T3_keep[-1,1,-5]*T3_left[1,-2,-3,-4];#L3,newbond3,d3,    newbond3,D3,R3,U3 
 
-        s1_inv_sqrt=sqrt(my_pinv(s1));
+        s1_inv_sqrt=sqrt(mypinv(s1));
         @tensor T2_new[:]:=T2_new[-1,1,-3,-4,-5]*s1_inv_sqrt[-2,1];
 
-        λ1_inv=my_pinv(λ1);
-        λ2_inv=my_pinv(λ2);
-        λ3_inv=my_pinv(λ3);
-        λ4_inv=my_pinv(λ4);
-        λ5_inv=my_pinv(λ5);
-        λ6_inv=my_pinv(λ6);
-        λ7_inv=my_pinv(λ7);
-        λ8_inv=my_pinv(λ8);
+        λ1_inv=mypinv(λ1);
+        λ2_inv=mypinv(λ2);
+        λ3_inv=mypinv(λ3);
+        λ4_inv=mypinv(λ4);
+        λ5_inv=mypinv(λ5);
+        λ6_inv=mypinv(λ6);
+        λ7_inv=mypinv(λ7);
+        λ8_inv=mypinv(λ8);
         @tensor T1_new[:]:=T1_new[1,2,3,-4,-5]*λ1_inv[-1,1]*λ2_inv[2,-2]*λ3_inv[3,-3];
         @tensor T2_new[:]:=T2_new[1,-2,-3,4,-5]*λ4_inv[-1,1]*λ5_inv[-4,4];
         @tensor T3_new[:]:=T3_new[-1,2,3,4,-5]*λ6_inv[2,-2]*λ7_inv[3,-3]*λ8_inv[-4,4];

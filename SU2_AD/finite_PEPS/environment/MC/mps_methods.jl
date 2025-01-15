@@ -1,7 +1,4 @@
-function Rank(T::TensorMap)
-    #number of indices
-    return length((domain(T)*codomain(T)).spaces)
-end 
+
 
 function norm_2D_simple(psi_double,chi,multiplet_tol)
     Lx=size(psi_double,1);

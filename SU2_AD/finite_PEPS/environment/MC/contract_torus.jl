@@ -1,5 +1,6 @@
 
 
+
 function combine_two_rows_method2(mpo1,mpo2,chi)
     function build_projector(Tup_L,Tup_R,Tdn_L,Tdn_R,chi)
 
@@ -13,7 +14,7 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
             
             #decomposition: V=pinv(sqrt(eu))*ev*TT
             t0=ev*sqrt(eu);#U*S
-            t_recover=my_pinv(sqrt(eu))*ev';
+            t_recover=mypinv(sqrt(eu))*ev';
         
             #verification, should be commented later
             @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
@@ -38,7 +39,7 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
             
             #decomposition: U=TT*ev*pinv(sqrt(eu))
             t0=sqrt(eu)*ev';#S*V
-            t_recover=ev*my_pinv(sqrt(eu));
+            t_recover=ev*mypinv(sqrt(eu));
         
             #verification, should be commented later
             @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
@@ -100,7 +101,7 @@ function combine_two_rows_method1(mpo1,mpo2,chi)
         # @tensor TTTT[:]:=Tup[-1,1,-4,-6]*Tdn[-2,-3,-5,1];
         @tensor TTTT[:]:=Tup[-1,5,2,1]*Tup'[-3,6,2,1]*Tdn[-2,4,3,5]*Tdn'[-4,4,3,6];
         TTTT=permute(TTTT,(1,2,),(3,4,));
-        uM,sM,vM = my_tsvd(TTTT; trunc=truncdim(chi))
+        uM,sM,vM = tsvd(TTTT; trunc=truncdim(chi))
         err=norm(uM*sM*vM-TTTT)/norm(TTTT);
         # println(err)
         # println(eu)

@@ -9,26 +9,29 @@ using Dates
 using LineSearches,OptimKit
 cd(@__DIR__)
 
-include("..\\..\\..\\setting\\Settings.jl")
-include("..\\..\\..\\setting\\tuple_methods.jl")
-include("..\\..\\..\\state\\FinitePEPS.jl")
-include("..\\..\\..\\symmetry\\parity_funs.jl")
-include("..\\..\\..\\environment\\AD\\convert_boundary_condition.jl")
-include("..\\..\\..\\environment\\AD\\mps_methods.jl")
-include("..\\..\\..\\environment\\AD\\mps_methods_new.jl")
-include("..\\..\\..\\environment\\AD\\peps_double_layer_methods.jl")
-include("..\\..\\..\\environment\\AD\\svd_AD_lib.jl")
-include("..\\..\\..\\environment\\AD\\density_matrix.jl")
-include("..\\..\\..\\environment\\AD\\density_matrix_new.jl")
-include("..\\..\\..\\environment\\extend_bond\\extend_bond.jl")
-include("..\\..\\..\\environment\\extend_bond\\environment_2site.jl")
-include("..\\..\\..\\models\\spin\\square_lattice\\spin_operator_dense.jl")
-include("..\\..\\..\\models\\spin\\square_lattice\\J1_J2_Jchi_disk.jl")
-include("..\\..\\..\\optimization\\line_search_lib.jl")
-include("..\\..\\..\\optimization\\PEPS_methods.jl")
-include("..\\..\\..\\optimization\\LineSearches\\My_Backtracking.jl")
 
-include("..\\..\\..\\environment\\simple_update\\simple_update_lib.jl")
+include("../../../setting/Settings.jl")
+include("../../../setting/linearalgebra.jl")
+include("../../../state/iPEPS_ansatz.jl")
+include("../../../setting/tuple_methods.jl")
+# include("../../../state/FinitePEPS.jl")
+include("../../../symmetry/parity_funs.jl")
+include("../../../environment/AD/convert_boundary_condition.jl")
+include("../../../environment/AD/mps_methods.jl")
+include("../../../environment/AD/mps_methods_new.jl")
+include("../../../environment/AD/peps_double_layer_methods.jl")
+include("../../../environment/AD/svd_AD_lib.jl")
+include("../../../environment/AD/density_matrix.jl")
+include("../../../environment/AD/density_matrix_new.jl")
+include("../../../environment/extend_bond/extend_bond.jl")
+include("../../../environment/extend_bond/environment_2site.jl")
+include("../../../models/spin/square_lattice/spin_operator_dense.jl")
+include("../../../models/spin/square_lattice/J1_J2_Jchi_disk.jl")
+include("../../../optimization/line_search_lib.jl")
+include("../../../optimization/PEPS_methods.jl")
+# include("../../../optimization/LineSearches/My_Backtracking.jl")
+
+include("../../../environment/simple_update/simple_update_lib.jl")
 
 Random.seed!(888)
 global use_AD;
@@ -76,7 +79,7 @@ mpo_mps_trun_method="simple_middle";#"simple_middle","canonical"
 left_right_env_method="trun";#"exact","trun"
 
 global n_mps_sweep
-n_mps_sweep=5;
+n_mps_sweep=0;
 
 
 
@@ -85,16 +88,16 @@ n_mps_sweep=5;
 # psi=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(psi));
 
 global Lx,Ly
-Lx=4;
-Ly=4;
+Lx=8;
+Ly=8;
 # Lx=size(psi,1);
 # Ly=size(psi,2);
 
 
 
-D=2;
+D_max=2;
 d=2;
-T_set,lambdax_set,lambday_set=initial_tensor(Lx,Ly,d,D);
+T_set,lambdax_set,lambday_set=initial_tensor(Lx,Ly,d,D_max);
 
 
 
@@ -128,6 +131,8 @@ E_total,E_set=energy_disk_(psi);
 println(E_total)
 
 
+filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D_max)*".jld2";
+jldsave(filenm;psi,E=E_total)
 ####################################
 D_max=3;
 
@@ -159,3 +164,6 @@ T_set,lambdax_set,lambday_set=simple_update_Heisenberg(T_set,lambdax_set,lambday
 psi=cylinder_xpbc_to_disk(torus_to_cylinder_xpbc(T_set));
 E_total,E_set=energy_disk_(psi);
 println(E_total)
+
+filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D_max)*".jld2";
+jldsave(filenm;psi,E=E_total)

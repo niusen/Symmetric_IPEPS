@@ -7,11 +7,11 @@ using HDF5, JLD2, MAT
 using Random
 cd(@__DIR__)
 
-include("..\\..\\..\\symmetry\\parity_funs.jl")
-include("..\\..\\..\\environment\\convert_boundary_condition.jl")
-include("..\\..\\..\\environment\\mps_methods.jl")
-include("..\\..\\..\\environment\\peps_single_layer_methods.jl")
-include("..\\..\\..\\environment\\truncations.jl")
+include("../../../../symmetry/parity_funs.jl")
+include("../../../../environment/convert_boundary_condition.jl")
+include("../../../../environment/mps_methods.jl")
+include("../../../../environment/peps_single_layer_methods.jl")
+include("../../../../environment/truncations.jl")
 
 """coordinate
     (1,2),(2,2)

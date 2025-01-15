@@ -61,14 +61,69 @@ function generate_obc_from_iPEPS(A,Lx,Ly)
     return psi
 end
 
-function apply_sampling_projector(fPEPS,config)
+
+
+
+function get_neighbours(Lx,Ly,boundary_condition)
+    coord=reshape(Vector(1:Lx*Ly),(Lx,Ly));
+    fnn_set=zeros(Int,Lx*Ly);
+    snn_set=zeros(Int,Lx*Ly);
+    NN_matrix=zeros(Int,Lx*Ly,4);
+    NNN_matrix=zeros(Int,Lx*Ly,4);
+
+    nn=[1 0;-1 0;0 1;0 -1];
+    nnn=[1 1;1 -1;-1 1;-1 -1];
+
+    for px in 1:Lx
+        for py in 1:Ly
+            NN=[];
+            NNN=[];
+            if boundary_condition in ("OBC",)
+                for cn =1:4
+                    if (px+nn[cn,1] in 1:Lx) && (py+nn[cn,2] in 1:Ly)
+                        push!(NN,coord[px+nn[cn,1], py+nn[cn,2]]);
+                    end
+                    if (px+nnn[cn,1] in 1:Lx) && (py+nnn[cn,2] in 1:Ly)
+                        push!(NNN,coord[px+nnn[cn,1], py+nnn[cn,2]]);
+                    end
+                end
+            elseif boundary_condition in ("PBC",)
+                for cn =1:4
+                    push!(NN,coord[mod1(px+nn[cn,1],Lx), mod1(py+nn[cn,2],Ly)]);
+                    push!(NNN,coord[mod1(px+nnn[cn,1],Lx), mod1(py+nnn[cn,2],Ly)]);
+                end
+            end
+            fnn_set[coord[px,py]]=length(NN);
+            snn_set[coord[px,py]]=length(NNN);
+            NN_matrix[coord[px,py],1:length(NN)]=NN;
+            NNN_matrix[coord[px,py],1:length(NNN)]=NNN;
+            
+        end
+    end
+    return coord,fnn_set,snn_set,NN_matrix,NNN_matrix
+end
+
+
+function initial_Neel_config(Lx,Ly)
+    #initial spin config, total sz=0
+    config=zeros(Int8,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            config[cx,cy]=(-1)^(cx+cy);
+        end
+    end
+    return config[:]
+end
+
+
+function apply_sampling_projector(fPEPS,config,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
     fPEPS=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
     Vp=U₁Space(1/2=>1,-1/2=>1);
     Vup=U₁Space(1/2=>1);
     Vdn=U₁Space(-1/2=>1);
-    Pup=TensorMap([1,0],Vup',Vp');
-    Pdn=TensorMap([0,1],Vdn',Vp');
+    Pup=TensorMap([1,0]',Vup',Vp');
+    Pdn=TensorMap([0,1]',Vdn',Vp');
 
     for cx=1:Lx
         for cy=1:Ly
@@ -79,6 +134,32 @@ function apply_sampling_projector(fPEPS,config)
                 @tensor T[:]:=T[-1,-2,-3,-4,1]*Pdn[-5,1];
             end
             fPEPS[cx,cy]=T;
+        end
+    end
+    return fPEPS
+end
+
+
+function apply_sampling_projector(fPEPS,config,Vp::ComplexSpace)
+    fPEPS=deepcopy(fPEPS);
+    Lx,Ly=size(fPEPS);
+
+    for cx=1:Lx
+        for cy=1:Ly
+            T=fPEPS[cx,cy];
+            if config[cx,cy]==1
+                pind=1
+            elseif config[cx,cy]==-1
+                pind=2;
+            end
+
+            if Rank(T)==3
+                fPEPS[cx,cy]=TensorMap(T[:,:,pind],space(T,1)*space(T,2),ProductSpace{ComplexSpace, 0}());
+            elseif Rank(T)==4
+                fPEPS[cx,cy]=TensorMap(T[:,:,:,pind],space(T,1)*space(T,2)*space(T,3),ProductSpace{ComplexSpace, 0}());
+            elseif Rank(T)==5
+                fPEPS[cx,cy]=TensorMap(T[:,:,:,:,pind],space(T,1)*space(T,2)*space(T,3)*space(T,4),ProductSpace{ComplexSpace, 0}());
+            end
         end
     end
     return fPEPS

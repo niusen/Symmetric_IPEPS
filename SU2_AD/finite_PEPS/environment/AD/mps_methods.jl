@@ -1,7 +1,4 @@
-function Rank(T::TensorMap)
-    #number of indices
-    return length((domain(T)*codomain(T)).spaces)
-end 
+
 
 function norm_2D_simple(psi_double,chi,multiplet_tol)
     Lx=size(psi_double,1);
@@ -131,12 +128,13 @@ function pinv_canonical(T)
     T_new=deepcopy(T);
 
     for (k,dst) in blocks(T_new)
-        src = blocks(T_new)[k]
+        # src = blocks(T_new)[k]
         @inbounds for i in 1:size(dst,1)
             if abs(dst[i,i])>epsilon
                 dst[i,i] = 1/dst[i,i]
             end
         end
+        block(T_new,k)=dst;
     end
     return T_new
 end

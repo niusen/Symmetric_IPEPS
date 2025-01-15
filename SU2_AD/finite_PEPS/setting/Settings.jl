@@ -34,7 +34,10 @@
 #     linesearch_CTM_method :: String ="restart"; # "restart" or "from_converged_CTM"
 # end
 
-
+function Rank(T::TensorMap)
+    #number of indices
+    return length((domain(T)*codomain(T)).spaces)
+end 
 
 Base.@kwdef mutable struct Svd_settings
     svd_trun_method :: String = "chi";#"chi" or "tol"

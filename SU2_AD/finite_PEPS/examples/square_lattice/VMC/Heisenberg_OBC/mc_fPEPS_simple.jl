@@ -27,7 +27,8 @@ include("../../../../environment/MC/sampling.jl")
 
 const Lx = 6      # number of sites along x / number of columns in the lattice
 const Ly = 6      # number of sites along y / number of rows in the lattice
-
+const D=2;#bond dimension of state
+const chi=10;#bond dimension of environment
 
 include("sq_constants.jl")
 
@@ -90,8 +91,7 @@ end
 
 function main()
     #load saved fPEPS data
-    D=2;#bond dimension of state
-    chi=10;#bond dimension of environment
+
 
     filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
     psi,Vp=load_fPEPS(Lx,Ly,filenm);

@@ -1,5 +1,8 @@
 function load_fPEPS(Lx,Ly,filenm)
     data=load(filenm*".jld2");
+    if haskey(data,"E")
+        println("Double layer method gives energy "*string(data["E"]));
+    end
     psi0=data["psi"];
     @assert Lx==size(psi0,1);
     @assert Ly==size(psi0,2);

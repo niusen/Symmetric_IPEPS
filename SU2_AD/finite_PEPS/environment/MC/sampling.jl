@@ -114,23 +114,18 @@ function get_neighbours(Lx,Ly,boundary_condition)
     end
 
     
-
     function neighbour_convert_to_tuple(Lx,Ly,M)
         M_tuple=Vector{Tuple}(undef,Lx*Ly);
         for c1=1:Lx*Ly
             pos=findall(x->x.>0, M[c1,:]);
-            if length(M[c1,pos])>0
-                M_tuple[c1]=Tuple{Int}(M[c1,pos]);
-            else
-                M_tuple[c1]=Tuple(M[c1,pos]);
-            end
+            M_tuple[c1]=Tuple(M[c1,pos]);
         end
         return M_tuple
     end
 
     NN_tuple=neighbour_convert_to_tuple(Lx,Ly,NN_matrix);
     NNN_tuple=neighbour_convert_to_tuple(Lx,Ly,NNN_matrix);
-
+    # @show NN_matrix
     
     NN_matrix_reduced=deepcopy(NN_matrix);
     NNN_matrix_reduced=deepcopy(NNN_matrix);

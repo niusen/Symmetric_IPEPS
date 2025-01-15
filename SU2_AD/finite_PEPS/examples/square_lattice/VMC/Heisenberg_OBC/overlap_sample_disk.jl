@@ -41,11 +41,7 @@ Lx=6;
 Ly=6;
 
 filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
-data=load(filenm*".jld2");
-psi0=data["psi"];
-psi=Matrix{TensorMap}(undef,Lx,Ly);
-psi[:]=psi0[:];
-Vp=space(psi[2,2],5);
+psi,Vp=load_fPEPS(Lx,Ly,filenm);
 
 
 normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1

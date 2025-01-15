@@ -99,3 +99,5 @@ Norm,trun_err=contract_whole_torus(psi_sample,chi);
 @show [Norm,sum(abs.(trun_err))]
 # ##############################
 
+@btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_torus)
+

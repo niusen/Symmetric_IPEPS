@@ -235,3 +235,18 @@ function normalize_PEPS!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
         setindex!(psi,psi[cc]/coe,cc);
     end
 end
+
+
+
+function contract_sample(psi::Matrix{TensorMap},Lx::Int,Ly::Int,config::Matrix,Vp,contract_fun::Function)
+    psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
+    if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        psi_sample=shift_pleg(psi_sample);
+    end
+    Norm,trun_err=contract_fun(psi_sample,chi);
+    return Norm,trun_err
+end
+
+function contract_sample(psi::Matrix{TensorMap},Lx::Int,Ly::Int,config::Vector,Vp,contract_fun::Function)
+    return contract_sample(psi,Lx,Ly,reshape(config,Lx,Ly),Vp,contract_fun)
+end

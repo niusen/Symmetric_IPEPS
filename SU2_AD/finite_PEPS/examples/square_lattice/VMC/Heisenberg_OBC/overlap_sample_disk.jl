@@ -68,4 +68,5 @@ Norm,trun_err=contract_whole_disk(psi_sample,chi);
 # Norm_exact=exact_contraction(psi_sample);
 # 
 
+@btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_disk)
 

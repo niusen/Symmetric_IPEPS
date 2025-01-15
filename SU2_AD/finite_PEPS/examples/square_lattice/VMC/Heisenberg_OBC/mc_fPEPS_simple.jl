@@ -42,75 +42,16 @@ println("pid="*string(pid));;flush(stdout);
 
 
 
-function ftW!(redU::Matrix, KEL::Matrix, W::Matrix)
-    # Constants and initialization
-    cc = 1.00
-    # Iterate over each flavor (column of KEL)
-    for i in 1:N
-        dummy = L_N
-        
-        # Create the initial dumM matrix (filled with zeros initially)
-        dumM = zeros(Complex{Float64}, dummy, dummy)
-        # Fill dumM based on KEL and redU (find indices where KEL == j + 1)
-        for j in 1:dummy
-            dummy2 = findfirst(KEL[:, i] .== j)  # Find the row index where KEL == j
 
 
-            dumM[j, :] = redU[dummy2, 1:dummy] # j'th row of dumM is given by the dummy2'th row of redU. .= is element wise assigning.
-        end
 
-        # Inverse of dumM
-        dumMinverse = inv(dumM)
-
-        # Update W matrix
-        for j in 1:L
-            for k in 1:dummy
-                dummy2 = (i - 1) * dummy + k
-                W[j, dummy2] = sum(redU[j, :] .* dumMinverse[:, k])
-            end
-        end
-    end
-end
-
-
-function updateW!(W::Matrix, d3::Number, randK::Number, flavor::Number,W_prime::Matrix,W_oneflavor::Matrix)
-    # Initialize W_prime and W_oneflavor
-    # W_prime = zeros(Complex{Float64}, L, L_N)
-    # W_oneflavor = zeros(Complex{Float64}, L, L_N)
-
-    W_prime=W_prime*0;
-    W_oneflavor=W_oneflavor*0;
-    
-    # Define the flavor-specific slice of W
-    x = (flavor == 1) ? 0 : L_N # Unlike C++, here flavor can take values +1 or -1.
-    W_oneflavor = W[1:L, x+1:x + L_N]
-    
-    W_oneflavor_randK=W_oneflavor[randK, :];
-
-    # Loop over the matrix and perform the update
-    # for II in 1:L
-        # for j in 1:(L_N)
-            # check = 0 
-            # if j == d3
-            #     check = 1
-            # end
-            # W_prime[II, j] = W_oneflavor[II, j] - (W_oneflavor[II, d3] / W_oneflavor[randK, d3]) * (W_oneflavor[randK, j] - check)
-            
-            # check=(j == d3);
-            check=((1:L_N).==d3);
-
-            W_prime[1:L, 1:(L_N)] = W_oneflavor[1:L, 1:(L_N)] - (W_oneflavor[1:L, d3] / W_oneflavor_randK[d3]) * permutedims((W_oneflavor_randK[1:(L_N)] - check))
-        # end
-    # end
-    
-    # Update the original W matrix with the new values
-    W[1:L, x+1:x + L_N] = W_prime
-end
 
 
 function localenergy(KEL::Matrix, W::Matrix, iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple})
     # Compute the expectation value of the permutation operator
     elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
+
+    amplitude,_=contract_sample(psi,Lx,Ly,iconf_new,Vp,contract_fun);
 
     for i in 1:L
         for j in NN_tuple_reduced[i]  # Loop over half of the nearest neighbors
@@ -120,17 +61,19 @@ function localenergy(KEL::Matrix, W::Matrix, iconf_new::Vector,  NN_tuple_reduce
             if iconf_new[randl] == iconf_new[randK]
                 elocal += 1.0  # Diagonal term ⟨x|H|x⟩
             else
-                dl = iconf_new[randl]
-                dK = iconf_new[randK]
-                
-                d3 = KEL[randl, 1 + (dl == -1)]  # If dl == 1, use 1; if dl == -1, use 2
-                d5 = d3 + (dl == -1) * (L_N)  # If dl == -1, add L_N
-                
-                d4 = KEL[randK, 1 + (dK == -1)]  # If dK == 1, use 1; if dK == -1, use 2
-                d6 = d4 + (dK == -1) * (L_N)  # If dK == -1, add L_N
+                iconf_new_flip=deepcopy(iconf_new);
+                iconf_new_flip[randl]=iconf_new[randK];
+                iconf_new_flip[randK]=iconf_new[randl];
+
+                amplitude_flip,_=contract_sample(psi,Lx,Ly,iconf_new_flip,Vp,contract_fun);
+
     
-                overlap = -W[randK, d5] * W[randl, d6]  # Ratio ⟨y|ψ⟩ / ⟨x|ψ⟩
-                elocal += overlap
+                # overlap = -W[randK, d5] * W[randl, d6]  # Ratio ⟨y|ψ⟩ / ⟨x|ψ⟩
+                # elocal += overlap
+
+
+                #coefficient? J? -J? J/2? -J/2?
+                elocal += coe*amplitude_flip/amplitude;
             end
         end
     end
@@ -203,30 +146,29 @@ function main()
                 rand2 = rand(1:length(NN_tuple[rand1]))  # Picking randomly one of the 4 neighbors
                 randK = NN_tuple[randl][rand2]  # Picking a neighbor at random to which electron wants to hop; "K"
 
+                amplitude,_=contract_sample(psi,Lx,Ly,iconf_new,Vp,contract_fun);
+
                 if iconf_new[randl] != iconf_new[randK]
-                    dl = iconf_new[randl]
-                    dK = iconf_new[randK]
-                    
-                    d3 = KEL[randl, 1 + (dl == -1)]  # If dl == 1, use 1; if dl == -1, use 2
-                    d5 = d3 + (dl == -1) * (L_N)  # If dl == -1, add L_N
-                    
-                    d4 = KEL[randK, 1 + (dK == -1)]  # If dK == 1, use 1; if dK == -1, use 2
-                    d6 = d4 + (dK == -1) * (L_N)  # If dK == -1, add L_N
-                    
-                    #println("d3 index: ", 1 + (dl == -1), " d4 index: ", 1 + (dK == -1))
-                    #println("i: ", i, "  j: ", j, " dl: ", dl, "  dK: ", dK, " d5: ", d5, "  d6: ", d6, " d3: ", d3, "  d4: ", d4)
-                    probratio = abs2(W[randK, d5] * W[randl, d6])  # Probability of accepting configuration
+
+                    iconf_new_flip=deepcopy(iconf_new);
+                    iconf_new_flip[randl]=iconf_new[randK];
+                    iconf_new_flip[randK]=iconf_new[randl];
+
+                    amplitude_flip,_=contract_sample(psi,Lx,Ly,iconf_new_flip,Vp,contract_fun);
+
+
+                    probratio = abs2(amplitude_flip/amplitude_flip)  # Probability of accepting configuration
                     eta_rand = rand()  # Random number from 0 to 1; "eta"
 
                     if eta_rand < probratio  # We accept the configuration
-                        updateW!(W, d3, randK, iconf_new[randl],W_prime,W_oneflavor)  # Update W matrix
-                        updateW!(W, d4, randl, iconf_new[randK],W_prime,W_oneflavor)  # Modify the second W matrix for the other flavor
-                        #println("dl index: ", dl, " dK index: ", dK)
+
                         # Update KEL arrays and iconf
                         # Swap elements based on dl and dK values
                         KEL[randK, 1 + (dl == -1)], KEL[randl, 1 + (dl == -1)] = KEL[randl, 1 + (dl == -1)], KEL[randK, 1 + (dl == -1)]
                         KEL[randl, 1 + (dK == -1)], KEL[randK, 1 + (dK == -1)] = KEL[randK, 1 + (dK == -1)], KEL[randl, 1 + (dK == -1)]
-                        iconf_new[randl], iconf_new[randK] = iconf_new[randK], iconf_new[randl]
+                        iconf_new= iconf_new_flip;
+                        amplitude=amplitude_flip;
+
                     end
                 end
             end

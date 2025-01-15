@@ -44,7 +44,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     @tensor T_tem[:]:= mpo_set[cx][-1,1,-3]*mps_set[cx][-2,1]
     u,s,v=tsvd(permute(T_tem,(1,2,),(3,)); trunc=truncdim(chi));
 
-    trun_err=@ignore_derivatives 1-dot(s,s)/dot(T_tem,T_tem);
+    trun_err=1-dot(s,s)/dot(T_tem,T_tem);
     trun_errs=vcat(trun_errs,trun_err);
     u=u*s;
     mps_set[cx]=permute(v,(1,2,));
@@ -56,7 +56,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
         # println("aaa")
         # println(norm(u*s*v-T)/norm(T))
 
-        trun_err=@ignore_derivatives 1-dot(s,s)/dot(T,T);
+        trun_err=1-dot(s,s)/dot(T,T);
         trun_errs=vcat(trun_errs,trun_err);#println(trun_err)
         u=u*s;
         mps_set[cx]=permute(v,(1,2,3,));
@@ -67,7 +67,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     cx=2;
     u,s,v=tsvd(permute(mps_set[cx],(1,2,),(3,4,)); trunc=truncdim(chi));
 
-    trun_err=@ignore_derivatives 1-dot(s,s)/dot(mps_set[cx],mps_set[cx]);
+    trun_err=1-dot(s,s)/dot(mps_set[cx],mps_set[cx]);
     trun_errs=vcat(trun_errs,trun_err);
     u=u*s;
     mps_set[cx]=permute(v,(1,2,3,));
@@ -80,7 +80,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     cx=1;
     u_trun,s_trun,v_trun=tsvd(permute(mps_set[cx],(2,),(1,)); trunc=truncdim(chi));
 
-    trun_err=@ignore_derivatives 1-dot(s_trun,s_trun)/dot(mps_set[cx],mps_set[cx]);
+    trun_err=1-dot(s_trun,s_trun)/dot(mps_set[cx],mps_set[cx]);
     v_trun=s_trun*v_trun;
     mps_set[cx]=permute(u_trun,(2,1,));
     @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2,-3];
@@ -90,7 +90,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
         T=permute(mps_set[cx],(1,3,),(2,));
         u_trun,s_trun,v_trun=tsvd(T; trunc=truncdim(chi)); 
    
-        trun_err=@ignore_derivatives 1-dot(s_trun,s_trun)/dot(T,T);
+        trun_err=1-dot(s_trun,s_trun)/dot(T,T);
         v_trun=s_trun*v_trun;
         mps_set[cx]=permute(u_trun,(1,3,2,));
         @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2,-3];
@@ -101,7 +101,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     T=permute(mps_set[cx],(1,3,),(2,));
     u_trun,s_trun,v_trun=tsvd(T; trunc=truncdim(chi)); 
    
-    trun_err=@ignore_derivatives 1-dot(s_trun,s_trun)/dot(T,T);
+    trun_err=1-dot(s_trun,s_trun)/dot(T,T);
     v_trun=s_trun*v_trun;
     mps_set[cx]=permute(u_trun,(1,3,2,));
     @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2];

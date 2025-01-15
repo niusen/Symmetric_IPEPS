@@ -1,4 +1,4 @@
-using LinearAlgebra
+using LinearAlgebra:I,diagm,diag
 using TensorKit
 using KrylovKit
 using JSON

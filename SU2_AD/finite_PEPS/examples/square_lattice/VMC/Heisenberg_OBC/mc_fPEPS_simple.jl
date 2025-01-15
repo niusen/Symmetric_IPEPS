@@ -1,6 +1,7 @@
 # Simple monte carlo code that computes the energy for the square lattice Heisenberg model with nearest neighbor interactions.
 
-using LinearAlgebra
+using LinearAlgebra:I,diagm,diag
+using TensorKit
 using Random
 using Printf
 using DelimitedFiles
@@ -107,14 +108,14 @@ function updateW!(W::Matrix, d3::Number, randK::Number, flavor::Number,W_prime::
 end
 
 
-function localenergy(KEL::Matrix, W::Matrix, iconf_new::Vector, Neighbormatrix::Matrix)
+function localenergy(KEL::Matrix, W::Matrix, iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple})
     # Compute the expectation value of the permutation operator
     elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
 
     for i in 1:L
-        for j in 1:(fnn ÷ 2)  # Loop over half of the nearest neighbors
+        for j in NN_tuple_reduced[i]  # Loop over half of the nearest neighbors
             randl = i
-            randK = Neighbormatrix[randl, j]  # Neighbor site
+            randK = NN_tuple_reduced[randl][j]  # Neighbor site
 
             if iconf_new[randl] == iconf_new[randK]
                 elocal += 1.0  # Diagonal term ⟨x|H|x⟩
@@ -141,7 +142,7 @@ end
 
 function main()
 
-    coord,fnn_set,snn_set,NNmatrix,NNNmatrix=get_neighbours(Lx,Ly,"OBC");
+    coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours(Lx,Ly,"OBC");
     # neighbor_file = "Neighbor_matrix/all_nearest_neighbors_$(Lx)x$(Ly).jld2"
     # NNmatrix = JLD2.load(neighbor_file, "NNmatrix")
 
@@ -199,8 +200,8 @@ function main()
         @inbounds for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
             @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
                 randl = rand(1:L)  # Picking a site at random; "l"
-                rand2 = rand(1:fnn)  # Picking randomly one of the 4 neighbors
-                randK = NNmatrix[randl, rand2]  # Picking a neighbor at random to which electron wants to hop; "K"
+                rand2 = rand(1:length(NN_tuple[rand1]))  # Picking randomly one of the 4 neighbors
+                randK = NN_tuple[randl][rand2]  # Picking a neighbor at random to which electron wants to hop; "K"
 
                 if iconf_new[randl] != iconf_new[randK]
                     dl = iconf_new[randl]
@@ -230,7 +231,7 @@ function main()
                 end
             end
 
-            energyl1 = (localenergy(KEL, W, iconf_new, NNmatrix) - 1.0 * L) / 2.0
+            energyl1 = (localenergy(KEL, W, iconf_new, NN_tuple,NN_tuple_reduced) - 1.0 * L) / 2.0
             # The constant L/2 is required because the localenergy function computes the expectation value of the permutation operator.
             # The permutation operator is related to the S.S as follows: P_{ij} = 2 S_i . S_j + 1/2
 

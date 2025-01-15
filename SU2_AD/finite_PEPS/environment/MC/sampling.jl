@@ -65,6 +65,7 @@ end
 
 
 function get_neighbours(Lx,Ly,boundary_condition)
+    #determine neighbours
     coord=reshape(Vector(1:Lx*Ly),(Lx,Ly));
     fnn_set=zeros(Int,Lx*Ly);
     snn_set=zeros(Int,Lx*Ly);
@@ -100,7 +101,53 @@ function get_neighbours(Lx,Ly,boundary_condition)
             
         end
     end
-    return coord,fnn_set,snn_set,NN_matrix,NNN_matrix
+
+    
+
+    function neighbour_convert_to_tuple(Lx,Ly,M)
+        M_tuple=Vector{Tuple}(undef,Lx*Ly);
+        for c1=1:Lx*Ly
+            pos=findall(x->x.>0, M[c1,:]);
+            if length(M[c1,pos])>0
+                M_tuple[c1]=Tuple{Int}(M[c1,pos]);
+            else
+                M_tuple[c1]=Tuple(M[c1,pos]);
+            end
+        end
+        return M_tuple
+    end
+
+    NN_tuple=neighbour_convert_to_tuple(Lx,Ly,NN_matrix);
+    NNN_tuple=neighbour_convert_to_tuple(Lx,Ly,NNN_matrix);
+
+    
+    NN_matrix_reduced=deepcopy(NN_matrix);
+    NNN_matrix_reduced=deepcopy(NNN_matrix);
+    #remove double counting
+    for c1=1:Lx*Ly
+        for c2=1:size(NN_matrix_reduced,2)
+            p1=NN_matrix_reduced[c1,c2];
+            if p1>0
+                if c1 in NN_matrix_reduced[p1,:]
+                    NN_matrix_reduced[c1,c2]=0
+                end
+            end
+        end
+        for c2=1:size(NNN_matrix_reduced,2)
+            p1=NNN_matrix_reduced[c1,c2];
+            if p1>0
+                if c1 in NNN_matrix_reduced[p1,:]
+                    NNN_matrix_reduced[c1,c2]=0
+                end
+            end
+        end
+    end
+
+
+    NN_tuple_reduced=neighbour_convert_to_tuple(Lx,Ly,NN_matrix_reduced);
+    NNN_tuple_reduced=neighbour_convert_to_tuple(Lx,Ly,NNN_matrix_reduced);
+
+    return coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced
 end
 
 

@@ -43,8 +43,8 @@ println("pid="*string(pid));;flush(stdout);
     (1,1),(2,1)
 """
 
-Lx=8;
-Ly=8;
+Lx=6;
+Ly=6;
 
 chi=10;
 
@@ -73,24 +73,24 @@ end
 
 psi_00,psi_0pi,psi_pi0,psi_pipi =construct_4_states(psi,Vv);#four states
 #################################
+global projector_method
+projector_method="1";#"1" or "2"
+normalize_PEPS!(psi,Vp,contract_whole_torus);#normalize psi such that the amplitude of a single config is close to 1
+
 
 #initial spin config, total sz=0
-config=zeros(Int8,Lx,Ly);
-for cx=1:Lx
-    for cy=1:Ly
-        config[cx,cy]=(-1)^(cx+cy);
-    end
-end
+config=initial_Neel_config(Lx,Ly);
+
 
 
 #apply projector to obtain sample
-psi_sample=apply_sampling_projector(psi,config,Vp);
+psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
+#remove physical leg when U1 symmetry is used
 psi_sample=shift_pleg(psi_sample);
 
 
 
-global projector_method
-projector_method="1";#"1" or "2"
+
 
 #do contraction
 

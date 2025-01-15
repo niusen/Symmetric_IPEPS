@@ -249,9 +249,9 @@ function main()
                 println(file, "\n\n", iconf_new, "\n\n\n")
             end
 
-            if mod(i + 1, Nscra) == 0  # Recalculate W matrix from scratch to avoid numerical errors
-                ftW!(redU, KEL, W)
-            end
+            # if mod(i + 1, Nscra) == 0  # Recalculate W matrix from scratch to avoid numerical errors
+            #     ftW!(redU, KEL, W)
+            # end
         end
 
     end

@@ -163,7 +163,7 @@ function initial_Neel_config(Lx,Ly)
 end
 
 
-function apply_sampling_projector(fPEPS,config,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+function apply_sampling_projector(fPEPS,config::Matrix,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
     fPEPS=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
     Vp=U₁Space(1/2=>1,-1/2=>1);
@@ -187,7 +187,7 @@ function apply_sampling_projector(fPEPS,config,Vp::GradedSpace{U1Irrep, TensorKi
 end
 
 
-function apply_sampling_projector(fPEPS,config,Vp::ComplexSpace)
+function apply_sampling_projector(fPEPS,config::Matrix,Vp::ComplexSpace)
     fPEPS=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
 
@@ -210,4 +210,28 @@ function apply_sampling_projector(fPEPS,config,Vp::ComplexSpace)
         end
     end
     return fPEPS
+end
+
+
+function apply_sampling_projector(fPEPS,Lx::Int,Ly::Int,config::Vector,Vp)
+    return apply_sampling_projector(fPEPS,reshape(config,Lx,Ly),Vp)
+end
+
+
+
+
+function normalize_PEPS!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
+    Lx,Ly=size(psi);
+    config=initial_Neel_config(Lx,Ly);
+    psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
+    if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        psi_sample=shift_pleg(psi_sample);
+    end
+    chi__=20;
+    Norm,trun_err=contract_fun(psi_sample,chi__);
+    Norm=norm(Norm);
+    coe=Norm^(1/(Lx*Ly));
+    for cc in eachindex(psi)
+        setindex!(psi,psi[cc]/coe,cc);
+    end
 end

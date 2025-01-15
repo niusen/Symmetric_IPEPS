@@ -68,7 +68,7 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
      
         return PR,PL,err
     end
-    trun_err=[];
+    trun_err=Vector{Float64}(undef,0);
     L=length(mpo1);
     PL_set=Vector{TensorMap}(undef,L);
     PR_set=Vector{TensorMap}(undef,L);
@@ -111,7 +111,7 @@ function combine_two_rows_method1(mpo1,mpo2,chi)
         PL=uM';
         return PR,PL,err
     end
-    trun_err=[];
+    trun_err=Vector{Float64}(undef,0);
     L=length(mpo1);
     PL_set=Vector{TensorMap}(undef,L);
     PR_set=Vector{TensorMap}(undef,L);
@@ -147,7 +147,7 @@ function contract_rows(finite_PEPS,chi)
     else
         Ly_new=Int((Ly+1)/2);
     end
-    trun_err=[];
+    trun_err=Vector{Float64}(undef,0);
 
     PEPS_new=Matrix{TensorMap}(undef,Lx,Ly_new);
     for cy=1:2:Ly
@@ -167,15 +167,16 @@ end
 
 function contract_whole_torus(finite_PEPS,chi)
     finite_PEPS=deepcopy(finite_PEPS);
-    trun_err=[];
-
-    for ct=1:100
+    trun_err=Vector{Float64}(undef,0);
+    Ly_=size(finite_PEPS,2);
+    
+    while Ly_>2
         finite_PEPS,err=contract_rows(finite_PEPS,chi)
         trun_err=vcat(trun_err,err);
         Lx,Ly_=size(finite_PEPS);
-        if Ly_==2
-            break;
-        end
+        # if Ly_==2
+        #     break;
+        # end
     end
 
     Lx,Ly_=size(finite_PEPS);

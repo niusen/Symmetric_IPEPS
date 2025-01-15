@@ -36,30 +36,36 @@ println("pid="*string(pid));;flush(stdout);
     (1,1),(2,1)
 """
 
-D=3;
-Lx=8;
-Ly=8;
+D=2;
+Lx=6;
+Ly=6;
 
 filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
 data=load(filenm*".jld2");
-psi=data["psi"];
-
+psi0=data["psi"];
+psi=Matrix{TensorMap}(undef,Lx,Ly);
+psi[:]=psi0[:];
 Vp=space(psi[2,2],5);
+
+
+normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
 
 
 config=initial_Neel_config(Lx,Ly);
 
 
-psi_sample=apply_sampling_projector(psi,config,Vp);
+psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
 
 
 
 chi=10;
-@btime Norm,trun_err=overlap(psi_sample,chi);
-Norm,trun_err=overlap(psi_sample,chi);
-@show [Norm,sum(abs.(trun_err))]
+
+@btime Norm,trun_err=contract_whole_disk(psi_sample,chi);
+Norm,trun_err=contract_whole_disk(psi_sample,chi);
+@show Norm,trun_err
+
 
 # Norm_exact=exact_contraction(psi_sample);
-# @show Norm_exact
+# 
 
 

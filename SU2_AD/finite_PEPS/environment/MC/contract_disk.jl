@@ -36,7 +36,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
 
   
     mps_set=deepcopy(mps_set);
-    trun_errs=[];
+    trun_errs=Vector{Float64}(undef,0);
 
     ######################
     #from right to left
@@ -45,7 +45,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     u,s,v=tsvd(permute(T_tem,(1,2,),(3,)); trunc=truncdim(chi));
 
     trun_err=1-dot(s,s)/dot(T_tem,T_tem);
-    trun_errs=vcat(trun_errs,trun_err);
+    push!(trun_errs,trun_err);
     u=u*s;
     mps_set[cx]=permute(v,(1,2,));
     @tensor A[:]:=mpo_set[cx-1][-1,2,3,-4]*mps_set[cx-1][-2,1,2]*u[3,1,-3];
@@ -57,7 +57,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
         # println(norm(u*s*v-T)/norm(T))
 
         trun_err=1-dot(s,s)/dot(T,T);
-        trun_errs=vcat(trun_errs,trun_err);#println(trun_err)
+        push!(trun_errs,trun_err);
         u=u*s;
         mps_set[cx]=permute(v,(1,2,3,));
 
@@ -68,7 +68,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     u,s,v=tsvd(permute(mps_set[cx],(1,2,),(3,4,)); trunc=truncdim(chi));
 
     trun_err=1-dot(s,s)/dot(mps_set[cx],mps_set[cx]);
-    trun_errs=vcat(trun_errs,trun_err);
+    push!(trun_errs,trun_err);
     u=u*s;
     mps_set[cx]=permute(v,(1,2,3,));
     @tensor A[:]:=mpo_set[cx-1][2,3,-4]*mps_set[cx-1][1,2]*u[3,1,-3];
@@ -85,7 +85,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     mps_set[cx]=permute(u_trun,(2,1,));
     @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2,-3];
     mps_set[cx+1]=A;
-    trun_errs=vcat(trun_errs,trun_err);
+    push!(trun_errs,trun_err);
     for cx=2:Lx-2
         T=permute(mps_set[cx],(1,3,),(2,));
         u_trun,s_trun,v_trun=tsvd(T; trunc=truncdim(chi)); 
@@ -95,7 +95,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
         mps_set[cx]=permute(u_trun,(1,3,2,));
         @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2,-3];
         mps_set[cx+1]=A;
-        trun_errs=vcat(trun_errs,trun_err);
+        push!(trun_errs,trun_err);
     end
     cx=Lx-1;
     T=permute(mps_set[cx],(1,3,),(2,));
@@ -106,7 +106,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
     mps_set[cx]=permute(u_trun,(1,3,2,));
     @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2];
     mps_set[cx+1]=A;
-    trun_errs=vcat(trun_errs,trun_err);
+    push!(trun_errs,trun_err);
 
 
     #normalization
@@ -119,7 +119,7 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
 end
 
 
-function overlap(psi_single::Matrix,chi)
+function contract_whole_disk(psi_single::Matrix,chi)
 
 
     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
@@ -141,7 +141,7 @@ function overlap(psi_single::Matrix,chi)
     ########################################
     #construct top and bot environment
     log_norm_coe=0;
-    trun_history=[];
+    trun_history=Vector{Float64}(undef,0);
     # mps_bot_set=Vector{Any}(undef,Ly);
     # mps_top_set=Vector{Any}(undef,Ly);
 

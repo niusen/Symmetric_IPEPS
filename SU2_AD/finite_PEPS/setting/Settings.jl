@@ -58,6 +58,11 @@ Base.@kwdef mutable struct finite_PEPS_with_coe
     logcoe :: Float64
 end
 
+struct disk_contract_history
+    config :: Vector;
+    mps_top_set::Matrix{TensorMap}
+    mps_bot_set::Matrix{TensorMap}
+end
 
 function coordinate_2d_to_1d(L1::Int,L2::Int,pos::Vector{Int})
     px,py=pos;

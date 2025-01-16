@@ -119,15 +119,10 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
 end
 
 
-function contract_whole_disk(psi_single::Matrix,chi)
-
-
+function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
 
-
-    ppx=Int(round(Lx/2));
     ppy=Int(round(Ly/2));
-
 
     mpo_mps_fun=simple_truncate_to_moddle;
 
@@ -189,6 +184,106 @@ function contract_whole_disk(psi_single::Matrix,chi)
     return norm_coe*Norm,trun_history
 end
 
+
+
+function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{Int},contract_history::disk_contract_history, chi::Int)
+    Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
+    config_new_=reshape(config_new,Lx,Ly);
+    config_old_=reshape(contract_history.config,Lx,Ly);
+    ppy=Int(round(Ly/2));
+
+    mpo_mps_fun=simple_truncate_to_moddle;
+
+    #compare old and new config
+    y_bot0=0;
+    for cy=1:ppy
+        if config_new_[:,cy]==config_old_[:,cy]
+            y_bot0=y_bot0+1;
+        else
+            break;
+        end
+    end
+
+    y_top0=Ly+1;
+    for cy=Ly:-1:ppy+1
+        if config_new_[:,cy]==config_old_[:,cy]
+            y_top0=y_top0-1;
+        else
+            break;
+        end
+    end
+    @show y_bot0,y_top0
+    
+
+    ########################################
+    #construct top and bot environment
+
+    trun_history=Vector{Float64}(undef,0);
+    mps_bot_set=contract_history.mps_bot_set;
+    mps_top_set=contract_history.mps_top_set;
+
+    if y_bot0==0
+        mps_bot=psi_single[:,1];
+        mps_bot_set[:,1]=mps_bot;
+        y0=1;
+    elseif y_bot0>0
+        mps_bot=mps_bot_set[:,y_bot0];
+        y0=y_bot0;
+    end
+
+    for cy=y0+1:ppy
+        mpo=psi_single[:,cy];
+        mps_bot,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot,chi);
+        mps_bot[1]=mps_bot[1]*norm_coe;
+        mps_bot_set[:,cy]=mps_bot;
+        trun_history=vcat(trun_history,trun_errs);
+    end
+
+    #######################
+    function treat_mps_top(mps_top)
+        #convert mps_top to normal order
+        mps_top=mps_top[end:-1:1];
+        for cx=2:Lx-1
+            mps_top[cx]=permute(mps_top[cx],(2,1,3,));
+        end
+        return mps_top
+    end
+
+    if y_top0==Ly+1
+        mps_top=psi_single[:,Ly];
+        mps_top=pi_rotate_mps(mps_top);
+        mps_top_set[:,Ly]=mps_top;
+        y1=Ly;
+    elseif y_top0<Ly+1
+        mps_top=mps_top_set[:,y_top0];
+        y1=y_top0;
+    end
+
+    
+    
+    for cy=y1-1:-1:ppy+1
+        mpo=pi_rotate_mpo(psi_single[:,cy]);
+        mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top,chi);
+        mps_top[1]=mps_top[1]*norm_coe;
+        mps_top_set[cy]=mps_top;
+        trun_history=vcat(trun_history,trun_errs);
+    end
+    mps_top=treat_mps_top(mps_top);
+
+    ########################################
+
+    @tensor vl[:]:=mps_top[1][-1,1]*mps_bot[1][-2,1];
+    for cx=2:Lx-1
+        @tensor vl[:]:=vl[1,2]*mps_top[cx][1,-1,3]*mps_bot[cx][2,-2,3];
+    end
+    Norm=@tensor vl[2,3]*mps_top[Lx][2,1]*mps_bot[Lx][3,1];
+
+
+
+
+
+    return Norm,trun_history, disk_contract_history(config_new, mps_top_set,mps_bot_set)
+end
 
 ########################################################
 function exact_contraction(psi_single)

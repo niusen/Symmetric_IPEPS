@@ -123,7 +123,7 @@ function main()
             # if mod(i,100)==0;@show i;flush(stdout);end
 
             amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
-            
+
             for j in 1:Nbra  # Inner loop to create uncorrelated samples
                 randl = rand(1:L)  # Picking a site at random; "l"
                 rand2 = rand(1:length(NN_tuple[randl]))  # Picking randomly one of the 4 neighbors
@@ -181,7 +181,7 @@ end
 # Profile.clear()
 # @btime @profview main()
 
-@time main()
+@time main();
 
 
-
+data_analysis();

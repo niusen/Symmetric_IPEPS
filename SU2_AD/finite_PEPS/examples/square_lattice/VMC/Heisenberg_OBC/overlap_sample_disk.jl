@@ -61,6 +61,8 @@ chi=10;
 Norm,trun_err=contract_whole_disk(psi_sample,chi);
 @show Norm,trun_err
 
+Norm,trun_err,contract_history= contract_partial_disk(psi_single,config_new,contract_history, chi)
+
 
 # Norm_exact=exact_contraction(psi_sample);
 # 

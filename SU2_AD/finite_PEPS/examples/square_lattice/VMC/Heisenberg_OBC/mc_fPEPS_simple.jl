@@ -95,13 +95,7 @@ function main()
     ##########################################
 
     coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours(Lx,Ly,"OBC");
-    # @show NN_tuple
-    # @show NN_tuple_reduced
-    # neighbor_file = "Neighbor_matrix/all_nearest_neighbors_$(Lx)x$(Ly).jld2"
-    # NNmatrix = JLD2.load(neighbor_file, "NNmatrix")
 
-    # iconf_file = "Therm_iconf/initial_iconf_$(Lx).jld2"
-    # initial_iconf = JLD2.load(iconf_file, "random_array")
     initial_iconf =initial_Neel_config(Lx,Ly,1);
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.
 
@@ -127,6 +121,9 @@ function main()
         #     @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
         for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
             # if mod(i,100)==0;@show i;flush(stdout);end
+
+            amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
+            
             for j in 1:Nbra  # Inner loop to create uncorrelated samples
                 randl = rand(1:L)  # Picking a site at random; "l"
                 rand2 = rand(1:length(NN_tuple[randl]))  # Picking randomly one of the 4 neighbors
@@ -135,7 +132,7 @@ function main()
                 
 
                 if iconf_new[randl] != iconf_new[randK]
-                    amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
+                    
 
                     iconf_new_flip=flip_config(iconf_new,randl,randK);
 
@@ -175,9 +172,6 @@ function main()
                 println(real(mean(ebin1)));flush(stdout);
             end
 
-            # if mod(i + 1, Nscra) == 0  # Recalculate W matrix from scratch to avoid numerical errors
-            #     ftW!(redU, KEL, W)
-            # end
         end
 
     end

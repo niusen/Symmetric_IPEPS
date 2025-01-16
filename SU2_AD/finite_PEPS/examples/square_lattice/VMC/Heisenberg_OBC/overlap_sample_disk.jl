@@ -47,10 +47,11 @@ psi,Vp=load_fPEPS(Lx,Ly,filenm);
 normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
 
 
-config=initial_Neel_config(Lx,Ly);
+config=initial_Neel_config(Lx,Ly,1);
 
-
-psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
+psi_decomposed=decompose_physical_legs(psi,Vp);
+psi_sample=pick_sample(psi_decomposed,config);
+# psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
 
 
 
@@ -64,5 +65,6 @@ Norm,trun_err=contract_whole_disk(psi_sample,chi);
 # Norm_exact=exact_contraction(psi_sample);
 # 
 
-@btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_disk)
+@btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_disk);
 
+@btime Norm,trun_err=contract_sample(psi_decomposed,Lx,Ly,config,Vp,contract_whole_disk);

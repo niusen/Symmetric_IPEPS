@@ -1,7 +1,17 @@
+function flip_config(config0::Vector,pos1::Int,pos2::Int)
+    config=deepcopy(config0);
+    config[pos1]=config0[pos2];
+    config[pos2]=config0[pos1];
+    return config
+end
+
 function load_fPEPS(Lx,Ly,filenm)
     data=load(filenm*".jld2");
     if haskey(data,"E")
         println("Double layer method gives energy "*string(data["E"]));
+    end
+    if haskey(data,"E_sz0")
+        println("Double layer method gives energy "*string(data["E_sz0"])*" in s=0 sector");
     end
     psi0=data["psi"];
     @assert Lx==size(psi0,1);
@@ -160,16 +170,43 @@ function get_neighbours(Lx,Ly,boundary_condition)
 end
 
 
-function initial_Neel_config(Lx,Ly)
+function initial_Neel_config(Lx,Ly,sign)
     #initial spin config, total sz=0
+    @assert sign in (1,-1);
     config=zeros(Int8,Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            config[cx,cy]=(-1)^(cx+cy);
+            config[cx,cy]=(-1)^(cx+cy)*sign;
         end
     end
+    @assert sum(sum(config))==0
     return config[:]
 end
+
+
+function decompose_physical_legs(fPEPS0,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+    
+    Lx,Ly=size(fPEPS0);
+    fPEPS=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp));
+    Vp=U₁Space(1/2=>1,-1/2=>1);
+    Vup=U₁Space(1/2=>1);
+    Vdn=U₁Space(-1/2=>1);
+    Pup=TensorMap([1,0]',Vup',Vp');
+    Pdn=TensorMap([0,1]',Vdn',Vp');
+    projectors=[Pup,Pdn];
+    @assert TensorKit.dim(Vp)==2;
+    for cp=1:TensorKit.dim(Vp)
+        for cx=1:Lx
+            for cy=1:Ly
+                T=fPEPS0[cx,cy];
+                @tensor T[:]:=T[-1,-2,-3,-4,1]*projectors[cp][-5,1];
+                fPEPS[cx,cy,cp]=T;
+            end
+        end
+    end
+    return fPEPS
+end
+
 
 
 function apply_sampling_projector(fPEPS,config::Matrix,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
@@ -195,6 +232,29 @@ function apply_sampling_projector(fPEPS,config::Matrix,Vp::GradedSpace{U1Irrep, 
     return fPEPS
 end
 
+
+function decompose_physical_legs(fPEPS0::Matrix{TensorMap},Vp::ComplexSpace)
+    Lx,Ly=size(fPEPS0);
+    fPEPS_decomposed=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp));
+    @assert TensorKit.dim(Vp)==2;
+    
+    for cp=1:TensorKit.dim(Vp)
+        for cx=1:Lx
+            for cy=1:Ly
+                T=fPEPS0[cx,cy];
+
+                if Rank(T)==3
+                    fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,cp],space(T,1)*space(T,2),ProductSpace{ComplexSpace, 0}());
+                elseif Rank(T)==4
+                    fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,:,cp],space(T,1)*space(T,2)*space(T,3),ProductSpace{ComplexSpace, 0}());
+                elseif Rank(T)==5
+                    fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,:,:,cp],space(T,1)*space(T,2)*space(T,3)*space(T,4),ProductSpace{ComplexSpace, 0}());
+                end
+            end
+        end
+    end
+    return fPEPS_decomposed
+end
 
 function apply_sampling_projector(fPEPS,config::Matrix,Vp::ComplexSpace)
     fPEPS=deepcopy(fPEPS);
@@ -227,11 +287,26 @@ function apply_sampling_projector(fPEPS,Lx::Int,Ly::Int,config::Vector,Vp)
 end
 
 
-
+function pick_sample(fPEPS_decomposed::Array{TensorMap},config0::Vector)
+    Lx,Ly,Lp=size(fPEPS_decomposed);
+    config=reshape(config0,Lx,Ly)
+    @assert Lp==2;#spin model
+    fPEPS=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            if config[cx,cy]==1
+                fPEPS[cx,cy]=fPEPS_decomposed[cx,cy,1];
+            elseif config[cx,cy]==-1
+                fPEPS[cx,cy]=fPEPS_decomposed[cx,cy,2];
+            end
+        end
+    end
+    return fPEPS
+end
 
 function normalize_PEPS!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
     Lx,Ly=size(psi);
-    config=initial_Neel_config(Lx,Ly);
+    config=initial_Neel_config(Lx,Ly,1);
     psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         psi_sample=shift_pleg(psi_sample);
@@ -249,6 +324,15 @@ end
 
 function contract_sample(psi::Matrix{TensorMap},Lx::Int,Ly::Int,config::Vector,Vp,contract_fun::Function)
     psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
+    if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        psi_sample=shift_pleg(psi_sample);
+    end
+    Norm,trun_err=contract_fun(psi_sample,chi);
+    return Norm,trun_err
+end
+
+function contract_sample(psi_decomposed::Array{TensorMap},Lx::Int,Ly::Int,config::Vector,Vp,contract_fun::Function)
+    psi_sample=pick_sample(psi_decomposed,config);
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         psi_sample=shift_pleg(psi_sample);
     end

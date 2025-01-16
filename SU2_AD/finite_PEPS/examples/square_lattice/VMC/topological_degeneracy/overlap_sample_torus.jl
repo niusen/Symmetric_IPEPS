@@ -79,12 +79,13 @@ normalize_PEPS!(psi,Vp,contract_whole_torus);#normalize psi such that the amplit
 
 
 #initial spin config, total sz=0
-config=initial_Neel_config(Lx,Ly);
+config=initial_Neel_config(Lx,Ly,1);
 
-
+psi_decomposed=decompose_physical_legs(psi,Vp);
+psi_sample=pick_sample(psi_decomposed,config);
 
 #apply projector to obtain sample
-psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
+#psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
 #remove physical leg when U1 symmetry is used
 psi_sample=shift_pleg(psi_sample);
 
@@ -99,5 +100,7 @@ Norm,trun_err=contract_whole_torus(psi_sample,chi);
 @show [Norm,sum(abs.(trun_err))]
 # ##############################
 
-@btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_torus)
+# @btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_torus);
+
+@btime Norm,trun_err=contract_sample(psi_decomposed,Lx,Ly,config,Vp,contract_whole_torus);
 

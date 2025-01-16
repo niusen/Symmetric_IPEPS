@@ -25,8 +25,8 @@ include("../../../../setting/tuple_methods.jl")
 include("../../../../environment/MC/contract_disk.jl")
 include("../../../../environment/MC/sampling.jl")
 
-const Lx = 6      # number of sites along x / number of columns in the lattice
-const Ly = 6      # number of sites along y / number of rows in the lattice
+const Lx = 4      # number of sites along x / number of columns in the lattice
+const Ly = 4      # number of sites along y / number of rows in the lattice
 const D=2;#bond dimension of state
 const chi=10;#bond dimension of environment
 
@@ -56,8 +56,8 @@ println("pid="*string(pid));;flush(stdout);
 function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple})
     # Compute the expectation value of the permutation operator
     elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
-    global contract_fun,psi,Vp
-    amplitude,_=contract_sample(psi,Lx,Ly,iconf_new,Vp,contract_fun);
+    global contract_fun,psi_decomposed,Vp
+    amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
 
     for i in 1:L
         for randK in NN_tuple_reduced[i]  # Loop over half of the nearest neighbors
@@ -67,11 +67,9 @@ function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple})
             if iconf_new[randl] == iconf_new[randK]
                 elocal += 0.25;  # Diagonal term ⟨x|H|x⟩
             else
-                iconf_new_flip=deepcopy(iconf_new);
-                iconf_new_flip[randl]=iconf_new[randK];
-                iconf_new_flip[randK]=iconf_new[randl];
+                iconf_new_flip=flip_config(iconf_new,randl,randK);
 
-                amplitude_flip,_=contract_sample(psi,Lx,Ly,iconf_new_flip,Vp,contract_fun);
+                amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
                 elocal += 0.5*amplitude_flip/amplitude -0.25;
             end
         end
@@ -88,10 +86,10 @@ function main()
 
     filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
     psi,Vp=load_fPEPS(Lx,Ly,filenm);
-    global contract_fun,psi,Vp
+    global contract_fun,psi_decomposed,Vp
     contract_fun=contract_whole_disk;
     normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
-    
+    psi_decomposed=decompose_physical_legs(psi,Vp);
 
     
     ##########################################
@@ -104,7 +102,7 @@ function main()
 
     # iconf_file = "Therm_iconf/initial_iconf_$(Lx).jld2"
     # initial_iconf = JLD2.load(iconf_file, "random_array")
-    initial_iconf =initial_Neel_config(Lx,Ly);
+    initial_iconf =initial_Neel_config(Lx,Ly,-1);
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.
 
     #start from the config in test.csv
@@ -167,13 +165,11 @@ function main()
                 
 
                 if iconf_new[randl] != iconf_new[randK]
-                    amplitude,_=contract_sample(psi,Lx,Ly,iconf_new,Vp,contract_fun);
+                    amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
 
-                    iconf_new_flip=deepcopy(iconf_new);
-                    iconf_new_flip[randl]=iconf_new[randK];
-                    iconf_new_flip[randK]=iconf_new[randl];
+                    iconf_new_flip=flip_config(iconf_new,randl,randK);
 
-                    amplitude_flip,_=contract_sample(psi,Lx,Ly,iconf_new_flip,Vp,contract_fun);
+                    amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
 
 
                     probratio = abs2(amplitude_flip/amplitude)  # Probability of accepting configuration

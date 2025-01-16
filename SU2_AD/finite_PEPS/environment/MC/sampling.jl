@@ -11,7 +11,7 @@ function load_fPEPS(Lx,Ly,filenm)
         println("Double layer method gives energy "*string(data["E"]));
     end
     if haskey(data,"E_sz0")
-        println("Double layer method gives energy "*string(data["E_sz0"])*" in s=0 sector");
+        println("Double layer method gives energy "*string(data["E_sz0"])*" in sz=0 sector");
     end
     psi0=data["psi"];
     @assert Lx==size(psi0,1);

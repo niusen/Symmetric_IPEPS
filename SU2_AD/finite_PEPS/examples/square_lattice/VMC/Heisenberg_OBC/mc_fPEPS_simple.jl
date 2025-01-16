@@ -102,43 +102,13 @@ function main()
 
     # iconf_file = "Therm_iconf/initial_iconf_$(Lx).jld2"
     # initial_iconf = JLD2.load(iconf_file, "random_array")
-    initial_iconf =initial_Neel_config(Lx,Ly,-1);
+    initial_iconf =initial_Neel_config(Lx,Ly,1);
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.
 
     #start from the config in test.csv
 
-    # evecs_file = "Ansatz/evecs_$(Lx)_dirac_pbcpbc.jld2"
-    # U = JLD2.load(evecs_file, "evecs")
 
 
-    # KEL = zeros(Int, L, N)  # Initialize KEL as a matrix of integers
-
-    #######################
-    # W_prime = zeros(Complex{Float64}, L, L_N)
-    # W_oneflavor = zeros(Complex{Float64}, L, L_N)
-    #######################
-
-
-
-    # for j in 1:N
-    #     ll = (-1)^(j - 1)  # Calculate ll for this column
-    #     mask = (initial_iconf .== ll)  # Create a logical mask where iconf equals ll
-    #     # .== means do an operation for every element of the array. Mask is an array of same size as initial_iconf, with elements true or false.
-
-    #     indices = findall(mask)  # Get the indices where the condition is true
-    #     KEL[indices, j] = 1:length(indices)  # Fill in the count for matching indices
-    # end
-
-    #display(KEL)
-    #display(initial_iconf)
-
-    # redU = U[1:L, 1:(L_N)]
-
-
-    # W = zeros(Complex{Float64}, L,L)
-    # println(typeof(W))
-
-    # ftW!(redU, KEL, W)
 
     # Initialize variables
     iconf_new = copy(initial_iconf)
@@ -177,10 +147,6 @@ function main()
 
                     if eta_rand < probratio  # We accept the configuration
 
-                        # Update KEL arrays and iconf
-                        # Swap elements based on dl and dK values
-                        # KEL[randK, 1 + (dl == -1)], KEL[randl, 1 + (dl == -1)] = KEL[randl, 1 + (dl == -1)], KEL[randK, 1 + (dl == -1)]
-                        # KEL[randl, 1 + (dK == -1)], KEL[randK, 1 + (dK == -1)] = KEL[randK, 1 + (dK == -1)], KEL[randl, 1 + (dK == -1)]
                         iconf_new= deepcopy(iconf_new_flip);
                         amplitude=deepcopy(amplitude_flip);
 
@@ -189,9 +155,6 @@ function main()
             end
             
             energyl1 = localenergy(iconf_new,NN_tuple_reduced)
-
-            # The constant L/2 is required because the localenergy function computes the expectation value of the permutation operator.
-            # The permutation operator is related to the S.S as follows: P_{ij} = 2 S_i . S_j + 1/2
 
             rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
             ebin1[rems] = energyl1

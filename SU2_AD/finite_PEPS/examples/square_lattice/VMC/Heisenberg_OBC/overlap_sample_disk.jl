@@ -37,8 +37,8 @@ println("pid="*string(pid));;flush(stdout);
 """
 
 D=2;
-Lx=6;
-Ly=6;
+Lx=4;
+Ly=4;
 
 filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
 psi,Vp=load_fPEPS(Lx,Ly,filenm);

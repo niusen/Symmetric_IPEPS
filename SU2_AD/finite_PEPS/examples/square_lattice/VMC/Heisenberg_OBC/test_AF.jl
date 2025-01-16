@@ -76,11 +76,13 @@ initial_iconf =initial_Neel_config(Lx,Ly,-1);
 # Initialize variables
 iconf_new = copy(initial_iconf)
 
+amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
+iconf_new_=reshape(iconf_new,Lx,Ly);
+@show iconf_new_
+@show amplitude
 
 
-
-
-    for i in 1:10  # Number of Monte Carlo steps, usually 1 million
+    for i in 1:100  # Number of Monte Carlo steps, usually 1 million
         # if mod(i,100)==0;@show i;flush(stdout);end
         for j in 1:Nbra  # Inner loop to create uncorrelated samples
             randl = rand(1:L)  # Picking a site at random; "l"

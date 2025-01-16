@@ -186,10 +186,10 @@ end
 
 
 
-function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history::disk_contract_history, chi::Int)
+function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history_::disk_contract_history, chi::Int)
     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
     config_new_=reshape(config_new,Lx,Ly);
-    config_old_=reshape(contract_history.config,Lx,Ly);
+    config_old_=reshape(contract_history_.config,Lx,Ly);
     ppy=Int(round(Ly/2));
 
     mpo_mps_fun=simple_truncate_to_moddle;
@@ -219,8 +219,8 @@ function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{
     #construct top and bot environment
 
     trun_history=Vector{Float64}(undef,0);
-    mps_bot_set=contract_history.mps_bot_set;
-    mps_top_set=contract_history.mps_top_set;
+    mps_bot_set=contract_history_.mps_bot_set;
+    mps_top_set=contract_history_.mps_top_set;
 
     if y_bot0==0
         mps_bot=psi_single[:,1];

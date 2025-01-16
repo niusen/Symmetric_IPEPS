@@ -343,3 +343,13 @@ end
 # function contract_sample(psi::Matrix{TensorMap},Lx::Int,Ly::Int,config::Vector,Vp,contract_fun::Function)
 #     return contract_sample(psi,Lx,Ly,reshape(config,Lx,Ly),Vp,contract_fun)
 # end
+
+function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,Vp,contract_history_::disk_contract_history)
+    psi_sample=pick_sample(psi_decomposed,config);
+    if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        psi_sample=shift_pleg(psi_sample);
+    end
+    Norm,trun_history, contract_history_new=contract_partial_disk(psi_sample,config,contract_history_, chi)
+    return Norm,trun_history, contract_history_new
+end
+

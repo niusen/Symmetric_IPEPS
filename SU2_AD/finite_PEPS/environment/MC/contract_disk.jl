@@ -186,7 +186,7 @@ end
 
 
 
-function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{Int},contract_history::disk_contract_history, chi::Int)
+function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history::disk_contract_history, chi::Int)
     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
     config_new_=reshape(config_new,Lx,Ly);
     config_old_=reshape(contract_history.config,Lx,Ly);
@@ -212,7 +212,7 @@ function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{
             break;
         end
     end
-    @show y_bot0,y_top0
+    # @show y_bot0,y_top0
     
 
     ########################################
@@ -265,7 +265,7 @@ function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{
         mpo=pi_rotate_mpo(psi_single[:,cy]);
         mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top,chi);
         mps_top[1]=mps_top[1]*norm_coe;
-        mps_top_set[cy]=mps_top;
+        mps_top_set[:,cy]=mps_top;
         trun_history=vcat(trun_history,trun_errs);
     end
     mps_top=treat_mps_top(mps_top);

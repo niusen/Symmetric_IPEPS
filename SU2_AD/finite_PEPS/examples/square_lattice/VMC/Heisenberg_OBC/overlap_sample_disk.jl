@@ -61,8 +61,10 @@ chi=10;
 Norm,trun_err=contract_whole_disk(psi_sample,chi);
 @show Norm,trun_err
 
-Norm,trun_err,contract_history= contract_partial_disk(psi_single,config_new,contract_history, chi)
-
+contract_history=disk_contract_history(zeros(Int8,L),Matrix{TensorMap}(undef,Lx,Ly),Matrix{TensorMap}(undef,Lx,Ly));#create empty contract_history
+@btime  contract_partial_disk(psi_sample,config,contract_history, chi);
+Norm,trun_err,contract_history= contract_partial_disk(psi_sample,config,contract_history, chi);
+@show Norm,trun_err
 
 # Norm_exact=exact_contraction(psi_sample);
 # 

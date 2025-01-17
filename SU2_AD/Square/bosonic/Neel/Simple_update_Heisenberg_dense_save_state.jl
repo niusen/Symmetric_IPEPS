@@ -35,7 +35,7 @@ CDCDCDCD
 Random.seed!(1234)
 symmetric_initial=false;
 
-D_max=6;
+for D_max in [2,3,4,5,6];
 J1=1;
 J2=0;
 Jchi=0;
@@ -99,8 +99,9 @@ dump(energy_setting);
 
 #################################
 global Lx,Ly
-Lx=4;
-Ly=4;
+for cl in [2,4,6,8,10,12]
+Lx=cl;
+Ly=cl;
 ##################################
 if optim_setting.init_statenm=="nothing"
     # Vp=Rep[SU₂](1/2=>1);
@@ -122,12 +123,12 @@ projector_trun_tol=LS_ctm_setting.CTM_trun_tol
 ###################################
 LS_ctm_setting.CTM_ite_nums=10;
 
-global chi, parameters, energy_setting, grad_ctm_setting
-A_cell=convert_to_iPEPS(Lx,Ly,T_set);
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],LS_ctm_setting);
-E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-println(E_total/(Lx*Ly))
+# global chi, parameters, energy_setting, grad_ctm_setting
+# A_cell=convert_to_iPEPS(Lx,Ly,T_set);
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],LS_ctm_setting);
+# E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total/(Lx*Ly))
 
 
 
@@ -153,20 +154,19 @@ T_set,lambdax_set,lambday_set=simple_update_Heisenberg(T_set,lambdax_set,lambday
 
 
 
-A_cell=convert_to_iPEPS(Lx,Ly,T_set);
 
-filenm="Heisenber_SU_D_"*string(Lx)*"x"*string(Ly)*"_"*string(D_max)*".jld2";
+filenm="Heisenber_SU_D_"*string(Lx)*"x"*string(Ly)*"_D"*string(D_max)*".jld2";
 jldsave(filenm;T_set,lambdax_set,lambday_set)
 
 
 
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],LS_ctm_setting);
-E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-println(E_total/(Lx*Ly))
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=CTMRG_cell(A_cell,chi,init,[],LS_ctm_setting);
+# E_total,  E_LU_RU_LD_set, E_LD_RU_RD_set, E_LU_LD_RD_set, E_LU_RU_RD_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total/(Lx*Ly))
 
+end
 
-
-
+end
 
 

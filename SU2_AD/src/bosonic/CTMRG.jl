@@ -1,6 +1,4 @@
-using LinearAlgebra:diag,diagm,I 
-using TensorKit
-using Zygote:@ignore_derivatives
+using LinearAlgebra: svd
 
 function build_double_layer(A,operator)
     #display(space(A))
@@ -69,7 +67,8 @@ end
 
 
 function spectrum_conv_check(ss_old,C_new)
-    _,ss_new,_=svd(permute(C_new,(1,),(2,)));
+
+    _,ss_new,_=tsvd(permute(C_new,(1,),(2,)));
     ss_new=convert(Array,ss_new);
     ss_new=sort(diag(ss_new), rev=true);
     ss_old=ss_old/ss_old[1];
@@ -832,7 +831,7 @@ end
 
 
 # function sdiag_inv_sqrt(S::AbstractTensorMap)
-#     toret = similar(S);
+#     toret = deepcopy(S);
     
 #     if sectortype(S) == Trivial
 #         copyto!(toret.data,LinearAlgebra.diagm(LinearAlgebra.diag(S.data).^(-1/2)));
@@ -844,18 +843,18 @@ end
 #     toret
 # end
 
-function sdiag_inv_sqrt(S::AbstractTensorMap)
-    toret = similar(S);
+function sdiag_inv_sqrt(S::DiagonalTensorMap)
+    toret = deepcopy(S);
     global chi,multiplet_tol,projector_trun_tol
     s_min=truncate_multiplet(S,chi,multiplet_tol,projector_trun_tol);
     if sectortype(S) == Trivial
         b=S.data;
-        newdata=(diagm(diag(b).^(-1/2))).*(diagm(diag(b).>=(s_min)));
-        copyto!(toret.data,newdata);
+        newdata=((b.^(-1/2))).*((b.>=(s_min)));
+        toret.data .=newdata;
     else
         for (k,b) in blocks(S)
             
-            copyto!(blocks(toret)[k],(diagm(diag(b).^(-1/2))).*(diagm(diag(b).>=(s_min))));
+            block(toret,k).=(((b).^(-1/2))).*(((b).>=(s_min)));
         end
     end
     toret
@@ -869,7 +868,7 @@ end
 
 
 function _elementwise_mult(a::AbstractTensorMap,b::AbstractTensorMap)
-    dst = similar(a);
+    dst = deepcopy(a);
     for (k,block) in blocks(dst)
         copyto!(block,blocks(a)[k].*blocks(b)[k]);
     end
@@ -878,7 +877,7 @@ end
 
 
 
-function truncate_block_svd(U_set,S_set,V_set,M,chi)
+function truncate_block_svd(v_secs,U_set,S_set,V_set,M,chi)
     # JLDnm="test.jld2";
     # init___=Dict([("M",M),("chi",chi),("trun_tol",trun_tol)]);
     # save(JLDnm, "init",init___);
@@ -889,18 +888,18 @@ function truncate_block_svd(U_set,S_set,V_set,M,chi)
     #######
 
     
-    for cs=1:length(M.data.keys)
+    for cs=1:length(v_secs)
         if typeof(space(M,1))==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
-            spin=M.data.keys[cs].n;
+            spin=v_secs[cs].n;
             spins=vcat(spins,spin);
         elseif typeof(space(M,1))==GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}
-            spin=M.data.keys[cs].charge;
+            spin=v_secs[cs].charge;
             spins=vcat(spins,spin);
         elseif typeof(space(M,1))==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
-            spin=M.data.keys[cs].j;
+            spin=v_secs[cs].j;
             spins=vcat(spins,spin);
         elseif typeof(space(M,1))==GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
-            spin=M.data.keys[cs].sectors[2].j;
+            spin=v_secs[cs].sectors[2].j;
             spins=vcat(spins,spin);
         end
     end
@@ -914,9 +913,9 @@ function truncate_block_svd(U_set,S_set,V_set,M,chi)
                 elseif typeof(space(M,1))==GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}
                     S_set_dense=vcat(S_set_dense,S_set[cc][dd]);
                 elseif typeof(space(M,1))==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
-                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]*ones(Int(2*spins[cc]+1))*sqrt(Int(2*spins[cc]+1)));#large spin have larger weight
+                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]*ones(Int(2*spins[cc]+1)));#no need large spin have larger weight
                 elseif typeof(space(M,1))==GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
-                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]*ones(Int(2*spins[cc]+1))*sqrt(Int(2*spins[cc]+1)));#large spin have larger weight
+                    S_set_dense=vcat(S_set_dense,S_set[cc][dd]*ones(Int(2*spins[cc]+1)));#no need large spin have larger weight
                 end
             end
         end
@@ -934,9 +933,9 @@ function truncate_block_svd(U_set,S_set,V_set,M,chi)
             elseif typeof(space(M,1))==GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}
                 pos=findall(x->x>value_trun,S_set[cd]);
             elseif typeof(space(M,1))==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
-                pos=findall(x->x>value_trun,S_set[cd]*sqrt(Int(2*spins[cd]+1)));#large spin have larger weight
+                pos=findall(x->x>value_trun,S_set[cd]);#no need large spin have larger weight
             elseif typeof(space(M,1))==GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}
-                pos=findall(x->x>value_trun,S_set[cd]*sqrt(Int(2*spins[cd]+1)));#large spin have larger weight
+                pos=findall(x->x>value_trun,S_set[cd]);#no need large spin have larger weight
             end
             
             if length(pos)>0
@@ -969,7 +968,7 @@ function truncate_block_svd(U_set,S_set,V_set,M,chi)
     Sector_name=Vector{Sector}(undef,length(spins));
     for cc=1:length(S_set);
         block_dims[cc]=length(S_set[cc]);
-        Sector_name[cc]=M.data.keys[cc];
+        Sector_name[cc]=v_secs[cc];
     end
     pos=findall(x->x>0,block_dims);
     U_set=U_set[pos];
@@ -1019,10 +1018,22 @@ function truncate_block_svd(U_set,S_set,V_set,M,chi)
         Vm=TensorMap(randn,Vtotal,VR')*(0*im);
         Sm=TensorMap(randn,Vtotal,Vtotal)*(0);
 
+        # for cs=1:length(spins)
+        #     Um.data.values[cs]=U_set[cs];
+        #     Vm.data.values[cs]=V_set[cs];
+        #     Sm.data.values[cs]=diagm(S_set[cs]);
+        # end
+        # println(blocksectors(Sm))
+        # println(spins)
+        # println(Sector_name)
         for cs=1:length(spins)
-            Um.data.values[cs]=U_set[cs];
-            Vm.data.values[cs]=V_set[cs];
-            Sm.data.values[cs]=diagm(S_set[cs]);
+            # pos=findall(x->x.==blocksectors(Sm)[cs],Sector_name);
+            # @show pos=pos[1];
+            # println(size(block(Um,v_secs[cs])))
+            # println(size(U_set[cs]))
+            block(Um,blocksectors(Um)[cs]).=U_set[cs];
+            block(Vm,blocksectors(Vm)[cs]).=V_set[cs];
+            block(Sm,blocksectors(Sm)[cs]).=diagm(S_set[cs]);
         end
         return Um,Sm,Vm
     end
@@ -1043,14 +1054,11 @@ function truncate_block_svd(U_set,S_set,V_set,M,chi)
         Um=U1*Um;
         U2=@ignore_derivatives unitary(space(Vm,2)',space(M,2)');
         Vm=Vm*U2;
-    end
-
-
-    
-    
+    end    
     return Um,Sm,Vm, M
-
 end
+
+
 
 
 
@@ -1060,6 +1068,7 @@ function verify_truncate_svd()
     V2=Rep[ℤ₂](0=>25,1=>25);
     V3=Rep[U₁ × SU₂]((0, 0)=>10, (2, 0)=>10, (1, 1/2)=>5,(2, 1)=>5,(3, 1/2)=>5);
     V4=Rep[U₁](-1=>10, -2=>20, 1=>10,0=>10,2=>10);
+
     V_set=[V1,V2,V3,V4];
     for cc=1:length(V_set)
         V=V_set[cc]
@@ -1070,25 +1079,38 @@ function verify_truncate_svd()
 
         chi=Int(round(dim(V)/2));
 
+
         uM1,sM1,vM1 = my_tsvd(M; trunc=truncdim(chi));
 
 
-
-        N_blocks=length(M.data.values);
+        # println(space(M))
+        #N_blocks=length(M.data.values);
+        v_secs=blocksectors((M));
+        N_blocks=length(v_secs);
         uu_set=Vector{Array}(undef,N_blocks);
         ss_set=Vector{Array}(undef,N_blocks);
         vv_set=Vector{Array}(undef,N_blocks);
-        for ccc =1:N_blocks
-            uu,ss,vv = svd(M.data.values[ccc]);
+        # for ccc =1:N_blocks
+        #     uu,ss,vv = svd(M.data.values[ccc]);
+        #     vv=vv';
+        #     uu_set[ccc]=uu;
+        #     ss_set[ccc]=ss;
+        #     vv_set[ccc]=vv;
+        # end
+        
+        for ccc= 1:N_blocks
+            uu,ss,vv = svd(block(M,v_secs[ccc]));
             vv=vv';
             uu_set[ccc]=uu;
             ss_set[ccc]=ss;
             vv_set[ccc]=vv;
         end
         # println(ss_set)
-        uM2,sM2,vM2 = truncate_block_svd(uu_set,ss_set,vv_set,M,chi);
-
-
+        uM2,sM2,vM2 = truncate_block_svd(v_secs,uu_set,ss_set,vv_set,M,chi);
+        # println(V)
+        # println(space(sM2))
+        # println(space(sM1))
+        # println(norm(uM1*sM1*vM1-uM2*sM2*vM2)/norm(M))
         @assert norm(uM1*sM1*vM1-uM2*sM2*vM2)/norm(M)<1e-13;
         # @show norm(uM1*sM1*vM1-uM2*sM2*vM2)/norm(M)
     end

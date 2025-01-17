@@ -45,9 +45,9 @@ end
 
 
 function initial_iPEPS(Lx,Ly,Vp,Vv)
-    lambdax_set=Matrix{Any}(undef,Lx,Ly);#to the left of site (ca,cb) 
-    lambday_set=Matrix{Any}(undef,Lx,Ly);#to the bot of site (ca,cb)
-    T_set=Matrix{Any}(undef,Lx,Ly)
+    lambdax_set=Matrix{DiagonalTensorMap}(undef,Lx,Ly);#to the left of site (ca,cb) 
+    lambday_set=Matrix{DiagonalTensorMap}(undef,Lx,Ly);#to the bot of site (ca,cb)
+    T_set=Matrix{TensorMap}(undef,Lx,Ly)
 
     T_set=Matrix{Any}(undef,Lx,Ly);
     for ca=1:Lx
@@ -66,10 +66,10 @@ function initial_iPEPS(Lx,Ly,Vp,Vv)
     for ca=1:Lx
         for cb=1:Ly
             vr=space(T_set[ca,cb],1);
-            lambdax_set[ca,cb]=unitary(vr,vr);
+            lambdax_set[ca,cb]=DiagonalTensorMap(ones(dim(vr)),vr);
 
             vd=space(T_set[ca,cb],2);
-            lambday_set[ca,cb]=unitary(vd',vd');
+            lambday_set[ca,cb]=DiagonalTensorMap(ones(dim(vd')),vd');
         end
     end
     return T_set,lambdax_set,lambday_set

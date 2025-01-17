@@ -29,7 +29,7 @@ function prepare_gate_Heisenberg(dt)
     return gate
 end
 
-function initial_tensor(Lx,Ly,d,D)
+function initial_tensor_OBC(Lx,Ly,d,D)
     lambdax_set=Matrix{Any}(undef,Lx+1,Ly);#to the left of site (ca,cb) 
     lambday_set=Matrix{Any}(undef,Lx,Ly+1);#to the bot of site (ca,cb)
     T_set=Matrix{Any}(undef,Lx,Ly)
@@ -114,7 +114,10 @@ function initial_tensor(Lx,Ly,d,D)
 end
 
 
-function simple_update_Heisenberg(T_set,lambdax_set,lambday_set,tau,dt,Dmax)
+
+
+
+function simple_update_Heisenberg_OBC(T_set,lambdax_set,lambday_set,tau,dt,Dmax)
     gate=prepare_gate_Heisenberg(dt);
     Lx,Ly=size(T_set);
     for ct=1:Int(round(tau/dt));
@@ -147,6 +150,8 @@ function simple_update_Heisenberg(T_set,lambdax_set,lambday_set,tau,dt,Dmax)
     end
     return T_set,lambdax_set,lambday_set
 end
+
+
 
 
 function tebd_xbond(Tset,lambdaxset,lambdayset, gate,px,py,Dmax);

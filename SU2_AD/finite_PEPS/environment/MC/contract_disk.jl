@@ -30,6 +30,7 @@ function pi_rotate_mpo(mpo_set)
 end
 
 function simple_truncate_to_moddle(mpo_set, mps_set,chi)
+    # Random.seed!(888);
     #without canonical form, so should be less accurate
     Lx=length(mpo_set);
     mps_origin=deepcopy(mps_set);
@@ -137,15 +138,17 @@ function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
     #construct top and bot environment
     log_norm_coe=0;
     trun_history=Vector{Float64}(undef,0);
-    # mps_bot_set=Vector{Any}(undef,Ly);
-    # mps_top_set=Vector{Any}(undef,Ly);
+    #mps_bot_set=Matrix{TensorMap}(undef,Lx,Ly);
+    #mps_top_set=Matrix{TensorMap}(undef,Lx,Ly);
 
     mps_bot=psi_single[:,1];
+
     for cy=2:ppy
         mpo=psi_single[:,cy];
         mps_bot,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot,chi);
         trun_history=vcat(trun_history,trun_errs);
         log_norm_coe=log_norm_coe+log(norm_coe);
+
     end
 
 
@@ -160,6 +163,7 @@ function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
 
     mps_top=psi_single[:,Ly];
     mps_top=pi_rotate_mps(mps_top);
+
     for cy=Ly-1:-1:ppy+1
         mpo=pi_rotate_mpo(psi_single[:,cy]);
         mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top,chi);
@@ -184,9 +188,83 @@ function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
     return norm_coe*Norm,trun_history
 end
 
+# function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
+#     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
+
+#     ppy=Int(round(Ly/2));
+
+#     mpo_mps_fun=simple_truncate_to_moddle;
+
+
+#     """coordinate
+#         (1,2),(2,2)
+#         (1,1),(2,1)
+#     """
+    
+
+#     ########################################
+#     #construct top and bot environment
+
+#     trun_history=Vector{Float64}(undef,0);
+#     mps_bot_set=Matrix{TensorMap}(undef,Lx,Ly);
+#     mps_top_set=Matrix{TensorMap}(undef,Lx,Ly);
+
+#     mps_bot=psi_single[:,1];
+#     ############
+#     mps_bot_set[:,1]=mps_bot;
+#     ############
+#     for cy=2:ppy
+#         mpo=psi_single[:,cy];
+#         mps_bot,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot,chi);
+#         mps_bot[1]=mps_bot[1]*norm_coe;
+#         trun_history=vcat(trun_history,trun_errs);
+#         ############
+#         mps_bot_set[:,cy]=mps_bot;
+#         ############
+#     end
+
+
+#     function treat_mps_top(mps_top)
+#         #convert mps_top to normal order
+#         mps_top=mps_top[end:-1:1];
+#         for cx=2:Lx-1
+#             mps_top[cx]=permute(mps_top[cx],(2,1,3,));
+#         end
+#         return mps_top
+#     end
+
+#     mps_top=psi_single[:,Ly];
+#     mps_top=pi_rotate_mps(mps_top);
+#     ############
+#     mps_top_set[:,Ly]=mps_top;
+#     ############
+#     for cy=Ly-1:-1:ppy+1
+#         mpo=pi_rotate_mpo(psi_single[:,cy]);
+#         mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top,chi);
+#         mps_top[1]=mps_top[1]*norm_coe;
+#         trun_history=vcat(trun_history,trun_errs);
+#         ############
+#         mps_top_set[:,cy]=mps_top;
+#         ############
+#     end
+#     mps_top=treat_mps_top(mps_top);
+
+#     ########################################
+
+#     @tensor vl[:]:=mps_top[1][-1,1]*mps_bot[1][-2,1];
+#     for cx=2:Lx-1
+#         @tensor vl[:]:=vl[1,2]*mps_top[cx][1,-1,3]*mps_bot[cx][2,-2,3];
+#     end
+#     Norm=@tensor vl[2,3]*mps_top[Lx][2,1]*mps_bot[Lx][3,1];
+
+
+#     return Norm,trun_history, mps_top_set,mps_bot_set
+# end
+
 
 
 function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history_::disk_contract_history, chi::Int)
+    contract_history_=deepcopy(contract_history_);#warning: this deepcopy is necessary, otherwise may cause error is sweep is not accepted.
     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
     config_new_=reshape(config_new,Lx,Ly);
     config_old_=reshape(contract_history_.config,Lx,Ly);
@@ -283,6 +361,77 @@ function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{
 
 
     return Norm,trun_history, disk_contract_history(config_new, mps_top_set,mps_bot_set)
+end
+
+function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_::disk_contract_history, chi::Int)
+
+    Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
+
+    ppy=Int(round(Ly/2));
+
+    mpo_mps_fun=simple_truncate_to_moddle;
+
+   
+    
+
+    ########################################
+    #construct top and bot environment
+
+
+    mps_bot_set=Matrix{TensorMap}(undef,Lx,Ly);
+    mps_top_set=Matrix{TensorMap}(undef,Lx,Ly);
+
+    mps_bot=psi_single[:,1];
+    mps_bot_set[:,1]=mps_bot;
+
+    for cy=2:ppy
+        mpo=psi_single[:,cy];
+        mps_bot,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot,chi);
+        mps_bot[1]=mps_bot[1]*norm_coe;
+        mps_bot_set[:,cy]=mps_bot;
+    end
+
+    #######################
+    function treat_mps_top(mps_top)
+        #convert mps_top to normal order
+        mps_top=mps_top[end:-1:1];
+        for cx=2:Lx-1
+            mps_top[cx]=permute(mps_top[cx],(2,1,3,));
+        end
+        return mps_top
+    end
+
+
+    mps_top=psi_single[:,Ly];
+    mps_top=pi_rotate_mps(mps_top);
+    mps_top_set[:,Ly]=mps_top;
+    
+    for cy=Ly-1:-1:ppy+1
+        mpo=pi_rotate_mpo(psi_single[:,cy]);
+        mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top,chi);
+        mps_top[1]=mps_top[1]*norm_coe;
+        mps_top_set[:,cy]=mps_top;
+    end
+    # mps_top=treat_mps_top(mps_top);
+
+    ########################################
+
+    mps_top_set_old=contract_history_.mps_top_set;
+    mps_bot_set_old=contract_history_.mps_bot_set;
+
+    for cx=1:Lx
+        for cy=ppy+1:Ly
+            @assert norm(mps_top_set[cx,cy]-mps_top_set_old[cx,cy])/norm(mps_top_set[cx,cy])<1e-10  string([Lx,Ly])
+        end
+    end
+
+    for cx=1:Lx
+        for cy=1:ppy
+            @assert norm(mps_bot_set[cx,cy]-mps_bot_set_old[cx,cy])/norm(mps_bot_set[cx,cy])<1e-10  string([Lx,Ly])
+        end
+    end
+
+    
 end
 
 ########################################################

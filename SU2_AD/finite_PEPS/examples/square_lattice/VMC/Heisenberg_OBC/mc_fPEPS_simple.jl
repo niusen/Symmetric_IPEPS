@@ -25,8 +25,8 @@ include("../../../../setting/tuple_methods.jl")
 include("../../../../environment/MC/contract_disk.jl")
 include("../../../../environment/MC/sampling.jl")
 
-const Lx = 4      # number of sites along x / number of columns in the lattice
-const Ly = 4      # number of sites along y / number of rows in the lattice
+const Lx = 6      # number of sites along x / number of columns in the lattice
+const Ly = 6      # number of sites along y / number of rows in the lattice
 const D=2;#bond dimension of state
 const chi=10;#bond dimension of environment
 
@@ -53,11 +53,13 @@ println("pid="*string(pid));;flush(stdout);
 
 
 
-function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple})
+function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple}, contract_history_::Contract_History)
     # Compute the expectation value of the permutation operator
     elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
     global contract_fun,psi_decomposed,Vp
     amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
+    amplitude_,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history_);
+    @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
 
     for i in 1:L
         for randK in NN_tuple_reduced[i]  # Loop over half of the nearest neighbors
@@ -70,6 +72,8 @@ function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple})
                 iconf_new_flip=flip_config(iconf_new,randl,randK);
 
                 amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
+                amplitude_flip_,_,_= partial_contract_sample(psi_decomposed,iconf_new_flip,Vp,contract_history_);
+                @assert abs(norm(amplitude_flip-amplitude_flip_)/amplitude_flip)<1e-10   string(amplitude_flip)*", "*string(amplitude_flip_);
                 elocal += 0.5*amplitude_flip/amplitude -0.25;
             end
         end
@@ -102,6 +106,8 @@ function main()
     #start from the config in test.csv
 
 
+    #create empty contract_history
+    contract_history=disk_contract_history(zeros(Int8,Lx*Ly),Matrix{TensorMap}(undef,Lx,Ly),Matrix{TensorMap}(undef,Lx,Ly));
 
 
     # Initialize variables
@@ -123,6 +129,8 @@ function main()
             # if mod(i,100)==0;@show i;flush(stdout);end
 
             amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
+            amplitude_,_,contract_history= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history);
+            @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
 
             for j in 1:Nbra  # Inner loop to create uncorrelated samples
                 randl = rand(1:L)  # Picking a site at random; "l"
@@ -137,21 +145,24 @@ function main()
                     iconf_new_flip=flip_config(iconf_new,randl,randK);
 
                     amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
+                    amplitude_flip_,_,contract_history_flip= partial_contract_sample(psi_decomposed,iconf_new_flip,Vp,contract_history);
+                    @assert abs((amplitude_flip-amplitude_flip_)/amplitude_flip_)<1e-10   string(amplitude_flip)*", "*string(amplitude_flip_);
 
 
                     probratio = abs2(amplitude_flip/amplitude)  # Probability of accepting configuration
                     eta_rand = rand()  # Random number from 0 to 1; "eta"
 
                     if eta_rand < probratio  # We accept the configuration
-
+                        # println("accept")
                         iconf_new= deepcopy(iconf_new_flip);
                         amplitude=deepcopy(amplitude_flip);
+                        contract_history=deepcopy(contract_history_flip);
 
                     end
                 end
             end
             
-            energyl1 = localenergy(iconf_new,NN_tuple_reduced)
+            energyl1 = localenergy(iconf_new,NN_tuple_reduced,contract_history)
 
             rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
             ebin1[rems] = energyl1

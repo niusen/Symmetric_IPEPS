@@ -336,6 +336,8 @@ function contract_sample(psi_decomposed::Array{TensorMap},Lx::Int,Ly::Int,config
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         psi_sample=shift_pleg(psi_sample);
     end
+    # Norm,trun_err,m,n=contract_fun(psi_sample,chi);
+    # return Norm,trun_err,m,n
     Norm,trun_err=contract_fun(psi_sample,chi);
     return Norm,trun_err
 end
@@ -344,12 +346,19 @@ end
 #     return contract_sample(psi,Lx,Ly,reshape(config,Lx,Ly),Vp,contract_fun)
 # end
 
-function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,Vp,contract_history_::disk_contract_history)
+function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,Vp,contract_history_::Contract_History)
     psi_sample=pick_sample(psi_decomposed,config);
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         psi_sample=shift_pleg(psi_sample);
     end
-    Norm,trun_history, contract_history_new=contract_partial_disk(psi_sample,config,contract_history_, chi)
-    return Norm,trun_history, contract_history_new
+    Norm,trun_errs, contract_history_new=contract_partial_disk(psi_sample,config,contract_history_, chi)
+
+    #################################
+    #for verification, need to comment later
+    # jldsave("test2.jld2";psi_decomposed,config,contract_history_,contract_history_new,chi)
+    # verify_contract_history(psi_sample,contract_history_new, chi);
+    #################################
+
+    return Norm,trun_errs, contract_history_new
 end
 

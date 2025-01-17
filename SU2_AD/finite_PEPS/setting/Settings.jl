@@ -58,7 +58,9 @@ Base.@kwdef mutable struct finite_PEPS_with_coe
     logcoe :: Float64
 end
 
-struct disk_contract_history
+abstract type Contract_History end
+
+struct disk_contract_history <:Contract_History
     config :: Vector;
     mps_top_set::Matrix{TensorMap}
     mps_bot_set::Matrix{TensorMap}

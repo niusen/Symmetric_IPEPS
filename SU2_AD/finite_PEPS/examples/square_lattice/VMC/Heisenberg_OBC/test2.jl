@@ -25,8 +25,8 @@ include("../../../../setting/tuple_methods.jl")
 include("../../../../environment/MC/contract_disk.jl")
 include("../../../../environment/MC/sampling.jl")
 
-const Lx = 6      # number of sites along x / number of columns in the lattice
-const Ly = 6      # number of sites along y / number of rows in the lattice
+const Lx = 8      # number of sites along x / number of columns in the lattice
+const Ly = 8      # number of sites along y / number of rows in the lattice
 const D=2;#bond dimension of state
 const chi=10;#bond dimension of environment
 
@@ -139,7 +139,7 @@ function main()
 
         # @inbounds for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
         #     @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
-        for i in 1:100  # Number of Monte Carlo steps, usually 1 million
+        for i in 1:50  # Number of Monte Carlo steps, usually 1 million
             # if mod(i,100)==0;@show i;flush(stdout);end
 
 

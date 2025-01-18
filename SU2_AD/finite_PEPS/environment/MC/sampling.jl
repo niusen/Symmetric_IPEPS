@@ -311,7 +311,7 @@ function normalize_PEPS!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         psi_sample=shift_pleg(psi_sample);
     end
-    chi__=20;
+    chi__=30;
     Norm,trun_err=contract_fun(psi_sample,chi__);
     Norm=norm(Norm);
     coe=Norm^(1/(Lx*Ly));

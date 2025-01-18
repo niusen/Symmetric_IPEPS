@@ -21,10 +21,13 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
             @tensor TT[:]:=Tup_R[-1,1,-4,-6]*Tdn_R[-2,-3,-5,1]; #expensive, can be avoided
             #U,S,V=TT
             @tensor V[:]:=t_recover[-1,1,2]*TT[1,2,-2,-3,-4,-5];#verify U is isometry
-            V=permute(V,(1,),(2,3,4,5,));
-            VVd=V*V';
-            Id_=unitary(space(VVd,1),space(VVd,1));
-            @assert norm(VVd-Id_)/norm(Id_)<1e-8;
+            #######################
+            #verification
+            # V=permute(V,(1,),(2,3,4,5,));
+            # VVd=V*V';
+            # Id_=unitary(space(VVd,1),space(VVd,1));
+            # @assert norm(VVd-Id_)/norm(Id_)<1e-8;
+            #######################
         
             return t0,t_recover
         end
@@ -46,10 +49,13 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
             @tensor TT[:]:=Tup_L[-1,1,-4,-6]*Tdn_L[-2,-3,-5,1]; #expensive, can be avoided
             #U,S,V=TT
             @tensor U[:]:=TT[-1,-2,-3,1,2,-5]*t_recover[1,2,-4];#verify U is isometry
-            U=permute(U,(1,2,3,5),(4,));
-            UdU=U'*U;
-            Id_=unitary(space(UdU,1),space(UdU,1));
-            @assert norm(UdU-Id_)/norm(Id_)<1e-8;
+            #######################
+            # #verification
+            # U=permute(U,(1,2,3,5),(4,));
+            # UdU=U'*U;
+            # Id_=unitary(space(UdU,1),space(UdU,1));
+            # @assert norm(UdU-Id_)/norm(Id_)<1e-8;
+            #######################
         
             return t0,t_recover
         end
@@ -165,7 +171,7 @@ function contract_rows(finite_PEPS,chi)
 end
 
 
-function contract_whole_torus(finite_PEPS,chi)
+function contract_whole_torus_yRG(finite_PEPS,chi)
     finite_PEPS=deepcopy(finite_PEPS);
     trun_err=Vector{Float64}(undef,0);
     Ly_=size(finite_PEPS,2);
@@ -179,20 +185,133 @@ function contract_whole_torus(finite_PEPS,chi)
         # end
     end
 
+    ###################################
+    #final contraction method 1
     Lx,Ly_=size(finite_PEPS);
-    mps_final=Vector{TensorMap}(undef,Lx);
-    for cc=1:Lx
-        @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
-        mps_final[cc]=permute(T,(1,2,),(3,4,));
-    end
-
-    T=mps_final[1];
+    cc=1;
+    @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+    T=permute(T,(1,2,),(3,4,));
     for cc=2:Lx-1
-        T=T*mps_final[cc];
+        @tensor T_[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+        T_=permute(T_,(1,2,),(3,4,));
+        T=T*T_;
     end
-    ov=@tensor T[1,2,3,4]*mps_final[Lx][3,4,1,2]
+    cc=Lx;
+    @tensor T_[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+    ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+    #############################
+    # #final contraction method 2, slower than method1
+    # Lx,Ly_=size(finite_PEPS);
+    # cc=1;
+    # @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+    # for cc=2:Lx-1
+    #     @tensor T[:]:=T[-1,-2,4,1]*finite_PEPS[cc,2][4,2,-3,3]*finite_PEPS[cc,1][1,3,-4,2];
+    # end
+    # cc=Lx;
+    # ov=@tensor  T[5,2,3,1]*finite_PEPS[cc,2][3,4,5,6]*finite_PEPS[cc,1][1,6,2,4];
+    #############################
 
 
     return ov,trun_err
 
+end
+
+
+# function contract_whole_torus_boundaryMPS(finite_PEPS,chi)
+#     finite_PEPS=deepcopy(finite_PEPS);
+#     Lx,Ly=size(finite_PEPS);
+#     trun_err=Vector{Float64}(undef,0);
+    
+#     global projector_method
+#     if projector_method=="1"
+#         combine_two_rows=combine_two_rows_method1
+#     elseif projector_method=="2"
+#         combine_two_rows=combine_two_rows_method2
+#     end
+
+#     ppy=Int(round(Ly/2));
+
+#     mpo_bot=finite_PEPS[:,1];
+#     for cy=2:ppy
+#         mpo_bot,err_set=combine_two_rows(finite_PEPS[:,cy],mpo_bot,chi);  
+#         trun_err=vcat(trun_err,err_set);  
+#     end
+
+#     mpo_top=finite_PEPS[:,ppy+1];
+#     for cy=ppy+2:Ly
+#         mpo_top,err_set=combine_two_rows(finite_PEPS[:,cy],mpo_top,chi);  
+#         trun_err=vcat(trun_err,err_set);  
+#     end
+
+#     ###################################
+#     #final contraction method 1
+#     Lx_,Ly_=size(finite_PEPS);
+#     cc=1;
+#     @tensor T[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+#     T=permute(T,(1,2,),(3,4,));
+#     for cc=2:Lx_-1
+#         @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+#         T_=permute(T_,(1,2,),(3,4,));
+#         T=T*T_;
+#     end
+#     cc=Lx_;
+#     @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+#     ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+#     #############################
+
+#     return ov,trun_err
+# end
+
+
+function contract_whole_torus_boundaryMPS(finite_PEPS,chi)
+    finite_PEPS=deepcopy(finite_PEPS);
+    Lx,Ly=size(finite_PEPS);
+    trun_err=Vector{Float64}(undef,0);
+    
+    global projector_method
+    if projector_method=="1"
+        combine_two_rows=combine_two_rows_method1
+    elseif projector_method=="2"
+        combine_two_rows=combine_two_rows_method2
+    end
+
+    ppy=Int(round(Ly/2));
+
+    mpo_bot=finite_PEPS[:,1];
+    for cy=2:ppy
+        mpo_bot,err_set=combine_two_rows(finite_PEPS[:,cy],mpo_bot,chi);  
+        trun_err=vcat(trun_err,err_set);  
+    end
+
+
+    ###################################
+    # mpo_top=finite_PEPS[:,ppy+1];
+    # for cy=ppy+2:Ly
+    #     mpo_top,err_set=combine_two_rows(finite_PEPS[:,cy],mpo_top,chi);  
+    #     trun_err=vcat(trun_err,err_set);  
+    # end
+    ###################################
+    mpo_top=finite_PEPS[:,Ly];
+    for cy=Ly-1:-1:ppy+1
+        mpo_top,err_set=combine_two_rows(mpo_top,finite_PEPS[:,cy],chi);  
+        trun_err=vcat(trun_err,err_set);  
+    end
+
+    ###################################
+    #final contraction method 1
+    Lx_,Ly_=size(finite_PEPS);
+    cc=1;
+    @tensor T[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+    T=permute(T,(1,2,),(3,4,));
+    for cc=2:Lx_-1
+        @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+        T_=permute(T_,(1,2,),(3,4,));
+        T=T*T_;
+    end
+    cc=Lx_;
+    @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+    ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+    #############################
+
+    return ov,trun_err
 end

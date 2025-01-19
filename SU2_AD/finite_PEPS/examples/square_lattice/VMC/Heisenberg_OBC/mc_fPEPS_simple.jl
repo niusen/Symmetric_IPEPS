@@ -196,8 +196,8 @@ function main()
             ebin1[rems] = energyl1
 
             if rems == binn
-                #CSV.write(outputname, mean(ebin); append=true) 
-                println(file, real(mean(ebin1)));flush(stdout);
+                CSV.write(outputname, real(mean(ebin1)); append=true) 
+                # println(file, real(mean(ebin1)));flush(stdout);
             end
 
             # Optional: Uncomment to print configuration every 999 steps

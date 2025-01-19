@@ -25,8 +25,8 @@ include("../../../../setting/tuple_methods.jl")
 include("../../../../environment/MC/contract_torus.jl")
 include("../../../../environment/MC/sampling.jl")
 
-const Lx = 4      # number of sites along x / number of columns in the lattice
-const Ly = 4      # number of sites along y / number of rows in the lattice
+const Lx = 6      # number of sites along x / number of columns in the lattice
+const Ly = 6      # number of sites along y / number of rows in the lattice
 const D=2;#bond dimension of state
 const chi=4;#bond dimension of environment
 
@@ -204,8 +204,9 @@ function main()
             ebin1[rems] = energyl1
 
             if rems == binn
-                #CSV.write(outputname, mean(ebin); append=true) 
-                println(file, real(mean(ebin1)));flush(stdout);
+                CSV.write(outputname, real(mean(ebin1)); append=true) 
+                # println(file, real(mean(ebin1)));flush(stdout);
+                # write(file, real(mean(ebin1)));flush(stdout);
             end
 
             # Optional: Uncomment to print configuration every 999 steps

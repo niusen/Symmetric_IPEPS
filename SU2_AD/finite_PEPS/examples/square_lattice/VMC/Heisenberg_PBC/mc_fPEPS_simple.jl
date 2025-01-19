@@ -22,11 +22,11 @@ include("../../../../setting/Settings.jl")
 include("../../../../setting/linearalgebra.jl")
 include("../../../../setting/tuple_methods.jl")
 
-include("../../../../environment/MC/contract_disk.jl")
+include("../../../../environment/MC/contract_torus.jl")
 include("../../../../environment/MC/sampling.jl")
 
-const Lx = 6      # number of sites along x / number of columns in the lattice
-const Ly = 6      # number of sites along y / number of rows in the lattice
+const Lx = 4      # number of sites along x / number of columns in the lattice
+const Ly = 4      # number of sites along y / number of rows in the lattice
 const D=2;#bond dimension of state
 const chi=4;#bond dimension of environment
 
@@ -103,17 +103,19 @@ function main()
 
     contraction_path="recycle";#"verify","full","recycle"
 
-    filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
+    filenm="Heisenber_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
     psi,Vp=load_fPEPS(Lx,Ly,filenm);
-    global contraction_path, contract_fun, psi_decomposed, Vp
-    contract_fun=contract_whole_disk;
-    normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
+
+    global contraction_path, contract_fun, psi_decomposed, Vp, projector_method
+    projector_method="1";#"1" or "2"
+    contract_fun=contract_whole_torus_boundaryMPS;
+    normalize_PEPS!(psi,Vp,contract_whole_torus_boundaryMPS);#normalize psi such that the amplitude of a single config is close to 1
     psi_decomposed=decompose_physical_legs(psi,Vp);
 
     
     ##########################################
 
-    coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours(Lx,Ly,"OBC");
+    coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours(Lx,Ly,"PBC");
 
     initial_iconf =initial_Neel_config(Lx,Ly,1);
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.
@@ -122,7 +124,7 @@ function main()
 
 
     #create empty contract_history
-    contract_history=disk_contract_history(zeros(Int8,Lx*Ly),Matrix{TensorMap}(undef,Lx,Ly),Matrix{TensorMap}(undef,Lx,Ly));
+    contract_history=torus_contract_history(zeros(Int8,Lx*Ly),Matrix{TensorMap}(undef,Lx,Ly));
 
 
     # Initialize variables
@@ -141,6 +143,7 @@ function main()
         # @inbounds for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
         #     @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
         for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
+            # @show i
             # if mod(i,100)==0;@show i;flush(stdout);end
 
 
@@ -166,6 +169,11 @@ function main()
 
                     iconf_new_flip=flip_config(iconf_new,randl,randK);
                     if contraction_path=="verify"
+                        # println(iconf_new)
+                        # pos1=findall(x->x.==randl,reshape(coord,Lx,Ly));
+                        # pos2=findall(x->x.==randK,reshape(coord,Lx,Ly));
+                        # @show pos1
+                        # @show pos2
                         amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
                         amplitude_flip_,_,contract_history_flip= partial_contract_sample(psi_decomposed,iconf_new_flip,Vp,contract_history);
                         @assert abs((amplitude_flip-amplitude_flip_)/amplitude_flip_)<1e-10   string(amplitude_flip)*", "*string(amplitude_flip_);

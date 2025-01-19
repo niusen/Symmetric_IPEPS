@@ -66,6 +66,23 @@ struct disk_contract_history <:Contract_History
     mps_bot_set::Matrix{TensorMap}
 end
 
+
+struct Final_mps_range #used for contract PBC MPS on torus
+    left_range::Matrix{Int}
+    right_range::Matrix{Int}
+    length::Vector{Int}
+end
+# struct torus_contract_history <:Contract_History
+#     config :: Vector;
+#     mps_all_set::Matrix{TensorMap}
+#     final_mps_set::Matrix{TensorMap}
+#     final_mps_range::Final_mps_range
+# end
+struct torus_contract_history <:Contract_History
+    config :: Vector;
+    mps_all_set::Matrix{TensorMap}
+end
+
 function coordinate_2d_to_1d(L1::Int,L2::Int,pos::Vector{Int})
     px,py=pos;
     return (px-1)*L1+py

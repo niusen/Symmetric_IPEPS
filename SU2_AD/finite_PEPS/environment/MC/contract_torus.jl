@@ -171,7 +171,7 @@ function contract_rows(finite_PEPS,chi)
 end
 
 
-function contract_whole_torus_yRG(finite_PEPS,chi)
+function contract_whole_torus(finite_PEPS::Matrix{TensorMap},chi::Int)
     finite_PEPS=deepcopy(finite_PEPS);
     trun_err=Vector{Float64}(undef,0);
     Ly_=size(finite_PEPS,2);
@@ -263,7 +263,7 @@ end
 # end
 
 
-function contract_whole_torus_boundaryMPS(finite_PEPS,chi)
+function contract_whole_torus_boundaryMPS(finite_PEPS::Matrix{TensorMap},chi::Int)
     finite_PEPS=deepcopy(finite_PEPS);
     Lx,Ly=size(finite_PEPS);
     trun_err=Vector{Float64}(undef,0);
@@ -275,6 +275,7 @@ function contract_whole_torus_boundaryMPS(finite_PEPS,chi)
         combine_two_rows=combine_two_rows_method2
     end
 
+    # @time begin
     ppy=Int(round(Ly/2));
 
     mpo_bot=finite_PEPS[:,1];
@@ -297,6 +298,8 @@ function contract_whole_torus_boundaryMPS(finite_PEPS,chi)
         trun_err=vcat(trun_err,err_set);  
     end
 
+    # end
+    # @time begin
     ###################################
     #final contraction method 1
     Lx_,Ly_=size(finite_PEPS);
@@ -312,6 +315,226 @@ function contract_whole_torus_boundaryMPS(finite_PEPS,chi)
     @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
     ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
     #############################
-
+    # end
     return ov,trun_err
 end
+
+
+
+function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history_::torus_contract_history,chi::Int)
+    psi_single=deepcopy(psi_single);
+    contract_history_=deepcopy(contract_history_);#warning: this deepcopy is necessary, otherwise may cause error is sweep is not accepted.
+    Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
+    config_new_=reshape(config_new,Lx,Ly);
+    config_old_=reshape(contract_history_.config,Lx,Ly);
+    ppy=Int(round(Ly/2));
+
+    global projector_method
+    if projector_method=="1"
+        combine_two_rows=combine_two_rows_method1
+    elseif projector_method=="2"
+        combine_two_rows=combine_two_rows_method2
+    end
+
+    #compare old and new config
+    y_bot0=0;
+    for cy=1:ppy
+        if config_new_[:,cy]==config_old_[:,cy]
+            y_bot0=y_bot0+1;
+        else
+            break;
+        end
+    end
+
+    y_top0=Ly+1;
+    for cy=Ly:-1:ppy+1
+        if config_new_[:,cy]==config_old_[:,cy]
+            y_top0=y_top0-1;
+        else
+            break;
+        end
+    end
+    # @show y_bot0,y_top0
+    
+
+    ##########################
+    trun_err=Vector{Float64}(undef,0);
+    mps_all_set=contract_history_.mps_all_set;
+
+    # @time begin
+ 
+    
+    if y_bot0==0
+        mps_bot=psi_single[:,1];
+        mps_all_set[:,1]=mps_bot;
+        y0=1;
+    elseif y_bot0>0
+        mps_bot=mps_all_set[:,y_bot0];
+        y0=y_bot0;
+    end
+
+    for cy=y0+1:ppy
+        mps_bot,trun_errs=combine_two_rows(psi_single[:,cy], mps_bot,chi);
+        mps_all_set[:,cy]=mps_bot;
+        trun_err=vcat(trun_err,trun_errs);
+    end
+
+    #######################
+
+
+    if y_top0==Ly+1
+        mps_top=psi_single[:,Ly];
+        mps_all_set[:,Ly]=mps_top;
+        y1=Ly;
+    elseif y_top0<Ly+1
+        mps_top=mps_all_set[:,y_top0];
+        y1=y_top0;
+    end
+
+    
+    
+    for cy=y1-1:-1:ppy+1
+        mps_top,trun_errs=combine_two_rows(mps_top,psi_single[:,cy],chi);
+        mps_all_set[:,cy]=mps_top;
+        trun_err=vcat(trun_err,trun_errs);
+    end
+
+
+
+    # end
+    # @time begin
+    ###################################
+    #not possible to recycle environment for contracting this row MPS, as one column boundary MPS could be affected by tensors at other columns, 
+    #due to the method for determination of projector. So Some tensors that seems to be unchanged are actually changed in the fnial PBC MPS. 
+    #final contraction method 1
+    cc=1;
+    @tensor T[:]:=mps_top[cc][-1,1,-3,2]*mps_bot[cc][-2,2,-4,1];
+    T=permute(T,(1,2,),(3,4,));
+    for cc=2:Lx-1
+        @tensor T_[:]:=mps_top[cc][-1,1,-3,2]*mps_bot[cc][-2,2,-4,1];
+        T_=permute(T_,(1,2,),(3,4,));
+        T=T*T_;
+    end
+    cc=Lx;
+    @tensor T_[:]:=mps_top[cc][-1,1,-3,2]*mps_bot[cc][-2,2,-4,1];
+    ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+    #############################
+
+
+    # end
+    return ov, trun_err,  torus_contract_history(config_new, mps_all_set)
+end
+
+
+
+function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_::torus_contract_history, chi::Int)
+
+    Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
+    ppy=Int(round(Ly/2));
+
+    ########################################
+    #construct top and bot environment
+
+    
+    global projector_method
+    if projector_method=="1"
+        combine_two_rows=combine_two_rows_method1
+    elseif projector_method=="2"
+        combine_two_rows=combine_two_rows_method2
+    end
+
+    mps_all_set=Matrix{TensorMap}(undef,Lx,Ly);
+
+    ppy=Int(round(Ly/2));
+
+    mpo_bot=psi_single[:,1];
+    mps_all_set[:,1]=mpo_bot;
+    for cy=2:ppy
+        mpo_bot,err_set=combine_two_rows(psi_single[:,cy],mpo_bot,chi);  
+        mps_all_set[:,cy]=mpo_bot;
+    end
+
+
+    mpo_top=psi_single[:,Ly];
+    mps_all_set[:,Ly]=mpo_top;
+    for cy=Ly-1:-1:ppy+1
+        mpo_top,err_set=combine_two_rows(mpo_top,psi_single[:,cy],chi);  
+        mps_all_set[:,cy]=mpo_top;
+    end
+
+    
+
+    ########################################
+
+    mps_all_set_old=contract_history_.mps_all_set;
+
+
+    for cx=1:Lx
+        for cy=1:ppy
+            @assert norm(mps_all_set[cx,cy]-mps_all_set_old[cx,cy])/norm(mps_all_set[cx,cy])<1e-10  string([cx,cy])
+        end
+    end
+    for cx=1:Lx
+        for cy=Ly:-1:ppy+1
+            @assert norm(mps_all_set[cx,cy]-mps_all_set_old[cx,cy])/norm(mps_all_set[cx,cy])<1e-10  string([cx,cy])
+        end
+    end
+
+    #####################
+
+
+    
+end
+
+
+
+
+function get_final_mps_range(L_)
+    #used for binary tree contraction of final PBC MPS
+
+    final_mps_length=Vector{Int}(undef,0);
+    Lnew=L_;
+    push!(final_mps_length,Lnew);
+    while Lnew>1
+        if mod(Lnew,2)==0
+            Lnew=Int(Lnew/2);
+        else
+            Lnew=Int((Lnew+1)/2);
+        end
+        push!(final_mps_length,Lnew);
+        # println(Lnew)
+        if Lnew==1
+            break;
+        end
+    end
+
+
+    final_mps_left_range=zeros(Int,L_,length(final_mps_length));
+    final_mps_right_range=zeros(Int,L_,length(final_mps_length));
+    final_mps_left_range[1:L_,1]=1:L_;
+    final_mps_right_range[1:L_,1]=1:L_;
+    for layer=2:length(final_mps_length)
+        previous_left_range=final_mps_left_range[1:final_mps_length[layer-1],layer-1];
+        previous_right_range=final_mps_right_range[1:final_mps_length[layer-1],layer-1];
+        layer_length=final_mps_length[layer];
+        for cc=1:layer_length-1
+            final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
+            final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
+
+        end
+        
+        cc=layer_length;
+        if mod(final_mps_length[layer-1],2)==0 #even
+            final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
+            final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
+        elseif mod(final_mps_length[layer-1],2)==1 #odd
+            final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
+            final_mps_right_range[cc,layer]=final_mps_right_range[2*cc-1,layer-1];
+        end
+        
+    end
+    
+
+    return Final_mps_range(final_mps_left_range, final_mps_right_range, final_mps_length)
+end
+

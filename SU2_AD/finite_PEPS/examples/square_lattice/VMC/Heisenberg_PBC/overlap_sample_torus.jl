@@ -44,13 +44,13 @@ println("pid="*string(pid));;flush(stdout);
 """
 
 D=5;
-Lx=12;
-Ly=12;
+Lx=8;
+Ly=8;
 
 chi=5;
 
 ##############################################
-filenm="Heisenber_SU_D_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*".jld2"
+filenm="saved_states/Heisenber_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*".jld2"
 data=load(filenm);
 psi0=data["T_set"];
 # A=TensorMap(A.data,A.codom,A.dom);
@@ -99,6 +99,13 @@ Norm,trun_err=contract_whole_torus_boundaryMPS(psi_sample,chi);
 
 @btime Norm,trun_err=contract_sample(psi_decomposed,Lx,Ly,config,Vp,contract_whole_torus);
 
+
+
+Contract_history=torus_contract_history(zeros(Int,Lx*Ly), Matrix{TensorMap}(undef,Lx,Ly));
+
+@btime Norm,trun_err,Contract_history_new=contract_partial_torus_boundaryMPS(psi_sample,config,Contract_history,chi);
+Norm,trun_err,Contract_history_new=contract_partial_torus_boundaryMPS(psi_sample,config,Contract_history,chi);
+@show [Norm,sum(abs.(trun_err))]
 
 
 

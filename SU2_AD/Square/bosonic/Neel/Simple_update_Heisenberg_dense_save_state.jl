@@ -155,7 +155,7 @@ T_set,lambdax_set,lambday_set=simple_update_Heisenberg(T_set,lambdax_set,lambday
 
 
 
-filenm="Heisenber_SU_D_"*string(Lx)*"x"*string(Ly)*"_D"*string(D_max)*".jld2";
+filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D_max)*".jld2";
 jldsave(filenm;T_set,lambdax_set,lambday_set)
 
 

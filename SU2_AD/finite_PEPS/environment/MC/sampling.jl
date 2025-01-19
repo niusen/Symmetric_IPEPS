@@ -6,14 +6,18 @@ function flip_config(config0::Vector,pos1::Int,pos2::Int)
 end
 
 function load_fPEPS(Lx,Ly,filenm)
-    data=load(filenm*".jld2");
+    data=load("saved_states/"*filenm*".jld2");
     if haskey(data,"E")
         println("Double layer method gives energy "*string(data["E"]));
     end
     if haskey(data,"E_sz0")
         println("Double layer method gives energy "*string(data["E_sz0"])*" in sz=0 sector");
     end
-    psi0=data["psi"];
+    if haskey(data,"psi")
+        psi0=data["psi"];
+    elseif haskey(data,"T_set")
+        psi0=data["T_set"];
+    end
     @assert Lx==size(psi0,1);
     @assert Ly==size(psi0,2);
     psi=Matrix{TensorMap}(undef,Lx,Ly);
@@ -346,7 +350,7 @@ end
 #     return contract_sample(psi,Lx,Ly,reshape(config,Lx,Ly),Vp,contract_fun)
 # end
 
-function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,Vp,contract_history_::Contract_History)
+function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,Vp,contract_history_::disk_contract_history)
     psi_sample=pick_sample(psi_decomposed,config);
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         psi_sample=shift_pleg(psi_sample);
@@ -362,3 +366,18 @@ function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector
     return Norm,trun_errs, contract_history_new
 end
 
+function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,Vp,contract_history_::torus_contract_history)
+    psi_sample=pick_sample(psi_decomposed,config);
+    if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        psi_sample=shift_pleg(psi_sample);
+    end
+    Norm,trun_errs, contract_history_new=contract_partial_torus_boundaryMPS(psi_sample,config,contract_history_, chi)
+
+    #################################
+    #for verification, need to comment later
+    # jldsave("test2.jld2";psi_decomposed,config,contract_history_,contract_history_new,chi)
+    # verify_contract_history(psi_sample,contract_history_new, chi);
+    #################################
+
+    return Norm,trun_errs, contract_history_new
+end

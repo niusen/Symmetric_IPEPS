@@ -371,12 +371,8 @@ function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_
 
     mpo_mps_fun=simple_truncate_to_moddle;
 
-   
-    
-
     ########################################
     #construct top and bot environment
-
 
     mps_bot_set=Matrix{TensorMap}(undef,Lx,Ly);
     mps_top_set=Matrix{TensorMap}(undef,Lx,Ly);
@@ -421,13 +417,13 @@ function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_
 
     for cx=1:Lx
         for cy=ppy+1:Ly
-            @assert norm(mps_top_set[cx,cy]-mps_top_set_old[cx,cy])/norm(mps_top_set[cx,cy])<1e-10  string([Lx,Ly])
+            @assert norm(mps_top_set[cx,cy]-mps_top_set_old[cx,cy])/norm(mps_top_set[cx,cy])<1e-10  string([cx,cy])
         end
     end
 
     for cx=1:Lx
         for cy=1:ppy
-            @assert norm(mps_bot_set[cx,cy]-mps_bot_set_old[cx,cy])/norm(mps_bot_set[cx,cy])<1e-10  string([Lx,Ly])
+            @assert norm(mps_bot_set[cx,cy]-mps_bot_set_old[cx,cy])/norm(mps_bot_set[cx,cy])<1e-10  string([cx,cy])
         end
     end
 

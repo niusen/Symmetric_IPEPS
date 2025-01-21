@@ -105,6 +105,7 @@ function main()
 
     filenm="Heisenber_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
     psi,Vp=load_fPEPS(Lx,Ly,filenm);
+    psi_1,psi_2
 
     global contraction_path, contract_fun, psi_decomposed, Vp, projector_method
     projector_method="1";#"1" or "2"

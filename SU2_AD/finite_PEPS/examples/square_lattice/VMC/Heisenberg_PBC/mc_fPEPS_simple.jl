@@ -14,6 +14,7 @@ using Profile
 # using ProfileView
 cd(@__DIR__)
 
+#gethostname()
 
 
 include("../../../../state/iPEPS_ansatz.jl")
@@ -204,9 +205,10 @@ function main()
             ebin1[rems] = energyl1
 
             if rems == binn
-                CSV.write(outputname, real(mean(ebin1)); append=true) 
+                #CSV.write(outputname, real(mean(ebin1)); append=true) 
                 # println(file, real(mean(ebin1)));flush(stdout);
                 # write(file, real(mean(ebin1)));flush(stdout);
+                println(file, real(mean(ebin1)));flush(file);
             end
 
             # Optional: Uncomment to print configuration every 999 steps

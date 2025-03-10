@@ -1,37 +1,41 @@
-# Simple monte carlo code that computes the energy for the square lattice Heisenberg model with nearest neighbor interactions.
+using Distributed
+@everywhere using LinearAlgebra:I,diagm,diag
+@everywhere using TensorKit
+@everywhere using Random
+@everywhere using Printf
+@everywhere using DelimitedFiles
+@everywhere using CSV
+@everywhere using DataFrames
+@everywhere using Pkg
+@everywhere using JLD2
+@everywhere using BenchmarkTools
+@everywhere using Profile
+# @everywhere using ProfileView
+@everywhere cd(@__DIR__)
 
-using LinearAlgebra:I,diagm,diag
-using TensorKit
-using Random
-using Printf
-using DelimitedFiles
-using CSV
-using DataFrames
-using Pkg
-using JLD2
-using BenchmarkTools
-using Profile
-# using ProfileView
-cd(@__DIR__)
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
+dir=hostnm*"/";
+isdir(dir) || mkdir(dir)
 
+@everywhere include("../../../../state/iPEPS_ansatz.jl")
 
+@everywhere include("../../../../setting/Settings.jl")
+@everywhere include("../../../../setting/linearalgebra.jl")
+@everywhere include("../../../../setting/tuple_methods.jl")
 
-include("../../../../state/iPEPS_ansatz.jl")
+@everywhere include("../../../../environment/MC/contract_disk.jl")
+@everywhere include("../../../../environment/MC/sampling.jl")
 
-include("../../../../setting/Settings.jl")
-include("../../../../setting/linearalgebra.jl")
-include("../../../../setting/tuple_methods.jl")
-
-include("../../../../environment/MC/contract_disk.jl")
-include("../../../../environment/MC/sampling.jl")
-
+@everywhere begin
 const Lx = 6      # number of sites along x / number of columns in the lattice
 const Ly = 6      # number of sites along y / number of rows in the lattice
 const D=2;#bond dimension of state
 const chi=4;#bond dimension of environment
+end
 
-include("sq_constants.jl")
-include("error_analysis.jl")
+@everywhere include("sq_constants.jl")
+@everywhere include("error_analysis.jl")
 
 ####################
 #use single core
@@ -54,7 +58,7 @@ println("pid="*string(pid));;flush(stdout);
 
 
 
-function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple}, contract_history_::Contract_History)
+@everywhere function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple}, contract_history_::Contract_History)
     # Compute the expectation value of the permutation operator
     elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
     global contract_fun,psi_decomposed,Vp
@@ -98,7 +102,7 @@ end
 
 
 
-function main()
+@everywhere function main(dir, worker_id)
     #load saved fPEPS data
 
     contraction_path="recycle";#"verify","full","recycle"
@@ -130,7 +134,7 @@ function main()
 
     ebin1 = zeros(Complex{Float64}, binn)
 
-    outputname = "test.csv"
+    outputname = dir*"id_"*string(worker_id)*".csv"
 
     if isfile(outputname)
         rm(outputname)
@@ -196,8 +200,9 @@ function main()
             ebin1[rems] = energyl1
 
             if rems == binn
-                CSV.write(outputname, real(mean(ebin1)); append=true) 
-                # println(file, real(mean(ebin1)));flush(stdout);
+                #println( real(mean(ebin1)))
+                #CSV.write(outputname, real(mean(ebin1)); append=true) 
+                println(file, real(mean(ebin1)));flush(file);
             end
 
             # Optional: Uncomment to print configuration every 999 steps
@@ -207,9 +212,9 @@ function main()
                 # println(file, "\n\n", iconf_new, "\n\n\n");flush(stdout);
             end
 
-            if mod(i + 1, 200) == 0
-                println(real(mean(ebin1)));flush(stdout);
-            end
+            # if mod(i + 1, 200) == 0
+            #     println(real(mean(ebin1)));flush(stdout);
+            # end
 
         end
 
@@ -220,6 +225,14 @@ end
 # Profile.clear()
 # @btime @profview main()
 
-@time main();
+
+ntask=nworkers();
+
+@sync begin
+    for cp=1:ntask
+        worker_id=workers()[cp]
+        @spawnat worker_id main(dir, worker_id);
+    end
+end
 
 data_analysis()

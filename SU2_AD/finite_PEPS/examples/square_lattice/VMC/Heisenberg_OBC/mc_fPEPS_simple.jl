@@ -102,9 +102,9 @@ end
 
 
 
-@everywhere function main(dir, worker_id)
+@everywhere function main(dir, worker_id, ntask)
     #load saved fPEPS data
-
+    @show Nsteps_worker=Int(round(Nsteps/ntask));
     contraction_path="recycle";#"verify","full","recycle"
 
     filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
@@ -144,7 +144,7 @@ end
 
         # @inbounds for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
         #     @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
-        for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
+        for i in 1:Nsteps_worker  # Number of Monte Carlo steps, usually 1 million
             # if mod(i,100)==0;@show i;flush(stdout);end
 
 
@@ -231,7 +231,7 @@ ntask=nworkers();
 @sync begin
     for cp=1:ntask
         worker_id=workers()[cp]
-        @spawnat worker_id main(dir, worker_id);
+        @spawnat worker_id main(dir, worker_id, ntask);
     end
 end
 

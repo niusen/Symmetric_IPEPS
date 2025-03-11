@@ -14,6 +14,7 @@ using Profile
 # using ProfileView
 cd(@__DIR__)
 
+#gethostname()
 
 
 include("../../../../state/iPEPS_ansatz.jl")
@@ -47,71 +48,59 @@ pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################
 
+function get_psi_BCs(psi)
 
-
-
-
-
-
-
-function localenergy(iconf_new::Vector,  NN_tuple_reduced::Vector{Tuple}, contract_history_::Contract_History)
-    # Compute the expectation value of the permutation operator
-    elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
-    global contract_fun,psi_decomposed,Vp
-
-    if contraction_path=="verify"
-        amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
-        amplitude_,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history_);
-        @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
-    elseif contraction_path=="full"
-        amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
-    elseif contraction_path=="recycle"
-        amplitude,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history_);
-    end
-
-    for i in 1:L
-        for randK in NN_tuple_reduced[i]  # Loop over half of the nearest neighbors
-            randl = i
-            # randK = NN_tuple_reduced[randl][j]  # Neighbor site
-
-            if iconf_new[randl] == iconf_new[randK]
-                elocal += 0.25;  # Diagonal term ⟨x|H|x⟩
-            else
-                iconf_new_flip=flip_config(iconf_new,randl,randK);
-
-                if contraction_path=="verify"
-                    amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
-                    amplitude_flip_,_,_= partial_contract_sample(psi_decomposed,iconf_new_flip,Vp,contract_history_);
-                    @assert abs(norm(amplitude_flip-amplitude_flip_)/amplitude_flip)<1e-10   string(amplitude_flip)*", "*string(amplitude_flip_);
-                elseif contraction_path=="full"
-                    amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
-                elseif contraction_path=="recycle"
-                    amplitude_flip,_,= partial_contract_sample(psi_decomposed,iconf_new_flip,Vp,contract_history_);
-                end
-                elocal += 0.5*amplitude_flip/amplitude -0.25;
-            end
-        end
-    end
-
-    return elocal
 end
 
 
 
-function main()
+
+
+
+function overlap_ratio(iconf_new::Vector,amplitude::Number, contract_history_otherstate_::Contract_History)
+    # Compute the expectation value of the permutation operator
+    
+    global contract_fun,psi_decomposed_otherstate,Vp
+
+    if contraction_path=="verify"
+        amplitude_otherstate,_=contract_sample(psi_decomposed_otherstate,Lx,Ly,iconf_new,Vp,contract_fun);
+        amplitude_otherstate_,_,contract_history_= partial_contract_sample(psi_decomposed_otherstate,iconf_new,Vp,contract_history_otherstate_);
+        @assert abs(norm(amplitude_otherstate-amplitude_otherstate_)/amplitude_otherstate)<1e-10;
+    elseif contraction_path=="full"
+        amplitude_otherstate,_=contract_sample(psi_decomposed_otherstate,Lx,Ly,iconf_new,Vp,contract_fun);
+    elseif contraction_path=="recycle"
+        amplitude_otherstate,_,contract_history_otherstate_= partial_contract_sample(psi_decomposed_otherstate,iconf_new,Vp,contract_history_otherstate_);
+    end
+
+
+    elocal = amplitude_otherstate/amplitude;
+
+        
+    return elocal,contract_history_otherstate_
+end
+
+
+
+function main(BC1,BC2)
     #load saved fPEPS data
 
     contraction_path="recycle";#"verify","full","recycle"
 
     filenm="Heisenber_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
-    psi,Vp=load_fPEPS(Lx,Ly,filenm);
-    psi_1,psi_2
+    psi0,Vp=load_fPEPS(Lx,Ly,filenm);
 
-    global contraction_path, contract_fun, psi_decomposed, Vp, projector_method
+    global contraction_path, contract_fun, psi_decomposed,psi_decomposed_otherstate, Vp, projector_method
     projector_method="1";#"1" or "2"
     contract_fun=contract_whole_torus_boundaryMPS;
-    normalize_PEPS!(psi,Vp,contract_whole_torus_boundaryMPS);#normalize psi such that the amplitude of a single config is close to 1
+    normalize_PEPS!(psi0,Vp,contract_whole_torus_boundaryMPS);#normalize psi0 such that the amplitude of a single config is close to 1
+    #psi_00,psi_0pi,psi_pi0,psi_pipi =construct_4_states(psi0,Vv);#four states
+    psi_BC_set =construct_4_states(psi0,Vv);#four states
+
+    psi=psi_BC_set[BC1];
     psi_decomposed=decompose_physical_legs(psi,Vp);
+
+    psi_otherstate=psi_BC_set[BC2];
+    psi_decomposed_otherstate=decompose_physical_legs(psi_otherstate,Vp);
 
     
     ##########################################
@@ -126,6 +115,7 @@ function main()
 
     #create empty contract_history
     contract_history=torus_contract_history(zeros(Int8,Lx*Ly),Matrix{TensorMap}(undef,Lx,Ly));
+    contract_history_otherstate=torus_contract_history(zeros(Int8,Lx*Ly),Matrix{TensorMap}(undef,Lx,Ly));
 
 
     # Initialize variables
@@ -152,10 +142,15 @@ function main()
                 amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
                 amplitude_,_,contract_history= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history);
                 @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
+
+                amplitude_otherstate,_=contract_sample(psi_decomposed_otherstate,Lx,Ly,iconf_new,Vp,contract_fun);
+                amplitude_otherstate_,_,contract_history= partial_contract_sample(psi_decomposed_otherstate,iconf_new,Vp,contract_history_otherstate);
+                @assert abs(norm(amplitude_otherstate-amplitude_otherstate_)/amplitude_otherstate)<1e-10;
             elseif contraction_path=="full"
                 amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
             elseif contraction_path=="recycle"
                 amplitude,_,contract_history= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history);
+                amplitude_otherstate,_,contract_history_otherstate= partial_contract_sample(psi_decomposed_otherstate,iconf_new,Vp,contract_history_otherstate);
             end
 
             for j in 1:Nbra  # Inner loop to create uncorrelated samples
@@ -199,15 +194,16 @@ function main()
                 end
             end
             
-            energyl1 = localenergy(iconf_new,NN_tuple_reduced,contract_history)
+            energyl1,contract_history_otherstate= overlap_ratio(iconf_new,amplitude, contract_history_otherstate)
 
             rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
             ebin1[rems] = energyl1
 
             if rems == binn
-                CSV.write(outputname, real(mean(ebin1)); append=true) 
+                #CSV.write(outputname, real(mean(ebin1)); append=true) 
                 # println(file, real(mean(ebin1)));flush(stdout);
                 # write(file, real(mean(ebin1)));flush(stdout);
+                println(file, real(mean(ebin1)));flush(file);
             end
 
             # Optional: Uncomment to print configuration every 999 steps

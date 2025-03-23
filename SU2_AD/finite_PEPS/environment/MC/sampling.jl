@@ -5,6 +5,30 @@ function flip_config(config0::Vector,pos1::Int,pos2::Int)
     return config
 end
 
+function load_fPEPS_from_iPEPS(Lx,Ly,filenm)
+    data=load(filenm*".jld2");
+    A=data["A"];
+    # A=TensorMap(A.data,A.codom,A.dom);
+    
+    
+    Vv=U₁Space(0=>1,1/2=>1,-1/2=>1);
+    Vp=U₁Space(1/2=>1,-1/2=>1);
+    # Vv=ℤ₂Space(0=>1,1=>2);
+    # Vp=ℤ₂Space(1=>2);
+    A=TensorMap(convert(Array,A),Vv*Vv,Vv*Vv*Vp);
+    A=permute(A,(1,2,3,4,5,));
+    
+    
+    #psi=generate_obc_from_iPEPS(A,Lx,Ly);
+    psi=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            psi[cx,cy]=A;
+        end
+    end
+    return psi,Vp,Vv
+end
+
 function load_fPEPS(Lx,Ly,filenm)
     data=load("saved_states/"*filenm*".jld2");
     if haskey(data,"E")

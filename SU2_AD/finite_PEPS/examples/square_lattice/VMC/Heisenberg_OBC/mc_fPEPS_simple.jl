@@ -6,11 +6,8 @@ using Distributed
 @everywhere using DelimitedFiles
 @everywhere using CSV
 @everywhere using DataFrames
-@everywhere using Pkg
 @everywhere using JLD2
-@everywhere using BenchmarkTools
-@everywhere using Profile
-# @everywhere using ProfileView
+
 @everywhere cd(@__DIR__)
 
 @show num_logical_cores = Sys.CPU_THREADS

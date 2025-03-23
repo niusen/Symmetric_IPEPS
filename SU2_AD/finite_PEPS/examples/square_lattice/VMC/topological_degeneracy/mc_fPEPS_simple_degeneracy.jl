@@ -1,38 +1,41 @@
-# Simple monte carlo code that computes the energy for the square lattice Heisenberg model with nearest neighbor interactions.
+using Distributed
+@everywhere using LinearAlgebra:I,diagm,diag
+@everywhere using TensorKit
+@everywhere using Random
+@everywhere using Printf
+@everywhere using DelimitedFiles
+@everywhere using CSV
+@everywhere using DataFrames
+@everywhere using JLD2
 
-using LinearAlgebra:I,diagm,diag
-using TensorKit
-using Random
-using Printf
-using DelimitedFiles
-using CSV
-using DataFrames
-using Pkg
-using JLD2
-using BenchmarkTools
-using Profile
-# using ProfileView
-cd(@__DIR__)
+@everywhere cd(@__DIR__)
 
-#gethostname()
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
+dir=hostnm*"/";
+isdir(dir) || mkdir(dir)
 
 
-include("../../../../state/iPEPS_ansatz.jl")
+@everywhere include("../../../../state/iPEPS_ansatz.jl")
 
-include("../../../../setting/Settings.jl")
-include("../../../../setting/linearalgebra.jl")
-include("../../../../setting/tuple_methods.jl")
+@everywhere include("../../../../setting/Settings.jl")
+@everywhere include("../../../../setting/linearalgebra.jl")
+@everywhere include("../../../../setting/tuple_methods.jl")
 
-include("../../../../environment/MC/contract_torus.jl")
-include("../../../../environment/MC/sampling.jl")
+@everywhere include("../../../../environment/MC/contract_torus.jl")
+@everywhere include("../../../../environment/MC/sampling.jl")
+@everywhere include("../../../../environment/MC/sampling_eliminate_physical_leg.jl")
+@everywhere include("../../../../environment/MC/build_degenerate_states.jl")
 
+@everywhere begin
 const Lx = 6      # number of sites along x / number of columns in the lattice
 const Ly = 6      # number of sites along y / number of rows in the lattice
-const D=2;#bond dimension of state
-const chi=4;#bond dimension of environment
+const D=3;#bond dimension of state
+const chi=10;#bond dimension of environment
+end
 
-include("sq_constants.jl")
-include("error_analysis.jl")
+@everywhere include("sq_constants.jl")
+@everywhere include("error_analysis.jl")
 
 ####################
 #use single core
@@ -48,7 +51,7 @@ pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################
 
-function get_psi_BCs(psi)
+function get_psi_BCs(state_filenm, psi)
 
 end
 
@@ -57,7 +60,7 @@ end
 
 
 
-function overlap_ratio(iconf_new::Vector,amplitude::Number, contract_history_otherstate_::Contract_History)
+@everywhere function overlap_ratio(iconf_new::Vector,amplitude::Number, contract_history_otherstate_::Contract_History)
     # Compute the expectation value of the permutation operator
     
     global contract_fun,psi_decomposed_otherstate,Vp
@@ -81,13 +84,13 @@ end
 
 
 
-function main(BC1,BC2)
+@everywhere function main(dir, worker_id, ntask, BC1,BC2)
     #load saved fPEPS data
-
+    @show Nsteps_worker=Int(round(Nsteps/ntask));
     contraction_path="recycle";#"verify","full","recycle"
-
-    filenm="Heisenber_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
-    psi0,Vp=load_fPEPS(Lx,Ly,filenm);
+ 
+    filenm="CSL_D"*string(D)*"_U1";
+    psi0,Vp,Vv=load_fPEPS_from_iPEPS(Lx,Ly,filenm);
 
     global contraction_path, contract_fun, psi_decomposed,psi_decomposed_otherstate, Vp, projector_method
     projector_method="1";#"1" or "2"
@@ -123,7 +126,7 @@ function main(BC1,BC2)
 
     ebin1 = zeros(Complex{Float64}, binn)
 
-    outputname = "test.csv"
+    outputname = dir*"id_"*string(worker_id)*"_BC"*string(BC1)*"_"*string(BC2)*"_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".csv"
 
     if isfile(outputname)
         rm(outputname)
@@ -200,10 +203,9 @@ function main(BC1,BC2)
             ebin1[rems] = energyl1
 
             if rems == binn
-                #CSV.write(outputname, real(mean(ebin1)); append=true) 
-                # println(file, real(mean(ebin1)));flush(stdout);
-                # write(file, real(mean(ebin1)));flush(stdout);
-                println(file, real(mean(ebin1)));flush(file);
+                #println( mean(ebin1))
+                #CSV.write(outputname, mean(ebin1); append=true) 
+                println(file, mean(ebin1));flush(file);
             end
 
             # Optional: Uncomment to print configuration every 999 steps
@@ -213,9 +215,9 @@ function main(BC1,BC2)
                 # println(file, "\n\n", iconf_new, "\n\n\n");flush(stdout);
             end
 
-            if mod(i + 1, 200) == 0
-                println(real(mean(ebin1)));flush(stdout);
-            end
+            # if mod(i + 1, 200) == 0
+            println(mean(ebin1));flush(stdout);
+            # end
 
         end
 
@@ -223,9 +225,18 @@ function main(BC1,BC2)
 
 end
 
-# Profile.clear()
-# @btime @profview main()
 
-@time main();
+BC1=1;
+BC2=2;
+
+ntask=nworkers();
+main(dir, 1, ntask, BC1,BC2);
+# @sync begin
+#     for cp=1:ntask
+#         worker_id=workers()[cp]
+#         @spawnat worker_id main(dir, worker_id, ntask, BC1,BC2);
+#     end
+# end
+
 
 data_analysis()

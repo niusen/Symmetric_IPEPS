@@ -41,3 +41,5 @@ kagome/SU2_PG/FiniteDiff_D8_job.jl
 kagome/SU2_PG/FiniteDiff_D8_job.jl
 *.jld2
 *.dat
+*.csv
+*.csv

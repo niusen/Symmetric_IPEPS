@@ -8,6 +8,9 @@ using Random
 using BenchmarkTools
 cd(@__DIR__)
 
+include("../../../../setting/Settings.jl")
+include("../../../../setting/linearalgebra.jl")
+include("../../../../setting/tuple_methods.jl")
 include("../../../../state/iPEPS_ansatz.jl")
 
 include("../../../../environment/MC/contract_torus.jl")
@@ -15,9 +18,7 @@ include("../../../../environment/MC/build_degenerate_states.jl")
 include("../../../../environment/MC/sampling.jl")
 include("../../../../environment/MC/sampling_eliminate_physical_leg.jl")
 
-include("../../../../setting/Settings.jl")
-include("../../../../setting/linearalgebra.jl")
-include("../../../../setting/tuple_methods.jl")
+
 
 
 
@@ -43,10 +44,10 @@ println("pid="*string(pid));;flush(stdout);
     (1,1),(2,1)
 """
 
-Lx=6;
-Ly=6;
+Lx=8;
+Ly=8;
 
-chi=10;
+chi=35;
 
 ##############################################
 
@@ -73,7 +74,8 @@ end
 
 psi_00,psi_0pi,psi_pi0,psi_pipi =construct_4_states(psi,Vv);#four states
 #################################
-global projector_method
+global projector_method,rotate_truncation
+rotate_truncation=false;
 projector_method="1";#"1" or "2"
 normalize_PEPS!(psi,Vp,contract_whole_torus);#normalize psi such that the amplitude of a single config is close to 1
 
@@ -102,5 +104,5 @@ Norm,trun_err=contract_whole_torus(psi_sample,chi);
 
 # @btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_torus);
 
-@btime Norm,trun_err=contract_sample(psi_decomposed,Lx,Ly,config,Vp,contract_whole_torus);
+# @btime Norm,trun_err=contract_sample(psi_decomposed,Lx,Ly,config,Vp,contract_whole_torus);
 

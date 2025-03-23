@@ -1,3 +1,117 @@
+function anti_clock_coord_rotate(coord,Lx,Ly)
+    return [Ly-coord[2]+1,coord[1]]
+end
+
+function combine_two_rows_method3(mpo1,mpo2,chi)
+    function build_projector(Tup_L,Tup_R,Tdn_L,Tdn_R,chi)
+
+        function right_decompose(Tup_R,Tdn_R)
+            Tup_R=permute(Tup_R,(1,2,3,4,));
+            Tdn_R=permute(Tdn_R,(1,2,3,4,));
+        
+            @tensor TTTT[:]:=Tup_R[-1,5,2,1]*Tup_R'[-3,6,2,1]*Tdn_R[-2,4,3,5]*Tdn_R'[-4,4,3,6];
+            TTTT=permute(TTTT,(1,2,),(3,4,));
+            eu,ev= eigh(TTTT);
+            
+            #decomposition: V=pinv(sqrt(eu))*ev*TT
+            # t0=ev*sqrt(eu);#U*S
+            t0=ev*sqrt(eu);#U*S
+            # t_recover=mypinv(sqrt(eu))*ev';
+        
+            #verification, should be commented later
+            # @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
+            # @tensor TT[:]:=Tup_R[-1,1,-4,-6]*Tdn_R[-2,-3,-5,1]; #expensive, can be avoided
+            # #U,S,V=TT
+            # @tensor V[:]:=t_recover[-1,1,2]*TT[1,2,-2,-3,-4,-5];#verify U is isometry
+            #######################
+            #verification
+            # V=permute(V,(1,),(2,3,4,5,));
+            # VVd=V*V';
+            # Id_=unitary(space(VVd,1),space(VVd,1));
+            # @assert norm(VVd-Id_)/norm(Id_)<1e-8;
+            #######################
+        
+            return t0#,t_recover
+        end
+        
+        function left_decompose(Tup_L,Tdn_L)
+            Tup_L=permute(Tup_L,(1,2,3,4,));
+            Tdn_L=permute(Tdn_L,(1,2,3,4,));
+        
+            @tensor TTTT[:]:=Tup_L[2,6,-3,1]*Tup_L'[2,5,-1,1]*Tdn_L[3,4,-4,6]*Tdn_L'[3,4,-2,5];
+            TTTT=permute(TTTT,(1,2,),(3,4,));
+            eu,ev= eigh(TTTT);
+            
+            #decomposition: U=TT*ev*pinv(sqrt(eu))
+            # t0=sqrt(eu)*ev';#S*V
+            t0=sqrt(eu)*ev';#S*V
+            # t_recover=ev*mypinv(sqrt(eu));
+        
+            #verification, should be commented later
+            # @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
+            # @tensor TT[:]:=Tup_L[-1,1,-4,-6]*Tdn_L[-2,-3,-5,1]; #expensive, can be avoided
+            # #U,S,V=TT
+            # @tensor U[:]:=TT[-1,-2,-3,1,2,-5]*t_recover[1,2,-4];#verify U is isometry
+            #######################
+            # #verification
+            # U=permute(U,(1,2,3,5),(4,));
+            # UdU=U'*U;
+            # Id_=unitary(space(UdU,1),space(UdU,1));
+            # @assert norm(UdU-Id_)/norm(Id_)<1e-8;
+            #######################
+        
+            return t0#,t_recover
+        end
+        
+        
+        t0r=right_decompose(Tup_R,Tdn_R);
+        t0l=left_decompose(Tup_L,Tdn_L);
+        # println(err)
+        # println(eu)
+        M=t0l*t0r;
+        uM,sM,vM=tsvd(M; trunc=truncdim(chi))
+        err=norm(uM*sM*vM-M)/norm(M);
+    
+        PR=t0r*vM'*sqrt(mypinv(sM));
+        PL=sqrt(mypinv(sM))*uM'*t0l;
+        
+
+
+        # #verification effect of truncation
+        # @tensor V0[:]:=Tup_L[-1,1,4,-7]*Tup_R[4,3,-5,-8]*Tdn_L[-2,-3,2,1]*Tdn_R[2,-4,-6,3];
+        # @tensor V1[:]:=Tup_L[-1,2,1,-7]*Tup_R[4,5,-5,-8]*Tdn_L[-2,-3,3,2]*Tdn_R[6,-4,-6,5]*PR[1,3,7]*PL[7,4,6];
+        # @show norm(V0-V1)/norm(V0)
+
+
+        # V0_=permute(V0,(1,2,3,7,),(4,5,6,8,));
+        # uM_,sM_,vM_=tsvd(V0_; trunc=truncdim(chi));
+        # @show norm(uM_*sM_*vM_-V0_)/norm(V0_)
+
+     
+        return PR,PL,err
+    end
+    trun_err=Vector{Float64}(undef,0);
+    L=length(mpo1);
+    PL_set=Vector{TensorMap}(undef,L);
+    PR_set=Vector{TensorMap}(undef,L);
+    for cc=1:L
+        PR,PL,err=build_projector(mpo1[mod1(cc-1,L)],mpo1[cc],mpo2[mod1(cc-1,L)],mpo2[cc],chi);#projector at left side
+        trun_err=vcat(trun_err,err);
+        PL_set[cc]=PL;
+        PR_set[mod1(cc-1,L)]=PR;
+    end
+    mpo_new=Vector{TensorMap}(undef,L);
+    for cc=1:L
+        Tup=mpo1[cc];
+        Tdn=mpo2[cc];
+        PL=PL_set[cc];
+        PR=PR_set[cc];
+        @tensor Tnew[:]:=PL[-1,1,3]*Tup[1,2,4,-4]*Tdn[3,-2,5,2]*PR[4,5,-3]; #the cost of this step may be D^7 or chi^7
+        mpo_new[cc]=Tnew;
+    end
+    return mpo_new,trun_err
+end
+
 
 
 
@@ -17,10 +131,10 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
             t_recover=mypinv(sqrt(eu))*ev';
         
             #verification, should be commented later
-            @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
-            @tensor TT[:]:=Tup_R[-1,1,-4,-6]*Tdn_R[-2,-3,-5,1]; #expensive, can be avoided
-            #U,S,V=TT
-            @tensor V[:]:=t_recover[-1,1,2]*TT[1,2,-2,-3,-4,-5];#verify U is isometry
+            # @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
+            # @tensor TT[:]:=Tup_R[-1,1,-4,-6]*Tdn_R[-2,-3,-5,1]; #expensive, can be avoided
+            # #U,S,V=TT
+            # @tensor V[:]:=t_recover[-1,1,2]*TT[1,2,-2,-3,-4,-5];#verify U is isometry
             #######################
             #verification
             # V=permute(V,(1,),(2,3,4,5,));
@@ -45,10 +159,10 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
             t_recover=ev*mypinv(sqrt(eu));
         
             #verification, should be commented later
-            @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
-            @tensor TT[:]:=Tup_L[-1,1,-4,-6]*Tdn_L[-2,-3,-5,1]; #expensive, can be avoided
-            #U,S,V=TT
-            @tensor U[:]:=TT[-1,-2,-3,1,2,-5]*t_recover[1,2,-4];#verify U is isometry
+            # @assert norm(ev*eu*ev'-TTTT)/norm(TTTT)<1e-10;
+            # @tensor TT[:]:=Tup_L[-1,1,-4,-6]*Tdn_L[-2,-3,-5,1]; #expensive, can be avoided
+            # #U,S,V=TT
+            # @tensor U[:]:=TT[-1,-2,-3,1,2,-5]*t_recover[1,2,-4];#verify U is isometry
             #######################
             # #verification
             # U=permute(U,(1,2,3,5),(4,));
@@ -71,6 +185,16 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
     
         PL=sqrt(sM)*vM*tr_recover;
         PR=tl_recover*uM*sqrt(sM);
+
+
+        # #verification effect of truncation
+        # @tensor V0[:]:=Tup_L[-1,1,4,-7]*Tup_R[4,3,-5,-8]*Tdn_L[-2,-3,2,1]*Tdn_R[2,-4,-6,3];
+        # @tensor V1[:]:=Tup_L[-1,2,1,-7]*Tup_R[4,5,-5,-8]*Tdn_L[-2,-3,3,2]*Tdn_R[6,-4,-6,5]*PR[1,3,7]*PL[7,4,6];
+        # @show norm(V0-V1)/norm(V0)
+
+        # V0_=permute(V0,(1,2,3,7,),(4,5,6,8,));
+        # uM_,sM_,vM_=tsvd(V0_; trunc=truncdim(chi));
+        # @show norm(uM_*sM_*vM_-V0_)/norm(V0_)
      
         return PR,PL,err
     end
@@ -145,6 +269,8 @@ function contract_rows(finite_PEPS,chi)
         combine_two_rows=combine_two_rows_method1
     elseif projector_method=="2"
         combine_two_rows=combine_two_rows_method2
+    elseif projector_method=="3"
+        combine_two_rows=combine_two_rows_method3
     end
     Lx,Ly=size(finite_PEPS);
     finite_PEPS=deepcopy(finite_PEPS);
@@ -175,41 +301,76 @@ function contract_whole_torus(finite_PEPS::Matrix{TensorMap},chi::Int)
     finite_PEPS=deepcopy(finite_PEPS);
     trun_err=Vector{Float64}(undef,0);
     Ly_=size(finite_PEPS,2);
-    
-    while Ly_>2
-        finite_PEPS,err=contract_rows(finite_PEPS,chi)
-        trun_err=vcat(trun_err,err);
-        Lx,Ly_=size(finite_PEPS);
-        # if Ly_==2
-        #     break;
-        # end
-    end
+    global rotate_truncation
 
-    ###################################
-    #final contraction method 1
-    Lx,Ly_=size(finite_PEPS);
-    cc=1;
-    @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
-    T=permute(T,(1,2,),(3,4,));
-    for cc=2:Lx-1
+    if rotate_truncation==false
+        while Ly_>2
+            finite_PEPS,err=contract_rows(finite_PEPS,chi)
+            trun_err=vcat(trun_err,err);
+            Lx,Ly_=size(finite_PEPS);
+            # if Ly_==2
+            #     break;
+            # end
+        end
+
+        ###################################
+        #final contraction method 1
+        Lx,Ly_=size(finite_PEPS);
+        cc=1;
+        @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+        T=permute(T,(1,2,),(3,4,));
+        for cc=2:Lx-1
+            @tensor T_[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+            T_=permute(T_,(1,2,),(3,4,));
+            T=T*T_;
+        end
+        cc=Lx;
         @tensor T_[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
-        T_=permute(T_,(1,2,),(3,4,));
-        T=T*T_;
+        ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+        #############################
+        # #final contraction method 2, slower than method1
+        # Lx,Ly_=size(finite_PEPS);
+        # cc=1;
+        # @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+        # for cc=2:Lx-1
+        #     @tensor T[:]:=T[-1,-2,4,1]*finite_PEPS[cc,2][4,2,-3,3]*finite_PEPS[cc,1][1,3,-4,2];
+        # end
+        # cc=Lx;
+        # ov=@tensor  T[5,2,3,1]*finite_PEPS[cc,2][3,4,5,6]*finite_PEPS[cc,1][1,6,2,4];
+        #############################
+    else
+        while Ly_>2
+            finite_PEPS_new,err=contract_rows(finite_PEPS,chi)
+            trun_err=vcat(trun_err,err);
+            Lx,Ly_=size(finite_PEPS_new);
+            #clockwise rotate
+            finite_PEPS=Matrix{TensorMap}(undef,Ly_,Lx);
+            for cx =1:Lx
+                for cy=1:Ly_
+                    coord_new=anti_clock_coord_rotate([cx,cy],Lx,Ly_);
+                    finite_PEPS[coord_new[1],coord_new[2]]=permute(finite_PEPS_new[cx,cy],(4,1,2,3,));
+                end
+            end
+            Lx,Ly_=size(finite_PEPS);
+
+        end
+
+        ###################################
+        #final contraction method 1
+        Lx,Ly_=size(finite_PEPS);
+        cc=1;
+        @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+        T=permute(T,(1,2,),(3,4,));
+        for cc=2:Lx-1
+            @tensor T_[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+            T_=permute(T_,(1,2,),(3,4,));
+            T=T*T_;
+        end
+        cc=Lx;
+        @tensor T_[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
+        ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+
     end
-    cc=Lx;
-    @tensor T_[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
-    ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
-    #############################
-    # #final contraction method 2, slower than method1
-    # Lx,Ly_=size(finite_PEPS);
-    # cc=1;
-    # @tensor T[:]:=finite_PEPS[cc,2][-1,1,-3,2]*finite_PEPS[cc,1][-2,2,-4,1];
-    # for cc=2:Lx-1
-    #     @tensor T[:]:=T[-1,-2,4,1]*finite_PEPS[cc,2][4,2,-3,3]*finite_PEPS[cc,1][1,3,-4,2];
-    # end
-    # cc=Lx;
-    # ov=@tensor  T[5,2,3,1]*finite_PEPS[cc,2][3,4,5,6]*finite_PEPS[cc,1][1,6,2,4];
-    #############################
 
 
     return ov,trun_err

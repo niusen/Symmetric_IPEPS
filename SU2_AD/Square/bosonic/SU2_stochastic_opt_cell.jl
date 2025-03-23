@@ -17,6 +17,7 @@ include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
 include("..\\..\\src\\bosonic\\CTMRG_unitcell.jl")
+include("..\\..\\src\\bosonic\\square\\square_model.jl")
 include("..\\..\\src\\bosonic\\square\\square_model_cell.jl")
 include("..\\..\\src\\bosonic\\square\\square_AD_SU2_cell.jl")
 
@@ -44,7 +45,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=10;
+grad_ctm_setting.CTM_ite_nums=20;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -77,7 +78,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="SU2_cell_D3.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -163,7 +164,7 @@ global delta_history;
 delta_history=[1e-3,];
 
 
-delta=1e-3;
+delta=5e-3;
 maxiter=100;
 gtol=1e-5;
 

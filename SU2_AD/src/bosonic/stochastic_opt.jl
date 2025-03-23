@@ -173,21 +173,19 @@ function random_tensor_sign(T::TensorMap)
         end
         T=TensorMap(mm,codomain(T),domain(T));
     else
-        for cc=1:length(T.data.values)
-            mm=T.data.values[cc];
-            for dd in eachindex(mm)
-                a=mm[dd];
-                if isa(a,Float64)
-                    a_new=generate_number(a);
-                elseif isa(a,ComplexF64)
-                    a_new=generate_number(real(a))+im*generate_number(imag(a));
-                else
-                    error("unknown number type")
-                end
-                mm[dd]=a_new;
+        mm=T.data;
+        for cc in eachindex(mm) 
+            a=mm[cc];
+            if isa(a,Float64)
+                a_new=generate_number(a);
+            elseif isa(a,ComplexF64)
+                a_new=generate_number(real(a))+im*generate_number(imag(a));
+            else
+                error("unknown number type")
             end
-            T.data.values[cc]=mm;
+            mm[cc]=a_new;
         end
+        T.data.=mm;
     end
     return T
 end

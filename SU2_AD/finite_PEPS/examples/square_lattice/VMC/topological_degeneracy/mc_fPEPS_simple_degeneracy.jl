@@ -237,6 +237,9 @@ end
 
 for BC1=1:1;
     for BC2=1:4;
+        if BC1==BC2
+            continue;
+        end
 
         ntask=nworkers();
         # main(dir, 1, ntask, BC1,BC2);
@@ -297,7 +300,8 @@ for BC1=1:1;
             matwrite(matnm, Dict(
             "bin_size_set"=>bin_size_set,
             "energy_set"=>energy_set,
-            "std_dev_set"=>std_dev_set
+            "std_dev_set"=>std_dev_set,
+            "data_set"=>data_set
             ); compress = false)    
         end 
 

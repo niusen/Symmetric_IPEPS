@@ -169,7 +169,7 @@ function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
 
         # ####!!!  In my test without such term is more accurate.
         # #A_d bar term, only relevant if matrix is complex
-        # if dV != ChainRulesCore.ZeroTangent() && T <: Complex
+        # if dV != ChainRulesCore.ZeroTangent() && eltype(V) <: Complex
         #     L = _elementwise_mult(V*dV',one(Fm))
         #     dA += 1/2*U*my_pinv(S)*(L' - L)*V
         # end

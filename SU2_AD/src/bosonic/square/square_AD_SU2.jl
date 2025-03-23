@@ -1,3 +1,75 @@
+function initial_dense_state(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false,init_C4_symetry=false)
+    if init_statenm=="nothing" 
+        println("Random initial state");flush(stdout);
+        Vp=ℂ^2;
+        if init_complex_tensor
+            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp)+TensorMap(randn,Vv*Vv*Vv*Vv,Vp)*im;
+        else
+            A=TensorMap(randn,Vv*Vv*Vv*Vv,Vp);
+        end
+
+        if init_C4_symetry
+            A=permute(A,(1,2,3,4,5,))+permute(A,(2,3,4,1,5,))+permute(A,(3,4,1,2,5,))+permute(A,(4,1,2,3,5,));
+            A=A/norm(A);
+        else
+            A=permute(A,(1,2,3,4,5,));
+            A=A/norm(A);
+        end
+        U=unitary(Vv',Vv);
+        @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+        
+        
+
+        state=Square_iPEPS(A);
+        return state
+    else
+        
+    #     println("load state: "*init_statenm);flush(stdout);
+    #     data=load(init_statenm);
+
+    #     A0=data["A"];
+    #     if Vspace==space(A0,1)
+    #         A=A0;
+    #     else
+    #         println("Extend bond dimension of initial state")
+    #         if space(A0,1)==SU2Space(0=>1,1/2=>1)
+    #             if Vspace==SU2Space(0=>2,1/2=>1)
+    #                 M=zeros(4,4,4,4,2)*im;
+    #                 M[2:4,2:4,2:4,2:4,1:2]=convert(Array,A0);
+    #                 A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
+    #             elseif Vspace==SU2Space(0=>1,1/2=>2)
+    #                 M=zeros(5,5,5,5,2)*im;
+    #                 M[1:3,1:3,1:3,1:3,1:2]=convert(Array,A0);
+    #                 A=TensorMap(M,Vspace*Vspace,Vspace*Vspace*SU2Space(1/2=>1));
+    #             end
+    #         elseif space(A0,1)==SU2Space(0=>2,1/2=>1)
+    #         elseif space(A0,1)==SU2Space(0=>1,1/2=>2)
+    #         end
+    #         A=permute(A,(1,2,3,4,5,));
+    #     end
+
+    #     if init_complex_tensor
+    #         A_noise=TensorMap(randn,codomain(A),domain(A))+im*TensorMap(randn,codomain(A),domain(A));
+    #     else
+    #         A_noise=TensorMap(randn,codomain(A),domain(A));
+    #     end
+
+    #     A=A+A_noise*init_noise*norm(A)/norm(A_noise);
+    #     if init_C4_symetry
+    #         U=unitary(space(A,3)',space(A,3));
+    #         @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+
+    #         A=permute(A,(1,2,3,4,5,))+permute(A,(2,3,4,1,5,))+permute(A,(3,4,1,2,5,))+permute(A,(4,1,2,3,5,));
+    #         A=A/norm(A);
+
+    #         U=unitary(space(A,3)',space(A,3));
+    #         @tensor A[:]:=A[-1,-2,1,2,-5]*U[-3,1]*U[-4,2];
+    #     end
+    #     state=Square_iPEPS(A);
+
+    #     return state
+    end
+end
 function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,init_complex_tensor=false,init_C4_symetry=false)
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);

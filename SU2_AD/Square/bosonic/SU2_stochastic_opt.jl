@@ -10,16 +10,20 @@ using Dates
 
 cd(@__DIR__)
 
+include("..\\..\\src\\bosonic\\Settings.jl")
+include("..\\..\\src\\bosonic\\Settings_cell.jl")
 include("..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
 include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
 include("..\\..\\src\\bosonic\\AD_lib.jl")
 include("..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\src\\bosonic\\square\\square_model.jl")
-include("..\\..\\src\\bosonic\\square\\square_AD_SU2.jl")
-include("..\\..\\src\\bosonic\\Settings.jl")
+include("..\\..\\src\\bosonic\\CTMRG_unitcell.jl")
+include("..\\..\\src\\bosonic\\square\\square_model_cell.jl")
+include("..\\..\\src\\bosonic\\square\\square_AD_SU2_cell.jl")
+
 
 include("..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\src\\bosonic\\optimkit_lib.jl")
+include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
+include("..\\..\\src\\bosonic\\stochastic_opt.jl")
 # include("..\\..\\src\\square_RVB_ansatz.jl")
 
 
@@ -40,7 +44,7 @@ parameters=Dict([("J1", J1), ("J2", J2), ("Jchi", Jchi)]);
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
-grad_ctm_setting.CTM_ite_nums=10;
+grad_ctm_setting.CTM_ite_nums=50;
 grad_ctm_setting.CTM_trun_tol=1e-8;
 grad_ctm_setting.svd_lanczos_tol=1e-8;
 grad_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -82,7 +86,10 @@ energy_setting=Square_Energy_settings();
 energy_setting.model = "triangle_J1_J2_Jchi";
 dump(energy_setting);
 
-
+algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+dump(algrithm_CTMRG_settings);
+global algrithm_CTMRG_settings
 
 
 
@@ -119,6 +126,8 @@ end
 global starting_time
 starting_time=now();
 
+global E_all_history;
+E_all_history=[10000,];
 
 #E_tem,∂E,CTM_tem=get_grad((triangle_tensor,triangle_tensor,bond_tensor,bond_tensor,bond_tensor));
 #run_FiniteDiff(parameters, Vv, chi, LS_ctm_setting, optim_setting, energy_setting)
@@ -139,9 +148,11 @@ init_C4_symetry=false;
 state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor,init_C4_symetry)
 state_vec=normalize_ansatz(state_vec);
 
-# E0_, grad,CTM_tem=get_grad(state_vec);
-# include("src\\kagome_AD_SU2.jl")
-# E0,grad_=FD(state_vec)
+global Lx,Ly
+Lx=1;
+Ly=1;
+x=Matrix{typeof(state_vec)}(undef,1,1);
+x[1,1]=state_vec;
 
 global E_history
 E_history=[10000];
@@ -150,11 +161,12 @@ global save_filenm;
 save_filenm="SU2_D"*string(D)*".jld2";
 
 
-∂E=gradient(x ->cost_fun(x), state_vec)[1][1];
+global delta_history;
+delta_history=[1e-3,];
 
 
+delta=1e-3;
+maxiter=100;
+gtol=1e-5;
 
-# E0, grad=FD(state_vec::iPEPS_ansatz);
-# grad=grad.T;
-
-# @show dot(∂E,grad)/sqrt(dot(grad,grad)*dot(∂E,∂E))
+stochastic_opt(x, delta, maxiter, gtol)

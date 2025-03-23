@@ -73,7 +73,7 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="D3.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"SimpleUpdate_D_6.jld2";#"nothing";
 optim_setting.init_noise=0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -99,21 +99,9 @@ global backward_settings
 
 global Vv
 
-if D==3
-    Vv=SU2Space(0=>1,1/2=>1);
-elseif D==4
-    Vv=SU2Space(0=>2,1/2=>1);
-elseif D==5
-    Vv=SU2Space(0=>1,1/2=>2);
-elseif D==6
-    Vv=SU2Space(0=>1,1/2=>1,1=>1);
-elseif D==8
-    Vv=SU2Space(0=>1,1/2=>2,1=>1);
-elseif D==11
-    Vv=SU2Space(0=>1,1/2=>2,1=>2);
-elseif D==16
-    Vv=SU2Space(0=>1,1/2=>3,1=>3);    
-end
+
+    Vv=ℂ^D;
+
 @assert dim(Vv)==D;
 
 global starting_time
@@ -136,7 +124,7 @@ starting_time=now();
 init_complex_tensor=true;
 init_C4_symetry=false;
 
-state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor,init_C4_symetry)
+state_vec=initial_dense_state(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor,init_C4_symetry)
 state_vec=normalize_ansatz(state_vec);
 
 # E0_, grad,CTM_tem=get_grad(state_vec);
@@ -147,14 +135,24 @@ global E_history
 E_history=[10000];
 
 global save_filenm;
-save_filenm="SU2_D"*string(D)*".jld2";
+save_filenm="dense_D"*string(D)*".jld2";
+
+ls = BackTracking(order=3)
+println(ls)
+fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# ls = StrongWolfe()
+# println(ls)
+# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# ls = LineSearches.HagerZhang()
+# println(ls)
+# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# ls = MoreThuente()
+# println(ls)
+# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
 
 
-∂E=gradient(x ->cost_fun(x), state_vec)[1][1];
-
-
-
-# E0, grad=FD(state_vec::iPEPS_ansatz);
-# grad=grad.T;
-
-# @show dot(∂E,grad)/sqrt(dot(grad,grad)*dot(∂E,∂E))
+# #optimize with OptimKit
+# optimkit_op(state_vec)

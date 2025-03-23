@@ -7,7 +7,7 @@ using Distributions
 # const snn = 4           # number of second nearest neighbors
 # const Ly = 6      # number of sites along y / number of rows in the lattice
 # const Lx = 6      # number of sites along x / number of columns in the lattice
-const L = Lx * Ly # total number of lattice sites
+
 const N = 2             # SU(N); number of spin flavors
 # const L_N = L ÷ N
 const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
@@ -21,11 +21,10 @@ const nsdp = 1          # number of slater determinant parameters we want to opt
 # Constants related to the Monte Carlo
 const twositemove = 0.3
 const threesitemove = 0.7  # Probability of three-site permutation
-const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
-const Nsteps = 1000000       # Total Monte Carlo steps
+
 const Nchunk = 30000       # Size of a "chunk" of simulation
 const thermsteps = 1000    # Thermalization steps
-const binn = 1000          # Bin size to store the data during the monte carlo run. 
+
 const Npars = Nsteps/Nchunk
 const Nscra = Nchunk/4   # Recalculate W matrix frequency
 const bin = Nsteps/1     # Size of each bin

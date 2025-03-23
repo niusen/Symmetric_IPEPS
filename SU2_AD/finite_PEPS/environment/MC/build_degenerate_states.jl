@@ -4,6 +4,11 @@ function build_projector(Vv)
         op[1,1]=1;
         op[2,2]=-1;
         op[3,3]=-1;
+    elseif Vv==Rep[SU₂](0=>1, 1/2=>1)
+        op=zeros(3,3);
+        op[1,1]=1;
+        op[2,2]=-1;
+        op[3,3]=-1;
     end
     op=TensorMap(op,Vv,Vv);
     return op

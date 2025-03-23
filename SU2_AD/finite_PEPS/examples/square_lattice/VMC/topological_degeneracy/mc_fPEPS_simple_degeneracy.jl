@@ -7,13 +7,12 @@ using Distributed
 @everywhere using CSV
 @everywhere using DataFrames
 @everywhere using JLD2
+using Statistics
+using MAT
 
 @everywhere cd(@__DIR__)
 
-@show num_logical_cores = Sys.CPU_THREADS
-@show hostnm=gethostname()
-dir=hostnm*"/";
-isdir(dir) || mkdir(dir)
+
 
 
 @everywhere include("../../../../state/iPEPS_ansatz.jl")
@@ -32,10 +31,22 @@ const Lx = 6      # number of sites along x / number of columns in the lattice
 const Ly = 6      # number of sites along y / number of rows in the lattice
 const D=3;#bond dimension of state
 const chi=10;#bond dimension of environment
+
+const L = Lx * Ly # total number of lattice sites
+const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
+const Nsteps = 100000       # Total Monte Carlo steps
+const binn = 1000          # Bin size to store the data during the monte carlo run. 
 end
 
+###################
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
+dir=hostnm*"_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"/";
+isdir(dir) || mkdir(dir)
+###################
+
 @everywhere include("sq_constants.jl")
-@everywhere include("error_analysis.jl")
+
 
 ####################
 #use single core
@@ -51,9 +62,7 @@ pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################
 
-function get_psi_BCs(state_filenm, psi)
 
-end
 
 
 
@@ -125,8 +134,8 @@ end
     iconf_new = copy(initial_iconf)
 
     ebin1 = zeros(Complex{Float64}, binn)
-
-    outputname = dir*"id_"*string(worker_id)*"_BC"*string(BC1)*"_"*string(BC2)*"_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".csv"
+    
+    outputname = dir*"id_"*string(worker_id)*"_BC"*string(BC1)*"_"*string(BC2)*"_chi"*string(chi)*".csv"
 
     if isfile(outputname)
         rm(outputname)
@@ -134,9 +143,9 @@ end
 
     open(outputname, "a") do file # "a" is for append
 
-        # @inbounds for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
+        # @inbounds for i in 1:Nsteps_worker  # Number of Monte Carlo steps, usually 1 million
         #     @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
-        for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
+        for i in 1:Nsteps_worker  # Number of Monte Carlo steps, usually 1 million
             # @show i
             # if mod(i,100)==0;@show i;flush(stdout);end
 
@@ -216,7 +225,7 @@ end
             end
 
             # if mod(i + 1, 200) == 0
-            println(mean(ebin1));flush(stdout);
+            # println(mean(ebin1));flush(stdout);
             # end
 
         end
@@ -226,17 +235,75 @@ end
 end
 
 
-BC1=1;
-BC2=2;
+for BC1=1:1;
+    for BC2=1:4;
 
-ntask=nworkers();
-main(dir, 1, ntask, BC1,BC2);
-# @sync begin
-#     for cp=1:ntask
-#         worker_id=workers()[cp]
-#         @spawnat worker_id main(dir, worker_id, ntask, BC1,BC2);
-#     end
-# end
+        ntask=nworkers();
+        # main(dir, 1, ntask, BC1,BC2);
+        @sync begin
+            for cp=1:ntask
+                worker_id=workers()[cp]
+                @spawnat worker_id main(dir, worker_id, ntask, BC1,BC2);
+            end
+        end
+
+        data_set=Vector{ComplexF64}(undef,0);
+        for cp =1:ntask
+            outputname = dir*"id_"*string(workers()[cp])*"_BC"*string(BC1)*"_"*string(BC2)*"_chi"*string(chi)*".csv";
+            # Read the list of numbers from the CSV file
+            data = open(outputname, "r") do file
+                [parse(ComplexF64, line) for line in readlines(file)]
+            end
+            data_set=vcat(data_set,data);
+            rm(outputname)
+        end
 
 
-data_analysis()
+
+        #error analysis
+
+
+
+        begin
+            # Output file
+            outputname = "errors_varying_bin_sizes.csv"
+            bin_size_set=Vector{Int}(undef,0);
+            energy_set=Vector{ComplexF64}(undef,0); 
+            std_dev_set=Vector{Float64}(undef,0);
+
+            bin_size = 1
+
+            total_data_size = length(data_set)
+            while bin_size < total_data_size
+                # Bin the data
+                binned = [mean(data_set[i:min(i+bin_size-1, total_data_size)]) for i in 1:bin_size:total_data_size]
+                
+                # Compute mean energy per site
+                energy = mean(binned) 
+                
+                # Compute standard deviation
+                std_dev = std(binned; corrected=false) / (sqrt(length(binned)))
+
+                # Write results to the output file
+                push!(bin_size_set,bin_size);
+                push!(energy_set,energy);
+                push!(std_dev_set,std_dev);
+
+                # Double the bin size
+                bin_size *= 2
+            end
+
+            matnm=string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_BC"*string(BC1)*"_"*string(BC2)*"_chi"*string(chi)*".mat"
+            matwrite(matnm, Dict(
+            "bin_size_set"=>bin_size_set,
+            "energy_set"=>energy_set,
+            "std_dev_set"=>std_dev_set
+            ); compress = false)    
+        end 
+
+    end
+end
+
+    
+
+

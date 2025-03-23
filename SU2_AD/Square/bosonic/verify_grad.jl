@@ -149,22 +149,12 @@ E_history=[10000];
 global save_filenm;
 save_filenm="SU2_D"*string(D)*".jld2";
 
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
 
-# ls = StrongWolfe()
-# println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
+∂E=gradient(x ->cost_fun(x), state_vec)[1][1];
 
 
-# #optimize with OptimKit
-# optimkit_op(state_vec)
+
+E0, grad=FD(state_vec::iPEPS_ansatz);
+grad=grad.T;
+
+@show dot(∂E,grad)/sqrt(dot(grad,grad)*dot(∂E,∂E))

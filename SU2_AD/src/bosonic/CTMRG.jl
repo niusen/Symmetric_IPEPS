@@ -869,8 +869,8 @@ end
 
 function _elementwise_mult(a::AbstractTensorMap,b::AbstractTensorMap)
     dst = deepcopy(a);
-    for (k,block) in blocks(dst)
-        copyto!(block,blocks(a)[k].*blocks(b)[k]);
+    for (k,Block) in blocks(dst)
+        copyto!(Block,block(a,k).*block(b,k));
     end
     dst
 end

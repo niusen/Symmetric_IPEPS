@@ -109,9 +109,9 @@ function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
     (U,S,V) = my_tsvd(t;kwargs...);#println(S.data.values)
     epsilon1=maximum(diag(convert(Array,S)))*backward_settings.grad_inverse_tol;
     epsilon2=maximum(diag(convert(Array,S)))*backward_settings.grad_regulation_epsilon;
-    Fp = similar(S);
+    Fp = TensorMap(randn,space(S,1),space(S,1));
     for (k,dst) in blocks(Fp)
-        src = blocks(S)[k]
+        src = block(S,k)
         @inbounds for i in 1:size(dst,1),j in 1:size(dst,2)
             ff=0;
             if abs(src[j,j]-src[i,i])>epsilon1
@@ -126,9 +126,9 @@ function ChainRulesCore.rrule(::typeof(my_tsvd), t::AbstractTensorMap;kwargs...)
         end
     end
 
-    Fm = similar(S);
+    Fm = TensorMap(randn,space(S,1),space(S,1));;
     for (k,dst) in blocks(Fm)
-        src = blocks(S)[k]
+        src = block(S,k)
         @inbounds for i in 1:size(dst,1),j in 1:size(dst,2)
             ff=0;
             if abs(src[j,j]-src[i,i])>epsilon1

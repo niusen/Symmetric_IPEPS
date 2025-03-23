@@ -82,7 +82,7 @@ function cost_fun(x) #variational parameters are vector of TensorMap
     CTM, AA, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A,chi,init,[],grad_ctm_setting);
 
     if energy_setting.model=="triangle_J1_J2_Jchi"
-        H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians();
+        H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians(space(A,1));
         J1=parameters["J1"];
         J2=parameters["J2"];
         Jchi=parameters["Jchi"];
@@ -115,7 +115,7 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
     #@assert ite_err<3*(1e-5)
 
     if energy_setting.model=="triangle_J1_J2_Jchi"
-        H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians();
+        H_Heisenberg, H123chiral, H12, H31, H23 =@ignore_derivatives Hamiltonians(space(A,1));
         J1=parameters["J1"];
         J2=parameters["J2"];
         Jchi=parameters["Jchi"];

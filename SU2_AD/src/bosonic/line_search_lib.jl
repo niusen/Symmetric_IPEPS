@@ -202,6 +202,7 @@ function get_grad(x)
     # end
 
 
+
     ∂E=gradient(x ->cost_fun(x), x)[1];#this works when x is a mutable structure. The output is a NamedTuple, not a structure, due to that the cost function takes out some fields of the input structure.
     ∂E=NamedTuple_to_Struc(∂E,x);
     #E=fun(state_vec)
@@ -404,28 +405,28 @@ function FD(state_vec::iPEPS_ansatz)
 
     for ct in Fields
         Tensor=getfield(state_vec, ct);
-        for n_block in eachindex(Tensor.data.values)
-            for elem in eachindex(Tensor.data.values[n_block])
+        for n_block in eachindex(Tensor.data)
+
                 state_vec_tem=deepcopy(state_vec);
                 Tensor_tem=getfield(state_vec_tem, ct);
-                T=Tensor_tem.data.values[n_block];
-                T[elem]=T[elem]+dt;
-                Tensor_tem.data.values[n_block]=T;
+                T=Tensor_tem.data[n_block];
+                T=T+dt;
+                Tensor_tem.data[n_block]=T;
                 setfield!(state_vec_tem,ct,Tensor_tem)
                 real_part=(cost_fun(state_vec_tem)-E0)/dt;
 
                 state_vec_tem=deepcopy(state_vec);
                 Tensor_tem=getfield(state_vec_tem, ct);
-                T=Tensor_tem.data.values[n_block];
-                T[elem]=T[elem]+dt*im;
-                Tensor_tem.data.values[n_block]=T;
+                T=Tensor_tem.data[n_block];
+                T=T+dt*im;
+                Tensor_tem.data[n_block]=T;
                 setfield!(state_vec_tem,ct,Tensor_tem)
                 imag_part=(cost_fun(state_vec_tem)-E0)/dt;
 
                 grad_Tenosr=getfield(grad, ct);
-                grad_Tenosr.data.values[n_block][elem]=real_part+im*imag_part;
+                grad_Tenosr.data[n_block]=real_part+im*imag_part;
                 setfield!(grad,ct,grad_Tenosr);
-            end
+            
         end
     end
     return E0, grad

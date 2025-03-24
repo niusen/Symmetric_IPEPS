@@ -1,4 +1,4 @@
-function split_pleg_to_right(T)
+function split_pleg_to_right(T::TensorMap)
     @assert Rank(T)==5;
     u,s,v=tsvd(permute(T,(1,2,4,),(3,5)));
     u=u*s;
@@ -6,15 +6,15 @@ function split_pleg_to_right(T)
     #v:(L,R,d)
     return u,v
 end
-function absorb_left_physical(Tp,T)
+function absorb_left_physical(Tp::TensorMap,T::TensorMap)
     @tensor T[:]:=Tp[-1,1,-5]*T[1,-2,-3,-4,-6];
     U=unitary(fuse(space(T,5)*space(T,6)), space(T,5)*space(T,6));
     @tensor T[:]:=T[-1,-2,-3,-4,1,2]*U[-5,1,2];
     return T
 end
 
-function transform_row(mpo_set)
-    mpo_set=deepcopy(mpo_set);
+function transform_row(mpo_set::Vector{TensorMap})
+    #mpo_set=deepcopy(mpo_set);
     L=length(mpo_set);
 
     cc=1;
@@ -36,7 +36,7 @@ end
 
 
 
-function split_pleg_to_top(T)
+function split_pleg_to_top(T::TensorMap)
     @assert Rank(T)==5;
     u,s,v=tsvd(permute(T,(1,2,3,),(4,5)));
     u=u*s;
@@ -44,15 +44,15 @@ function split_pleg_to_top(T)
     #v:(D,U,d)
     return u,v
 end
-function absorb_bot_physical(Tp,T)
+function absorb_bot_physical(Tp::TensorMap,T::TensorMap)
     @tensor T[:]:=Tp[-2,1,-5]*T[-1,1,-3,-4,-6];
     U=unitary(fuse(space(T,5)*space(T,6)), space(T,5)*space(T,6));
     @tensor T[:]:=T[-1,-2,-3,-4,1,2]*U[-5,1,2];
     return T
 end
 
-function transform_column(mpo_set)
-    mpo_set=deepcopy(mpo_set);
+function transform_column(mpo_set::Vector{TensorMap})
+    #mpo_set=deepcopy(mpo_set);
     L=length(mpo_set);
 
     cc=1;
@@ -73,9 +73,9 @@ function transform_column(mpo_set)
 end
 
 
-function shift_pleg(fPEPS)
+function shift_pleg(fPEPS::Matrix{TensorMap})
     #combine all sampled d=1 physical leg to right-top corner;
-    fPEPS=deepcopy(fPEPS);
+    # fPEPS=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
     for cy=1:Ly
         fPEPS[:,cy]=transform_row(fPEPS[:,cy]);
@@ -98,7 +98,7 @@ end
 
 ##########################
 
-function add_trivial_physical_leg(psi_network)
+function add_trivial_physical_leg(psi_network::Matrix{TensorMap})
     psi_network=deepcopy(psi_network);
     Lx,Ly=size(psi_network);
     #add trivial physical leg
@@ -125,7 +125,7 @@ function add_trivial_physical_leg(psi_network)
     end
     return psi_network
 end
-function remove_trivial_physical_leg(psi_network)
+function remove_trivial_physical_leg(psi_network::Matrix{TensorMap})
     psi_network=deepcopy(psi_network);
     #remove trivial physical leg
     if isa(space(psi_network[1],1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})

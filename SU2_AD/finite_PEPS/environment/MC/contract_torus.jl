@@ -109,6 +109,9 @@ function combine_two_rows_method3(mpo1::Vector{TensorMap},mpo2::Vector{TensorMap
         @tensor Tnew[:]:=PL[-1,1,3]*Tup[1,2,4,-4]*Tdn[3,-2,5,2]*PR[4,5,-3]; #the cost of this step may be D^7 or chi^7
         mpo_new[cc]=Tnew;
     end
+
+    PL_set=[];
+    PR_set=[];
     return mpo_new,trun_err
 end
 
@@ -217,6 +220,9 @@ function combine_two_rows_method2(mpo1::Vector{TensorMap},mpo2::Vector{TensorMap
         @tensor Tnew[:]:=PL[-1,1,3]*Tup[1,2,4,-4]*Tdn[3,-2,5,2]*PR[4,5,-3]; #the cost of this step may be D^7 or chi^7
         mpo_new[cc]=Tnew;
     end
+
+    PL_set=[];
+    PR_set=[];
     return mpo_new,trun_err
 end
 
@@ -243,15 +249,15 @@ function combine_two_rows_method1(mpo1::Vector{TensorMap},mpo2::Vector{TensorMap
     end
     trun_err=Vector{Float64}(undef,0);
     L=length(mpo1);
-    PL_set=Vector{TensorMap}(undef,L);
-    PR_set=Vector{TensorMap}(undef,L);
+    local PL_set=Vector{TensorMap}(undef,L);
+    local PR_set=Vector{TensorMap}(undef,L);
     for cc=1:L
         PR,PL,err=build_projector(mpo1[cc],mpo2[cc],chi);#projector at left side
         trun_err=vcat(trun_err,err);
         PL_set[cc]=PL;
         PR_set[mod1(cc-1,L)]=PR;
     end
-    mpo_new=Vector{TensorMap}(undef,L);
+    local mpo_new=Vector{TensorMap}(undef,L);
     for cc=1:L
         Tup=mpo1[cc];
         Tdn=mpo2[cc];
@@ -260,6 +266,9 @@ function combine_two_rows_method1(mpo1::Vector{TensorMap},mpo2::Vector{TensorMap
         @tensor Tnew[:]:=PL[-1,1,3]*Tup[1,2,4,-4]*Tdn[3,-2,5,2]*PR[4,5,-3]; #the cost of this step may be D^7 or chi^7
         mpo_new[cc]=Tnew;
     end
+
+    PL_set=[];
+    PR_set=[];
     return mpo_new,trun_err
 end
 
@@ -273,7 +282,7 @@ function contract_rows(finite_PEPS::Matrix{TensorMap},chi::Int)
         combine_two_rows=combine_two_rows_method3
     end
     Lx,Ly=size(finite_PEPS);
-    finite_PEPS=deepcopy(finite_PEPS);
+    local finite_PEPS_=deepcopy(finite_PEPS);
     if mod(Ly,2)==0
         Ly_new=Int(Ly/2);
     else
@@ -281,18 +290,19 @@ function contract_rows(finite_PEPS::Matrix{TensorMap},chi::Int)
     end
     trun_err=Vector{Float64}(undef,0);
 
-    PEPS_new=Matrix{TensorMap}(undef,Lx,Ly_new);
+    local PEPS_new=Matrix{TensorMap}(undef,Lx,Ly_new);
     for cy=1:2:Ly
         if cy<Ly
-            mpo1=finite_PEPS[:,cy+1];
-            mpo2=finite_PEPS[:,cy];
+            mpo1=finite_PEPS_[:,cy+1];
+            mpo2=finite_PEPS_[:,cy];
             mpo_new,err=combine_two_rows(mpo1,mpo2,chi);
-            trun_err=vcat(trun_err,err);
+            # trun_err=vcat(trun_err,err);
             PEPS_new[:,Int((cy+1)/2)]=mpo_new;
         elseif cy==Ly #Ly odd
-            PEPS_new[:,Ly_new]=finite_PEPS[:,cy];
+            PEPS_new[:,Ly_new]=finite_PEPS_[:,cy];
         end
     end
+    finite_PEPS_=[];
     return PEPS_new,trun_err
 end
 
@@ -372,9 +382,8 @@ function contract_whole_torus(finite_PEPS::Matrix{TensorMap},chi::Int)
 
     end
 
-
+    finite_PEPS=[];
     return ov,trun_err
-
 end
 
 
@@ -477,15 +486,16 @@ function contract_whole_torus_boundaryMPS(finite_PEPS::Matrix{TensorMap},chi::In
     ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
     #############################
     # end
+    finite_PEPS=[];
     return ov,trun_err
 end
 
 
 
 function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history_::torus_contract_history,chi::Int)
-    psi_single=deepcopy(psi_single);
+    local psi_single_=deepcopy(psi_single);
     contract_history_=deepcopy(contract_history_);#warning: this deepcopy is necessary, otherwise may cause error is sweep is not accepted.
-    Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
+    Lx,Ly=size(psi_single_);#original cluster size without adding trivial boundary
     config_new_=reshape(config_new,Lx,Ly);
     config_old_=reshape(contract_history_.config,Lx,Ly);
     ppy=Int(round(Ly/2));
@@ -520,13 +530,13 @@ function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config
 
     ##########################
     trun_err=Vector{Float64}(undef,0);
-    mps_all_set=contract_history_.mps_all_set;
+    local mps_all_set=contract_history_.mps_all_set;
 
     # @time begin
  
     
     if y_bot0==0
-        mps_bot=psi_single[:,1];
+        mps_bot=psi_single_[:,1];
         mps_all_set[:,1]=mps_bot;
         y0=1;
     elseif y_bot0>0
@@ -535,16 +545,16 @@ function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config
     end
 
     for cy=y0+1:ppy
-        mps_bot,trun_errs=combine_two_rows(psi_single[:,cy], mps_bot,chi);
+        mps_bot,trun_errs=combine_two_rows(psi_single_[:,cy], mps_bot,chi);
         mps_all_set[:,cy]=mps_bot;
-        trun_err=vcat(trun_err,trun_errs);
+        # trun_err=vcat(trun_err,trun_errs);
     end
 
     #######################
 
 
     if y_top0==Ly+1
-        mps_top=psi_single[:,Ly];
+        mps_top=psi_single_[:,Ly];
         mps_all_set[:,Ly]=mps_top;
         y1=Ly;
     elseif y_top0<Ly+1
@@ -555,9 +565,9 @@ function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config
     
     
     for cy=y1-1:-1:ppy+1
-        mps_top,trun_errs=combine_two_rows(mps_top,psi_single[:,cy],chi);
+        mps_top,trun_errs=combine_two_rows(mps_top,psi_single_[:,cy],chi);
         mps_all_set[:,cy]=mps_top;
-        trun_err=vcat(trun_err,trun_errs);
+        # trun_err=vcat(trun_err,trun_errs);
     end
 
 
@@ -583,7 +593,17 @@ function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config
 
 
     # end
-    return ov, trun_err,  torus_contract_history(config_new, mps_all_set)
+    local torus_contract_history_new=torus_contract_history(config_new, mps_all_set);
+    psi_single_=[];
+    contract_history_=[];
+    mps_bot=[];
+    mps_top=[];
+    mps_all_set=[];
+    global ite_num
+    if mod(ite_num,GC_spacing)==0
+        GC.gc(true);
+    end
+    return ov, trun_err,  torus_contract_history_new
 end
 
 
@@ -650,52 +670,52 @@ end
 
 
 
-function get_final_mps_range(L_)
-    #used for binary tree contraction of final PBC MPS
+# function get_final_mps_range(L_)
+#     #used for binary tree contraction of final PBC MPS
 
-    final_mps_length=Vector{Int}(undef,0);
-    Lnew=L_;
-    push!(final_mps_length,Lnew);
-    while Lnew>1
-        if mod(Lnew,2)==0
-            Lnew=Int(Lnew/2);
-        else
-            Lnew=Int((Lnew+1)/2);
-        end
-        push!(final_mps_length,Lnew);
-        # println(Lnew)
-        if Lnew==1
-            break;
-        end
-    end
+#     final_mps_length=Vector{Int}(undef,0);
+#     Lnew=L_;
+#     push!(final_mps_length,Lnew);
+#     while Lnew>1
+#         if mod(Lnew,2)==0
+#             Lnew=Int(Lnew/2);
+#         else
+#             Lnew=Int((Lnew+1)/2);
+#         end
+#         push!(final_mps_length,Lnew);
+#         # println(Lnew)
+#         if Lnew==1
+#             break;
+#         end
+#     end
 
 
-    final_mps_left_range=zeros(Int,L_,length(final_mps_length));
-    final_mps_right_range=zeros(Int,L_,length(final_mps_length));
-    final_mps_left_range[1:L_,1]=1:L_;
-    final_mps_right_range[1:L_,1]=1:L_;
-    for layer=2:length(final_mps_length)
-        previous_left_range=final_mps_left_range[1:final_mps_length[layer-1],layer-1];
-        previous_right_range=final_mps_right_range[1:final_mps_length[layer-1],layer-1];
-        layer_length=final_mps_length[layer];
-        for cc=1:layer_length-1
-            final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
-            final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
+#     final_mps_left_range=zeros(Int,L_,length(final_mps_length));
+#     final_mps_right_range=zeros(Int,L_,length(final_mps_length));
+#     final_mps_left_range[1:L_,1]=1:L_;
+#     final_mps_right_range[1:L_,1]=1:L_;
+#     for layer=2:length(final_mps_length)
+#         previous_left_range=final_mps_left_range[1:final_mps_length[layer-1],layer-1];
+#         previous_right_range=final_mps_right_range[1:final_mps_length[layer-1],layer-1];
+#         layer_length=final_mps_length[layer];
+#         for cc=1:layer_length-1
+#             final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
+#             final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
 
-        end
+#         end
         
-        cc=layer_length;
-        if mod(final_mps_length[layer-1],2)==0 #even
-            final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
-            final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
-        elseif mod(final_mps_length[layer-1],2)==1 #odd
-            final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
-            final_mps_right_range[cc,layer]=final_mps_right_range[2*cc-1,layer-1];
-        end
+#         cc=layer_length;
+#         if mod(final_mps_length[layer-1],2)==0 #even
+#             final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
+#             final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
+#         elseif mod(final_mps_length[layer-1],2)==1 #odd
+#             final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
+#             final_mps_right_range[cc,layer]=final_mps_right_range[2*cc-1,layer-1];
+#         end
         
-    end
+#     end
     
-
-    return Final_mps_range(final_mps_left_range, final_mps_right_range, final_mps_length)
-end
+#     fr=Final_mps_range(final_mps_left_range, final_mps_right_range, final_mps_length);
+#     return fr
+# end
 

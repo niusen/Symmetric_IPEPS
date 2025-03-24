@@ -63,9 +63,17 @@ pid=getpid();
 println("pid="*string(pid));;flush(stdout);
 ####################
 
+#input  TensorKit.   and then press Tab to show all properties that may occupy memory
+
 @everywhere TensorKit.usebraidcache_abelian[] = false 
 @everywhere TensorKit.usebraidcache_nonabelian[] = false
 @everywhere TensorKit.braidcache.maxsize=1000
+@everywhere TensorKit.transposecache.maxsize=1000
+# @everywhere TensorKit.usetransposecache
+@everywhere TensorKit.treepermutercache.maxsize=1000
+@everywhere TensorKit.GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE.maxsize=1000
+# Base.summarysize(TensorKit.treepermutercache)
+# Base.summarysize(TensorKit.GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE)
 
 
 
@@ -96,7 +104,7 @@ end
     contraction_path="recycle";#"verify","full","recycle"
  
     filenm="CSL_D"*string(D)*"_U1";
-    @show to_dense=true;#convert to dense
+    @show to_dense=false;#convert to dense
     psi0,Vp,Vv=load_fPEPS_from_iPEPS(Lx,Ly,filenm,to_dense);
 
     global contraction_path, contract_fun, psi_decomposed,psi_decomposed_otherstate, Vp, projector_method

@@ -65,8 +65,8 @@ println("pid="*string(pid));;flush(stdout);
 
 #input  TensorKit.   and then press Tab to show all properties that may occupy memory
 
-@everywhere TensorKit.usebraidcache_abelian[] = false 
-@everywhere TensorKit.usebraidcache_nonabelian[] = false
+# @everywhere TensorKit.usebraidcache_abelian[] = false 
+# @everywhere TensorKit.usebraidcache_nonabelian[] = false
 @everywhere TensorKit.braidcache.maxsize=1000
 @everywhere TensorKit.transposecache.maxsize=1000
 # @everywhere TensorKit.usetransposecache

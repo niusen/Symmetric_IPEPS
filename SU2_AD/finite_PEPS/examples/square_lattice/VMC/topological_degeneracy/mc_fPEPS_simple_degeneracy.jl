@@ -27,15 +27,15 @@ using MAT
 @everywhere include("../../../../environment/MC/build_degenerate_states.jl")
 
 @everywhere begin
-const Lx = 4      # number of sites along x / number of columns in the lattice
-const Ly = 4      # number of sites along y / number of rows in the lattice
-const D=3;#bond dimension of state
-const chi=10;#bond dimension of environment
+@show const Lx = 8      # number of sites along x / number of columns in the lattice
+@show const Ly = 8      # number of sites along y / number of rows in the lattice
+@show const D=3;#bond dimension of state
+@show const chi=10;#bond dimension of environment
 
 const L = Lx * Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
-const Nsteps = 100000       # Total Monte Carlo steps
-const binn = 1000          # Bin size to store the data during the monte carlo run. 
+@show const Nsteps = 400000       # Total Monte Carlo steps
+@show const binn = 1000          # Bin size to store the data during the monte carlo run. 
 const GC_spacing = 200          # garbage collection
 end
 
@@ -65,8 +65,8 @@ println("pid="*string(pid));;flush(stdout);
 
 #input  TensorKit.   and then press Tab to show all properties that may occupy memory
 
-@everywhere TensorKit.usebraidcache_abelian[] = false 
-@everywhere TensorKit.usebraidcache_nonabelian[] = false
+# @everywhere TensorKit.usebraidcache_abelian[] = false 
+# @everywhere TensorKit.usebraidcache_nonabelian[] = false
 @everywhere TensorKit.braidcache.maxsize=1000
 @everywhere TensorKit.transposecache.maxsize=1000
 # @everywhere TensorKit.usetransposecache
@@ -249,6 +249,8 @@ end
 
 for BC1=1:4;
     for BC2=1:4;
+        @show BC1
+        @show BC2
         if BC1==BC2
             continue;
         end

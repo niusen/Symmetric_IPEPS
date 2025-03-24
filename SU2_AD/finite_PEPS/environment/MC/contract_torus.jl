@@ -2,10 +2,10 @@ function anti_clock_coord_rotate(coord,Lx,Ly)
     return [Ly-coord[2]+1,coord[1]]
 end
 
-function combine_two_rows_method3(mpo1,mpo2,chi)
-    function build_projector(Tup_L,Tup_R,Tdn_L,Tdn_R,chi)
+function combine_two_rows_method3(mpo1::Vector{TensorMap},mpo2::Vector{TensorMap},chi::Int)
+    function build_projector(Tup_L::TensorMap,Tup_R::TensorMap,Tdn_L::TensorMap,Tdn_R::TensorMap,chi::Int)
 
-        function right_decompose(Tup_R,Tdn_R)
+        function right_decompose(Tup_R::TensorMap,Tdn_R::TensorMap)
             Tup_R=permute(Tup_R,(1,2,3,4,));
             Tdn_R=permute(Tdn_R,(1,2,3,4,));
         
@@ -34,7 +34,7 @@ function combine_two_rows_method3(mpo1,mpo2,chi)
             return t0#,t_recover
         end
         
-        function left_decompose(Tup_L,Tdn_L)
+        function left_decompose(Tup_L::TensorMap,Tdn_L::TensorMap)
             Tup_L=permute(Tup_L,(1,2,3,4,));
             Tdn_L=permute(Tdn_L,(1,2,3,4,));
         
@@ -115,10 +115,10 @@ end
 
 
 
-function combine_two_rows_method2(mpo1,mpo2,chi)
+function combine_two_rows_method2(mpo1::Vector{TensorMap},mpo2::Vector{TensorMap},chi::Int)
     function build_projector(Tup_L,Tup_R,Tdn_L,Tdn_R,chi)
 
-        function right_decompose(Tup_R,Tdn_R)
+        function right_decompose(Tup_R::TensorMap,Tdn_R::TensorMap)
             Tup_R=permute(Tup_R,(1,2,3,4,));
             Tdn_R=permute(Tdn_R,(1,2,3,4,));
         
@@ -146,7 +146,7 @@ function combine_two_rows_method2(mpo1,mpo2,chi)
             return t0,t_recover
         end
         
-        function left_decompose(Tup_L,Tdn_L)
+        function left_decompose(Tup_L::TensorMap,Tdn_L::TensorMap)
             Tup_L=permute(Tup_L,(1,2,3,4,));
             Tdn_L=permute(Tdn_L,(1,2,3,4,));
         
@@ -224,8 +224,8 @@ end
 
 
 
-function combine_two_rows_method1(mpo1,mpo2,chi)
-    function build_projector(Tup,Tdn,chi)
+function combine_two_rows_method1(mpo1::Vector{TensorMap},mpo2::Vector{TensorMap},chi::Int)
+    function build_projector(Tup::TensorMap,Tdn::TensorMap,chi::Int)
         Tup=permute(Tup,(1,2,3,4,));
         Tdn=permute(Tdn,(1,2,3,4,));
         # @tensor TTTT[:]:=Tup[-1,1,-4,-6]*Tdn[-2,-3,-5,1];
@@ -263,7 +263,7 @@ function combine_two_rows_method1(mpo1,mpo2,chi)
     return mpo_new,trun_err
 end
 
-function contract_rows(finite_PEPS,chi)
+function contract_rows(finite_PEPS::Matrix{TensorMap},chi::Int)
     global projector_method
     if projector_method=="1"
         combine_two_rows=combine_two_rows_method1

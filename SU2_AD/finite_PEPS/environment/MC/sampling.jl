@@ -5,7 +5,7 @@ function flip_config(config0::Vector,pos1::Int,pos2::Int)
     return config
 end
 
-function load_fPEPS_from_iPEPS(Lx,Ly,filenm)
+function load_fPEPS_from_iPEPS(Lx::Int,Ly::Int,filenm::String)
     data=load(filenm*".jld2");
     A=data["A"];
     # A=TensorMap(A.data,A.codom,A.dom);
@@ -29,7 +29,7 @@ function load_fPEPS_from_iPEPS(Lx,Ly,filenm)
     return psi,Vp,Vv
 end
 
-function load_fPEPS(Lx,Ly,filenm)
+function load_fPEPS(Lx::Int,Ly::Int,filenm::String)
     data=load("saved_states/"*filenm*".jld2");
     if haskey(data,"E")
         println("Double layer method gives energy "*string(data["E"]));
@@ -212,7 +212,7 @@ function initial_Neel_config(Lx,Ly,sign)
 end
 
 
-function decompose_physical_legs(fPEPS0,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+function decompose_physical_legs(fPEPS0::Matrix{TensorMap},Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
     
     Lx,Ly=size(fPEPS0);
     fPEPS=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp));
@@ -237,7 +237,7 @@ end
 
 
 
-function apply_sampling_projector(fPEPS,config::Matrix,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+function apply_sampling_projector(fPEPS::Matrix{TensorMap},config::Matrix,Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
     fPEPS=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
     Vp=U₁Space(1/2=>1,-1/2=>1);
@@ -284,7 +284,7 @@ function decompose_physical_legs(fPEPS0::Matrix{TensorMap},Vp::ComplexSpace)
     return fPEPS_decomposed
 end
 
-function apply_sampling_projector(fPEPS,config::Matrix,Vp::ComplexSpace)
+function apply_sampling_projector(fPEPS::Matrix{TensorMap},config::Matrix,Vp::ComplexSpace)
     fPEPS=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
 

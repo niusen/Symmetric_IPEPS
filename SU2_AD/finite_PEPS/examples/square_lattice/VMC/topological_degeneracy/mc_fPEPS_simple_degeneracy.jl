@@ -27,8 +27,8 @@ using MAT
 @everywhere include("../../../../environment/MC/build_degenerate_states.jl")
 
 @everywhere begin
-const Lx = 6      # number of sites along x / number of columns in the lattice
-const Ly = 6      # number of sites along y / number of rows in the lattice
+const Lx = 4      # number of sites along x / number of columns in the lattice
+const Ly = 4      # number of sites along y / number of rows in the lattice
 const D=3;#bond dimension of state
 const chi=10;#bond dimension of environment
 
@@ -93,7 +93,7 @@ end
 
 
 
-@everywhere function main(dir, worker_id, ntask, BC1,BC2)
+@everywhere function main(dir::String, worker_id::Int, ntask::Int, BC1::Int,BC2::Int)
     #load saved fPEPS data
     @show Nsteps_worker=Int(round(Nsteps/ntask));
     contraction_path="recycle";#"verify","full","recycle"
@@ -231,11 +231,12 @@ end
         end
 
     end
+    GC.gc(true);
 
 end
 
 
-for BC1=1:1;
+for BC1=1:4;
     for BC2=1:4;
         if BC1==BC2
             continue;
@@ -269,7 +270,7 @@ for BC1=1:1;
 
         begin
             # Output file
-            outputname = "errors_varying_bin_sizes.csv"
+            
             bin_size_set=Vector{Int}(undef,0);
             energy_set=Vector{ComplexF64}(undef,0); 
             std_dev_set=Vector{Float64}(undef,0);

@@ -33,7 +33,7 @@ const chi=10;#bond dimension of environment
 
 const L = Lx * Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
-const Nsteps = 1000       # Total Monte Carlo steps
+const Nsteps = 10       # Total Monte Carlo steps
 const binn = 1000          # Bin size to store the data during the monte carlo run. 
 const GC_spacing = 200          # garbage collection
 end

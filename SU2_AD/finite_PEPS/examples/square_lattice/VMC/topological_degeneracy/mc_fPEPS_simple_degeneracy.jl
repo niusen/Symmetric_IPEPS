@@ -235,9 +235,9 @@ end
                 # println(file, "\n\n", iconf_new, "\n\n\n");flush(stdout);
             end
 
-            # if mod(i + 1, 200) == 0
-            # println(mean(ebin1));flush(stdout);
-            # end
+            if mod(i + 1, 100) == 0
+                GC.gc(true)
+            end
 
         end
 

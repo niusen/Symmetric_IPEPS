@@ -10,6 +10,7 @@ using Distributed
 using Statistics
 using MAT
 using Profile
+using Dates
 
 @everywhere cd(@__DIR__)
 
@@ -33,7 +34,7 @@ const chi=10;#bond dimension of environment
 
 const L = Lx * Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
-const Nsteps = 10       # Total Monte Carlo steps
+const Nsteps = 1000000       # Total Monte Carlo steps
 const binn = 1000          # Bin size to store the data during the monte carlo run. 
 const GC_spacing = 200          # garbage collection
 end
@@ -75,7 +76,13 @@ println("pid="*string(pid));;flush(stdout);
 # Base.summarysize(TensorKit.treepermutercache)
 # Base.summarysize(TensorKit.GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE)
 
-
+function meminfo_julia()
+    # @printf "GC total:  %9.3f MiB\n" Base.gc_total_bytes(Base.gc_num())/2^20
+    # Total bytes (above) usually underreports, thus I suggest using live bytes (below)
+    @printf "GC live:   %9.3f MiB\n" Base.gc_live_bytes()/2^20
+    @printf "JIT:       %9.3f MiB\n" Base.jit_total_bytes()/2^20
+    @printf "Max. RSS:  %9.3f MiB\n" Sys.maxrss()/2^20
+end
 
 @everywhere function overlap_ratio(iconf_new::Vector,sample_::Matrix{TensorMap}, amplitude::Number, contract_history_otherstate_::Contract_History)
     # Compute the expectation value of the permutation operator
@@ -149,7 +156,7 @@ end
     end
 
     open(outputname, "a") do file # "a" is for append
-
+        starting_time=now();
         # @inbounds for i in 1:Nsteps_worker  # Number of Monte Carlo steps, usually 1 million
         #     @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
         for i in 1:Nsteps_worker  # Number of Monte Carlo steps, usually 1 million
@@ -233,9 +240,13 @@ end
                 # println(file, "\n\n", iconf_new, "\n\n\n");flush(stdout);
             end
 
-            # if mod(i + 1, 200) == 0
-            # println(mean(ebin1));flush(stdout);
-            # end
+            if mod(i, 100) == 0
+                GC.gc(true);
+                meminfo_julia();
+                Now=now();
+                Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+                println("Time consumed: "*string(Time));flush(stdout);
+            end
 
             # if i==1200
             #     Profile.take_heap_snapshot("snapshot.heapsnapshot")
@@ -328,3 +339,27 @@ end
 #     println("Allocated since start: ", Sys.total_memory() - Sys.free_memory())
 #     println("Allocation in iteration $i: ", alloc / 1e6, " MB")
 # end
+
+
+
+function malloc_trim()
+    if !Sys.islinux()
+        @warn "malloc_trim is glibc-specific and may not work on this OS."
+        return false
+    end
+    # Call malloc_trim with pad = 0
+    result = ccall((:malloc_trim, "libc.so.6"), Cint, (Csize_t,), Csize_t(0))
+    return result != 0 # true if memory was released
+end
+
+
+if malloc_trim()
+    println("Memory trimmed successfully.")
+else
+    println("No memory trimmed.")
+end
+
+ccall(:malloc_trim, Cvoid, (Cint,), 0)
+
+
+mainmain()

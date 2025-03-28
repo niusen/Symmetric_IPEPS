@@ -34,6 +34,19 @@
 #     linesearch_CTM_method :: String ="restart"; # "restart" or "from_converged_CTM"
 # end
 
+function malloc_trim()
+    if !Sys.islinux()
+        @warn "malloc_trim is glibc-specific and may not work on this OS."
+        return false
+    end
+    # Call malloc_trim with pad = 0
+    result = ccall((:malloc_trim, "libc.so.6"), Cint, (Csize_t,), Csize_t(0))
+    ccall(:malloc_trim, Cvoid, (Cint,), 0)
+    # varinfo(all=true, imported=true, recursive=true, sortby=:size, minsize=1024)
+    return result != 0 # true if memory was released
+end
+
+
 function Rank(T::TensorMap)
     #number of indices
     return length((domain(T)*codomain(T)).spaces)

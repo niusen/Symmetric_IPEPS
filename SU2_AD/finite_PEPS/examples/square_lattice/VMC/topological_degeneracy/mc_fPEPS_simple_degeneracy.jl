@@ -237,6 +237,11 @@ end
 
             if mod(i + 1, 100) == 0
                 GC.gc(true)
+                if malloc_trim()
+                    #println("Memory trimmed successfully.")
+                else
+                    println("No memory trimmed.")
+                end
             end
 
         end

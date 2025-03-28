@@ -246,6 +246,11 @@ end
                 Now=now();
                 Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
                 println("Time consumed: "*string(Time));flush(stdout);
+                if malloc_trim()
+                    #println("Memory trimmed successfully.")
+                else
+                    println("No memory trimmed.")
+                end
             end
 
             # if i==1200
@@ -342,24 +347,12 @@ end
 
 
 
-function malloc_trim()
-    if !Sys.islinux()
-        @warn "malloc_trim is glibc-specific and may not work on this OS."
-        return false
-    end
-    # Call malloc_trim with pad = 0
-    result = ccall((:malloc_trim, "libc.so.6"), Cint, (Csize_t,), Csize_t(0))
-    return result != 0 # true if memory was released
-end
 
 
-if malloc_trim()
-    println("Memory trimmed successfully.")
-else
-    println("No memory trimmed.")
-end
 
-ccall(:malloc_trim, Cvoid, (Cint,), 0)
+
+
+
 
 
 mainmain()

@@ -1,4 +1,7 @@
 using Distributed
+#number of workers to add and soft restrict of memory
+addprocs(50; exeflags=["--heap-size-hint=6G"])
+
 @everywhere using LinearAlgebra:I,diagm,diag
 @everywhere using TensorKit
 @everywhere using Random
@@ -35,7 +38,7 @@ using MAT
 const L = Lx * Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
 @show const Nsteps = 400000       # Total Monte Carlo steps
-@show const binn = 1000          # Bin size to store the data during the monte carlo run. 
+@show const binn = 200          # Bin size to store the data during the monte carlo run. 
 const GC_spacing = 200          # garbage collection
 end
 

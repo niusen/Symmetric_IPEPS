@@ -443,6 +443,8 @@ function contract_whole_torus_boundaryMPS(finite_PEPS::Matrix{TensorMap},chi::In
         combine_two_rows=combine_two_rows_method1
     elseif projector_method=="2"
         combine_two_rows=combine_two_rows_method2
+    elseif projector_method=="3"
+        combine_two_rows=combine_two_rows_method3
     end
 
     # @time begin
@@ -472,18 +474,35 @@ function contract_whole_torus_boundaryMPS(finite_PEPS::Matrix{TensorMap},chi::In
     # @time begin
     ###################################
     #final contraction method 1
-    Lx_,Ly_=size(finite_PEPS);
-    cc=1;
-    @tensor T[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
-    T=permute(T,(1,2,),(3,4,));
-    for cc=2:Lx_-1
+
+    # if final_mps_contract_method=="exact"
+        Lx_,Ly_=size(finite_PEPS);
+        cc=1;
+
+        @tensor T[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+        T=permute(T,(1,2,),(3,4,));
+        for cc=2:Lx_-1
+            @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
+            T_=permute(T_,(1,2,),(3,4,));
+            T=T*T_;
+        end
+        cc=Lx_;
         @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
-        T_=permute(T_,(1,2,),(3,4,));
-        T=T*T_;
-    end
-    cc=Lx_;
-    @tensor T_[:]:=mpo_top[cc][-1,1,-3,2]*mpo_bot[cc][-2,2,-4,1];
-    ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+        ov=@tensor T[1,2,3,4]*T_[3,4,1,2]
+    # elseif final_mps_contract_method=="truncate"
+        #this is slow, because in this last ontraction both row of mps has bond dimension chi, different from previous case where one row is D and another row is chi.
+        # Lx_,Ly_=size(finite_PEPS);
+        # mpo_top,err_set=combine_two_rows(mpo_top,mpo_bot,chi); 
+        # trun_err=vcat(trun_err,err_set); 
+
+        # @tensor T[:]:=mpo_top[1][-1,1,-2,1];
+        # for cc=2:Lx_-1
+        #     @tensor T[:]:=T[-1,2]*mpo_top[cc][2,1,-2,1];
+        # end
+        # cc=Lx_;
+        # ov=@tensor T[3,2]*mpo_top[cc][2,1,3,1]
+    # end
+
     #############################
     # end
     finite_PEPS=[];

@@ -44,10 +44,10 @@ println("pid="*string(pid));;flush(stdout);
     (1,1),(2,1)
 """
 
-Lx=8;
-Ly=8;
+Lx=10;
+Ly=10;
 
-chi=35;
+chi=30;
 
 ##############################################
 
@@ -84,7 +84,8 @@ normalize_PEPS!(psi,Vp,contract_whole_torus);#normalize psi such that the amplit
 config=initial_Neel_config(Lx,Ly,1);
 
 psi_decomposed=decompose_physical_legs(psi,Vp);
-psi_sample=pick_sample(psi_decomposed,config);
+psi_sample=Matrix{TensorMap}(undef,Lx,Ly)
+psi_sample=pick_sample(psi_decomposed,config,psi_sample);
 
 #apply projector to obtain sample
 #psi_sample=apply_sampling_projector(psi,Lx,Ly,config,Vp);
@@ -92,12 +93,12 @@ psi_sample=pick_sample(psi_decomposed,config);
 psi_sample=shift_pleg(psi_sample);
 
 
-
+# final_mps_contract_method="exact";#"truncate" or "exact"
 
 
 #do contraction
-
-@btime Norm,trun_err=contract_whole_torus(psi_sample,chi);
+println("contract row method")
+# @btime Norm,trun_err=contract_whole_torus(psi_sample,chi);
 Norm,trun_err=contract_whole_torus(psi_sample,chi);
 @show [Norm,sum(abs.(trun_err))]
 # ##############################
@@ -105,4 +106,9 @@ Norm,trun_err=contract_whole_torus(psi_sample,chi);
 # @btime Norm,trun_err=contract_sample(psi,Lx,Ly,config,Vp,contract_whole_torus);
 
 # @btime Norm,trun_err=contract_sample(psi_decomposed,Lx,Ly,config,Vp,contract_whole_torus);
+
+println("boundary mps method")
+# @btime contract_whole_torus_boundaryMPS(psi_sample,chi);
+@time ov,trun_err=contract_whole_torus_boundaryMPS(psi_sample,chi);
+@show [ov,sum(abs.(trun_err))]
 

@@ -16,10 +16,7 @@ using MAT
 @everywhere cd(@__DIR__)
 
 
-
-
 @everywhere include("../../../../state/iPEPS_ansatz.jl")
-
 @everywhere include("../../../../setting/Settings.jl")
 @everywhere include("../../../../setting/linearalgebra.jl")
 @everywhere include("../../../../setting/tuple_methods.jl")
@@ -181,16 +178,16 @@ end
 
             if contraction_path=="verify"
                 amplitude,sample0, _=contract_sample(psi_decomposed0,Lx,Ly,iconf_new,sample0,Vp,contract_fun);
-                amplitude_, sample0, _,contract_history= partial_contract_sample(psi_decomposed0,iconf_new,sample0,Vp,contract_history0);
+                amplitude_, sample0, _,contract_history0= partial_contract_sample(psi_decomposed0,iconf_new,sample0,Vp,contract_history0);
                 @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
 
                 amplitude_1,sample1,_=contract_sample(psi_decomposed1,Lx,Ly,iconf_new,sample1,Vp,contract_fun);
-                amplitude_1_,sample1,_,contract_history= partial_contract_sample(psi_decomposed1,iconf_new,sample1,Vp,contract_history1);
+                amplitude_1_,sample1,_,contract_history1= partial_contract_sample(psi_decomposed1,iconf_new,sample1,Vp,contract_history1);
                 @assert abs(norm(amplitude_1-amplitude_1_)/amplitude_1)<1e-10;
             elseif contraction_path=="full"
                 amplitude,sample0, _=contract_sample(psi_decomposed0,Lx,Ly,iconf_new,sample0, Vp,contract_fun);
             elseif contraction_path=="recycle"
-                amplitude,sample0, _,contract_history= partial_contract_sample(psi_decomposed0,iconf_new,sample0, Vp,contract_history0);
+                amplitude,sample0, _,contract_history0= partial_contract_sample(psi_decomposed0,iconf_new,sample0, Vp,contract_history0);
                 # _,sample1,_,contract_history1= partial_contract_sample(psi_decomposed1,iconf_new,sample1,Vp,contract_history1);
             end
 
@@ -276,93 +273,92 @@ end
 
 
 for BC1=1:4;
-    for BC2=1:4;
-        @show BC1
+    
+    @show BC1
 
-
-        ntask=nworkers();
-        # main(dir, 1, ntask, BC1,BC2);
-        @sync begin
-            for cp=1:ntask
-                worker_id=workers()[cp]
-                @spawnat worker_id main(dir, worker_id, ntask, BC1);
-            end
+    ntask=nworkers();
+    # main(dir, 1, ntask, BC1,BC2);
+    @sync begin
+        for cp=1:ntask
+            worker_id=workers()[cp]
+            @spawnat worker_id main(dir, worker_id, ntask, BC1);
         end
-
-        data_set1=Vector{ComplexF64}(undef,0);
-        data_set2=Vector{ComplexF64}(undef,0);
-        data_set3=Vector{ComplexF64}(undef,0);
-        data_set4=Vector{ComplexF64}(undef,0);
-        for cp =1:ntask
-            outputname = dir*"id_"*string(workers()[cp])*"_BC"*string(BC1)*"_chi"*string(chi)*".csv";
-            # Read the list of numbers from the CSV file
-            data = open(outputname, "r") do file
-                #[parse(ComplexF64, line) for line in readlines(file)]
-                dset1=Vector{ComplexF64}(undef,0);
-                dset2=Vector{ComplexF64}(undef,0);
-                dset3=Vector{ComplexF64}(undef,0);
-                dset4=Vector{ComplexF64}(undef,0);
-                for line in readlines(file)
-                    tokens = strip.(split(line, ","))
-                    complex_numbers = parse.(Complex{Float64}, tokens)
-                    push!(dset1,complex_numbers[1]);
-                    push!(dset2,complex_numbers[2]);
-                    push!(dset3,complex_numbers[3]);
-                    push!(dset4,complex_numbers[4]);
-                end
-                [dset1,dset2,dset3,dset4]
-            end
-            data_set1=vcat(data_set1,data[1]);
-            data_set2=vcat(data_set2,data[2]);
-            data_set3=vcat(data_set3,data[3]);
-            data_set4=vcat(data_set4,data[4]);
-            rm(outputname)
-        end
-        data_set=[data_set1,data_set2,data_set3,data_set4];
-
-        #error analysis
-        for BC2=1:4
-        
-            # Output file
-            
-            bin_size_set=Vector{Int}(undef,0);
-            energy_set=Vector{ComplexF64}(undef,0); 
-            std_dev_set=Vector{Float64}(undef,0);
-
-            bin_size = 1
-
-            total_data_size = length(data_set[BC2])
-            while bin_size < total_data_size
-                # Bin the data
-                binned = [mean(data_set[BC2][i:min(i+bin_size-1, total_data_size)]) for i in 1:bin_size:total_data_size]
-                
-                # Compute mean energy per site
-                energy = mean(binned) 
-                
-                # Compute standard deviation
-                std_dev = std(binned; corrected=false) / (sqrt(length(binned)))
-
-                # Write results to the output file
-                push!(bin_size_set,bin_size);
-                push!(energy_set,energy);
-                push!(std_dev_set,std_dev);
-
-                # Double the bin size
-                bin_size *= 2
-            end
-
-            
-            matnm=string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_BC"*string(BC1)*"_"*string(BC2)*"_chi"*string(chi)*".mat"
-            matwrite(matnm, Dict(
-            "bin_size_set"=>bin_size_set,
-            "energy_set"=>energy_set,
-            "std_dev_set"=>std_dev_set,
-            "data_set"=>data_set[BC2]
-            ); compress = false)    
-        end
-        
-
     end
+
+    data_set1=Vector{ComplexF64}(undef,0);
+    data_set2=Vector{ComplexF64}(undef,0);
+    data_set3=Vector{ComplexF64}(undef,0);
+    data_set4=Vector{ComplexF64}(undef,0);
+    for cp =1:ntask
+        outputname = dir*"id_"*string(workers()[cp])*"_BC"*string(BC1)*"_chi"*string(chi)*".csv";
+        # Read the list of numbers from the CSV file
+        data = open(outputname, "r") do file
+            #[parse(ComplexF64, line) for line in readlines(file)]
+            dset1=Vector{ComplexF64}(undef,0);
+            dset2=Vector{ComplexF64}(undef,0);
+            dset3=Vector{ComplexF64}(undef,0);
+            dset4=Vector{ComplexF64}(undef,0);
+            for line in readlines(file)
+                tokens = strip.(split(line, ","))
+                complex_numbers = parse.(Complex{Float64}, tokens)
+                push!(dset1,complex_numbers[1]);
+                push!(dset2,complex_numbers[2]);
+                push!(dset3,complex_numbers[3]);
+                push!(dset4,complex_numbers[4]);
+            end
+            [dset1,dset2,dset3,dset4]
+        end
+        data_set1=vcat(data_set1,data[1]);
+        data_set2=vcat(data_set2,data[2]);
+        data_set3=vcat(data_set3,data[3]);
+        data_set4=vcat(data_set4,data[4]);
+        rm(outputname)
+    end
+    data_set=[data_set1,data_set2,data_set3,data_set4];
+
+    #error analysis
+    for BC2=1:4
+    
+        # Output file
+        
+        bin_size_set=Vector{Int}(undef,0);
+        energy_set=Vector{ComplexF64}(undef,0); 
+        std_dev_set=Vector{Float64}(undef,0);
+
+        bin_size = 1
+
+        total_data_size = length(data_set[BC2])
+        while bin_size < total_data_size
+            # Bin the data
+            binned = [mean(data_set[BC2][i:min(i+bin_size-1, total_data_size)]) for i in 1:bin_size:total_data_size]
+            
+            # Compute mean energy per site
+            energy = mean(binned) 
+            
+            # Compute standard deviation
+            std_dev = std(binned; corrected=false) / (sqrt(length(binned)))
+
+            # Write results to the output file
+            push!(bin_size_set,bin_size);
+            push!(energy_set,energy);
+            push!(std_dev_set,std_dev);
+
+            # Double the bin size
+            bin_size *= 2
+        end
+
+        
+        matnm=string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_BC"*string(BC1)*"_"*string(BC2)*"_chi"*string(chi)*".mat"
+        matwrite(matnm, Dict(
+        "bin_size_set"=>bin_size_set,
+        "energy_set"=>energy_set,
+        "std_dev_set"=>std_dev_set,
+        "data_set"=>data_set[BC2]
+        ); compress = false)    
+    end
+        
+
+    
 end
 
     

@@ -116,7 +116,7 @@ end
     global contraction_path, contract_fun, Vp, projector_method
     projector_method="1";#"1" or "2"
     contract_fun=contract_whole_torus_boundaryMPS;
-    normalize_PEPS!(psi0,Vp,contract_whole_torus_boundaryMPS);#normalize psi0 such that the amplitude of a single config is close to 1
+    normalize_PEPS_square!(psi0,Vp,contract_whole_torus_boundaryMPS);#normalize psi0 such that the amplitude of a single config is close to 1
     #psi_00,psi_0pi,psi_pi0,psi_pipi =construct_4_states(psi0,Vv);#four states
     psi_BC_set =construct_4_states(psi0,Vv);#four states
 
@@ -256,7 +256,7 @@ end
                 # println(file, "\n\n", iconf_new, "\n\n\n");flush(stdout);
             end
 
-            if mod(i + 1, 100) == 0
+            if mod(i + 1, GC_spacing) == 0
                 GC.gc(true)
                 if malloc_trim()
                     #println("Memory trimmed successfully.")

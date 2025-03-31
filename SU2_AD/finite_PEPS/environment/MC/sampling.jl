@@ -249,9 +249,9 @@ function pick_sample(fPEPS_decomposed::Array{TensorMap},config0::Vector, sample:
     return sample
 end
 
-function normalize_PEPS!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
+function normalize_PEPS_square!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
     Lx,Ly=size(psi);
-    config=initial_Neel_config(Lx,Ly,1);
+    config=initial_Neel_config_square(Lx,Ly,1);
     psi_sample=Matrix{TensorMap}(undef,Lx,Ly);
     psi_sample=apply_sampling_projector(psi,Lx,Ly,config,psi_sample, Vp);
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})

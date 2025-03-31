@@ -21,6 +21,7 @@ using MAT
 @everywhere include("../../../../setting/linearalgebra.jl")
 @everywhere include("../../../../setting/tuple_methods.jl")
 
+@everywhere include("../../../../environment/MC/finite_clusters.jl")
 @everywhere include("../../../../environment/MC/contract_torus.jl")
 @everywhere include("../../../../environment/MC/sampling.jl")
 @everywhere include("../../../../environment/MC/sampling_eliminate_physical_leg.jl")
@@ -135,9 +136,9 @@ end
     
     ##########################################
 
-    coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours(Lx,Ly,"PBC");
+    coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours_square(Lx,Ly,"PBC");
 
-    initial_iconf =initial_Neel_config(Lx,Ly,1);
+    initial_iconf =initial_Neel_config_square(Lx,Ly,1);
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.
 
     #start from the config in test.csv

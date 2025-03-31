@@ -513,7 +513,7 @@ end
 
 function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history_::torus_contract_history,chi::Int)
     local psi_single_=deepcopy(psi_single);
-    contract_history_=deepcopy(contract_history_);#warning: this deepcopy is necessary, otherwise may cause error is sweep is not accepted.
+    contract_history_=deepcopy(contract_history_);#warning: this deepcopy is necessary, otherwise may cause error if sweep is not accepted.
     Lx,Ly=size(psi_single_);#original cluster size without adding trivial boundary
     config_new_=reshape(config_new,Lx,Ly);
     config_old_=reshape(contract_history_.config,Lx,Ly);

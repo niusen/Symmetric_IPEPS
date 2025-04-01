@@ -249,6 +249,23 @@ function pick_sample(fPEPS_decomposed::Array{TensorMap},config0::Vector, sample:
     return sample
 end
 
+function normalize_PEPS_kagome!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
+    Lx,Ly=size(psi);
+    config=initial_Neel_config_kagome(Lx,Ly,1);
+    psi_sample=Matrix{TensorMap}(undef,Lx,Ly);
+    psi_sample=apply_sampling_projector(psi,Lx,Ly,config,psi_sample, Vp);
+    if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        psi_sample=shift_pleg(psi_sample);
+    end
+    chi__=30;
+    Norm,trun_err=contract_fun(psi_sample,chi__);
+    Norm=norm(Norm);
+    coe=Norm^(1/(Lx*Ly));
+    for cc in eachindex(psi)
+        setindex!(psi,psi[cc]/coe,cc);
+    end
+end
+
 function normalize_PEPS_square!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
     Lx,Ly=size(psi);
     config=initial_Neel_config_square(Lx,Ly,1);

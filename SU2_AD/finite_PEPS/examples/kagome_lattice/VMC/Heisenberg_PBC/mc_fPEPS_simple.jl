@@ -20,6 +20,7 @@ using MAT
 @everywhere include("../../../../setting/Settings.jl")
 @everywhere include("../../../../setting/linearalgebra.jl")
 @everywhere include("../../../../setting/tuple_methods.jl")
+@everywhere include("../../../../setting/finite_clusters.jl")
 
 @everywhere include("../../../../environment/MC/contract_torus.jl")
 @everywhere include("../../../../environment/MC/sampling.jl")
@@ -27,15 +28,15 @@ using MAT
 @everywhere include("../../../../environment/MC/build_degenerate_states.jl")
 
 @everywhere begin
-@show const Lx = 10      # number of sites along x / number of columns in the lattice
-@show const Ly = 10      # number of sites along y / number of rows in the lattice
+@show const Lx = 4      # number of sites along x / number of columns in the lattice
+@show const Ly = 4      # number of sites along y / number of rows in the lattice
 @show const D=3;#bond dimension of state
-@show const chi=40;#bond dimension of environment
+@show const chi=10;#bond dimension of environment
 
 const L = 3*Lx*Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
 const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
-@show const Nsteps = 100000       # Total Monte Carlo steps
+@show const Nsteps = 10000       # Total Monte Carlo steps
 @show const binn = 200          # Bin size to store the data during the monte carlo run. 
 const GC_spacing = 200          # garbage collection
 end
@@ -165,7 +166,7 @@ end
 
     ##########################################
 
-    coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours(Lx,Ly,"PBC");
+    coord,coord_list,fnn_set,snn_set,tnn_set,NN_tuple,NNN_tuple,NNNN_tuple, NN_tuple_reduced,NNN_tuple_reduced,NNNN_tuple_reduced, up_triangles, dn_triangles, hexagons=get_neighbours_kagome(Lx,Ly,"PBC");
 
     initial_iconf =initial_Neel_config(Lx,Ly,1);
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.

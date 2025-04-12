@@ -5,6 +5,208 @@ function flip_config(config0::Vector,pos1::Int,pos2::Int)
     return config
 end
 
+function SU2_space_to_U1_space(V0)
+    V1=U₁Space(0=>0);
+    V0_comp=[];
+    for cc=1:length(V0.dims.keys)
+        for ccc=1:(V0.dims.values[cc])
+            push!(V0_comp,V0.dims.keys[cc]);
+            J=V0.dims.keys[cc].j;
+            szs=Vector(J:-1:-J);
+            V_=U₁Space(0=>0);
+            for dd=1:length(szs)
+                V_=oplus(V_,U₁Space(szs[dd]=>1));
+            end
+            V1=oplus(V1,V_);
+        end
+    end
+    # @show V0_comp
+    # @show V1
+
+    V1_history=zeros(Int,length(V1.dims.keys));
+    V1_charges=zeros(length(V1.dims.keys));
+    V1_dims=zeros(Int,length(V1.dims.keys));
+    for cc=1:length(V1_charges)
+        V1_charges[cc]=V1.dims.keys[cc].charge;
+        V1_dims[cc]=V1.dims.values[cc];
+    end
+
+
+    total_dim=TensorKit.dim(V1);
+    R=zeros(total_dim,total_dim);#ind1:U1 space; ind2:SU2 space
+    step=1;
+    for cc=1:length(V0_comp)
+        J=V0_comp[cc].j;
+        szs=Vector(J:-1:-J)
+        for dd=1:length(szs)
+            pos=findfirst(x->x.==szs[dd],V1_charges);
+            
+            R[sum(V1_dims[1:pos-1])+V1_history[pos]+1,step]=1;
+            V1_history[pos]=V1_history[pos]+1;
+            step=step+1;
+        end
+    end
+    @assert norm(R'*R-I(total_dim))<1e-10;
+
+    if V0.dual
+        V1=V1';
+    end
+    return V1,R
+end
+
+function SU2_tensor_to_U1_tensor(T0)
+    if Rank(T0)==3
+        V1=space(T0,1);
+        V2=space(T0,2);
+        V3=space(T0,3);
+        V1p,R1=SU2_space_to_U1_space(V1);
+        V2p,R2=SU2_space_to_U1_space(V2);
+        V3p,R3=SU2_space_to_U1_space(V3);
+
+        T_dense=convert(Array,T0);
+        @tensor T_dense[:]:=T_dense[1,2,3]*R1[-1,1]*R2[-2,2]*R3[-3,3];
+        T1=TensorMap(T_dense,V1p*V2p,V3p');
+        T1=permute(T1,(1,2,3,));
+
+
+    elseif Rank(T0)==4
+        V1=space(T0,1);
+        V2=space(T0,2);
+        V3=space(T0,3);
+        V4=space(T0,4);
+        V1p,R1=SU2_space_to_U1_space(V1);
+        V2p,R2=SU2_space_to_U1_space(V2);
+        V3p,R3=SU2_space_to_U1_space(V3);
+        V4p,R4=SU2_space_to_U1_space(V4);
+
+        T_dense=convert(Array,T0);
+        @tensor T_dense[:]:=T_dense[1,2,3,4]*R1[-1,1]*R2[-2,2]*R3[-3,3]*R4[-4,4];
+        T1=TensorMap(T_dense,V1p*V2p*V3p,V4p');
+        T1=permute(T1,(1,2,3,4,));
+    elseif Rank(T0)==5
+        V1=space(T0,1);
+        V2=space(T0,2);
+        V3=space(T0,3);
+        V4=space(T0,4);
+        V5=space(T0,5);
+        V1p,R1=SU2_space_to_U1_space(V1);
+        V2p,R2=SU2_space_to_U1_space(V2);
+        V3p,R3=SU2_space_to_U1_space(V3);
+        V4p,R4=SU2_space_to_U1_space(V4);
+        V5p,R5=SU2_space_to_U1_space(V5);
+
+        T_dense=convert(Array,T0);
+        @tensor T_dense[:]:=T_dense[1,2,3,4,5]*R1[-1,1]*R2[-2,2]*R3[-3,3]*R4[-4,4]*R5[-5,5];
+        T1=TensorMap(T_dense,V1p*V2p*V3p*V4p,V5p');
+        T1=permute(T1,(1,2,3,4,5,));
+    end
+    return T1
+end
+function symmetry_space_to_dense_space(V0)
+    dd=dim(V0);
+    if V0.dual 
+        return  (ℂ^dd)'
+    else
+        return  ℂ^dd
+    end
+end
+function to_dense_tensor(A)
+    if Rank(A)==5
+        A=permute(A,(1,2,3,4,5,));
+        V1=space(A,1);
+        V2=space(A,2);
+        V3=space(A,3);
+        V4=space(A,4);
+        V5=space(A,5);
+        A_dense=convert(Array,A);
+        siz=size(A_dense);
+
+        V1=symmetry_space_to_dense_space(V1);
+        V2=symmetry_space_to_dense_space(V2);
+        V3=symmetry_space_to_dense_space(V3);
+        V4=symmetry_space_to_dense_space(V4);
+        V5=symmetry_space_to_dense_space(V5);
+
+        A=TensorMap(A_dense, V1*V2*V3*V4, V5');
+        A=permute(A,(1,2,3,4,5,));
+    elseif Rank(A)==4
+        A=permute(A,(1,2,3,4,));
+        V1=space(A,1);
+        V2=space(A,2);
+        V3=space(A,3);
+        V4=space(A,4);
+        A_dense=convert(Array,A);
+        siz=size(A_dense);
+
+        V1=symmetry_space_to_dense_space(V1);
+        V2=symmetry_space_to_dense_space(V2);
+        V3=symmetry_space_to_dense_space(V3);
+        V4=symmetry_space_to_dense_space(V4);
+
+        A=TensorMap(A_dense, V1*V2*V3, V4');
+        A=permute(A,(1,2,3,4,));
+    elseif Rank(A)==3
+        A=permute(A,(1,2,3,));
+        V1=space(A,1);
+        V2=space(A,2);
+        V3=space(A,3);
+        A_dense=convert(Array,A);
+        siz=size(A_dense);
+
+        V1=symmetry_space_to_dense_space(V1);
+        V2=symmetry_space_to_dense_space(V2);
+        V3=symmetry_space_to_dense_space(V3);
+
+        A=TensorMap(A_dense, V1*V2, V3');
+        A=permute(A,(1,2,3,));
+    end
+    return A
+end
+
+function load_fPEPS_from_kagome_iPESS(Lx::Int,Ly::Int,filenm::String,to_dense)
+    data=load(filenm*".jld2");
+    B_a=data["B_a"];
+    B_b=data["B_b"];
+    B_c=data["B_c"];
+    T_u=data["T_u"];
+    T_d=data["T_d"];
+
+    # A=TensorMap(A.data,A.codom,A.dom);
+
+    if to_dense
+        B_a=to_dense_tensor(B_a);
+        B_b=to_dense_tensor(B_b);
+        B_c=to_dense_tensor(B_c);
+        T_u=to_dense_tensor(T_u);
+        T_d=to_dense_tensor(T_d);
+
+    else
+        B_a=SU2_tensor_to_U1_tensor(B_a);
+        B_b=SU2_tensor_to_U1_tensor(B_b);
+        B_c=SU2_tensor_to_U1_tensor(B_c);
+        T_u=SU2_tensor_to_U1_tensor(T_u);
+        T_d=SU2_tensor_to_U1_tensor(T_d);
+    end
+
+    Vv=space(T_u,1);
+    Vp=space(B_a,3);
+
+    @tensor A[:] := B_a[-1,1,-5]*B_b[4,3,-6]*B_c[-4,2,-7]*T_u[1,3,2]*T_d[-3,4,-2];
+    
+
+    A=permute(A,(1,2,3,4,5,6,7,));
+    
+    
+    #psi=generate_obc_from_iPEPS(A,Lx,Ly);
+    psi=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            psi[cx,cy]=A;
+        end
+    end
+    return psi,Vp,Vv
+end
+
 function load_fPEPS_from_iPEPS(Lx::Int,Ly::Int,filenm::String,to_dense)
     data=load(filenm*".jld2");
     A=data["A"];
@@ -132,7 +334,11 @@ end
 function decompose_physical_legs(fPEPS0::Matrix{TensorMap},Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
     
     Lx,Ly=size(fPEPS0);
-    fPEPS=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp));
+    if Lattice=="square"
+        fPEPS=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp));
+    elseif Lattice=="kagome"
+        fPEPS=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp),TensorKit.dim(Vp),TensorKit.dim(Vp));
+    end
     Vp=U₁Space(1/2=>1,-1/2=>1);
     Vup=U₁Space(1/2=>1);
     Vdn=U₁Space(-1/2=>1);
@@ -140,12 +346,30 @@ function decompose_physical_legs(fPEPS0::Matrix{TensorMap},Vp::GradedSpace{U1Irr
     Pdn=TensorMap([0,1]',Vdn',Vp');
     projectors=[Pup,Pdn];
     @assert TensorKit.dim(Vp)==2;
-    for cp=1:TensorKit.dim(Vp)
-        for cx=1:Lx
-            for cy=1:Ly
-                T=fPEPS0[cx,cy];
-                @tensor T[:]:=T[-1,-2,-3,-4,1]*projectors[cp][-5,1];
-                fPEPS[cx,cy,cp]=T;
+    if Lattice=="square"
+        for cp=1:TensorKit.dim(Vp)
+            for cx=1:Lx
+                for cy=1:Ly
+                    T=fPEPS0[cx,cy];
+                    @tensor T[:]:=T[-1,-2,-3,-4,1]*projectors[cp][-5,1];
+                    fPEPS[cx,cy,cp]=T;
+                end
+            end
+        end
+    elseif Lattice=="kagome"
+        for cp1=1:TensorKit.dim(Vp)
+            for cp2=1:TensorKit.dim(Vp)
+                for cp3=1:TensorKit.dim(Vp)
+                    for cx=1:Lx
+                        for cy=1:Ly
+                            T=fPEPS0[cx,cy];
+                            @tensor T[:]:=T[-1,-2,-3,-4,1,2,3]*projectors[cp1][-5,1]*projectors[cp2][-6,2]*projectors[cp3][-7,3];
+                            U=unitary(fuse(space(T,5)*space(T,6)*space(T,7)), space(T,5)*space(T,6)*space(T,7));
+                            @tensor T[:]:=T[-1,-2,-3,-4,1,2,3]*U[-5,1,2,3];
+                            fPEPS[cx,cy,cp1,cp2,cp3]=T;
+                        end
+                    end
+                end
             end
         end
     end
@@ -154,7 +378,7 @@ end
 
 
 
-function apply_sampling_projector(fPEPS::Matrix{TensorMap},config::Matrix,sample::Matrix{TensorMap}, Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+function apply_sampling_projector(fPEPS::Matrix{TensorMap},config::Array,sample::Matrix{TensorMap}, Vp::GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
     fPEPS=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
     Vp=U₁Space(1/2=>1,-1/2=>1);
@@ -163,15 +387,30 @@ function apply_sampling_projector(fPEPS::Matrix{TensorMap},config::Matrix,sample
     Pup=TensorMap([1,0]',Vup',Vp');
     Pdn=TensorMap([0,1]',Vdn',Vp');
 
-    for cx=1:Lx
-        for cy=1:Ly
-            T=fPEPS[cx,cy];
-            if config[cx,cy]==1
-                @tensor T[:]:=T[-1,-2,-3,-4,1]*Pup[-5,1];
-            elseif config[cx,cy]==-1
-                @tensor T[:]:=T[-1,-2,-3,-4,1]*Pdn[-5,1];
+    if Lattice=="square"
+        for cx=1:Lx
+            for cy=1:Ly
+                T=fPEPS[cx,cy];
+                if config[cx,cy]==1
+                    @tensor T[:]:=T[-1,-2,-3,-4,1]*Pup[-5,1];
+                elseif config[cx,cy]==-1
+                    @tensor T[:]:=T[-1,-2,-3,-4,1]*Pdn[-5,1];
+                end
+                fPEPS[cx,cy]=T;
             end
-            fPEPS[cx,cy]=T;
+        end
+    elseif Lattice=="kagome"
+        projector_set=[Pup,Pdn];
+        
+        for cx=1:Lx
+            for cy=1:Ly
+                T=fPEPS[cx,cy];
+                ind=Int.((config[cx,cy,:]*(-1) .+1)/2 .+1);
+                @tensor T[:]:=T[-1,-2,-3,-4,1,2,3]*projector_set[ind[1]][-5,1]*projector_set[ind[2]][-6,2]*projector_set[ind[3]][-7,3];
+                U=unitary(fuse(space(T,5)*space(T,6)*space(T,7)), space(T,5)*space(T,6)*space(T,7));
+                @tensor T[:]:=T[-1,-2,-3,-4,1,2,3]*U[-5,1,2,3];
+                fPEPS[cx,cy]=T;
+            end
         end
     end
     return fPEPS
@@ -180,20 +419,44 @@ end
 
 function decompose_physical_legs(fPEPS0::Matrix{TensorMap},Vp::ComplexSpace)
     Lx,Ly=size(fPEPS0);
-    fPEPS_decomposed=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp));
+    if Lattice=="square"
+        fPEPS_decomposed=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp));
+    elseif Lattice=="kagome"
+        fPEPS_decomposed=Array{TensorMap}(undef,Lx,Ly,TensorKit.dim(Vp),TensorKit.dim(Vp),TensorKit.dim(Vp));
+    end
     @assert TensorKit.dim(Vp)==2;
-    
-    for cp=1:TensorKit.dim(Vp)
-        for cx=1:Lx
-            for cy=1:Ly
-                T=fPEPS0[cx,cy];
+    if Lattice=="square"
+        for cp=1:TensorKit.dim(Vp)
+            for cx=1:Lx
+                for cy=1:Ly
+                    T=fPEPS0[cx,cy];
 
-                if Rank(T)==3
-                    fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,cp],space(T,1)*space(T,2),ProductSpace{ComplexSpace, 0}());
-                elseif Rank(T)==4
-                    fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,:,cp],space(T,1)*space(T,2)*space(T,3),ProductSpace{ComplexSpace, 0}());
-                elseif Rank(T)==5
-                    fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,:,:,cp],space(T,1)*space(T,2)*space(T,3)*space(T,4),ProductSpace{ComplexSpace, 0}());
+                    if Rank(T)==3
+                        fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,cp],space(T,1)*space(T,2),ProductSpace{ComplexSpace, 0}());
+                    elseif Rank(T)==4
+                        fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,:,cp],space(T,1)*space(T,2)*space(T,3),ProductSpace{ComplexSpace, 0}());
+                    elseif Rank(T)==5
+                        fPEPS_decomposed[cx,cy,cp]=TensorMap(T[:,:,:,:,cp],space(T,1)*space(T,2)*space(T,3)*space(T,4),ProductSpace{ComplexSpace, 0}());
+                    end
+                end
+            end
+        end
+    elseif Lattice=="kagome"
+        for cp1=1:TensorKit.dim(Vp)
+            for cp2=1:TensorKit.dim(Vp)
+                for cp3=1:TensorKit.dim(Vp)
+                    for cx=1:Lx
+                        for cy=1:Ly
+                            T=fPEPS0[cx,cy];
+                            if Rank(T)==3
+                                fPEPS_decomposed[cx,cy,cp1,cp2,cp3]=TensorMap(T[:,:,cp1,cp2,cp3],space(T,1)*space(T,2),ProductSpace{ComplexSpace, 0}());
+                            elseif Rank(T)==4
+                                fPEPS_decomposed[cx,cy,cp1,cp2,cp3]=TensorMap(T[:,:,:,cp1,cp2,cp3],space(T,1)*space(T,2)*space(T,3),ProductSpace{ComplexSpace, 0}());
+                            elseif Rank(T)==5
+                                fPEPS_decomposed[cx,cy,cp1,cp2,cp3]=TensorMap(T[:,:,:,:,cp1,cp2,cp3],space(T,1)*space(T,2)*space(T,3)*space(T,4),ProductSpace{ComplexSpace, 0}());
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -201,7 +464,7 @@ function decompose_physical_legs(fPEPS0::Matrix{TensorMap},Vp::ComplexSpace)
     return fPEPS_decomposed
 end
 
-function apply_sampling_projector(fPEPS::Matrix{TensorMap},config::Matrix,sample::Matrix{TensorMap},Vp::ComplexSpace)
+function apply_sampling_projector(fPEPS::Matrix{TensorMap},config::Array,sample::Matrix{TensorMap},Vp::ComplexSpace)
     sample=deepcopy(fPEPS);
     Lx,Ly=size(fPEPS);
 
@@ -228,21 +491,38 @@ end
 
 
 function apply_sampling_projector(fPEPS,Lx::Int,Ly::Int,config::Vector,sample,Vp)
-    return apply_sampling_projector(fPEPS,reshape(config,Lx,Ly),sample,Vp)
+    if Lattice=="square"
+        return apply_sampling_projector(fPEPS,reshape(config,Lx,Ly),sample,Vp)
+    elseif Lattice=="kagome"
+        return apply_sampling_projector(fPEPS,reshape(config,Lx,Ly,3),sample,Vp)
+    end
 end
 
 
 function pick_sample(fPEPS_decomposed::Array{TensorMap},config0::Vector, sample::Matrix{TensorMap})
-    Lx,Ly,Lp=size(fPEPS_decomposed);
-    config=reshape(config0,Lx,Ly)
-    @assert Lp==2;#spin model
-    # fPEPS=Matrix{TensorMap}(undef,Lx,Ly);
-    for cx=1:Lx
-        for cy=1:Ly
-            if config[cx,cy]==1
-                sample[cx,cy]=fPEPS_decomposed[cx,cy,1];
-            elseif config[cx,cy]==-1
-                sample[cx,cy]=fPEPS_decomposed[cx,cy,2];
+    if Lattice=="square"
+        Lx,Ly,Lp=size(fPEPS_decomposed);
+        config=reshape(config0,Lx,Ly)
+        @assert Lp==2;#spin model
+        # fPEPS=Matrix{TensorMap}(undef,Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                if config[cx,cy]==1
+                    sample[cx,cy]=fPEPS_decomposed[cx,cy,1];
+                elseif config[cx,cy]==-1
+                    sample[cx,cy]=fPEPS_decomposed[cx,cy,2];
+                end
+            end
+        end
+    elseif Lattice=="kagome"
+        Lx,Ly,Lp1,Lp2,Lp3=size(fPEPS_decomposed);
+        config=reshape(config0,Lx,Ly,3)
+        @assert Lp1==2;#spin model
+        # fPEPS=Matrix{TensorMap}(undef,Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                ind=Int.((config[cx,cy,:]*(-1) .+1)/2 .+1);#map config (1,-1) to index (1,2)
+                sample[cx,cy]=fPEPS_decomposed[cx,cy,ind[1],ind[2],ind[3]];
             end
         end
     end
@@ -251,7 +531,7 @@ end
 
 function normalize_PEPS_kagome!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
     Lx,Ly=size(psi);
-    config=initial_Neel_config_kagome(Lx,Ly,1);
+    config=initial_Neel_config_kagome(Lx,Ly);
     psi_sample=Matrix{TensorMap}(undef,Lx,Ly);
     psi_sample=apply_sampling_projector(psi,Lx,Ly,config,psi_sample, Vp);
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})

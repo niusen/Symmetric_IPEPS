@@ -363,7 +363,7 @@ function ob_1site_closed(CTM,A_fused,AA_fused,op,construct_double_layer)
         @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
         @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
         @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
-        @tensor Norm[:]:=envL[1,2,3]*envR[1,2,3];
+        Norm=@tensor envL[1,2,3]*envR[1,2,3];
     else
         if op==[]
             Ap=A_fused';
@@ -372,10 +372,10 @@ function ob_1site_closed(CTM,A_fused,AA_fused,op,construct_double_layer)
         end
         @tensor MLU[:]:=Cset[1][1,2]*Tset[1][2,6,4,-4]*Tset[4][-1,5,3,1]*A_fused[3,-3,-6,4,7]*Ap[5,-2,-5,6,7];
 
-        @tensor Norm[:]:=MLU[7,8,9,4,5,6]*Cset[2][4,3]*Tset[2][3,5,6,10]*Cset[3][10,2]*Tset[3][2,8,9,1]*Cset[4][1,7];
+        Norm=@tensor MLU[7,8,9,4,5,6]*Cset[2][4,3]*Tset[2][3,5,6,10]*Cset[3][10,2]*Tset[3][2,8,9,1]*Cset[4][1,7];
     end
 
-    Norm=blocks(Norm)[Irrep[SU₂](0)];
+
     return Norm;
 end
 

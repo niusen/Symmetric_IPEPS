@@ -514,9 +514,15 @@ end
 function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history_::torus_contract_history,chi::Int)
     local psi_single_=deepcopy(psi_single);
     contract_history_=deepcopy(contract_history_);#warning: this deepcopy is necessary, otherwise may cause error if sweep is not accepted.
+    
     Lx,Ly=size(psi_single_);#original cluster size without adding trivial boundary
-    config_new_=reshape(config_new,Lx,Ly);
-    config_old_=reshape(contract_history_.config,Lx,Ly);
+    if Lattice=="square"
+        config_new_=reshape(config_new,Lx,Ly,1);
+        config_old_=reshape(contract_history_.config,Lx,Ly,1);
+    elseif Lattice=="kagome"
+        config_new_=reshape(config_new,Lx,Ly,3);
+        config_old_=reshape(contract_history_.config,Lx,Ly,3);
+    end
     ppy=Int(round(Ly/2));
 
     global projector_method
@@ -529,7 +535,7 @@ function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config
     #compare old and new config
     y_bot0=0;
     for cy=1:ppy
-        if config_new_[:,cy]==config_old_[:,cy]
+        if config_new_[:,cy,:]==config_old_[:,cy,:]
             y_bot0=y_bot0+1;
         else
             break;
@@ -538,7 +544,7 @@ function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config
 
     y_top0=Ly+1;
     for cy=Ly:-1:ppy+1
-        if config_new_[:,cy]==config_old_[:,cy]
+        if config_new_[:,cy,:]==config_old_[:,cy,:]
             y_top0=y_top0-1;
         else
             break;
@@ -689,52 +695,4 @@ end
 
 
 
-# function get_final_mps_range(L_)
-#     #used for binary tree contraction of final PBC MPS
-
-#     final_mps_length=Vector{Int}(undef,0);
-#     Lnew=L_;
-#     push!(final_mps_length,Lnew);
-#     while Lnew>1
-#         if mod(Lnew,2)==0
-#             Lnew=Int(Lnew/2);
-#         else
-#             Lnew=Int((Lnew+1)/2);
-#         end
-#         push!(final_mps_length,Lnew);
-#         # println(Lnew)
-#         if Lnew==1
-#             break;
-#         end
-#     end
-
-
-#     final_mps_left_range=zeros(Int,L_,length(final_mps_length));
-#     final_mps_right_range=zeros(Int,L_,length(final_mps_length));
-#     final_mps_left_range[1:L_,1]=1:L_;
-#     final_mps_right_range[1:L_,1]=1:L_;
-#     for layer=2:length(final_mps_length)
-#         previous_left_range=final_mps_left_range[1:final_mps_length[layer-1],layer-1];
-#         previous_right_range=final_mps_right_range[1:final_mps_length[layer-1],layer-1];
-#         layer_length=final_mps_length[layer];
-#         for cc=1:layer_length-1
-#             final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
-#             final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
-
-#         end
-        
-#         cc=layer_length;
-#         if mod(final_mps_length[layer-1],2)==0 #even
-#             final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
-#             final_mps_right_range[cc,layer]=final_mps_right_range[2*cc,layer-1];
-#         elseif mod(final_mps_length[layer-1],2)==1 #odd
-#             final_mps_left_range[cc,layer]=final_mps_left_range[2*cc-1,layer-1];
-#             final_mps_right_range[cc,layer]=final_mps_right_range[2*cc-1,layer-1];
-#         end
-        
-#     end
-    
-#     fr=Final_mps_range(final_mps_left_range, final_mps_right_range, final_mps_length);
-#     return fr
-# end
 

@@ -1,6 +1,6 @@
 using Distributed
 #number of workers to add and soft restrict of memory
-addprocs(50; exeflags=["--heap-size-hint=6G"])
+#addprocs(50; exeflags=["--heap-size-hint=6G"])
 
 @everywhere using LinearAlgebra:I,diagm,diag
 @everywhere using TensorKit
@@ -20,7 +20,7 @@ using MAT
 @everywhere include("../../../../setting/Settings.jl")
 @everywhere include("../../../../setting/linearalgebra.jl")
 @everywhere include("../../../../setting/tuple_methods.jl")
-@everywhere include("../../../../setting/finite_clusters.jl")
+@everywhere include("../../../../environment/MC/finite_clusters.jl")
 
 @everywhere include("../../../../environment/MC/contract_torus.jl")
 @everywhere include("../../../../environment/MC/sampling.jl")
@@ -28,6 +28,7 @@ using MAT
 @everywhere include("../../../../environment/MC/build_degenerate_states.jl")
 
 @everywhere begin
+@show const Lattice="kagome";#"kagome", "square"
 @show const Lx = 4      # number of sites along x / number of columns in the lattice
 @show const Ly = 4      # number of sites along y / number of rows in the lattice
 @show const D=3;#bond dimension of state
@@ -77,20 +78,12 @@ println("pid="*string(pid));;flush(stdout);
 # Base.summarysize(TensorKit.treepermutercache)
 # Base.summarysize(TensorKit.GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE)
 
-@everywhere function localenergy(psi_decomposed::Array{TensorMap},iconf_new::Vector,NN_tuple_reduced::Vector{Tuple}, sample_::Matrix{TensorMap}, contract_history_::Contract_History)
+@everywhere function kagome_NN_energy(psi_decomposed::Array{TensorMap},iconf_new::Vector,NN_tuple_reduced::Vector{Tuple}, sample_::Matrix{TensorMap}, contract_history_::Contract_History)
     # Compute the expectation value of the permutation operator
-    elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
+
+    elocal =zeros(ComplexF64,sum(length.(NN_tuple_reduced)));   # Initialize local energy
     global contract_fun,Vp
 
-    # if contraction_path=="verify"
-    #     amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
-    #     amplitude_,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history_);
-    #     @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
-    # elseif contraction_path=="full"
-    #     amplitude,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,Vp,contract_fun);
-    # elseif contraction_path=="recycle"
-    #     amplitude,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,Vp,contract_history_);
-    # end
 
     if contraction_path=="verify"
         amplitude,sample_,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,sample_, Vp,contract_fun);
@@ -102,25 +95,18 @@ println("pid="*string(pid));;flush(stdout);
         amplitude,sample_,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,sample_, Vp,contract_history_);
     end
 
+    step=1;
     for i in 1:L
         for randK in NN_tuple_reduced[i]  # Loop over half of the nearest neighbors
             randl = i
             # randK = NN_tuple_reduced[randl][j]  # Neighbor site
 
             if iconf_new[randl] == iconf_new[randK]
-                elocal += 0.25;  # Diagonal term ⟨x|H|x⟩
+                elocal[step] = 0.25;  # Diagonal term ⟨x|H|x⟩
+                step=step+1;
             else
                 iconf_new_flip=flip_config(iconf_new,randl,randK);
 
-                # if contraction_path=="verify"
-                #     amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
-                #     amplitude_flip_,_,_= partial_contract_sample(psi_decomposed,iconf_new_flip,Vp,contract_history_);
-                #     @assert abs(norm(amplitude_flip-amplitude_flip_)/amplitude_flip)<1e-10   string(amplitude_flip)*", "*string(amplitude_flip_);
-                # elseif contraction_path=="full"
-                #     amplitude_flip,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,Vp,contract_fun);
-                # elseif contraction_path=="recycle"
-                #     amplitude_flip,_,= partial_contract_sample(psi_decomposed,iconf_new_flip,Vp,contract_history_);
-                # end
                 if contraction_path=="verify"
                     amplitude_flip,sample_,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,sample_, Vp,contract_fun);
                     amplitude_flip_,sample_,_,_= partial_contract_sample(psi_decomposed,iconf_new_flip,sample_, Vp,contract_history_);
@@ -130,7 +116,8 @@ println("pid="*string(pid));;flush(stdout);
                 elseif contraction_path=="recycle"
                     amplitude_flip,sample_,_,_= partial_contract_sample(psi_decomposed,iconf_new_flip,sample_, Vp,contract_history_);
                 end
-                elocal += 0.5*amplitude_flip/amplitude -0.25;
+                elocal[step] = 0.5*amplitude_flip/amplitude -0.25;
+                step=step+1
             end
         end
     end
@@ -147,19 +134,18 @@ end
     @show Nsteps_worker=Int(round(Nsteps/ntask));
     contraction_path="recycle";#"verify","full","recycle"
  
-    filenm="CSL_D"*string(D)*"_U1";
+    filenm="SimpleUpdate_D_"*string(D);
     @show to_dense=false;#convert to dense
-    psi0,Vp,Vv=load_fPEPS_from_iPEPS(Lx,Ly,filenm,to_dense);
+    psi0,Vp,Vv=load_fPEPS_from_kagome_iPESS(Lx,Ly,filenm,to_dense);
 
     global contraction_path, contract_fun, Vp, projector_method
     projector_method="1";#"1" or "2"
     contract_fun=contract_whole_torus_boundaryMPS;
     normalize_PEPS_kagome!(psi0,Vp,contract_whole_torus_boundaryMPS);#normalize psi0 such that the amplitude of a single config is close to 1
     #psi_00,psi_0pi,psi_pi0,psi_pipi =construct_4_states(psi0,Vv);#four states
-    psi_BC_set =construct_4_states(psi0,Vv);#four states
 
-    psi=psi_BC_set[BC1];
-    psi_decomposed=decompose_physical_legs(psi,Vp);
+    
+    psi_decomposed=decompose_physical_legs(psi0,Vp);
 
 
     sample=Matrix{TensorMap}(undef,Lx,Ly);
@@ -168,20 +154,20 @@ end
 
     coord,coord_list,fnn_set,snn_set,tnn_set,NN_tuple,NNN_tuple,NNNN_tuple, NN_tuple_reduced,NNN_tuple_reduced,NNNN_tuple_reduced, up_triangles, dn_triangles, hexagons=get_neighbours_kagome(Lx,Ly,"PBC");
 
-    initial_iconf =initial_Neel_config(Lx,Ly,1);
+    initial_iconf =initial_Neel_config_kagome(Lx,Ly);
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.
 
     #start from the config in test.csv
 
 
     #create empty contract_history
-    contract_history=torus_contract_history(zeros(Int8,Lx*Ly),Matrix{TensorMap}(undef,Lx,Ly));
+    contract_history=torus_contract_history(zeros(Int8,L),Matrix{TensorMap}(undef,Lx,Ly));
 
 
     # Initialize variables
     iconf_new = copy(initial_iconf)
 
-    ebin1 = zeros(Complex{Float64}, binn)
+    ebin1 = zeros(Complex{Float64}, binn, sum(length.(NN_tuple_reduced)))
 
     
     outputname = dir*"id_"*string(worker_id)*"_chi"*string(chi)*".csv"
@@ -247,17 +233,17 @@ end
                 end
             end
 
-            energy,sample= localenergy(psi_decomposed, iconf_new, NN_tuple_reduced, sample, contract_history);
+            energy_set,sample= kagome_NN_energy(psi_decomposed, iconf_new, NN_tuple_reduced, sample, contract_history);
 
 
             rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
-            ebin[rems] = energy
+            ebin1[rems,:] = energy_set
 
 
             if rems == binn
                 #println( mean(ebin1))
                 #CSV.write(outputname, mean(ebin1); append=true) 
-                println(file, real(mean(ebin1)));flush(file);
+                println(file, real(mean(ebin1,dims=1)));flush(file);
             end
 
             # Optional: Uncomment to print configuration every 999 steps
@@ -284,7 +270,7 @@ end
 end
 
 
-
+main(dir, 1, 1)
     
 
 

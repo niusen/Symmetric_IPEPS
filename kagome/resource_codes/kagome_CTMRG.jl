@@ -89,7 +89,7 @@ function fuse_CTM_legs(CTM,U_L,U_D,U_R,U_U)
 end
 
 function spectrum_conv_check(ss_old,C_new)
-    _,ss_new,_=svd(permute(C_new,(1,),(2,)));
+    _,ss_new,_=tsvd(permute(C_new,(1,),(2,)));
     ss_new=convert(Array,ss_new);
     ss_new=sort(diag(ss_new), rev=true);
     ss_old=ss_old/ss_old[1];

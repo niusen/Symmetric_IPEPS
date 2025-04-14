@@ -557,11 +557,15 @@ function pick_sample(fPEPS_decomposed::Array{TensorMap},config0::Vector, sample:
     return sample
 end
 
-function normalize_PEPS_kagome!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
+function normalize_PEPS!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
     Lx,Ly=size(psi);
     #find a good initial config through random flip. Such step seems to be necessary when amplitude of intial config is close to zero.
     nsteps=1000;
-    @show config=initial_Neel_config_kagome(Lx,Ly);
+    if Lattice=="kagome"
+        @show config=initial_Neel_config_kagome(Lx,Ly);
+    elseif Lattice=="square"
+        @show config=initial_Neel_config_square(Lx,Ly,1);
+    end
     config_max=deepcopy(config);
     Norm_max=0;
     psi_sample=Matrix{TensorMap}(undef,Lx,Ly);
@@ -598,22 +602,22 @@ function normalize_PEPS_kagome!(psi::Matrix{TensorMap},Vp,contract_fun::Function
     return config_max
 end
 
-function normalize_PEPS_square!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
-    Lx,Ly=size(psi);
-    config=initial_Neel_config_square(Lx,Ly,1);
-    psi_sample=Matrix{TensorMap}(undef,Lx,Ly);
-    psi_sample=apply_sampling_projector(psi,Lx,Ly,config,psi_sample, Vp);
-    if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
-        psi_sample=shift_pleg(psi_sample);
-    end
-    chi__=30;
-    Norm,trun_err=contract_fun(psi_sample,chi__);
-    Norm=norm(Norm);
-    coe=Norm^(1/(Lx*Ly));
-    for cc in eachindex(psi)
-        setindex!(psi,psi[cc]/coe,cc);
-    end
-end
+# function normalize_PEPS_square!(psi::Matrix{TensorMap},Vp,contract_fun::Function)
+#     Lx,Ly=size(psi);
+#     config=initial_Neel_config_square(Lx,Ly,1);
+#     psi_sample=Matrix{TensorMap}(undef,Lx,Ly);
+#     psi_sample=apply_sampling_projector(psi,Lx,Ly,config,psi_sample, Vp);
+#     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+#         psi_sample=shift_pleg(psi_sample);
+#     end
+#     chi__=30;
+#     Norm,trun_err=contract_fun(psi_sample,chi__);
+#     Norm=norm(Norm);
+#     coe=Norm^(1/(Lx*Ly));
+#     for cc in eachindex(psi)
+#         setindex!(psi,psi[cc]/coe,cc);
+#     end
+# end
 
 
 
@@ -650,7 +654,7 @@ end
 #     return contract_sample(psi,Lx,Ly,reshape(config,Lx,Ly),Vp,contract_fun)
 # end
 
-function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,psi_sample_old::Matrix{TensorMap}, Vp::GradedSpace,contract_history_::disk_contract_history)
+function partial_contract_sample(psi_decomposed::Array{TensorMap},config::Vector,psi_sample_old::Matrix{TensorMap}, Vp::Union{GradedSpace,ComplexSpace},contract_history_::disk_contract_history)
     psi_sample=pick_sample(psi_decomposed,config, psi_sample_old);
     if isa(Vp,GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         psi_sample=shift_pleg(psi_sample);

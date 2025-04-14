@@ -88,7 +88,9 @@ println("pid="*string(pid));;flush(stdout);
     if contraction_path=="verify"
         amplitude,sample_,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,sample_, Vp,contract_fun);
         amplitude_,sample_,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,sample_, Vp,contract_history_);
-        @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
+        if abs(amplitude)>0
+            @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
+        end
     elseif contraction_path=="full"
         amplitude,sample_,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,sample_, Vp,contract_fun);
     elseif contraction_path=="recycle"
@@ -110,7 +112,9 @@ println("pid="*string(pid));;flush(stdout);
                 if contraction_path=="verify"
                     amplitude_flip,sample_,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,sample_, Vp,contract_fun);
                     amplitude_flip_,sample_,_,_= partial_contract_sample(psi_decomposed,iconf_new_flip,sample_, Vp,contract_history_);
-                    @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
+                    if abs(amplitude)>0
+                        @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
+                    end
                 elseif contraction_path=="full"
                     amplitude_flip,sample_,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,sample_, Vp,contract_fun);
                 elseif contraction_path=="recycle"
@@ -133,15 +137,16 @@ end
     #load saved fPEPS data
     @show Nsteps_worker=Int(round(Nsteps/ntask));
     contraction_path="recycle";#"verify","full","recycle"
- 
-    filenm="SimpleUpdate_D_"*string(D);
+
+    #filenm="SimpleUpdate_D_"*string(D);
+    filenm="SimpleUpdate_dense_D_"*string(D);
     @show to_dense=false;#convert to dense
     psi0,Vp,Vv=load_fPEPS_from_kagome_iPESS(Lx,Ly,filenm,to_dense);
 
     global contraction_path, contract_fun, Vp, projector_method
     projector_method="1";#"1" or "2"
     contract_fun=contract_whole_torus_boundaryMPS;
-    normalize_PEPS_kagome!(psi0,Vp,contract_whole_torus_boundaryMPS);#normalize psi0 such that the amplitude of a single config is close to 1
+    config_max=normalize_PEPS_kagome!(psi0,Vp,contract_whole_torus_boundaryMPS);#normalize psi0 such that the amplitude of a single config is close to 1
     #psi_00,psi_0pi,psi_pi0,psi_pipi =construct_4_states(psi0,Vv);#four states
 
     
@@ -154,7 +159,10 @@ end
 
     coord,coord_list,fnn_set,snn_set,tnn_set,NN_tuple,NNN_tuple,NNNN_tuple, NN_tuple_reduced,NNN_tuple_reduced,NNNN_tuple_reduced, up_triangles, dn_triangles, hexagons=get_neighbours_kagome(Lx,Ly,"PBC");
 
-    initial_iconf =initial_Neel_config_kagome(Lx,Ly);
+    #initial_iconf =initial_Neel_config_kagome(Lx,Ly);
+    initial_iconf=config_max;
+    #initial_iconf =Int8.([1,1,1,-1,-1,-1,-1,-1,-1,1,1,1]);
+
     #Recall that iconf here has elements 1 (up spin) and -1 (down spin), unlike in our C++ code where we have 1 and 2.
 
     #start from the config in test.csv
@@ -190,7 +198,13 @@ end
             if contraction_path=="verify"
                 amplitude,sample, _=contract_sample(psi_decomposed,Lx,Ly,iconf_new,sample,Vp,contract_fun);
                 amplitude_, sample, _,contract_history= partial_contract_sample(psi_decomposed,iconf_new,sample,Vp,contract_history);
-                @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
+                # @show iconf_new
+                # @show amplitude
+                # jldsave("test.jld2";psi_decomposed,sample)
+                # error("..")
+                if abs(amplitude)>0
+                    @assert abs(norm(amplitude-amplitude_)/amplitude)<1e-10;
+                end
             elseif contraction_path=="full"
                 amplitude,sample, _=contract_sample(psi_decomposed,Lx,Ly,iconf_new,sample, Vp,contract_fun);
             elseif contraction_path=="recycle"
@@ -199,20 +213,28 @@ end
             end
 
             for j in 1:Nbra  # Inner loop to create uncorrelated samples
+
                 randl = rand(1:L)  # Picking a site at random; "l"
                 rand2 = rand(1:length(NN_tuple[randl]))  # Picking randomly one of the 4 neighbors
                 randK = NN_tuple[randl][rand2]  # Picking a neighbor at random to which electron wants to hop; "K"
 
                 
+                
 
                 if iconf_new[randl] != iconf_new[randK]
+                    # @show coord_list[randl,:]
+                    # @show coord_list[randK,:]
                     
 
                     iconf_new_flip=flip_config(iconf_new,randl,randK);
                     if contraction_path=="verify"
                         amplitude_flip,sample, _=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,sample, Vp,contract_fun);
+                        # @show iconf_new_flip
+                        # @show amplitude_flip
                         amplitude_flip_,sample, _,contract_history_flip= partial_contract_sample(psi_decomposed,iconf_new_flip,sample, Vp,contract_history);
-                        @assert abs((amplitude_flip-amplitude_flip_)/amplitude_flip_)<1e-10   string(amplitude_flip)*", "*string(amplitude_flip_);
+                        if abs(amplitude_flip)>0
+                            @assert abs((amplitude_flip-amplitude_flip_)/amplitude_flip)<1e-10   string(amplitude_flip)*", "*string(amplitude_flip_);
+                        end
                     elseif contraction_path=="full"
                         amplitude_flip,sample, _=contract_sample(psi_decomposed,Lx,Ly,iconf_new_flip,sample, Vp,contract_fun);
                     elseif contraction_path=="recycle"
@@ -243,7 +265,9 @@ end
             if rems == binn
                 #println( mean(ebin1))
                 #CSV.write(outputname, mean(ebin1); append=true) 
-                println(file, real(mean(ebin1,dims=1)));flush(file);
+                #println(file, real(mean(ebin1,dims=1)));flush(file);
+                #println(file, mean(ebin1,dims=1));flush(file);
+                println(file, join(mean(ebin1,dims=1), ","));flush(file);
             end
 
             # Optional: Uncomment to print configuration every 999 steps
@@ -283,57 +307,79 @@ ntask=nworkers();
     end
 end
 
-data_set=Vector{ComplexF64}(undef,0);
+
+coord,coord_list,fnn_set,snn_set,tnn_set,NN_tuple,NNN_tuple,NNNN_tuple, NN_tuple_reduced,NNN_tuple_reduced,NNNN_tuple_reduced, up_triangles, dn_triangles, hexagons=get_neighbours_kagome(Lx,Ly,"PBC");
+data_set=Matrix{ComplexF64}(undef,0,sum(length.(NN_tuple_reduced)));
+global data_set
 for cp =1:ntask
     outputname = dir*"id_"*string(workers()[cp])*"_chi"*string(chi)*".csv";
     # Read the list of numbers from the CSV file
-    data = open(outputname, "r") do file
-        [parse(ComplexF64, line) for line in readlines(file)]
+    # data = open(outputname, "r") do file
+    #     [parse(ComplexF64, line) for line in readlines(file)]
+    # end
+    open(outputname, "r") do file
+        for line in readlines(file)
+            global data_set
+            tokens = strip.(split(line, ","))
+            complex_numbers = parse.(Complex{Float64}, tokens)
+            #push!(data_set,complex_numbers);
+            data_set=vcat(data_set,complex_numbers')
+        end
     end
-    data_set=vcat(data_set,data);
+    jldsave("data.jld2";data_set);
     #rm(outputname)
 end
 
 
-#error analysis
-# Output file
 
-bin_size_set=Vector{Int}(undef,0);
-energy_set=Vector{ComplexF64}(undef,0); 
-std_dev_set=Vector{Float64}(undef,0);
+function data_analysis(data_set)
 
-bin_size = 1
+    #error analysis
+    # Output file
 
-total_data_size = length(data_set)
-while bin_size < total_data_size
-    # Bin the data
-    binned = [mean(data_set[i:min(i+bin_size-1, total_data_size)]) for i in 1:bin_size:total_data_size]
-    
-    # Compute mean energy per site
-    energy = mean(binned) 
-    
-    # Compute standard deviation
-    std_dev = std(binned; corrected=false) / (sqrt(length(binned)))
+    data_set0=deepcopy(data_set);
+    data_set=sum(data_set,dims=2);
 
-    # Write results to the output file
-    push!(bin_size_set,bin_size);
-    push!(energy_set,energy);
-    push!(std_dev_set,std_dev);
+    bin_size_set=Vector{Int}(undef,0);
+    energy_set=Vector{ComplexF64}(undef,0); 
+    std_dev_set=Vector{Float64}(undef,0);
 
-    # Double the bin size
-    bin_size *= 2
+    bin_size = 1
+
+    total_data_size = length(data_set)
+    while bin_size < total_data_size
+        # Bin the data
+        binned = [mean(data_set[i:min(i+bin_size-1, total_data_size)]) for i in 1:bin_size:total_data_size]
+        
+        # Compute mean energy per site
+        energy = mean(binned) 
+        
+        # Compute standard deviation
+        std_dev = std(binned; corrected=false) / (sqrt(length(binned)))
+
+        # Write results to the output file
+        push!(bin_size_set,bin_size);
+        push!(energy_set,energy);
+        push!(std_dev_set,std_dev);
+
+        # Double the bin size
+        bin_size *= 2
+    end
+
+
+    matnm=string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".mat"
+    matwrite(matnm, Dict(
+    "bin_size_set"=>bin_size_set,
+    "energy_set"=>energy_set,
+    "std_dev_set"=>std_dev_set,
+    "data_set"=>data_set,
+    "data_set0"=>data_set0
+    ); compress = false)    
+
+
 end
-
-
-matnm=string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".mat"
-matwrite(matnm, Dict(
-"bin_size_set"=>bin_size_set,
-"energy_set"=>energy_set,
-"std_dev_set"=>std_dev_set,
-"data_set"=>data_set[BC2]
-); compress = false)    
-
     
+data_analysis(data_set)
 
 
 

@@ -372,6 +372,8 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
     # println(sM.data.values)
 
     multiplet_tol=1e-5;
+
+    #sM_inv_sqrt=pinv(sqrt(sM));
     uM,sM,vM,sM_inv_sqrt=treat_svd_results(uM,sM,vM,chi,multiplet_tol,trun_tol);
 
 

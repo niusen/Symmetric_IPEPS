@@ -514,7 +514,7 @@ end
 function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config_new::Vector{Int8},contract_history_::torus_contract_history,chi::Int)
     local psi_single_=deepcopy(psi_single);
     contract_history_=deepcopy(contract_history_);#warning: this deepcopy is necessary, otherwise may cause error if sweep is not accepted.
-    
+    config_new=deepcopy(config_new);
     Lx,Ly=size(psi_single_);#original cluster size without adding trivial boundary
     if Lattice=="square"
         config_new_=reshape(config_new,Lx,Ly,1);
@@ -555,7 +555,7 @@ function contract_partial_torus_boundaryMPS(psi_single::Matrix{TensorMap},config
 
     ##########################
     trun_err=Vector{Float64}(undef,0);
-    local mps_all_set=contract_history_.mps_all_set;
+    local mps_all_set=deepcopy(contract_history_.mps_all_set);
 
     # @time begin
  
@@ -638,6 +638,7 @@ function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_
     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
     ppy=Int(round(Ly/2));
 
+    # @show norm(contract_history_.mps_all_set[4,4] - psi_single[4,4])
     ########################################
     #construct top and bot environment
 
@@ -672,16 +673,16 @@ function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_
 
     ########################################
 
-    mps_all_set_old=contract_history_.mps_all_set;
+    mps_all_set_old=deepcopy(contract_history_.mps_all_set);
 
 
-    for cx=1:Lx
-        for cy=1:ppy
+    for cy=1:ppy
+        for cx=1:Lx
             @assert norm(mps_all_set[cx,cy]-mps_all_set_old[cx,cy])/norm(mps_all_set[cx,cy])<1e-10  string([cx,cy])
         end
     end
-    for cx=1:Lx
-        for cy=Ly:-1:ppy+1
+    for cy=Ly:-1:ppy+1
+        for cx=1:Lx
             @assert norm(mps_all_set[cx,cy]-mps_all_set_old[cx,cy])/norm(mps_all_set[cx,cy])<1e-10  string([cx,cy])
         end
     end

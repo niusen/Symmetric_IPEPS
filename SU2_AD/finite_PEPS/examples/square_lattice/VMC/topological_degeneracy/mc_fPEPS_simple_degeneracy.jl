@@ -28,6 +28,7 @@ using MAT
 @everywhere include("../../../../environment/MC/build_degenerate_states.jl")
 
 @everywhere begin
+@show const Lattice="square";#"kagome", "square"
 @show const Lx = 10      # number of sites along x / number of columns in the lattice
 @show const Ly = 10      # number of sites along y / number of rows in the lattice
 @show const D=3;#bond dimension of state

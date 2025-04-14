@@ -15,7 +15,7 @@ end
 function hosvd_rotation_symmetric(A,trun_tol,bond_dim)
     uM,sM,vM = tsvd(A, (1,2,),(3,4,5,6,); trunc=truncdim(bond_dim));
 
-    uM,sM,vM=Truncations(uM,sM,vM,bond_dim,trun_tol);
+    #uM,sM,vM=Truncations(uM,sM,vM,bond_dim,trun_tol);
 
     @tensor S[:]:=A[1,2,3,4,5,6]*uM'[-1,1,2]*uM'[-2,3,4]*uM'[-3,5,6];
     S=S/norm(S);
@@ -24,6 +24,8 @@ function hosvd_rotation_symmetric(A,trun_tol,bond_dim)
 end
 
 function hosvd(A,trun_tol,bond_dim)
+    A=A/norm(A);
+    
     uMa,sMa,vMa = tsvd(A, (1,2,),(3,4,5,6,); trunc=truncdim(bond_dim));
     uMa,sMa,vMa=Truncations(uMa,sMa,vMa,bond_dim,trun_tol);
 

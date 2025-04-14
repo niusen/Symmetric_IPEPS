@@ -6,18 +6,19 @@ function get_neighbours_kagome(Lx,Ly,boundary_condition)
     #@tensor PEPS_tensor[:] := B1[-1,1,-5]*B2[4,3,-6]*B3[-4,2,-7]*Tup[1,3,2]*Tdn[-3,4,-2];
 
     #Lx,Ly denote number of up triangles, not number of spins
+    #the below pattern is determined by contraction order of B_a,B_b,B_c,T_u,T_d
     #
         #                 /\ (1,3,b)
         #                /  \
         #    (1,3,a)     ----   (1,3,c)
 
-        #              /\  (1,2,b)
-        #             /  \
-        #  (1,2,a)    ----   (1,2,c)
+                #              /\  (1,2,b)
+                #             /  \
+                #  (1,2,a)    ----   (1,2,c)
     
-    #              /\ (1,1,b)
-    #             /  \
-    #  (1,1,a)    ----   (1,1,c)
+                    #              /\ (1,1,b)
+                    #             /  \
+                    #  (1,1,a)    ----   (1,1,c)
 
     #determine neighbours
     coord=reshape(Vector(1:Lx*Ly*3),(Lx,Ly,3));
@@ -50,8 +51,8 @@ function get_neighbours_kagome(Lx,Ly,boundary_condition)
         for cy=1:Ly
             up_triangles[cx,cy]=coord[cx,cy,:];
             # if boundary_condition=="PBC"
-                dn_triangles[cx,cy]=[coord[cx,mod1(cy+1,Ly),3], coord[mod1(cx+1,Lx),mod1(cy+1,Ly),1], coord[mod1(cx+1,Lx),cy,2]];
-                hexagons[cx,cy]=[coord[cx,cy,2],coord[cx,mod1(cy+1,Ly),1],coord[cx,mod1(cy+1,Ly),3],coord[mod1(cx+1,Lx),cy,2],coord[mod1(cx+1,Lx),cy,1],coord[cx,cy,3]];
+                dn_triangles[cx,cy]=[coord[cx,mod1(cy+1,Ly),3], coord[mod1(cx+1,Lx),mod1(cy+1,Ly),1], coord[cx,cy,2]];
+                hexagons[cx,cy]=[coord[cx,cy,2],coord[mod1(cx+1,Lx),mod1(cy+1,Ly),1],coord[mod1(cx+1,Lx),mod1(cy+1,Ly),3],coord[mod1(cx+1,Lx),cy,2],coord[mod1(cx+1,Lx),cy,1],coord[cx,cy,3]];
             # elseif boundary_condition=="OBC"
             #     if (cx<Lx)&&(cy<Ly)
             #         dn_triangles[cx,cy]=[coord[cx,cy+1,3], coord[cx+1,cy+1,1], coord[cx+1,cy,2]];
@@ -209,9 +210,11 @@ function initial_Neel_config_kagome(Lx,Ly)
     config=zeros(Int8,Lx,Ly,3);
     for cx=1:Lx
         for cy=1:Ly
-            config[cx,cy,1]=(-1)^(cx+cy)*(1);
-            config[cx,cy,2]=(-1)^(cx+cy)*(-1);
-            config[cx,cy,3]=(-1)^(cx+cy)*(1);
+            vs=(-1)^(cx+cy)*[1,1,-1];
+            order=sortperm(rand(3))
+            config[cx,cy,1]=vs[order[1]];
+            config[cx,cy,2]=vs[order[2]];
+            config[cx,cy,3]=vs[order[3]];
         end
     end
     @assert sum(sum(config))==0

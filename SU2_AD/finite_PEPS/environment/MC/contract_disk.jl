@@ -29,30 +29,28 @@ function pi_rotate_mpo(mpo_set)
     return mpo_set_new[end:-1:1]
 end
 
-function simple_truncate_to_moddle(mpo_set, mps_set,chi)
+function simple_truncate_to_middle(mpo_set, mps_set,chi)
     # Random.seed!(888);
     #without canonical form, so should be less accurate
-    Lx=length(mpo_set);
-    mps_origin=deepcopy(mps_set);
-
-  
-    mps_set=deepcopy(mps_set);
+    Lx=length(mpo_set);  
+    mps_trun=deepcopy(mps_set);
     trun_errs=Vector{Float64}(undef,0);
 
     ######################
     #from right to left
     cx=Lx;
+
     @tensor T_tem[:]:= mpo_set[cx][-1,1,-3]*mps_set[cx][-2,1]
     u,s,v=tsvd(permute(T_tem,(1,2,),(3,)); trunc=truncdim(chi));
 
     trun_err=1-dot(s,s)/dot(T_tem,T_tem);
     push!(trun_errs,trun_err);
     u=u*s;
-    mps_set[cx]=permute(v,(1,2,));
+    mps_trun[cx]=permute(v,(1,2,));
     @tensor A[:]:=mpo_set[cx-1][-1,2,3,-4]*mps_set[cx-1][-2,1,2]*u[3,1,-3];
-    mps_set[cx-1]=A;
+    mps_trun[cx-1]=A;
     for cx=Lx-1:-1:3
-        T=permute(mps_set[cx],(1,2,),(3,4,))
+        T=permute(mps_trun[cx],(1,2,),(3,4,))
         u,s,v=tsvd(T; trunc=truncdim(chi));
         # println("aaa")
         # println(norm(u*s*v-T)/norm(T))
@@ -60,64 +58,74 @@ function simple_truncate_to_moddle(mpo_set, mps_set,chi)
         trun_err=1-dot(s,s)/dot(T,T);
         push!(trun_errs,trun_err);
         u=u*s;
-        mps_set[cx]=permute(v,(1,2,3,));
+        mps_trun[cx]=permute(v,(1,2,3,));
 
         @tensor A[:]:=mpo_set[cx-1][-1,2,3,-4]*mps_set[cx-1][-2,1,2]*u[3,1,-3];
-        mps_set[cx-1]=A;
+        mps_trun[cx-1]=A;
     end
     cx=2;
-    u,s,v=tsvd(permute(mps_set[cx],(1,2,),(3,4,)); trunc=truncdim(chi));
+    T=permute(mps_trun[cx],(1,2,),(3,4,));
+    u,s,v=tsvd(T; trunc=truncdim(chi));
 
-    trun_err=1-dot(s,s)/dot(mps_set[cx],mps_set[cx]);
+    trun_err=1-dot(s,s)/dot(T,T);
     push!(trun_errs,trun_err);
     u=u*s;
-    mps_set[cx]=permute(v,(1,2,3,));
+    mps_trun[cx]=permute(v,(1,2,3,));
     @tensor A[:]:=mpo_set[cx-1][2,3,-4]*mps_set[cx-1][1,2]*u[3,1,-3];
-    mps_set[cx-1]=A;
+    mps_trun[cx-1]=A;
 
 
     ######################################
-    #from left to right
-    cx=1;
-    u_trun,s_trun,v_trun=tsvd(permute(mps_set[cx],(2,),(1,)); trunc=truncdim(chi));
+    if (n_mps_sweep>=1)&& use_mps_sweep;
+        mps_trun=compress_sweep(mpo_set,mps_set,mps_trun);
+    end
+    
+    
+    ######################################
 
-    trun_err=1-dot(s_trun,s_trun)/dot(mps_set[cx],mps_set[cx]);
+
+    #canonical form from left to right
+    cx=1;
+    u_trun,s_trun,v_trun=tsvd(permute(mps_trun[cx],(2,),(1,)); trunc=truncdim(chi));
+
     v_trun=s_trun*v_trun;
-    mps_set[cx]=permute(u_trun,(2,1,));
-    @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2,-3];
-    mps_set[cx+1]=A;
-    push!(trun_errs,trun_err);
+    mps_trun[cx]=permute(u_trun,(2,1,));
+    @tensor A[:]:=v_trun[-1,1]*mps_trun[cx+1][1,-2,-3];
+    mps_trun[cx+1]=A;
     for cx=2:Lx-2
-        T=permute(mps_set[cx],(1,3,),(2,));
+        T=permute(mps_trun[cx],(1,3,),(2,));
         u_trun,s_trun,v_trun=tsvd(T; trunc=truncdim(chi)); 
    
-        trun_err=1-dot(s_trun,s_trun)/dot(T,T);
         v_trun=s_trun*v_trun;
-        mps_set[cx]=permute(u_trun,(1,3,2,));
-        @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2,-3];
-        mps_set[cx+1]=A;
-        push!(trun_errs,trun_err);
+        mps_trun[cx]=permute(u_trun,(1,3,2,));
+        @tensor A[:]:=v_trun[-1,1]*mps_trun[cx+1][1,-2,-3];
+        mps_trun[cx+1]=A;
     end
     cx=Lx-1;
-    T=permute(mps_set[cx],(1,3,),(2,));
+    T=permute(mps_trun[cx],(1,3,),(2,));
     u_trun,s_trun,v_trun=tsvd(T; trunc=truncdim(chi)); 
    
-    trun_err=1-dot(s_trun,s_trun)/dot(T,T);
     v_trun=s_trun*v_trun;
-    mps_set[cx]=permute(u_trun,(1,3,2,));
-    @tensor A[:]:=v_trun[-1,1]*mps_set[cx+1][1,-2];
-    mps_set[cx+1]=A;
-    push!(trun_errs,trun_err);
+    mps_trun[cx]=permute(u_trun,(1,3,2,));
+    @tensor A[:]:=v_trun[-1,1]*mps_trun[cx+1][1,-2];
+    mps_trun[cx+1]=A;
 
+
+
+ 
 
     #normalization
-    A=mps_set[1];
+    A=mps_trun[Lx];
     norm_A=norm(A);
     A=A/norm_A;
-    mps_set[1]=A;
+    mps_trun[Lx]=A;
 
-    return mps_set,trun_errs,norm_A
+    return mps_trun,trun_errs,norm_A
 end
+
+
+# function sweep()
+# end
 
 
 function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
@@ -125,7 +133,7 @@ function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
 
     ppy=Int(round(Ly/2));
 
-    mpo_mps_fun=simple_truncate_to_moddle;
+    mpo_mps_fun=simple_truncate_to_middle;
 
 
     """coordinate
@@ -188,78 +196,6 @@ function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
     return norm_coe*Norm,trun_history
 end
 
-# function contract_whole_disk(psi_single::Matrix{TensorMap},chi::Int)
-#     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
-
-#     ppy=Int(round(Ly/2));
-
-#     mpo_mps_fun=simple_truncate_to_moddle;
-
-
-#     """coordinate
-#         (1,2),(2,2)
-#         (1,1),(2,1)
-#     """
-    
-
-#     ########################################
-#     #construct top and bot environment
-
-#     trun_history=Vector{Float64}(undef,0);
-#     mps_bot_set=Matrix{TensorMap}(undef,Lx,Ly);
-#     mps_top_set=Matrix{TensorMap}(undef,Lx,Ly);
-
-#     mps_bot=psi_single[:,1];
-#     ############
-#     mps_bot_set[:,1]=mps_bot;
-#     ############
-#     for cy=2:ppy
-#         mpo=psi_single[:,cy];
-#         mps_bot,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot,chi);
-#         mps_bot[1]=mps_bot[1]*norm_coe;
-#         trun_history=vcat(trun_history,trun_errs);
-#         ############
-#         mps_bot_set[:,cy]=mps_bot;
-#         ############
-#     end
-
-
-#     function treat_mps_top(mps_top)
-#         #convert mps_top to normal order
-#         mps_top=mps_top[end:-1:1];
-#         for cx=2:Lx-1
-#             mps_top[cx]=permute(mps_top[cx],(2,1,3,));
-#         end
-#         return mps_top
-#     end
-
-#     mps_top=psi_single[:,Ly];
-#     mps_top=pi_rotate_mps(mps_top);
-#     ############
-#     mps_top_set[:,Ly]=mps_top;
-#     ############
-#     for cy=Ly-1:-1:ppy+1
-#         mpo=pi_rotate_mpo(psi_single[:,cy]);
-#         mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top,chi);
-#         mps_top[1]=mps_top[1]*norm_coe;
-#         trun_history=vcat(trun_history,trun_errs);
-#         ############
-#         mps_top_set[:,cy]=mps_top;
-#         ############
-#     end
-#     mps_top=treat_mps_top(mps_top);
-
-#     ########################################
-
-#     @tensor vl[:]:=mps_top[1][-1,1]*mps_bot[1][-2,1];
-#     for cx=2:Lx-1
-#         @tensor vl[:]:=vl[1,2]*mps_top[cx][1,-1,3]*mps_bot[cx][2,-2,3];
-#     end
-#     Norm=@tensor vl[2,3]*mps_top[Lx][2,1]*mps_bot[Lx][3,1];
-
-
-#     return Norm,trun_history, mps_top_set,mps_bot_set
-# end
 
 
 
@@ -270,7 +206,7 @@ function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{
     config_old_=reshape(contract_history_.config,Lx,Ly);
     ppy=Int(round(Ly/2));
 
-    mpo_mps_fun=simple_truncate_to_moddle;
+    mpo_mps_fun=simple_truncate_to_middle;
 
     #compare old and new config
     y_bot0=0;
@@ -369,7 +305,7 @@ function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_
 
     ppy=Int(round(Ly/2));
 
-    mpo_mps_fun=simple_truncate_to_moddle;
+    mpo_mps_fun=simple_truncate_to_middle;
 
     ########################################
     #construct top and bot environment

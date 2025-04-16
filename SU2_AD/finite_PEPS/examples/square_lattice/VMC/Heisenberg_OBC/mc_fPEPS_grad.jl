@@ -24,6 +24,7 @@ using Distributed
 
 @everywhere include("../../../../environment/MC/contract_disk.jl")
 @everywhere include("../../../../environment/MC/sampling.jl")
+@everywhere include("../../../../environment/MC/mps_sweep.jl")
 
 @everywhere begin
 @show const Lattice="square";#"kagome", "square"
@@ -31,6 +32,8 @@ using Distributed
 @show const Ly = 4      # number of sites along y / number of rows in the lattice
 @show const D=2;#bond dimension of state
 @show const chi=10;#bond dimension of environment
+@show const use_mps_sweep=true;
+@show const n_mps_sweep=5;
 
 const L = Lx*Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).

@@ -1,7 +1,7 @@
 using Distributed
 #number of workers to add and soft restrict of memory
 #addprocs(50; exeflags=["--heap-size-hint=6G"])
-#addprocs(2; exeflags=["--heap-size-hint=6G"])
+#addprocs(1; exeflags=["--heap-size-hint=6G"])
 
 @everywhere using LinearAlgebra:I,diagm,diag
 @everywhere using TensorKit
@@ -38,7 +38,7 @@ using Distributed
 const L = Lx*Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
 const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
-@show const Nsteps = 400       # Total Monte Carlo steps
+@show const Nsteps = 600       # Total Monte Carlo steps
 @show const binn = 200          # Bin size to store the data during the monte carlo run. 
 const GC_spacing = 200          # garbage collection
 end
@@ -82,10 +82,13 @@ println("pid="*string(pid));;flush(stdout);
 
 
 
-@everywhere function localenergy(iconf_new::Vector,sample_::Matrix{TensorMap},  NN_tuple_reduced::Vector{Tuple}, contract_history_::Contract_History)
+@everywhere function localenergy(psi::Matrix{TensorMap},iconf_new::Vector,sample_::Matrix{TensorMap},  NN_tuple_reduced::Vector{Tuple}, contract_history_::Contract_History)
+    #fixed path contraction for computing energy, and unfixed path contraction for gradient
+
     # Compute the expectation value of the permutation operator
-    elocal = Complex{Float64}(0.0, 0.0)  # Initialize local energy
     global contract_fun,psi_decomposed,Vp
+    config_grad=contract_disk_derivative(sample_,iconf_new, chi);
+    config_grad=set_grad_config(config_grad,iconf_new,psi);
 
     elocal =zeros(ComplexF64,sum(length.(NN_tuple_reduced)));   # Initialize local energy
     if contraction_path=="verify"
@@ -98,6 +101,10 @@ println("pid="*string(pid));;flush(stdout);
         amplitude,sample_,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,sample_,Vp,contract_history_);
     end
 
+    ########
+    config_grad=config_grad/amplitude;
+    ########
+    
     step=1;
     for i in 1:L
         for randK in NN_tuple_reduced[i]  # Loop over half of the nearest neighbors
@@ -125,7 +132,9 @@ println("pid="*string(pid));;flush(stdout);
         end
     end
 
-    return elocal,sample_
+
+
+    return elocal,sample_, config_grad
 end
 
 
@@ -162,6 +171,8 @@ end
     iconf_new = config_max;
 
     ebin1 = zeros(Complex{Float64}, binn, sum(length.(NN_tuple_reduced)));
+    gradbin1 = Vector{Matrix{TensorMap}}(undef, binn);
+    E_gradbin1=Vector{Matrix{TensorMap}}(undef, binn);
     ebin_file=zeros(Complex{Float64}, 0, sum(length.(NN_tuple_reduced)));
 
 
@@ -174,7 +185,8 @@ end
     #write empty variables in file
     jldopen(outputname, "w") do file
         file["E_terms"]=Matrix{ComplexF64}(undef,0,sum(length.(NN_tuple_reduced)));
-        file["grad"]=Vector{Matrix{TensorMap}}(undef,0);
+        file["grads"]=Vector{Matrix{TensorMap}}(undef,0);
+        file["E_grads"]=Vector{Matrix{TensorMap}}(undef,0);
     end
 
     #open(outputname, "a") do file # "a" is for append
@@ -234,18 +246,27 @@ end
                 end
             end
             
-            energyl1,sample = localenergy(iconf_new,sample,NN_tuple_reduced,contract_history)
+            energyl1,sample, grad_config_ = localenergy(psi,iconf_new,sample,NN_tuple_reduced,contract_history)
 
             rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
-            ebin1[rems,:] = energyl1
+            ebin1[rems,:] = energyl1;
+            gradbin1[rems] = grad_config_;
+            E_gradbin1[rems] = conj(sum(energyl1))*grad_config_;
 
             if rems == binn
                 #println(file, join(mean(ebin1,dims=1), ","));flush(file);
                 E_terms=file["E_terms"];
+                grads=file["grads"];
+                E_grads=file["E_grads"];
                 if haskey(file, "E_terms")
                     delete!(file, "E_terms")
+                    delete!(file, "grads")
+                    delete!(file, "E_grads")
                 end
-                @show mean(ebin1,dims=1)
+                #@show mean(ebin1,dims=1)
+                
+                file["grads"]=push!(grads,average_grad(gradbin1));
+                file["E_grads"]=push!(E_grads,average_grad(E_gradbin1));
                 file["E_terms"]= vcat(E_terms,mean(ebin1,dims=1));
                 
             end
@@ -277,7 +298,7 @@ end
 
 
 ntask=nworkers();
-# main(dir, 1, ntask)
+# @time main(dir, 1, ntask)
 @sync begin
     for cp=1:ntask
         worker_id=workers()[cp]
@@ -285,72 +306,52 @@ ntask=nworkers();
     end
 end
 
-
-coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours_square(Lx,Ly,"OBC");
-data_set=Matrix{ComplexF64}(undef,0,sum(length.(NN_tuple_reduced)));
-global data_set
-for cp =1:ntask
-    global data_set
-    
-    outputname = dir*"id_"*string(workers()[cp])*"_chi"*string(chi)*".jld2";
-    # Read the list of numbers from the CSV file
-    # data = open(outputname, "r") do file
-    #     [parse(ComplexF64, line) for line in readlines(file)]
-    # end
-    data=load(outputname);
-    data_set=vcat(data_set,data["E_terms"])        
-
-    #rm(outputname)
-end
+function read_data()
+    coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours_square(Lx,Ly,"OBC");
+    Eterms_set=Matrix{ComplexF64}(undef,0,sum(length.(NN_tuple_reduced)));
+    grads_set=Vector{Matrix{TensorMap}}(undef,0);
+    E_grads_set=Vector{Matrix{TensorMap}}(undef,0);
 
 
-
-function data_analysis(data_set)
-
-    #error analysis
-    # Output file
-
-    data_set0=deepcopy(data_set);
-    data_set=sum(data_set,dims=2);
-
-    bin_size_set=Vector{Int}(undef,0);
-    energy_set=Vector{ComplexF64}(undef,0); 
-    std_dev_set=Vector{Float64}(undef,0);
-
-    bin_size = 1
-
-    total_data_size = length(data_set)
-    while bin_size < total_data_size
-        # Bin the data
-        binned = [mean(data_set[i:min(i+bin_size-1, total_data_size)]) for i in 1:bin_size:total_data_size]
+    for cp =1:ntask
+       
+ 
         
-        # Compute mean energy per site
-        energy = mean(binned) 
+        outputname = dir*"id_"*string(workers()[cp])*"_chi"*string(chi)*".jld2";
+        # Read the list of numbers from the CSV file
+        # data = open(outputname, "r") do file
+        #     [parse(ComplexF64, line) for line in readlines(file)]
+        # end
+        data=load(outputname);
+        Eterms_set=vcat(Eterms_set,data["E_terms"])  
+        grads_set=vcat(grads_set,data["grads"])   
+        E_grads_set=vcat(E_grads_set,data["E_grads"])        
+
+        #rm(outputname)
         
-        # Compute standard deviation
-        std_dev = std(binned; corrected=false) / (sqrt(length(binned)))
-
-        # Write results to the output file
-        push!(bin_size_set,bin_size);
-        push!(energy_set,energy);
-        push!(std_dev_set,std_dev);
-
-        # Double the bin size
-        bin_size *= 2
     end
+    return Eterms_set, grads_set, E_grads_set
+end
+
+Eterms_set, grads_set, E_grads_set=read_data();
+
+function grad_analysis(Eterms_set, grads_set, E_grads_set)
+
+    E_set=sum(Eterms_set,dims=2);
+
+    E_mean=mean(E_set);
+    grad_mean=mean(grads_set);
+    E_grad_mean=mean(E_grads_set);
+    Grad=E_grad_mean-E_mean*grad_mean;
+
+   
 
 
-    matnm=string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".mat"
-    matwrite(matnm, Dict(
-    "bin_size_set"=>bin_size_set,
-    "energy_set"=>energy_set,
-    "std_dev_set"=>std_dev_set,
-    "data_set"=>data_set,
-    "data_set0"=>data_set0
-    ); compress = false)    
+    filenm="grad_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".jld2"
+    jldsave(filenm; Eterms_set, E_mean, grad_mean, E_grad_mean, Grad)    
 
-
+    return Grad
 end
     
-data_analysis(data_set)
+Grad=grad_analysis(Eterms_set, grads_set, E_grads_set);
 

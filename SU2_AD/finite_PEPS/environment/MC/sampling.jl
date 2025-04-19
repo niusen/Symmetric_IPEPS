@@ -5,6 +5,26 @@ function flip_config(config0::Vector,pos1::Int,pos2::Int)
     return config
 end
 
+function add_noise(psi0::Matrix{TensorMap},Noise::Number,is_complex::Bool)
+    psi0=deepcopy(psi0);
+    Lx,Ly=size(psi0);
+    for cx=1:Lx
+        for cy=1:Ly
+            T=psi0[cx,cy];
+            if is_complex
+                T_=TensorMap(randn,codomain(T),domain(T))+TensorMap(randn,codomain(T),domain(T))*im;
+            else
+                T_=TensorMap(randn,codomain(T),domain(T));
+            end
+            T=T+norm(T)/norm(T_)*T_*Noise;
+            psi0[cx,cy]=T;
+            
+        end
+    end
+    return psi0
+end
+
+
 function SU2_space_to_U1_space(V0)
     V1=U₁Space(0=>0);
     V0_comp=[];

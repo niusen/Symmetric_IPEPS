@@ -28,8 +28,8 @@ using Distributed
 
 @everywhere begin
 @show const Lattice="square";#"kagome", "square"
-@show const Lx = 8      # number of sites along x / number of columns in the lattice
-@show const Ly = 8      # number of sites along y / number of rows in the lattice
+@show const Lx = 10      # number of sites along x / number of columns in the lattice
+@show const Ly = 10      # number of sites along y / number of rows in the lattice
 @show const D=6;#bond dimension of state
 @show const chi=10;#bond dimension of environment
 @show const use_mps_sweep=true;
@@ -108,37 +108,16 @@ initial_iconf =initial_Neel_config_square(Lx,Ly,1);
 
 sample=pick_sample(psi_decomposed,config_max, sample);
 
-Norm,trun_err=contract_whole_disk(sample,chi);
+@time Norm,trun_err=contract_whole_disk(sample,chi);
 @show Norm
 
 
 
 
 
-mpo_mps_fun=simple_truncate_to_middle;
+@time config_grad=contract_disk_derivative(sample,config_max, chi);
 
-
-mps_bot=sample[:,1];
-cy=2;
-mpo=sample[:,cy];
-mps_approx,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot,chi);
-mps_approx[1]=mps_approx[1]*norm_coe;
-
-
-mps_exact,_=apply_mpo(mpo,mps_bot);
-
-@show sqrt(overlap_mps(mps_exact,mps_exact))
-@show sqrt(overlap_mps(mps_approx,mps_approx))
-
-
-
-
-
-@show mps_diff(mps_exact,mps_approx)
-
-
-
-@show overlap_mps(mps_approx,mps_exact)/sqrt(overlap_mps(mps_approx,mps_approx)*overlap_mps(mps_exact,mps_exact))
-
+Norm_set=verify_config_grad(config_grad,sample);
+@show Norm_set
 
 

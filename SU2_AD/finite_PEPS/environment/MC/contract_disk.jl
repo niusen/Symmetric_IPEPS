@@ -299,6 +299,248 @@ function contract_partial_disk(psi_single::Matrix{TensorMap},config_new::Vector{
     return Norm,trun_history, disk_contract_history(config_new, mps_top_set,mps_bot_set)
 end
 
+
+
+
+function contract_disk_derivative(psi_single::Matrix{TensorMap},config_new::Vector{Int8}, chi::Int)
+    Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary
+    config_new_=reshape(config_new,Lx,Ly);
+
+    mpo_mps_fun=simple_truncate_to_middle;
+
+   
+    
+    config_grad=Matrix{TensorMap}(undef,Lx,Ly);
+    ########################################
+    #construct top and bot environment
+
+
+    mps_bot_set=Matrix{TensorMap}(undef,Lx,Ly);
+    mps_top_set=Matrix{TensorMap}(undef,Lx,Ly);
+
+    mps_bot=psi_single[:,1];
+    mps_bot_set[:,1]=mps_bot;
+
+    for cy=2:Ly-1
+        mpo=psi_single[:,cy];
+        mps_bot,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_bot,chi);
+        mps_bot[1]=mps_bot[1]*norm_coe;
+        mps_bot_set[:,cy]=mps_bot;
+    end
+
+    #######################
+    function treat_mps_top(mps_top)
+        #convert mps_top to normal order
+        mps_top=mps_top[end:-1:1];
+        for cx=2:Lx-1
+            mps_top[cx]=permute(mps_top[cx],(2,1,3,));
+        end
+        return mps_top
+    end
+
+
+    mps_top=psi_single[:,Ly];
+    mps_top=pi_rotate_mps(mps_top);
+    mps_top_set[:,Ly]=mps_top;
+    
+    for cy=Ly-1:-1:2
+        mpo=pi_rotate_mpo(psi_single[:,cy]);
+        mps_top,trun_errs,norm_coe=mpo_mps_fun(mpo, mps_top,chi);
+        mps_top[1]=mps_top[1]*norm_coe;
+        mps_top_set[:,cy]=mps_top;
+    end
+
+
+
+    vl_set=Vector{TensorMap}(undef,Lx);
+    vr_set=Vector{TensorMap}(undef,Lx);
+    
+    ########################################
+    for cy=1:Ly
+        if cy==1
+            mps_top=treat_mps_top(mps_top_set[:,cy+1]);
+            mpo=psi_single[:,1];
+
+
+            cx=Lx;
+            @tensor vr[:]:=mps_top[cx][-1,1]*mpo[cx][-2,1];
+            vr_set[cx]=vr;
+            for cx=Lx-1:-1:2
+                @tensor vr[:]:=mps_top[cx][-1,1,2]*mpo[cx][-2,3,2]*vr_set[cx+1][1,3];
+                vr_set[cx]=vr;
+            end
+
+            cx=1;
+            @tensor vl[:]:=mps_top[cx][-1,1]*mpo[cx][-2,1];
+            vl_set[cx]=vl;
+            for cx=2:Lx-1
+                @tensor vl[:]:=mps_top[cx][1,-1,3]*mpo[cx][2,-2,3]*vl_set[cx-1][1,2];
+                vl_set[cx]=vl;
+            end
+
+            #compute grad
+            for cx=1:Lx
+                if cx==1
+                    @tensor g[:]:=mps_top[cx][1,-2]*vr_set[cx+1][1,-1];
+                elseif 1<cx<Lx
+                    @tensor g[:]:=vl_set[cx-1][1,-1]*mps_top[cx][1,2,-3]*vr_set[cx+1][2,-2];
+                elseif cx==Lx
+                    @tensor g[:]:=vl_set[cx-1][1,-1]*mps_top[cx][1,-2];
+                end
+                config_grad[cx,cy]=g;
+            end
+            
+        elseif 1<cy<Ly
+            mps_top=treat_mps_top(mps_top_set[:,cy+1]);
+            mpo=psi_single[:,cy];
+            mps_bot=mps_bot=mps_bot_set[:,cy-1];
+
+            cx=Lx;
+            @tensor vr[:]:=mps_top[cx][-1,1]*mpo[cx][-2,2,1]*mps_bot[cx][-3,2];
+            vr_set[cx]=vr;
+            for cx=Lx-1:-1:2
+                @tensor vr[:]:=mps_top[cx][-1,1,2]*mpo[cx][-2,4,3,2]*mps_bot[cx][-3,5,4]*vr_set[cx+1][1,3,5];
+                vr_set[cx]=vr;
+            end
+
+            cx=1;
+            @tensor vl[:]:=mps_top[cx][-1,1]*mpo[cx][2,-2,1]*mps_bot[cx][-3,2];
+            vl_set[cx]=vl;
+            for cx=2:Lx-1
+                @tensor vl[:]:=mps_top[cx][1,-1,2]*mpo[cx][3,4,-2,2]*mps_bot[cx][5,-3,4]*vl_set[cx-1][1,3,5];
+                vl_set[cx]=vl;
+            end
+
+            #compute grad
+            for cx=1:Lx
+                if cx==1
+                    @tensor g[:]:=mps_top[cx][2,-3]*mps_bot[cx][1,-1]*vr_set[cx+1][2,-2,1];
+                elseif 1<cx<Lx
+                    @tensor g[:]:=vl_set[cx-1][3,-1,1]*mps_top[cx][3,4,-4]*mps_bot[cx][1,2,-2]*vr_set[cx+1][4,-3,2];
+                elseif cx==Lx
+                    @tensor g[:]:=vl_set[cx-1][2,-1,1]*mps_top[cx][2,-3]*mps_bot[cx][1,-2];
+                end
+                config_grad[cx,cy]=g;
+            end
+        elseif cy==Ly
+            mpo=treat_mps_top(mps_top_set[:,Ly]);;
+            mps_bot=mps_bot_set[:,cy-1];
+
+
+            cx=Lx;
+            @tensor vr[:]:=mpo[cx][-1,1]*mps_bot[cx][-2,1];
+            vr_set[cx]=vr;
+            for cx=Lx-1:-1:2
+                @tensor vr[:]:=mpo[cx][-1,1,2]*mps_bot[cx][-2,3,2]*vr_set[cx+1][1,3];
+                vr_set[cx]=vr;
+            end
+
+            cx=1;
+            @tensor vl[:]:=mpo[cx][-1,1]*mps_bot[cx][-2,1];
+            vl_set[cx]=vl;
+            for cx=2:Lx-1
+                @tensor vl[:]:=mpo[cx][1,-1,2]*mps_bot[cx][3,-2,2]*vl_set[cx-1][1,3];
+                vl_set[cx]=vl;
+            end
+
+            #compute grad
+            for cx=1:Lx
+                if cx==1
+                    @tensor g[:]:=mps_bot[cx][1,-1]*vr_set[cx+1][-2,1];
+                elseif 1<cx<Lx
+                    @tensor g[:]:=vl_set[cx-1][-1,1]*mps_bot[cx][1,2,-2]*vr_set[cx+1][-3,2];
+                elseif cx==Lx
+                    @tensor g[:]:=vl_set[cx-1][-1,1]*mps_bot[cx][1,-2];
+                end
+                config_grad[cx,cy]=g;
+            end
+            
+        end
+
+
+
+    end
+
+
+
+
+    return config_grad
+end
+
+function set_grad_config(config_grad::Matrix{TensorMap},config::Vector{Int8},psi::Matrix{TensorMap})
+    config=deepcopy(config);
+    config=reshape(config,Lx,Ly);
+    @assert TensorKit.dim(Vp)==2;
+    for cx=1:Lx
+        for cy=1:Ly
+            T=config_grad[cx,cy];
+            TT=psi[cx,cy];
+
+            ind=Int((-config[cx,cy]+1)/2+1);
+            if Rank(T)==2
+                V1=space(TT,1);
+                V2=space(TT,2);
+                V3=space(TT,3);
+                TT=TT[:,:,:]*0;
+                TT[:,:,ind]=T[:,:];
+                T=TensorMap(TT,V1'*V2',V3)
+                T=permute(T,(1,2,3,));
+            elseif Rank(T)==3
+                V1=space(TT,1);
+                V2=space(TT,2);
+                V3=space(TT,3);
+                V4=space(TT,4);
+                TT=TT[:,:,:,:]*0;
+                TT[:,:,:,ind]=T[:,:,:];
+                T=TensorMap(TT,V1'*V2'*V3',V4)
+                T=permute(T,(1,2,3,4,));
+            elseif Rank(T)==4
+                V1=space(TT,1);
+                V2=space(TT,2);
+                V3=space(TT,3);
+                V4=space(TT,4);
+                V5=space(TT,5);
+                TT=TT[:,:,:,:,:]*0;
+                TT[:,:,:,:,ind]=T[:,:,:,:];
+                T=TensorMap(TT,V1'*V2'*V3'*V4',V5)
+                T=permute(T,(1,2,3,4,5,));
+            end
+            config_grad[cx,cy]=T;
+        end
+    end
+    return config_grad
+end
+
+
+function average_grad(grad_bin::Vector{Matrix{TensorMap}})
+    ll=length(grad_bin);
+    Grad=grad_bin[1];
+    for cc=2:ll
+        Grad=Grad+grad_bin[cc];
+    end
+    Grad=Grad/ll;
+    return Grad
+end
+
+function verify_config_grad(config_grad,psi_single)
+    Norm_set=zeros(Lx,Ly)*im;
+    for cx=1:Lx
+        for cy=1:Ly
+            if Rank(config_grad[cx,cy])==2
+                norm_=@tensor config_grad[cx,cy][1,2]*psi_single[cx,cy][1,2];
+                Norm_set[cx,cy]=norm_;
+            elseif Rank(config_grad[cx,cy])==3
+                norm_=@tensor config_grad[cx,cy][1,2,3]*psi_single[cx,cy][1,2,3];
+                Norm_set[cx,cy]=norm_;
+            elseif Rank(config_grad[cx,cy])==4
+                norm_=@tensor config_grad[cx,cy][1,2,3,4]*psi_single[cx,cy][1,2,3,4];
+                Norm_set[cx,cy]=norm_;
+            end
+        end
+    end
+    return Norm_set
+end
+
 function verify_contract_history(psi_single::Matrix{TensorMap},contract_history_::disk_contract_history, chi::Int)
 
     Lx,Ly=size(psi_single);#original cluster size without adding trivial boundary

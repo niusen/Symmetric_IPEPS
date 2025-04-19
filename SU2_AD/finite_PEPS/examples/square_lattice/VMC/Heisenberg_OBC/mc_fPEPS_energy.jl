@@ -25,19 +25,21 @@ using Distributed
 @everywhere include("../../../../environment/MC/sampling.jl")
 
 @everywhere begin
-@show const Lattice="square";#"kagome", "square"
-@show const Lx = 4      # number of sites along x / number of columns in the lattice
-@show const Ly = 4      # number of sites along y / number of rows in the lattice
-@show const D=2;#bond dimension of state
-@show const chi=10;#bond dimension of environment
-
-const L = Lx*Ly # total number of lattice sites
-const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
-const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
-@show const Nsteps = 10000       # Total Monte Carlo steps
-@show const binn = 200          # Bin size to store the data during the monte carlo run. 
-const GC_spacing = 200          # garbage collection
-end
+    @show const Lattice="square";#"kagome", "square"
+    @show const Lx = 4      # number of sites along x / number of columns in the lattice
+    @show const Ly = 4      # number of sites along y / number of rows in the lattice
+    @show const D=2;#bond dimension of state
+    @show const chi=10;#bond dimension of environment
+    @show const use_mps_sweep=false;
+    @show const n_mps_sweep=0;
+    
+    const L = Lx*Ly # total number of lattice sites
+    const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
+    const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
+    @show const Nsteps = 400       # Total Monte Carlo steps
+    @show const binn = 200          # Bin size to store the data during the monte carlo run. 
+    const GC_spacing = 200          # garbage collection
+    end
 
 ###################
 @show num_logical_cores = Sys.CPU_THREADS
@@ -260,7 +262,7 @@ end
 
 
 ntask=nworkers();
-main(dir, 1, ntask)
+# @time main(dir, 1, ntask)
 @sync begin
     for cp=1:ntask
         worker_id=workers()[cp]

@@ -249,7 +249,7 @@ end
                 end
             end
             
-            if i>1
+            if i>0
                 energyl1,sample, grad_config_ = localenergy(psi,iconf_new,sample,NN_tuple_reduced,contract_history)
 
                 rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
@@ -303,7 +303,7 @@ end
 
 
 ntask=nworkers();
-# @time main(dir, 1, ntask)
+#@time main(dir, 1, ntask)
 @sync begin
     for cp=1:ntask
         worker_id=workers()[cp]

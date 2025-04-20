@@ -5,15 +5,15 @@ function flip_config(config0::Vector,pos1::Int,pos2::Int)
     return config
 end
 
-function add_noise(psi0::Matrix{TensorMap},Noise::Number,is_complex::Bool)
+function add_noise(psi0::Matrix{TensorMap},Noise::Number)
     psi0=deepcopy(psi0);
     Lx,Ly=size(psi0);
     for cx=1:Lx
         for cy=1:Ly
             T=psi0[cx,cy];
-            if is_complex
+            if global_eltype==ComplexF64
                 T_=TensorMap(randn,codomain(T),domain(T))+TensorMap(randn,codomain(T),domain(T))*im;
-            else
+            elseif global_eltype==Float64
                 T_=TensorMap(randn,codomain(T),domain(T));
             end
             T=T+norm(T)/norm(T_)*T_*Noise;
@@ -284,6 +284,22 @@ function load_fPEPS(Lx::Int,Ly::Int,filenm::String)
     psi=Matrix{TensorMap}(undef,Lx,Ly);
     psi[:]=psi0[:];
     Vp=space(psi[2,2],5);
+
+    for cc in eachindex(psi)
+        T=psi[cc];
+        if eltype(T)==global_eltype
+        elseif (eltype(T)==ComplexF64)&&(global_eltype==Float64)
+            T=TensorMap(real(convert(Array,T)),codomain(T),domain(T))
+            psi[cc]=T;
+        elseif (eltype(T)==Float64)&&(global_eltype==ComplexF64)
+            T_dense=convert(Array,T);
+            T=TensorMap(T_dense+T_dense*0*im,codomain(T),domain(T))
+            psi[cc]=T;
+        else
+            error("unknown case");
+        end
+
+    end
     return psi,Vp
 end
 

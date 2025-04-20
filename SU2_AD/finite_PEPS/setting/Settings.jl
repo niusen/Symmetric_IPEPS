@@ -34,6 +34,13 @@
 #     linesearch_CTM_method :: String ="restart"; # "restart" or "from_converged_CTM"
 # end
 
+Base.@kwdef mutable struct LineSearch
+    maxiter :: Int =100
+    gtol :: Float64 =1e-3
+    delta0 :: Float64 =1e-3
+    alpha :: Float64 =3/4
+end
+
 function malloc_trim()
     if !Sys.islinux()
         @warn "malloc_trim is glibc-specific and may not work on this OS."

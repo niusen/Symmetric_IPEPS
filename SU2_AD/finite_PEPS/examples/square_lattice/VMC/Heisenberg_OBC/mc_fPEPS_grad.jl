@@ -40,8 +40,10 @@ const Nbra = L             # Inner loop size, to generate uncorrelated samples, 
 const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
 @show const Nsteps = 600       # Total Monte Carlo steps
 @show const binn = 200          # Bin size to store the data during the monte carlo run. 
+@show const step_prepare = 200          # number of steps to get equilibrium. 
 const GC_spacing = 200          # garbage collection
 end
+
 
 ###################
 @show num_logical_cores = Sys.CPU_THREADS
@@ -126,7 +128,7 @@ println("pid="*string(pid));;flush(stdout);
                 elseif contraction_path=="recycle"
                     amplitude_flip,sample_,_,= partial_contract_sample(psi_decomposed,iconf_new_flip,sample_,Vp,contract_history_);
                 end
-                elocal[step] = 0.5*amplitude_flip/amplitude -0.25;
+                elocal[step] = 0.5*amplitude_flip/amplitude -0.25;#second term corresponds to diagonal term when two spins are opposite
                 step=step+1
             end
         end
@@ -142,6 +144,7 @@ end
 @everywhere function main(dir, worker_id, ntask)
     #load saved fPEPS data
     @show Nsteps_worker=Int(round(Nsteps/ntask));
+    @assert step_prepare>=0;
     contraction_path="recycle";#"verify","full","recycle"
 
     filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
@@ -194,7 +197,7 @@ end
 
         # @inbounds for i in 1:Nsteps  # Number of Monte Carlo steps, usually 1 million
         #     @inbounds for j in 1:Nbra  # Inner loop to create uncorrelated samples
-        for i in 1:Nsteps_worker  # Number of Monte Carlo steps, usually 1 million
+        for i in -step_prepare:Nsteps_worker  # Number of Monte Carlo steps, usually 1 million
             global ite_num
             ite_num=i;
             # if mod(i,100)==0;@show i;flush(stdout);end
@@ -246,44 +249,46 @@ end
                 end
             end
             
-            energyl1,sample, grad_config_ = localenergy(psi,iconf_new,sample,NN_tuple_reduced,contract_history)
+            if i>1
+                energyl1,sample, grad_config_ = localenergy(psi,iconf_new,sample,NN_tuple_reduced,contract_history)
 
-            rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
-            ebin1[rems,:] = energyl1;
-            gradbin1[rems] = grad_config_;
-            E_gradbin1[rems] = conj(sum(energyl1))*grad_config_;
+                rems = mod1(i, binn)  # Binning to store fewer numbers, usually binn is order of 1000
+                ebin1[rems,:] = energyl1;
+                gradbin1[rems] = grad_config_;
+                E_gradbin1[rems] = conj(sum(energyl1))*grad_config_;
 
-            if rems == binn
-                #println(file, join(mean(ebin1,dims=1), ","));flush(file);
-                E_terms=file["E_terms"];
-                grads=file["grads"];
-                E_grads=file["E_grads"];
-                if haskey(file, "E_terms")
-                    delete!(file, "E_terms")
-                    delete!(file, "grads")
-                    delete!(file, "E_grads")
+                if rems == binn
+                    #println(file, join(mean(ebin1,dims=1), ","));flush(file);
+                    E_terms=file["E_terms"];
+                    grads=file["grads"];
+                    E_grads=file["E_grads"];
+                    if haskey(file, "E_terms")
+                        delete!(file, "E_terms")
+                        delete!(file, "grads")
+                        delete!(file, "E_grads")
+                    end
+                    #@show mean(ebin1,dims=1)
+                    
+                    file["grads"]=push!(grads,average_grad(gradbin1));
+                    file["E_grads"]=push!(E_grads,average_grad(E_gradbin1));
+                    file["E_terms"]= vcat(E_terms,mean(ebin1,dims=1));
+                    
                 end
-                #@show mean(ebin1,dims=1)
-                
-                file["grads"]=push!(grads,average_grad(gradbin1));
-                file["E_grads"]=push!(E_grads,average_grad(E_gradbin1));
-                file["E_terms"]= vcat(E_terms,mean(ebin1,dims=1));
-                
-            end
 
-            # Optional: Uncomment to print configuration every 999 steps
-            #save a good initial config for next time
-            if mod(i + 1, 999) == 0
-                # println(outfile, "\n\n", iconf_new, "\n\n\n")
-                # println(file, "\n\n", iconf_new, "\n\n\n");flush(stdout);
-            end
+                # Optional: Uncomment to print configuration every 999 steps
+                #save a good initial config for next time
+                if mod(i + 1, 999) == 0
+                    # println(outfile, "\n\n", iconf_new, "\n\n\n")
+                    # println(file, "\n\n", iconf_new, "\n\n\n");flush(stdout);
+                end
 
-            if mod(i + 1, GC_spacing) == 0
-                GC.gc(true)
-                if malloc_trim()
-                    #println("Memory trimmed successfully.")
-                else
-                    println("No memory trimmed.")
+                if mod(i + 1, GC_spacing) == 0
+                    GC.gc(true)
+                    if malloc_trim()
+                        #println("Memory trimmed successfully.")
+                    else
+                        println("No memory trimmed.")
+                    end
                 end
             end
 

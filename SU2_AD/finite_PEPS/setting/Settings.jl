@@ -38,6 +38,7 @@ Base.@kwdef mutable struct LineSearch
     maxiter :: Int =100
     gtol :: Float64 =1e-3
     delta0 :: Float64 =1e-3
+    fix_delta :: Bool = true
     alpha :: Float64 =3/4
 end
 

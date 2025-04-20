@@ -396,19 +396,17 @@ function compare_stochastic_opt(x0::Matrix{TensorMap}, ls)
         @show E_exact;flush(stdout);
         ov_set=compare_grad(grad_FD,gvec);
         @show ov_set
-        if real(E_mean)<E_min
-
-            global starting_time
-            Now=now();
-            Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
-            println("Time consumed: "*string(Time));flush(stdout);
-
-
-
-            E_min=real(E_mean);
+        if ls.fix_delta
+            if real(E_mean)<E_min
+                global starting_time
+                Now=now();
+                Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+                println("Time consumed: "*string(Time));flush(stdout);
+                E_min=real(E_mean);
+            end
             x_min=x;
-            push!(E_set,E_min);
-            jldsave(save_filenm; E_set, E_mean, psi=x);
+            push!(E_set,real(E_mean));
+            jldsave(save_filenm; E_set, psi=x);
 
 
             x_norm=norm(x);
@@ -419,17 +417,41 @@ function compare_stochastic_opt(x0::Matrix{TensorMap}, ls)
             iter += 1
     
         else
-            @show delta=delta*(ls.alpha);
-            x=x_min;
+            if real(E_mean)<E_min
+
+                global starting_time
+                Now=now();
+                Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
+                println("Time consumed: "*string(Time));flush(stdout);
 
 
 
-            x_norm=norm(x);
-            x_updated=x-x_norm*get_random_grad(gvec,delta);#get random grad
-            println("norm of random grad:"*string(norm(x_updated-x)));flush(stdout);
-    
-            x=to_Matrix_TensorMap(x_updated);
+                E_min=real(E_mean);
+                x_min=x;
+                push!(E_set,E_min);
+                jldsave(save_filenm; E_set, E_mean, psi=x);
 
+
+                x_norm=norm(x);
+                x_updated=x-x_norm*get_random_grad(gvec,delta);#get random grad
+                println("norm of random grad:"*string(norm(x_updated-x)));flush(stdout);
+        
+                x=to_Matrix_TensorMap(x_updated);
+                iter += 1
+        
+            else
+                @show delta=delta*(ls.alpha);
+                x=x_min;
+
+
+
+                x_norm=norm(x);
+                x_updated=x-x_norm*get_random_grad(gvec,delta);#get random grad
+                println("norm of random grad:"*string(norm(x_updated-x)));flush(stdout);
+        
+                x=to_Matrix_TensorMap(x_updated);
+
+            end
         end
         
         
@@ -459,6 +481,7 @@ ls.maxiter=100;
 ls.gtol=1e-3;
 ls.delta0=1e-3;
 ls.alpha=3/4;
+ls.fix_delta=false;
 @show ls;
 
 

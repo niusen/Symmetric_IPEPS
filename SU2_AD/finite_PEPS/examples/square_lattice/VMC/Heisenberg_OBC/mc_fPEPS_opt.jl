@@ -367,9 +367,10 @@ save_filenm="stochastic_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string
 
 ls=LineSearch();
 ls.maxiter=100;
-ls.gtol=1e-3;
-ls.delta0=1e-3;
+ls.gtol=1e-4;
+ls.delta0=4e-3;
 ls.alpha=3/4;
+ls.fix_delta=true;
 @show ls;
 
 

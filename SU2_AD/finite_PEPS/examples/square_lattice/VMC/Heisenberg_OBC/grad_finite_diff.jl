@@ -27,6 +27,7 @@ using Distributed
 @everywhere include("../../../../environment/MC/mps_sweep.jl")
 
 @everywhere begin
+@show const global_eltype=Float64;#Float64,ComplexF164
 @show const Lattice="square";#"kagome", "square"
 @show const Lx = 4      # number of sites along x / number of columns in the lattice
 @show const Ly = 4      # number of sites along y / number of rows in the lattice
@@ -73,7 +74,7 @@ println("pid="*string(pid));;flush(stdout);
 
 
 
-filenm="complex_"*"Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
+filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
 psi,Vp=load_fPEPS(Lx,Ly,filenm);
 
 # psi=add_noise(psi,0,true);
@@ -169,21 +170,34 @@ for cx=1:Lx
             for d1=1:D1
                 for d2=1:D1
                     for d3=1:D3
-                        psi_=deepcopy(psi);
-                        tt=psi_[cx,cy];
-                        tt[d1,d2,d3]=tt[d1,d2,d3]+dt;
-                        psi_[cx,cy]=tt;
-                        Enew=compute_E(psi_);
-                        Re=(Enew-E0)/dt;
+                        if global_eltype==ComplexF64
+                            psi_=deepcopy(psi);
+                            tt=psi_[cx,cy];
+                            tt[d1,d2,d3]=tt[d1,d2,d3]+dt;
+                            psi_[cx,cy]=tt;
+                            Enew=compute_E(psi_);
+                            Re=(Enew-E0)/dt;
 
-                        psi_=deepcopy(psi);
-                        tt=psi_[cx,cy];
-                        tt[d1,d2,d3]=tt[d1,d2,d3]+dt*im;
-                        psi_[cx,cy]=tt;
-                        Enew=compute_E(psi_);
-                        Im=(Enew-E0)/dt;
+                            psi_=deepcopy(psi);
+                            tt=psi_[cx,cy];
+                            tt[d1,d2,d3]=tt[d1,d2,d3]+dt*im;
+                            psi_[cx,cy]=tt;
+                            Enew=compute_E(psi_);
+                            Im=(Enew-E0)/dt;
 
-                        grad_FD[cx,cy][d1,d2,d3]=Re+im*Im;
+                            grad_FD[cx,cy][d1,d2,d3]=Re+im*Im;
+                        elseif global_eltype==Float64
+                            psi_=deepcopy(psi);
+                            tt=psi_[cx,cy];
+                            tt[d1,d2,d3]=tt[d1,d2,d3]+dt;
+                            psi_[cx,cy]=tt;
+                            Enew=compute_E(psi_);
+                            Re=(Enew-E0)/dt;
+
+        
+
+                            grad_FD[cx,cy][d1,d2,d3]=Re;
+                        end
                     end
                 end
             end
@@ -197,21 +211,33 @@ for cx=1:Lx
                 for d2=1:D1
                     for d3=1:D3
                         for d4=1:D4
-                            psi_=deepcopy(psi);
-                            tt=psi_[cx,cy];
-                            tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+dt;
-                            psi_[cx,cy]=tt;
-                            Enew=compute_E(psi_);
-                            Re=(Enew-E0)/dt;
+                            if global_eltype==ComplexF64
+                                psi_=deepcopy(psi);
+                                tt=psi_[cx,cy];
+                                tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+dt;
+                                psi_[cx,cy]=tt;
+                                Enew=compute_E(psi_);
+                                Re=(Enew-E0)/dt;
 
-                            psi_=deepcopy(psi);
-                            tt=psi_[cx,cy];
-                            tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+im*dt;
-                            psi_[cx,cy]=tt;
-                            Enew=compute_E(psi_);
-                            Im=(Enew-E0)/dt;
+                                psi_=deepcopy(psi);
+                                tt=psi_[cx,cy];
+                                tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+im*dt;
+                                psi_[cx,cy]=tt;
+                                Enew=compute_E(psi_);
+                                Im=(Enew-E0)/dt;
 
-                            grad_FD[cx,cy][d1,d2,d3,d4]=Re+im*Im;
+                                grad_FD[cx,cy][d1,d2,d3,d4]=Re+im*Im;
+                            elseif global_eltype==Float64
+                                psi_=deepcopy(psi);
+                                tt=psi_[cx,cy];
+                                tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+dt;
+                                psi_[cx,cy]=tt;
+                                Enew=compute_E(psi_);
+                                Re=(Enew-E0)/dt;
+
+
+                                grad_FD[cx,cy][d1,d2,d3,d4]=Re;
+                            end
                         end
                     end
                 end
@@ -227,21 +253,33 @@ for cx=1:Lx
                     for d3=1:D3
                         for d4=1:D4
                             for d5=1:D5
-                                psi_=deepcopy(psi);
-                                tt=psi_[cx,cy];
-                                tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+dt;
-                                psi_[cx,cy]=tt;
-                                Enew=compute_E(psi_);
-                                Re=(Enew-E0)/dt;
+                                if global_eltype==ComplexF64
+                                    psi_=deepcopy(psi);
+                                    tt=psi_[cx,cy];
+                                    tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+dt;
+                                    psi_[cx,cy]=tt;
+                                    Enew=compute_E(psi_);
+                                    Re=(Enew-E0)/dt;
 
-                                psi_=deepcopy(psi);
-                                tt=psi_[cx,cy];
-                                tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+im*dt;
-                                psi_[cx,cy]=tt;
-                                Enew=compute_E(psi_);
-                                Im=(Enew-E0)/dt;
+                                    psi_=deepcopy(psi);
+                                    tt=psi_[cx,cy];
+                                    tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+im*dt;
+                                    psi_[cx,cy]=tt;
+                                    Enew=compute_E(psi_);
+                                    Im=(Enew-E0)/dt;
 
-                                grad_FD[cx,cy][d1,d2,d3,d4,d5]=Re+im*Im;
+                                    grad_FD[cx,cy][d1,d2,d3,d4,d5]=Re+im*Im;
+                                elseif global_eltype==Float64
+                                    psi_=deepcopy(psi);
+                                    tt=psi_[cx,cy];
+                                    tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+dt;
+                                    psi_[cx,cy]=tt;
+                                    Enew=compute_E(psi_);
+                                    Re=(Enew-E0)/dt;
+
+
+                                    grad_FD[cx,cy][d1,d2,d3,d4,d5]=Re;
+                                end
                             end
                         end
                     end

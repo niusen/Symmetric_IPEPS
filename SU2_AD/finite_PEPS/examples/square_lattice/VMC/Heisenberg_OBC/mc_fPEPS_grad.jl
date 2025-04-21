@@ -27,18 +27,19 @@ using Distributed
 @everywhere include("../../../../environment/MC/mps_sweep.jl")
 
 @everywhere begin
+    @show const global_eltype=Float64;#Float64,ComplexF164
 @show const Lattice="square";#"kagome", "square"
 @show const Lx = 4      # number of sites along x / number of columns in the lattice
 @show const Ly = 4      # number of sites along y / number of rows in the lattice
 @show const D=2;#bond dimension of state
 @show const chi=10;#bond dimension of environment
-@show const use_mps_sweep=true;
-@show const n_mps_sweep=5;
+@show const use_mps_sweep=false;
+@show const n_mps_sweep=0;
 
 const L = Lx*Ly # total number of lattice sites
 const Nbra = L             # Inner loop size, to generate uncorrelated samples, usually must be of size O(L).
 const Ne = L            # Number of electrons on the lattice (for spin models this will always be equal to L)
-@show const Nsteps = 600       # Total Monte Carlo steps
+@show const Nsteps = 200       # Total Monte Carlo steps
 @show const binn = 200          # Bin size to store the data during the monte carlo run. 
 @show const step_prepare = 200          # number of steps to get equilibrium. 
 const GC_spacing = 200          # garbage collection
@@ -89,10 +90,9 @@ println("pid="*string(pid));;flush(stdout);
 
     # Compute the expectation value of the permutation operator
     global contract_fun,psi_decomposed,Vp
-    config_grad=contract_disk_derivative(sample_,iconf_new, chi);
-    config_grad=set_grad_config(config_grad,iconf_new,psi);
 
-    elocal =zeros(ComplexF64,sum(length.(NN_tuple_reduced)));   # Initialize local energy
+
+    elocal =zeros(global_eltype,sum(length.(NN_tuple_reduced)));   # Initialize local energy
     if contraction_path=="verify"
         amplitude,sample_,_=contract_sample(psi_decomposed,Lx,Ly,iconf_new,sample_,Vp,contract_fun);
         amplitude_,sample_,_,contract_history_= partial_contract_sample(psi_decomposed,iconf_new,sample_,Vp,contract_history_);
@@ -104,6 +104,8 @@ println("pid="*string(pid));;flush(stdout);
     end
 
     ########
+    config_grad=contract_disk_derivative(sample_,iconf_new, chi);
+    config_grad=set_grad_config(config_grad,iconf_new,psi);
     config_grad=config_grad/amplitude;
     ########
     
@@ -141,18 +143,16 @@ end
 
 
 
-@everywhere function main(dir, worker_id, ntask)
+@everywhere function compute_grad(Vp,psi,config_max, dir, worker_id, ntask)
     #load saved fPEPS data
-    @show Nsteps_worker=Int(round(Nsteps/ntask));
+    Nsteps_worker=Int(round(Nsteps/ntask));
     @assert step_prepare>=0;
     contraction_path="recycle";#"verify","full","recycle"
 
-    filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
-    psi,Vp=load_fPEPS(Lx,Ly,filenm);
-    @show Vp
+
     global contraction_path, contract_fun, psi_decomposed, Vp
-    contract_fun=contract_whole_disk;
-    config_max=normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
+    
+
     psi_decomposed=decompose_physical_legs(psi,Vp);
 
     sample=Matrix{TensorMap}(undef,Lx,Ly);
@@ -173,10 +173,10 @@ end
     # Initialize variables
     iconf_new = config_max;
 
-    ebin1 = zeros(Complex{Float64}, binn, sum(length.(NN_tuple_reduced)));
+    ebin1 = zeros(global_eltype, binn, sum(length.(NN_tuple_reduced)));
     gradbin1 = Vector{Matrix{TensorMap}}(undef, binn);
     E_gradbin1=Vector{Matrix{TensorMap}}(undef, binn);
-    ebin_file=zeros(Complex{Float64}, 0, sum(length.(NN_tuple_reduced)));
+    ebin_file=zeros(global_eltype, 0, sum(length.(NN_tuple_reduced)));
 
 
     outputname = dir*"id_"*string(worker_id)*"_chi"*string(chi)*".jld2"
@@ -187,7 +187,7 @@ end
 
     #write empty variables in file
     jldopen(outputname, "w") do file
-        file["E_terms"]=Matrix{ComplexF64}(undef,0,sum(length.(NN_tuple_reduced)));
+        file["E_terms"]=Matrix{global_eltype}(undef,0,sum(length.(NN_tuple_reduced)));
         file["grads"]=Vector{Matrix{TensorMap}}(undef,0);
         file["E_grads"]=Vector{Matrix{TensorMap}}(undef,0);
     end
@@ -302,18 +302,32 @@ end
 # @btime @profview main()
 
 
-ntask=nworkers();
-#@time main(dir, 1, ntask)
-@sync begin
-    for cp=1:ntask
-        worker_id=workers()[cp]
-        @spawnat worker_id main(dir, worker_id, ntask);
-    end
-end
 
-function read_data()
+filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
+psi,Vp=load_fPEPS(Lx,Ly,filenm);
+@show Vp
+@everywhere global contract_fun, Vp 
+@everywhere contract_fun=contract_whole_disk;
+
+Noise=0;
+psi=add_noise(psi,Noise);
+
+config_max=normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
+
+
+ntask=nworkers();
+@time compute_grad(Vp,psi,config_max,dir, 1, ntask)
+# @sync begin
+#     for cp=1:ntask
+#         worker_id=workers()[cp]
+#         @spawnat worker_id compute_grad(Vp,psi,config_max,dir, worker_id, ntask);
+#     end
+# end
+
+
+function read_data(ntask)
     coord,fnn_set,snn_set,NN_tuple,NNN_tuple, NN_tuple_reduced,NNN_tuple_reduced=get_neighbours_square(Lx,Ly,"OBC");
-    Eterms_set=Matrix{ComplexF64}(undef,0,sum(length.(NN_tuple_reduced)));
+    Eterms_set=Matrix{global_eltype}(undef,0,sum(length.(NN_tuple_reduced)));
     grads_set=Vector{Matrix{TensorMap}}(undef,0);
     E_grads_set=Vector{Matrix{TensorMap}}(undef,0);
 
@@ -325,7 +339,7 @@ function read_data()
         outputname = dir*"id_"*string(workers()[cp])*"_chi"*string(chi)*".jld2";
         # Read the list of numbers from the CSV file
         # data = open(outputname, "r") do file
-        #     [parse(ComplexF64, line) for line in readlines(file)]
+        #     [parse(global_eltype, line) for line in readlines(file)]
         # end
         data=load(outputname);
         Eterms_set=vcat(Eterms_set,data["E_terms"])  
@@ -338,7 +352,7 @@ function read_data()
     return Eterms_set, grads_set, E_grads_set
 end
 
-Eterms_set, grads_set, E_grads_set=read_data();
+Eterms_set, grads_set, E_grads_set=read_data(ntask);
 
 function grad_analysis(Eterms_set, grads_set, E_grads_set)
 

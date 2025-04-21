@@ -93,8 +93,7 @@ println("pid="*string(pid));;flush(stdout);
 
     # Compute the expectation value of the permutation operator
     global contract_fun,psi_decomposed,Vp
-    config_grad=contract_disk_derivative(sample_,iconf_new, chi);
-    config_grad=set_grad_config(config_grad,iconf_new,psi);
+
 
     elocal =zeros(global_eltype,sum(length.(NN_tuple_reduced)));   # Initialize local energy
     if contraction_path=="verify"
@@ -108,6 +107,8 @@ println("pid="*string(pid));;flush(stdout);
     end
 
     ########
+    config_grad=contract_disk_derivative(sample_,iconf_new, chi);
+    config_grad=set_grad_config(config_grad,iconf_new,psi);
     config_grad=config_grad/amplitude;
     ########
     

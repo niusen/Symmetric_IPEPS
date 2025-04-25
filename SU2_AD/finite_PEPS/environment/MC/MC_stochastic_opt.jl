@@ -57,23 +57,17 @@ function stochastic_opt(x0::Matrix{TensorMap}, ls)
 
         gvec=get_grad_conjugate(gvec);
         if ls.fix_delta
+            push!(E_set,real(E_mean));
             if real(E_mean)<E_min
                 E_min=real(E_mean);
                 global starting_time
                 Now=now();
                 Time=Dates.canonicalize(Dates.CompoundPeriod(Dates.DateTime(Now) - Dates.DateTime(starting_time)));
                 println("Time consumed: "*string(Time));flush(stdout);
-    
+
+                jldsave(save_filenm; E_set, psi=x);
             end
             
-
-
-
-            
-            x_min=x;
-            push!(E_set,real(E_mean));
-            jldsave(save_filenm; E_set, psi=x);
-
 
             x_norm=norm(x);
             x_updated=x-x_norm*get_random_grad(gvec,delta);#get random grad

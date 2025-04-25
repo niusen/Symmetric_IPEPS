@@ -1,23 +1,12 @@
-function normalized_tsvd(aa;args...)
-    #Even the tensor is normalized, when many elements are of order 1e-16, the default alg=SDD() method may not converge. 
-    #One option is to set the small elements to zero, another option is to use tsvd(a;alg=SVD());
-    #For large enough matrices, gesvd! is much slower than gesdd!
-    norm_a=norm(aa);
-    a_normalized=aa/norm_a;
-    # try 
-    #     u,s,v=tsvd(a_normalized;args...);
-    #     s=s*norm_a;
-    #     return u,s,v
-    # catch e
-        data_=a_normalized.data;
-        data_=data_.*((abs.(data_)).>1e-10);
-        a_normalized.data.=data_;
-        u,s,v=tsvd(a_normalized;args...);
-        s=s*norm_a;
+function tsvd_test(a;args...)
+    try 
+        u,s,v=tsvd(a;args...)
         return u,s,v
-    # end
-
+    catch e
+        jldsave("ill_tensor.jld2";a);
+    end
 end
+
 
 
 function pi_rotate_mps(mps_set)
@@ -62,7 +51,7 @@ function simple_truncate_to_middle(mpo_set, mps_set,chi)
     cx=Lx;
 
     @tensor T_tem[:]:= mpo_set[cx][-1,1,-3]*mps_set[cx][-2,1]
-    u,s,v=normalized_tsvd(permute(T_tem,(1,2,),(3,)); trunc=truncdim(chi));
+    u,s,v=tsvd_test(permute(T_tem,(1,2,),(3,)); trunc=truncdim(chi));
 
     trun_err=1-dot(s,s)/dot(T_tem,T_tem);
     push!(trun_errs,trun_err);
@@ -72,7 +61,7 @@ function simple_truncate_to_middle(mpo_set, mps_set,chi)
     mps_trun[cx-1]=A;
     for cx=Lx-1:-1:3
         T=permute(mps_trun[cx],(1,2,),(3,4,))
-        u,s,v=normalized_tsvd(T; trunc=truncdim(chi));
+        u,s,v=tsvd_test(T; trunc=truncdim(chi));
         # println("aaa")
         # println(norm(u*s*v-T)/norm(T))
 
@@ -86,7 +75,7 @@ function simple_truncate_to_middle(mpo_set, mps_set,chi)
     end
     cx=2;
     T=permute(mps_trun[cx],(1,2,),(3,4,));
-    u,s,v=normalized_tsvd(T; trunc=truncdim(chi));
+    u,s,v=tsvd_test(T; trunc=truncdim(chi));
 
     trun_err=1-dot(s,s)/dot(T,T);
     push!(trun_errs,trun_err);
@@ -107,7 +96,7 @@ function simple_truncate_to_middle(mpo_set, mps_set,chi)
 
     #canonical form from left to right
     cx=1;
-    u_trun,s_trun,v_trun=normalized_tsvd(permute(mps_trun[cx],(2,),(1,)); trunc=truncdim(chi));
+    u_trun,s_trun,v_trun=tsvd_test(permute(mps_trun[cx],(2,),(1,)); trunc=truncdim(chi));
 
     v_trun=s_trun*v_trun;
     mps_trun[cx]=permute(u_trun,(2,1,));
@@ -115,7 +104,7 @@ function simple_truncate_to_middle(mpo_set, mps_set,chi)
     mps_trun[cx+1]=A;
     for cx=2:Lx-2
         T=permute(mps_trun[cx],(1,3,),(2,));
-        u_trun,s_trun,v_trun=normalized_tsvd(T; trunc=truncdim(chi)); 
+        u_trun,s_trun,v_trun=tsvd_test(T; trunc=truncdim(chi)); 
    
         v_trun=s_trun*v_trun;
         mps_trun[cx]=permute(u_trun,(1,3,2,));
@@ -124,7 +113,7 @@ function simple_truncate_to_middle(mpo_set, mps_set,chi)
     end
     cx=Lx-1;
     T=permute(mps_trun[cx],(1,3,),(2,));
-    u_trun,s_trun,v_trun=normalized_tsvd(T; trunc=truncdim(chi)); 
+    u_trun,s_trun,v_trun=tsvd_test(T; trunc=truncdim(chi)); 
    
     v_trun=s_trun*v_trun;
     mps_trun[cx]=permute(u_trun,(1,3,2,));

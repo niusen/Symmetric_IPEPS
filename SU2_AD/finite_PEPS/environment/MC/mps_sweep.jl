@@ -1,23 +1,40 @@
-
+function normalized_tsvd(aa::TensorMap)
+    #Even the tensor is normalized, when many elements are of order 1e-16, the default alg=SDD() method may not converge. 
+    #One option is to set the small elements to zero, another option is to use tsvd(a;alg=SVD());
+    #For large enough matrices, gesvd! is much slower than gesdd!
+    norm_a=norm(aa);
+    a_normalized=aa/norm_a;
+    
+    η=1e-10; 
+    try 
+        u,s,v=tsvd(a_normalized);
+        s=s*norm_a;
+        return u,s,v
+    catch e
+        u,s,v=tsvd(a_normalized;alg=TensorKit.SVD());
+        s=s*norm_a;
+        return u,s,v
+    end
+end
 function canonical_right_to_left(mps_set,pos)
     mps_set=deepcopy(mps_set);
     Lx=length(mps_set);
     @assert pos>1;
     cx=pos;
     if pos==Lx
-        u,s,v=tsvd(mps_set[cx],(1,),(2,));
+        u,s,v=tsvd(permute(mps_set[cx],(1,),(2,)));
         u=u*s;
         mps_set[cx]=permute(v,(1,2,));
         @tensor A[:]:=mps_set[cx-1][-1,1,-3]*u[1,-2];
         mps_set[cx-1]=A;
     elseif 2<pos<Lx
-        u,s,v=tsvd(mps_set[cx],(1,),(2,3,));
+        u,s,v=tsvd(permute(mps_set[cx],(1,),(2,3,)));
         u=u*s;
         mps_set[cx]=permute(v,(1,2,3,));
         @tensor A[:]:=mps_set[cx-1][-1,1,-3]*u[1,-2];
         mps_set[cx-1]=permute(A,(1,2,3,));
     elseif pos==2
-        u,s,v=tsvd(mps_set[cx],(1,),(2,3,));
+        u,s,v=tsvd(permute(mps_set[cx],(1,),(2,3,)));
         u=u*s;
         mps_set[cx]=permute(v,(1,2,3,));
         @tensor A[:]:=mps_set[cx-1][1,-2]*u[1,-1];
@@ -33,19 +50,19 @@ function canonical_left_to_right(mps_set,pos)
     Lx=length(mps_set);
     cx=pos;
     if pos==1
-        u,s,v=tsvd(mps_set[cx],(2,),(1,));
+        u,s,v=tsvd(permute(mps_set[cx],(2,),(1,)));
         v=s*v;
         mps_set[cx]=permute(u,(2,1,));
         @tensor A[:]:=v[-1,1]*mps_set[cx+1][1,-2,-3];
         mps_set[cx+1]=permute(A,(1,2,3,));
     elseif 1<pos<Lx-1
-        u,s,v=tsvd(mps_set[cx],(1,3,),(2,)); 
+        u,s,v=tsvd(permute(mps_set[cx],(1,3,),(2,))); 
         v=s*v;
         mps_set[cx]=permute(u,(1,3,2,));
         @tensor A[:]:=v[-1,1]*mps_set[cx+1][1,-2,-3];
         mps_set[cx+1]=permute(A,(1,2,3,));
     elseif pos==Lx-1
-        u,s,v=tsvd(mps_set[cx],(1,3,),(2,)); 
+        u,s,v=tsvd(permute(mps_set[cx],(1,3,),(2,))); 
         v=s*v;
         mps_set[cx]=permute(u,(1,3,2,));
         @tensor A[:]:=v[-1,1]*mps_set[cx+1][1,-2];

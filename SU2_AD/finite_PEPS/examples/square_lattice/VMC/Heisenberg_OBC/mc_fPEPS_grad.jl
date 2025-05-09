@@ -25,14 +25,15 @@ using Distributed
 @everywhere include("../../../../environment/MC/contract_disk.jl")
 @everywhere include("../../../../environment/MC/sampling.jl")
 @everywhere include("../../../../environment/MC/mps_sweep.jl")
+@everywhere include("../../../../environment/MC/MC_stochastic_opt.jl")
 
 @everywhere begin
     @show const global_eltype=Float64;#Float64,ComplexF164
 @show const Lattice="square";#"kagome", "square"
-@show const Lx = 4      # number of sites along x / number of columns in the lattice
-@show const Ly = 4      # number of sites along y / number of rows in the lattice
-@show const D=2;#bond dimension of state
-@show const chi=10;#bond dimension of environment
+@show const Lx = 10      # number of sites along x / number of columns in the lattice
+@show const Ly = 10      # number of sites along y / number of rows in the lattice
+@show const D=3;#bond dimension of state
+@show const chi=D*2;#bond dimension of environment
 @show const use_mps_sweep=false;
 @show const n_mps_sweep=0;
 
@@ -298,31 +299,10 @@ end
 
 end
 
-# Profile.clear()
-# @btime @profview main()
 
 
 
-filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
-psi,Vp=load_fPEPS(Lx,Ly,filenm);
-@show Vp
-@everywhere global contract_fun, Vp 
-@everywhere contract_fun=contract_whole_disk;
 
-Noise=0;
-psi=add_noise(psi,Noise);
-
-config_max=normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
-
-
-ntask=nworkers();
-@time compute_grad(Vp,psi,config_max,dir, 1, ntask)
-# @sync begin
-#     for cp=1:ntask
-#         worker_id=workers()[cp]
-#         @spawnat worker_id compute_grad(Vp,psi,config_max,dir, worker_id, ntask);
-#     end
-# end
 
 
 function read_data(ntask)
@@ -352,7 +332,7 @@ function read_data(ntask)
     return Eterms_set, grads_set, E_grads_set
 end
 
-Eterms_set, grads_set, E_grads_set=read_data(ntask);
+
 
 function grad_analysis(Eterms_set, grads_set, E_grads_set)
 
@@ -362,15 +342,89 @@ function grad_analysis(Eterms_set, grads_set, E_grads_set)
     grad_mean=mean(grads_set);
     E_grad_mean=mean(E_grads_set);
     Grad=E_grad_mean-E_mean*grad_mean;
+    Grad=to_Matrix_TensorMap(Grad);
 
    
-
-
-    filenm="grad_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".jld2"
-    jldsave(filenm; Eterms_set, E_mean, grad_mean, E_grad_mean, Grad)    
-
-    return Grad
+    return E_mean,Eterms_set,  grad_mean, E_grad_mean, Grad
 end
+
+
+
+function evaluate_energy(x0,config_max)
+    global contract_fun, Vp 
+    ntask=nworkers();
+    x = deepcopy(x0);
     
-Grad=grad_analysis(Eterms_set, grads_set, E_grads_set);
+    #x=normalize_ansatz(x);
+
+
+    #@time main(dir, 1, ntask)
+    @sync begin
+        for cp=1:ntask
+            worker_id=workers()[cp]
+            @spawnat worker_id compute_grad(Vp,x,config_max, dir, worker_id, ntask);
+        end
+    end
+
+    Eterms_set, grads_set, E_grads_set=read_data(ntask);
+    E_mean, Eterms_set, grad_mean, E_grad_mean, gvec=grad_analysis(Eterms_set, grads_set, E_grads_set);
+    return E_mean, Eterms_set, grad_mean, E_grad_mean, gvec
+end
+
+
+
+
+filenm="Heisenberg_SU_"*string(Lx)*"x"*string(Ly)*"_D"*string(D);
+psi,Vp=load_fPEPS(Lx,Ly,filenm);
+@show Vp
+@everywhere global contract_fun, Vp 
+@everywhere contract_fun=contract_whole_disk;
+
+Noise=0;
+psi=add_noise(psi,Noise);
+
+config_max=normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that the amplitude of a single config is close to 1
+
+
+
+
+
+
+    
+E_mean, Eterms_set, grad_mean, E_grad_mean, Grad=evaluate_energy(psi,config_max);
+
+#save grad 
+filenm="grad_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".jld2"
+jldsave(filenm; Eterms_set, E_mean, grad_mean, E_grad_mean, Grad);
+
+
+
+
+#compute grad from finite difference
+pos=[4,4];
+
+@show Grad[pos[1],pos[2]].data;flush(stdout);
+
+
+
+@show E0=E_mean;
+
+T_grad=psi[pos[1],pos[2]]*0;
+dt=0.01;
+for cc in eachindex(T_grad.data)
+    psi_=deepcopy(psi);
+    T_=psi_[pos[1],pos[2]];
+    data_=T_.data;
+    data_[cc]=data_[cc]+dt;
+    T_.data.=data_;
+    psi_[pos[1],pos[2]]=T_;
+
+    E_new, _=evaluate_energy(psi_,config_max);
+
+    dE=E_new-E0;
+    #T_grad.data[cc].=dE/dt;
+    @show cc, dE/dt;flush(stdout);
+
+end
+
 

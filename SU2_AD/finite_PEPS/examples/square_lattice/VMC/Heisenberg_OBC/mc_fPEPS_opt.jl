@@ -359,7 +359,7 @@ psi,Vp=load_fPEPS(Lx,Ly,filenm);
 @everywhere global contract_fun, Vp 
 @everywhere contract_fun=contract_whole_disk;
 
-Noise=0.3;
+Noise=0.0;
 psi=add_noise(psi,Noise);
 
 global save_filenm,starting_time

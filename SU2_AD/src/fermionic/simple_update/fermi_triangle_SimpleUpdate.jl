@@ -304,8 +304,7 @@ function delet_zero_block(U,Σ,V)
         V_dict[:codomain]=sec_str
         Σ_dict[:domain]=sec_str
         Σ_dict[:codomain]=sec_str
-
-        return convert(TensorMap, U_dict), convert(TensorMap, Σ_dict), convert(TensorMap, V_dict)
+        return convert(TensorMap, U_dict), DiagonalTensorMap(convert(TensorMap, Σ_dict)), convert(TensorMap, V_dict)
     end
 end
 

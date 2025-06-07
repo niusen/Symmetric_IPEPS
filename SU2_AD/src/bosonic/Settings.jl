@@ -1,3 +1,5 @@
+using LinearAlgebra: diagind
+
 Base.@kwdef mutable struct grad_CTMRG_settings
     CTM_conv_tol :: Float64 = 1e-6
     CTM_ite_nums :: Int64 =200
@@ -173,15 +175,40 @@ end
 function remove_small_elements(T::TensorMap,tol=1e-20)
     #delete super small elements, otherwise svd could send error
     Norm=norm(T);
-    for cb in eachindex(T.data.values)
-        mm=T.data.values[cb];
-        mm1=deepcopy(mm);
-        for ci in eachindex(mm1)
-            if abs(mm1[ci])/Norm<tol;
-                mm1[ci]=0;
-            end
-        end 
-        T.data.values[cb]=mm1;
+    # for cb in eachindex(T.data.values)
+    #     mm=T.data.values[cb];
+    #     mm1=deepcopy(mm);
+    #     for ci in eachindex(mm1)
+    #         if abs(mm1[ci])/Norm<tol;
+    #             mm1[ci]=0;
+    #         end
+    #     end 
+    #     T.data.values[cb]=mm1;
+    # end
+    mm=T.data;
+    mm1=deepcopy(mm);
+    for ele in eachindex(mm1)
+        if (abs(mm1[ele])/Norm)<tol;
+            mm1[ele]=0;
+        end
     end
+    T.data.=mm1;
     return T
+end
+
+
+function DiagonalTensorMap(t::TensorMap) 
+    isa(t, DiagonalTensorMap) && return t
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("DiagonalTensorMap requires equal domain and codomain"))
+    # A = storagetype(t)
+    t_dense=convert(Array,t);
+    @assert norm(diagm(diag(t_dense))-t_dense)/norm(t_dense)<1e-15
+    d = DiagonalTensorMap(ones(sum(space(t, 1).dims.values)), space(t, 1))
+    for (c, b) in blocks(d)
+        bt = block(t, c)
+        # TODO: rewrite in terms of `diagview` from MatrixAlgebraKit.jl
+        copy!(b.diag, view(bt, diagind(bt)))
+    end
+    return d
 end

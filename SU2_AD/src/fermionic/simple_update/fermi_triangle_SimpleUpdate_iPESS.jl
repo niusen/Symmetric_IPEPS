@@ -22,9 +22,13 @@ function initial_iPESS_uniform(Lx,Ly,V,Vp)
             Tset[ca,cb]=BA;
             Bset[ca,cb]=TA;
             t_A=TA;
-            λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
-            λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
-            λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+            # λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
+            # λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
+            # λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+
+            λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims.values)), space(t_A,1)');
+            λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims.values)), space(t_A,2)');
+            λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims.values)), space(t_A,3)');
             lambdaset1[ca,cb]=λ_A_1;
             lambdaset2[ca,cb]=λ_A_2;
             lambdaset3[ca,cb]=λ_A_3;
@@ -49,9 +53,13 @@ function initial_iPESS(Lx,Ly,V,Vp)
             Tset[ca,cb]=BA;
             Bset[ca,cb]=TA;
             t_A=TA;
-            λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
-            λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
-            λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+            # λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
+            # λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
+            # λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+
+            λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims.values)), space(t_A,1)');
+            λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims.values)), space(t_A,2)');
+            λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims.values)), space(t_A,3)');
             lambdaset1[ca,cb]=λ_A_1;
             lambdaset2[ca,cb]=λ_A_2;
             lambdaset3[ca,cb]=λ_A_3;
@@ -306,7 +314,8 @@ function itebd_iPESS(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,
     lambdaset2_old=deepcopy(lambdaset2);
     lambdaset3_old=deepcopy(lambdaset3);
 
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(Bset[1],1)),Lx);
+    #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(Bset[1],1)),Lx);
+    gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
 
     for ct=1:Int(round(tau/abs(dt)))
         #println("iteration "*string(ct));flush(stdout)
@@ -376,6 +385,7 @@ function Hofstadter_triangle_update_iPESS(triangle_groups,D_max,ct,Bset, Tset, l
     for cg in eachindex(triangle_groups)
         group=triangle_groups[cg];
         Threads.@threads for ccc in eachindex(group)
+        #for ccc in eachindex(group)
             ca,cb=group[ccc];
             # B
             #CD
@@ -399,7 +409,7 @@ function Hofstadter_triangle_update_iPESS(triangle_groups,D_max,ct,Bset, Tset, l
             @tensor TB[:]:=TB[1,-2,3,-4]*lambda_B_3[-1,1]*lambda_A_2[-3,3];
             @tensor TC[:]:=TC[1,-2,-3,4]*lambda_C_3[-1,1]*lambda_A_1[-4,4];
             @tensor TD[:]:=TD[-1,-2,3,4]*lambda_C_2[-3,3]*lambda_B_1[-4,4];
-            
+
             TB, TC, TD, B, lambda_1, lambda_2, lambda_3=triangle_gate_iPESS_simplified(D_max,gates[mod1(ca,Lx),mod1(cb,Ly)], TB, TC, TD, B, trun_tol);
 
             lambda_A_1_inv=my_pinv(lambda_A_1);

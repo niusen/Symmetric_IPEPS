@@ -148,18 +148,21 @@ end
 
 function projector_parity(V)
     V_odd,V_even=sector_projector(V);
-    P_odd=TensorMap(randn,V_odd,V);
-    P_even=TensorMap(randn,V_even,V);
-    function become_isometry(T::TensorMap)
-        for cc=1:length(T.data.values)
-            mm=T.data.values[cc];
-            mm_new=Matrix(I,size(mm,1),size(mm,2));
-            T.data.values[cc]=mm_new;
-        end
-        return T
-    end
-    P_odd=become_isometry(P_odd);
-    P_even=become_isometry(P_even);
+    # P_odd=TensorMap(randn,V_odd,V);
+    # P_even=TensorMap(randn,V_even,V);
+    # function become_isometry(T::TensorMap)
+    #     # for cc=1:length(T.data.values)
+    #     #     mm=T.data.values[cc];
+    #     #     mm_new=Matrix(I,size(mm,1),size(mm,2));
+    #     #     T.data.values[cc]=mm_new;
+    #     # end
+    #     return T
+    # end
+    # P_odd=become_isometry(P_odd);
+    # P_even=become_isometry(P_even);
+    P_odd=isometry(V,V_odd)';
+    P_even=isometry(V,V_even)';
+    @assert norm(P_odd'*P_odd+P_even'*P_even-unitary(V,V))<1e-10;
     return P_odd,P_even
 end
 
@@ -222,23 +225,30 @@ function projector_split(V)
     V_odd_set,V_even_set=sector_split(V);
     P_odd_set=Vector{TensorMap}(undef,length(V_odd_set));
     P_even_set=Vector{TensorMap}(undef,length(V_even_set));
-    function become_isometry(T::TensorMap)
-        for cc=1:length(T.data.values)
-            mm=T.data.values[cc];
-            mm_new=Matrix(I,size(mm,1),size(mm,2));
-            T.data.values[cc]=mm_new;
-        end
-        return T
-    end
+    # function become_isometry(T::TensorMap)
+    #     for cc=1:length(T.data.values)
+    #         mm=T.data.values[cc];
+    #         mm_new=Matrix(I,size(mm,1),size(mm,2));
+    #         T.data.values[cc]=mm_new;
+    #     end
+    #     return T
+    # end
+
+
+    
+    
+
     for cc=1:length(P_odd_set)
-        P_odd=TensorMap(randn,V_odd_set[cc],V);
-        P_odd=become_isometry(P_odd);
-        P_odd_set[cc]=P_odd;
+        # P_odd=TensorMap(randn,V_odd_set[cc],V);
+        # P_odd=become_isometry(P_odd);
+        # P_odd_set[cc]=P_odd;
+        P_odd_set[cc]=isometry(V,V_odd_set[cc])';
     end
     for cc=1:length(P_even_set)
-        P_even=TensorMap(randn,V_even_set[cc],V);
-        P_even=become_isometry(P_even);
-        P_even_set[cc]=P_even;
+        # P_even=TensorMap(randn,V_even_set[cc],V);
+        # P_even=become_isometry(P_even);
+        # P_even_set[cc]=P_even;
+        P_even_set[cc]=isometry(V,V_even_set[cc])';
     end
 
 

@@ -41,13 +41,13 @@ let
 Random.seed!(1234)
 
 
-D_max=4;
+D_max=6;
 
 t1=1;
 t2=1;
 ϕ=pi/2;
 μ=0;
-U=12;
+U=0;
 B=0;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
 
@@ -91,7 +91,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="SU_iPESS_SU2_csl_D4.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -244,3 +244,4 @@ println(eU_set);flush(stdout);
 
 
 end
+

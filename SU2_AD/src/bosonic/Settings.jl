@@ -197,7 +197,7 @@ function remove_small_elements(T::TensorMap,tol=1e-20)
 end
 
 
-function DiagonalTensorMap(t::TensorMap) 
+function TensorMap_to_DiagonalTensorMap(t::TensorMap) 
     isa(t, DiagonalTensorMap) && return t
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("DiagonalTensorMap requires equal domain and codomain"))

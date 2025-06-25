@@ -7,8 +7,8 @@ Pkg.add("TensorKit@0.12.7")
 
 using TensorKit
 using JLD2
-cd("/home/sniu/iPEPS/trianlge/U0/iPESS_full_update/D10_SU2/");
-data=load("FU_iPESS_LS_D_10_chi_80_2.3875.jld2");
+cd("/home/sniu/iPEPS_new/trianlge/U14/iPESS_ES/");
+data=load("FU_iPESS_LS_D_10_chi_80.jld2");
 tt=data["T_set"][1,1]
 
 
@@ -63,16 +63,27 @@ function dict_to_tensor(tm::Matrix)
 end
 
 #save 
-filenm="FU_iPESS_LS_D_10_chi_80_2.3875.jld2";
+filenm="FU_iPESS_LS_D_12_chi_80.jld2";
 data=load(filenm);
 T_set=data["T_set"];
 B_set=data["B_set"];
+
+##for triangle_iPESS structure 
+# x=data["x"];
+# T_set=Matrix{TensorMap}(undef,2,2);
+# B_set=Matrix{TensorMap}(undef,2,2);
+# for cx=1:2
+# for cy=1:2
+# T_set[cx,cy]=x[cx,cy].Bm;
+# B_set[cx,cy]=x[cx,cy].Tm;
+# end
+# end
 
 T_set=tensor_to_dict(T_set);
 B_set=tensor_to_dict(B_set);
 jldsave("newversion_"*filenm;T_set=T_set,B_set=B_set);
 
-
+######################
 
 #load 
 data=load("newversion_"*filenm);

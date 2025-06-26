@@ -167,6 +167,8 @@ function projector_parity(V)
 end
 
 
+
+
 #SU2 symmetry
 function sector_split(V::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
     L=length(V.dims.keys);
@@ -222,6 +224,7 @@ function sector_split(V::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irr
 end
 
 function projector_split(V)
+    #split into sectors classified by quantum number. E.g., if V=Rep[SU₂](0=>4,1/2=>4,1=>2), this function will return three sectors
     V_odd_set,V_even_set=sector_split(V);
     P_odd_set=Vector{TensorMap}(undef,length(V_odd_set));
     P_even_set=Vector{TensorMap}(undef,length(V_even_set));
@@ -233,10 +236,6 @@ function projector_split(V)
     #     end
     #     return T
     # end
-
-
-    
-    
 
     for cc=1:length(P_odd_set)
         # P_odd=TensorMap(randn,V_odd_set[cc],V);
@@ -261,6 +260,50 @@ function projector_split(V)
     end
     @assert norm(unitary(V,V)-II)<1e-15
 
+    return P_odd_set,P_even_set
+end
+
+function projector_parity_divide(V)
+    #devide space into minimal SU2 multiplets
+    #E.g., if V=Rep[SU₂](0=>4,1/2=>4,1=>2), this function will return 10 sectors
+    P_odd_set0,P_even_set0=projector_split(V);
+
+    function further_divide(P0)
+        v0=space(P0,1);
+        @assert length(v0.dims.values)==1
+        P_sub_set=Vector{TensorMap}(undef,v0.dims.values[1]);
+        for cc=1:length(P_sub_set)
+            V1=GradedSpace(v0.dims.keys[1]=>1);
+            tt=TensorMap(randn,V1,V)*0;
+            for (k,b) in blocks(tt)
+                @assert  length(b)==length(P_sub_set);
+                b[cc]=1;
+                block(tt,k).=b;
+            end
+            P_sub_set[cc]=tt
+        end
+        return P_sub_set
+    end
+    P_odd_set=Vector{TensorMap}(undef,0);
+    P_even_set=Vector{TensorMap}(undef,0);
+
+    for p0 in (P_odd_set0)
+        P_sub_set=further_divide(p0);
+        P_odd_set=vcat(P_odd_set,P_sub_set);
+    end
+    for p0 in (P_even_set0)
+        P_sub_set=further_divide(p0);
+        P_even_set=vcat(P_even_set,P_sub_set);
+    end
+    #verify
+    Id_tem=unitary(V,V)*0;
+    for pp in (P_odd_set)
+        Id_tem=Id_tem+pp'*pp;
+    end
+    for pp in (P_even_set)
+        Id_tem=Id_tem+pp'*pp;
+    end
+    @assert norm(Id_tem-unitary(V,V))<1e-10;
     return P_odd_set,P_even_set
 end
 

@@ -36,10 +36,10 @@ y_anti_pbc=true;
 function get_CTM(y_translation)
     chi=40;
     global chi
-    @show filenm="newnewversion_FU_iPESS_LS_D_12_chi_80.jld2";# "newnewversion_stochastic_iPESS_LS_D_8_chi_120.jld2" "newnewversion_FU_iPESS_LS_D_12_chi_80.jld2";
+    @show filenm="newnewversion_stochastic_iPESS_LS_D_8_chi_120.jld2";
+    #@show filenm="newnewversion_FU_iPESS_LS_D_12_chi_80.jld2";
     data=load(filenm);
-    # A=data["x"][1].T;
-    # B=data["x"][2].T;
+
 
     #convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
 
@@ -105,7 +105,7 @@ function get_CTM(y_translation)
             CTM_cell, _, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
         else
             println("load CTM directly")
-            data=load(filenm*"_CTM.jld2";filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell);
+            data=load(filenm*"_CTM.jld2");
             CTM_cell=data["CTM_cell"];
             U_L_cell=data["U_L_cell"];
             U_D_cell=data["U_D_cell"];
@@ -118,7 +118,7 @@ function get_CTM(y_translation)
             CTM_cell_tran, _, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran,ite_num,ite_err=Fermionic_CTMRG_cell_y_translate(A_cell,chi,init, init_CTM,LS_ctm_setting);
         else
             println("load CTM directly")
-            data=load(filenm*"_CTM_tran.jld2";filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell);
+            data=load(filenm*"_CTM_tran.jld2");
             CTM_cell_tran=data["CTM_cell_tran"];
             U_L_cell_tran=data["U_L_cell_tran"];
             U_D_cell_tran=data["U_D_cell_tran"];
@@ -273,10 +273,10 @@ TL1_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
 TL1_even_set=Vector{TensorMap}(undef,length(P_evena_set));
 TL8_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
 TL8_even_set=Vector{TensorMap}(undef,length(P_evena_set));
-TR1_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
-TR1_even_set=Vector{TensorMap}(undef,length(P_evena_set));
-TR8_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
-TR8_even_set=Vector{TensorMap}(undef,length(P_evena_set));
+TR1_odd_set=Vector{TensorMap}(undef,length(P_oddb_set));
+TR1_even_set=Vector{TensorMap}(undef,length(P_evenb_set));
+TR8_odd_set=Vector{TensorMap}(undef,length(P_oddb_set));
+TR8_even_set=Vector{TensorMap}(undef,length(P_evenb_set));
 for cc=1:length(P_odda_set)
     @tensor TL1_[:]:=TL1[-1,-2,-3,1]*P_odda_set[cc][-4,1];
     TL1_odd_set[cc]=TL1_;
@@ -350,7 +350,35 @@ function vr_ML_MR(vr0,  TL_set,TR_set, gate_middle_set)
 
     TL1_set,TL23,TL45,TL67,TL8_set=TL_set;
     TR1_set,TR23,TR45,TR67,TR8_set=TR_set;
-    vr=deepcopy(vr0)*0;
+    # vr1=deepcopy(vr0)*0;
+
+    vr1=TensorMap(randn, space(TR1_set[1][1],1)*space(TR23,1)*space(TR45,1)*space(TR67,1)*space(TR8_set[1][1],1),space(vr0,6)');
+    vr1=permute(vr1,(1,2,3,4,5,6,))*0;
+
+    for cb=1:2#parity of index U in MR
+        TR1_te=deepcopy(TR1_set[cb]);
+        TR23_tem=deepcopy(TR23);
+        TR45_tem=deepcopy(TR45);
+        TR67_tem=deepcopy(TR67);
+        TR8_te=deepcopy(TR8_set[cb]);
+        for cbb=1:length(TR1_set[cb])
+            TR1_tem=TR1_te[cbb];
+            TR8_tem=TR8_te[cbb];
+            if mod(cb,2)==1
+                @tensor TR1_tem[:]:=TR1_tem[1,-2,-3,-4]*gate_middle_set[1]'[1,-1];
+                @tensor TR23_tem[:]:=TR23_tem[1,-2,-3,-4]*gate_middle_set[2]'[1,-1];
+                @tensor TR45_tem[:]:=TR45_tem[1,-2,-3,-4]*gate_middle_set[3]'[1,-1];
+                @tensor TR67_tem[:]:=TR67_tem[1,-2,-3,-4]*gate_middle_set[4]'[1,-1];
+            end
+
+            #@show cbb
+            @tensor vr_temp[:]:=TR1_tem[-1,2,1,10]*TR23_tem[-2,4,3,2]*TR45_tem[-3,6,5,4]*TR67_tem[-4,8,7,6]*TR8_tem[-5,10,9,8]*vr0[1,3,5,7,9,-6];
+            vr1=vr1+vr_temp;
+            flush(stdout);
+        end
+    end
+
+    vr2=deepcopy(vr0)*0;
     for ca=1:2#parity of index U in ML
         TL1_te=deepcopy(TL1_set[ca]);
         TL23_tem=deepcopy(TL23);
@@ -366,32 +394,13 @@ function vr_ML_MR(vr0,  TL_set,TR_set, gate_middle_set)
                 @tensor TL45_tem[:]:=TL45_tem[-1,-2,1,-4]*gate_middle_set[3][-3,1];
                 @tensor TL67_tem[:]:=TL67_tem[-1,-2,1,-4]*gate_middle_set[4][-3,1];
             end
-            for cb=1:2#parity of index U in MR
-                TR1_te=deepcopy(TR1_set[cb]);
-                TR23_tem=deepcopy(TR23);
-                TR45_tem=deepcopy(TR45);
-                TR67_tem=deepcopy(TR67);
-                TR8_te=deepcopy(TR8_set[cb]);
-                for cbb=1:length(TR1_set[cb])
-                    TR1_tem=TR1_te[cbb];
-                    TR8_tem=TR8_te[cbb];
-                    if mod(cb,2)==1
-                        @tensor TR1_tem[:]:=TR1_tem[1,-2,-3,-4]*gate_middle_set[1]'[1,-1];
-                        @tensor TR23_tem[:]:=TR23_tem[1,-2,-3,-4]*gate_middle_set[2]'[1,-1];
-                        @tensor TR45_tem[:]:=TR45_tem[1,-2,-3,-4]*gate_middle_set[3]'[1,-1];
-                        @tensor TR67_tem[:]:=TR67_tem[1,-2,-3,-4]*gate_middle_set[4]'[1,-1];
-                    end
-
-                    @show cbb
-                    @time @tensor vr_temp[:]:=TR1_tem[-1,2,1,10]*TR23_tem[-2,4,3,2]*TR45_tem[-3,6,5,4]*TR67_tem[-4,8,7,6]*TR8_tem[-5,10,9,8]*vr0[1,3,5,7,9,-6];
-                    @tensor vr_temp[:]:=TL1_tem[-1,2,1,10]*TL23_tem[-2,4,3,2]*TL45_tem[-3,6,5,4]*TL67_tem[-4,8,7,6]*TL8_tem[-5,10,9,8]*vr_temp[1,3,5,7,9,-6];
-                    vr=vr+vr_temp;
-                    flush(stdout);
-                end
-            end
+            #@show caa
+            @tensor vr_temp[:]:=TL1_tem[-1,2,1,10]*TL23_tem[-2,4,3,2]*TL45_tem[-3,6,5,4]*TL67_tem[-4,8,7,6]*TL8_tem[-5,10,9,8]*vr1[1,3,5,7,9,-6];
+            vr2=vr2+vr_temp;
+            flush(stdout);
         end
     end
-    return vr
+    return vr2
 end
 
 
@@ -406,6 +415,7 @@ Spin=Vector{Float64}(undef,0);
 for ss=S_ind:S_ind#1:length(Spin_set)
     v_init=TensorMap(randn, space(TL1,1)*fuse(space(TL2,1)*space(TL3,1))*fuse(space(TL4,1)*space(TL5,1))*fuse(space(TL6,1)*space(TL7,1))*space(TL8,1),Rep[SU₂](Spin_set[ss]=>1));
     v_init=permute(v_init,(1,2,3,4,5,6,),());#L1,L2,L3,L4,dummy
+
     memory=Base.summarysize(v_init)/1024/1024/1024;
     println("Memory cost for a single vector: "*string(memory)*" GB.")
     if norm(v_init)==0
@@ -414,7 +424,7 @@ for ss=S_ind:S_ind#1:length(Spin_set)
     contraction_fun_R(x)=vr_ML_MR(x, TL_set,TR_set, gate_middle_set);
     @time contraction_fun_R(v_init);flush(stdout);
     @time contraction_fun_R(v_init);flush(stdout);
-    @time eu0,ev=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+20));
+    @time eu0,ev=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+2));
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
     for cc=1:length(eu0)

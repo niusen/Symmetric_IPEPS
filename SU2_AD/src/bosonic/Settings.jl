@@ -212,3 +212,40 @@ function TensorMap_to_DiagonalTensorMap(t::TensorMap)
     end
     return d
 end
+
+
+
+
+
+function distribute_workers(N_terms,ntask)
+    if N_terms<ntask
+        group_ind=Matrix{Int}(undef,N_terms,2);
+        for cc=1:N_terms
+            group_ind[cc,1]=cc;
+            group_ind[cc,2]=cc;
+        end
+        return group_ind
+    else
+
+        @show length_set=Int(floor(N_terms/ntask))*ones(Int64,ntask);
+        extra=N_terms-sum(length_set);
+        for cc=1:extra
+            length_set[cc]=length_set[cc]+1
+        end
+        @assert sum(length_set)==N_terms;
+
+        group_ind=Matrix{Int64}(undef,ntask,2);
+        total=0;
+        for cc=1:ntask
+            group_ind[cc,:]=[sum(length_set[1:cc-1])+1,sum(length_set[1:cc])];
+        end
+        #verify
+        total=Vector{Int}(undef,0);
+        for cc=1:size(group_ind,1)
+            @assert group_ind[cc,1]<=group_ind[cc,2]
+            total=vcat(total,Vector(group_ind[cc,1]:group_ind[cc,2]));
+        end
+        @assert sort(total)==sort(1:N_terms);
+        return group_ind
+    end
+end

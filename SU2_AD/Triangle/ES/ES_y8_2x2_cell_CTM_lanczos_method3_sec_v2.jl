@@ -350,71 +350,53 @@ function vr_ML_MR(vr0,  TL_set,TR_set, gate_middle_set)
 
     TL1_set,TL23,TL45,TL67,TL8_set=TL_set;
     TR1_set,TR23,TR45,TR67,TR8_set=TR_set;
-    # vr1=deepcopy(vr0)*0;
-
-    vr1=TensorMap(randn, space(TR1_set[1][1],1)*space(TR23,1)*space(TR45,1)*space(TR67,1)*space(TR8_set[1][1],1),space(vr0,6)');
-    vr1=permute(vr1,(1,2,3,4,5,6,))*0;
-
-    for cb=1:2#parity of index U in MR
-        TR1_te=deepcopy(TR1_set[cb]);
-        TR23_tem=deepcopy(TR23);
-        TR45_tem=deepcopy(TR45);
-        TR67_tem=deepcopy(TR67);
-        TR8_te=deepcopy(TR8_set[cb]);
-
-        if mod(cb,2)==1
-            @tensor TR23_tem[:]:=TR23_tem[1,-2,-3,-4]*gate_middle_set[2]'[1,-1];
-            @tensor TR45_tem[:]:=TR45_tem[1,-2,-3,-4]*gate_middle_set[3]'[1,-1];
-            @tensor TR67_tem[:]:=TR67_tem[1,-2,-3,-4]*gate_middle_set[4]'[1,-1];
-        end
-        for cbb=1:length(TR1_set[cb])
-            TR8_tem=TR8_te[cbb];
-            if mod(cb,2)==1
-                @tensor TR1_tem[:]:=TR1_te[cbb][1,-2,-3,-4]*gate_middle_set[1]'[1,-1];
-            else
-                TR1_tem=TR1_te[cbb];
-            end
-
-            #@show cbb
-            @tensor vr_temp[:]:=TR1_tem[-1,2,1,10]*TR23_tem[-2,4,3,2]*TR45_tem[-3,6,5,4]*TR67_tem[-4,8,7,6]*TR8_tem[-5,10,9,8]*vr0[1,3,5,7,9,-6];
-            vr1=vr1+vr_temp;
-            flush(stdout);
-        end
-    end
-
-    vr2=deepcopy(vr0)*0;
+    vr=deepcopy(vr0)*0;
     for ca=1:2#parity of index U in ML
         TL1_te=deepcopy(TL1_set[ca]);
         TL23_tem=deepcopy(TL23);
         TL45_tem=deepcopy(TL45);
         TL67_tem=deepcopy(TL67);
         TL8_te=deepcopy(TL8_set[ca]);
-
-        if mod(ca,2)==1
-            @tensor TL23_tem[:]:=TL23_tem[-1,-2,1,-4]*gate_middle_set[2][-3,1];
-            @tensor TL45_tem[:]:=TL45_tem[-1,-2,1,-4]*gate_middle_set[3][-3,1];
-            @tensor TL67_tem[:]:=TL67_tem[-1,-2,1,-4]*gate_middle_set[4][-3,1];
-        end
         for caa=1:length(TL1_te)
+            TL1_tem=TL1_te[caa];
             TL8_tem=TL8_te[caa];
             if mod(ca,2)==1
-                @tensor TL1_tem[:]:=TL1_te[caa][-1,-2,1,-4]*gate_middle_set[1][-3,1];
-            else
-                TL1_tem=TL1_te[caa];
+                @tensor TL1_tem[:]:=TL1_tem[-1,-2,1,-4]*gate_middle_set[1][-3,1];
+                @tensor TL23_tem[:]:=TL23_tem[-1,-2,1,-4]*gate_middle_set[2][-3,1];
+                @tensor TL45_tem[:]:=TL45_tem[-1,-2,1,-4]*gate_middle_set[3][-3,1];
+                @tensor TL67_tem[:]:=TL67_tem[-1,-2,1,-4]*gate_middle_set[4][-3,1];
             end
-            #@show caa
-            @tensor vr_temp[:]:=TL1_tem[-1,2,1,10]*TL23_tem[-2,4,3,2]*TL45_tem[-3,6,5,4]*TL67_tem[-4,8,7,6]*TL8_tem[-5,10,9,8]*vr1[1,3,5,7,9,-6];
-            vr2=vr2+vr_temp;
-            flush(stdout);
+            for cb=1:2#parity of index U in MR
+                TR1_te=deepcopy(TR1_set[cb]);
+                TR23_tem=deepcopy(TR23);
+                TR45_tem=deepcopy(TR45);
+                TR67_tem=deepcopy(TR67);
+                TR8_te=deepcopy(TR8_set[cb]);
+                for cbb=1:length(TR1_set[cb])
+                    TR1_tem=TR1_te[cbb];
+                    TR8_tem=TR8_te[cbb];
+                    if mod(cb,2)==1
+                        @tensor TR1_tem[:]:=TR1_tem[1,-2,-3,-4]*gate_middle_set[1]'[1,-1];
+                        @tensor TR23_tem[:]:=TR23_tem[1,-2,-3,-4]*gate_middle_set[2]'[1,-1];
+                        @tensor TR45_tem[:]:=TR45_tem[1,-2,-3,-4]*gate_middle_set[3]'[1,-1];
+                        @tensor TR67_tem[:]:=TR67_tem[1,-2,-3,-4]*gate_middle_set[4]'[1,-1];
+                    end
+
+                    @show cbb
+                    @time @tensor vr_temp[:]:=TR1_tem[-1,2,1,10]*TR23_tem[-2,4,3,2]*TR45_tem[-3,6,5,4]*TR67_tem[-4,8,7,6]*TR8_tem[-5,10,9,8]*vr0[1,3,5,7,9,-6];
+                    @tensor vr_temp[:]:=TL1_tem[-1,2,1,10]*TL23_tem[-2,4,3,2]*TL45_tem[-3,6,5,4]*TL67_tem[-4,8,7,6]*TL8_tem[-5,10,9,8]*vr_temp[1,3,5,7,9,-6];
+                    vr=vr+vr_temp;
+                    flush(stdout);
+                end
+            end
         end
     end
-    return vr2
+    return vr
 end
 
 
 Spin_set=[0,1/2,1,3/2,2,5/2];
-#n_Es=[50,60,30,30,10,10];
-n_Es=[10,10,10,10,10,10];
+n_Es=[50,60,30,30,10,10];
 eu=Vector{ComplexF64}(undef,0);
 k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
@@ -424,7 +406,6 @@ Spin=Vector{Float64}(undef,0);
 for ss=S_ind:S_ind#1:length(Spin_set)
     v_init=TensorMap(randn, space(TL1,1)*fuse(space(TL2,1)*space(TL3,1))*fuse(space(TL4,1)*space(TL5,1))*fuse(space(TL6,1)*space(TL7,1))*space(TL8,1),Rep[SU₂](Spin_set[ss]=>1));
     v_init=permute(v_init,(1,2,3,4,5,6,),());#L1,L2,L3,L4,dummy
-
     memory=Base.summarysize(v_init)/1024/1024/1024;
     println("Memory cost for a single vector: "*string(memory)*" GB.")
     if norm(v_init)==0

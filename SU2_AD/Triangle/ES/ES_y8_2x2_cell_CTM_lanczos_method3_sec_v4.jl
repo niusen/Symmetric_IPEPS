@@ -9,7 +9,7 @@ using Zygote:@ignore_derivatives
 @everywhere using TensorKit
 using KrylovKit
 using JSON
-using HDF5, JLD2, MAT
+using HDF5, JLD2, MAT, Random
 cd(@__DIR__)
 
 
@@ -465,7 +465,7 @@ function vr_ML_MR(vr0,  TL_set,TR_set, gate_middle_set)
             end
         end
         vr2_ca=sum(fetch.(vr2_comps));
-        vr2=vr2+vr1_ca;
+        vr2=vr2+vr2_ca;
 
 
     end
@@ -484,6 +484,7 @@ Spin=Vector{Float64}(undef,0);
 @show S_ind=1;
 
 for ss=S_ind:S_ind#1:length(Spin_set)
+    Random.seed!(1234)
     v_init=TensorMap(randn, space(TL1,1)*fuse(space(TL2,1)*space(TL3,1))*fuse(space(TL4,1)*space(TL5,1))*fuse(space(TL6,1)*space(TL7,1))*space(TL8,1),Rep[SU₂](Spin_set[ss]=>1));
     v_init=permute(v_init,(1,2,3,4,5,6,),());#L1,L2,L3,L4,dummy
 
@@ -493,15 +494,21 @@ for ss=S_ind:S_ind#1:length(Spin_set)
         continue;
     end
     contraction_fun_R(x)=vr_ML_MR(x, TL_set,TR_set, gate_middle_set);
+    @time v_1step=contraction_fun_R(v_init);flush(stdout);
+
+    jldsave("test2.jld2";v_init,v_1step,TL_set,TR_set,gate_middle_set);
+    error("stop")
+
     @time contraction_fun_R(v_init);flush(stdout);
-    @time contraction_fun_R(v_init);flush(stdout);
-    @time eu0,ev=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+2));
+    @time eu0,ev,info=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+2);tol=norm(v_1step)/norm(v_init)*1e-6,eager=true);
+    @show info
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
     for cc=1:length(eu0)
         ks[cc]=eu0[cc]/abs(eu0[cc]);
         spins[cc]=Spin_set[ss];
     end
+    @show eu0
     # eu=vcat(eu,eu0);
     # k_phase=vcat(k_phase,ks);
     # Spin=vcat(Spin,spins);

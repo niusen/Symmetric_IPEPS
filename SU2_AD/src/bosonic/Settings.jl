@@ -227,7 +227,7 @@ function distribute_workers(N_terms,ntask)
         return group_ind
     else
 
-        @show length_set=Int(floor(N_terms/ntask))*ones(Int64,ntask);
+        length_set=Int(floor(N_terms/ntask))*ones(Int64,ntask);
         extra=N_terms-sum(length_set);
         for cc=1:extra
             length_set[cc]=length_set[cc]+1

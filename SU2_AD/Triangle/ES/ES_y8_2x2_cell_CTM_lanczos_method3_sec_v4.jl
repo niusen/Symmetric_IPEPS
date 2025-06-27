@@ -482,7 +482,7 @@ eu=Vector{ComplexF64}(undef,0);
 k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 
-@show S_ind=3;
+@show S_ind=5;
 
 for ss=S_ind:S_ind#1:length(Spin_set)
     Random.seed!(1234)

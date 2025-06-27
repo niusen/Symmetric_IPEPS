@@ -54,13 +54,7 @@ end
 end
 
 ##########################
-
-let
-complete_divide=true;
-force_redo_CTMRG=false;
-global y_anti_pbc,D,chi
-y_anti_pbc=true;
-function get_CTM(y_translation)
+function get_CTM(y_translation,force_redo_CTMRG)
     chi=40;
     global chi
     @show filenm="newnewversion_stochastic_iPESS_LS_D_8_chi_120.jld2";
@@ -155,13 +149,20 @@ function get_CTM(y_translation)
         return filenm, CTM_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran
     end
 end
+
+function main()
+complete_divide=true;
+force_redo_CTMRG=false;
+global y_anti_pbc,D,chi
+y_anti_pbc=true;
+
 #############################
 
 y_translation=false;
-filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation);
+filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation,force_redo_CTMRG);
 jldsave(filenm*"_CTM.jld2";filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell);
 y_translation=true;
-filenm, CTM_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran=get_CTM(y_translation);
+filenm, CTM_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran=get_CTM(y_translation,force_redo_CTMRG);
 jldsave(filenm*"_CTM_tran.jld2";filenm, CTM_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran);
 #############################
 #get T tensors
@@ -475,13 +476,13 @@ end
 
 
 Spin_set=[0,1/2,1,3/2,2,5/2];
-#n_Es=[50,60,30,30,10,10];
-n_Es=[10,10,10,10,10,10];
+n_Es=[50,40,40,20,20,10];
+#n_Es=[10,10,10,10,10,10];
 eu=Vector{ComplexF64}(undef,0);
 k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 
-@show S_ind=1;
+@show S_ind=3;
 
 for ss=S_ind:S_ind#1:length(Spin_set)
     Random.seed!(1234)
@@ -496,11 +497,11 @@ for ss=S_ind:S_ind#1:length(Spin_set)
     contraction_fun_R(x)=vr_ML_MR(x, TL_set,TR_set, gate_middle_set);
     @time v_1step=contraction_fun_R(v_init);flush(stdout);
 
-    jldsave("test2.jld2";v_init,v_1step,TL_set,TR_set,gate_middle_set);
-    error("stop")
+    # jldsave("test2.jld2";v_init,v_1step,TL_set,TR_set,gate_middle_set);
+    # error("stop")
 
     @time contraction_fun_R(v_init);flush(stdout);
-    @time eu0,ev,info=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+2);tol=norm(v_1step)/norm(v_init)*1e-6,eager=true);
+    @time eu0,ev,info=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]*2,tol=norm(v_1step)/norm(v_init)*1e-6,eager=true));
     @show info
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
@@ -549,3 +550,5 @@ end
 
 
 end
+
+main()

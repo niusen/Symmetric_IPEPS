@@ -29,15 +29,12 @@ Base.Sys.set_process_title("C"*string(n_cpu)*"_ES")
 pid=getpid();
 println("pid="*string(pid));
 
-let
-global y_anti_pbc,D,chi
-y_anti_pbc=false;
-function get_CTM(y_translation)
+function get_CTM(y_translation,force_redo_CTMRG)
     global chi
     chi=40;
 
-    
-    @show filenm="newnewversion_FU_iPESS_LS_D_12_chi_80.jld2";
+    #@show filenm="newnewversion_stochastic_iPESS_LS_D_8_chi_120.jld2";
+    @show filenm="newnewversion_FU_iPESS_LS_D_10_chi_80.jld2";
     data=load(filenm);
     # A=data["x"][1].T;
     # B=data["x"][2].T;
@@ -102,20 +99,59 @@ function get_CTM(y_translation)
 
     
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    if y_translation
-        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_y_translate(A_cell,chi,init, init_CTM,LS_ctm_setting);
-    else
-        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    # if y_translation
+    #     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_y_translate(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    # else
+    #     CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    # end
+    # return CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
+    if y_translation==false
+        if (force_redo_CTMRG==true)|(isfile(filenm*"_CTM.jld2")==false)
+            CTM_cell, _, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+        else
+            println("load CTM directly")
+            data=load(filenm*"_CTM.jld2");
+            CTM_cell=data["CTM_cell"];
+            U_L_cell=data["U_L_cell"];
+            U_D_cell=data["U_D_cell"];
+            U_R_cell=data["U_R_cell"];
+            U_U_cell=data["U_U_cell"];
+        end
+        return filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
+    elseif y_translation==true
+        if (force_redo_CTMRG==true)|(isfile(filenm*"_CTM_tran.jld2")==false)
+            CTM_cell_tran, _, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran,ite_num,ite_err=Fermionic_CTMRG_cell_y_translate(A_cell,chi,init, init_CTM,LS_ctm_setting);
+        else
+            println("load CTM directly")
+            data=load(filenm*"_CTM_tran.jld2");
+            CTM_cell_tran=data["CTM_cell_tran"];
+            U_L_cell_tran=data["U_L_cell_tran"];
+            U_D_cell_tran=data["U_D_cell_tran"];
+            U_R_cell_tran=data["U_R_cell_tran"];
+            U_U_cell_tran=data["U_U_cell_tran"];
+        end
+        return filenm, CTM_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran
     end
-    return CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
 end
+
+function main()
+force_redo_CTMRG=false;
+global y_anti_pbc,D,chi,Lx,Ly
+y_anti_pbc=false;
+
 #############################
 
-y_translation=false;
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation);
-y_translation=true;
-CTM_cell_tran, AA_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran=get_CTM(y_translation);
+# y_translation=false;
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation);
+# y_translation=true;
+# CTM_cell_tran, AA_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran=get_CTM(y_translation);
 
+y_translation=false;
+filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation,force_redo_CTMRG);
+jldsave(filenm*"_CTM.jld2";filenm, CTM_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell);
+y_translation=true;
+filenm, CTM_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran=get_CTM(y_translation,force_redo_CTMRG);
+jldsave(filenm*"_CTM_tran.jld2";filenm, CTM_cell_tran, U_L_cell_tran,U_D_cell_tran,U_R_cell_tran,U_U_cell_tran);
 #############################
 #get T tensors
 ca=1;
@@ -223,10 +259,10 @@ TL1_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
 TL1_even_set=Vector{TensorMap}(undef,length(P_evena_set));
 TL6_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
 TL6_even_set=Vector{TensorMap}(undef,length(P_evena_set));
-TR1_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
-TR1_even_set=Vector{TensorMap}(undef,length(P_evena_set));
-TR6_odd_set=Vector{TensorMap}(undef,length(P_odda_set));
-TR6_even_set=Vector{TensorMap}(undef,length(P_evena_set));
+TR1_odd_set=Vector{TensorMap}(undef,length(P_oddb_set));
+TR1_even_set=Vector{TensorMap}(undef,length(P_evenb_set));
+TR6_odd_set=Vector{TensorMap}(undef,length(P_oddb_set));
+TR6_even_set=Vector{TensorMap}(undef,length(P_evenb_set));
 for cc=1:length(P_odda_set)
     @tensor TL1_[:]:=TL1[-1,-2,-3,1]*P_odda_set[cc][-4,1];
     TL1_odd_set[cc]=TL1_;
@@ -355,7 +391,8 @@ for ss=S_ind:S_ind#1:length(Spin_set)
     contraction_fun_R(x)=vr_ML_MR(x, TL_set,TR_set, gate_middle_set);
     @time contraction_fun_R(v_init);flush(stdout);
     @time contraction_fun_R(v_init);flush(stdout);
-    @time eu0,ev=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+20));
+    @time eu0,ev,info=eigsolve(contraction_fun_R, v_init, n_Es[ss],:LM,Arnoldi(krylovdim=n_Es[ss]+20));
+    @show info
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
     for cc=1:length(eu0)
@@ -383,3 +420,6 @@ end
 
 
 end
+
+
+main()

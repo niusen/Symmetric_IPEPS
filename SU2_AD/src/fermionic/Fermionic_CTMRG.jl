@@ -236,6 +236,20 @@ function init_CTM_swap(chi,A,AA_fused, U_L,U_D,U_R,U_U,type,CTM_ite_info)
         CTM=CTM_struc(Cset,Tset)
 
     elseif type=="random"
+        C1=TensorMap(randn,space(AA_fused,2),space(AA_fused,3)')
+        C2=TensorMap(randn,space(AA_fused,1),space(AA_fused,2)')
+        C3=TensorMap(randn,space(AA_fused,4),space(AA_fused,1)')
+        C4=TensorMap(randn,space(AA_fused,3),space(AA_fused,4)')
+
+        T4=TensorMap(randn,space(AA_fused,2)*space(AA_fused,3),space(AA_fused,4)')
+        T1=TensorMap(randn,space(AA_fused,1)*space(AA_fused,2),space(AA_fused,3)')
+        T2=TensorMap(randn,space(AA_fused,4)*space(AA_fused,1),space(AA_fused,2)')
+        T3=TensorMap(randn,space(AA_fused,3)*space(AA_fused,4),space(AA_fused,1)')
+
+        Cset=Cset_struc(C1,C2,C3,C4);
+        Tset=Tset_struc(T1,T2,T3,T4);
+    
+        CTM=CTM_struc(Cset,Tset)
     end
 
     CTM=CTM_struc(Cset, Tset);

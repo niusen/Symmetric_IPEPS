@@ -7,8 +7,8 @@ Pkg.add("TensorKit@0.12.7")
 
 using TensorKit
 using JLD2
-cd("/home/sniu/iPEPS_new/trianlge/U14/iPESS_ES/");
-data=load("FU_iPESS_LS_D_10_chi_80.jld2");
+cd("/home/sniu/iPEPS_new/trianlge/U8/iPESS_ES/");
+data=load("stochastic_iPESS_LS_D_8_chi_120.jld2");
 tt=data["T_set"][1,1]
 
 
@@ -63,12 +63,12 @@ function dict_to_tensor(tm::Matrix)
 end
 
 #save 
-filenm="FU_iPESS_LS_D_12_chi_80.jld2";
+filenm="stochastic_iPESS_LS_D_8_chi_120.jld2";
 data=load(filenm);
 T_set=data["T_set"];
 B_set=data["B_set"];
 
-##for triangle_iPESS structure 
+# #for triangle_iPESS structure 
 # x=data["x"];
 # T_set=Matrix{TensorMap}(undef,2,2);
 # B_set=Matrix{TensorMap}(undef,2,2);

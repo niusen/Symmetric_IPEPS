@@ -865,6 +865,8 @@ function CTM_ite_cell_together_update(Cset_cell, Tset_cell, AA_cell, chi, direct
 end
 
 
+
+
 function init_CTM_cell(chi,A_cell,AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell, type,CTM_ite_info)
     @ignore_derivatives  if CTM_ite_info
         display("initialize CTM")
@@ -888,9 +890,28 @@ function init_CTM_cell(chi,A_cell,AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell, 
         CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
         return CTM_cell
     elseif type=="random"
+        for cx=1:Lx
+            for cy=1:Ly
+                CTM_=init_CTM_swap(chi,A_cell[cx][cy],AA_cell[cx][cy], U_L_cell[cx][cy],U_D_cell[cx][cy],U_R_cell[cx][cy],U_U_cell[cx][cy], "random",false);
+                Cset_cell=fill_tuple(Cset_cell,CTM_.Cset,cx,cy);
+                Tset_cell=fill_tuple(Tset_cell,CTM_.Tset,cx,cy);
+            end
+        end
+        CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
+        return CTM_cell
     end
 end
 
+function initialize_CTM_translate(chi,A_cell,AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,  init_type,CTM_ite_info)
+    try
+        CTM_cell= init_CTM_cell(chi,A_cell,AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,  init_type,CTM_ite_info);
+        return CTM_cell
+    catch e
+        println("Constructing initial CTM with double layer tensor fail, then use random tensor.")
+        CTM_cell= init_CTM_cell(chi,A_cell,AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,  "random",CTM_ite_info);
+        return CTM_cell
+    end
+end
 
 function Fermionic_CTMRG_cell_y_translate(A_cell::Tuple,chi,init,CTM0, ctm_setting) #for computing k in entanglement spectrum
     global Lx,Ly
@@ -940,7 +961,8 @@ function Fermionic_CTMRG_cell_y_translate(A_cell::Tuple,chi,init,CTM0, ctm_setti
     end
 
     if init.reconstruct_CTM
-        CTM_cell= init_CTM_cell(chi,A_cell,AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,  init.init_type,CTM_ite_info);
+        #CTM_cell= init_CTM_cell(chi,A_cell,AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,  init.init_type,CTM_ite_info);
+        CTM_cell= initialize_CTM_translate(chi,A_cell,AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,  init.init_type,CTM_ite_info)
     else
         CTM_cell=deepcopy(CTM0);
     end

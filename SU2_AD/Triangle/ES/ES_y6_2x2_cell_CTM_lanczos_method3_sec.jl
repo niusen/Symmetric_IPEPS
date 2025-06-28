@@ -9,17 +9,17 @@ cd(@__DIR__)
 
 
 
-include("../../../../src/fermionic/swap_funs.jl")
-include("../../../../src/fermionic/fermi_permute.jl")
-include("../../../../src/mps_algorithms/Projector_funs.jl")
-include("../../../../src/bosonic/Settings.jl")
-include("../../../../src/bosonic/Settings_cell.jl")
-include("../../../../src/bosonic/AD_lib.jl")
-include("../../../../src/bosonic/iPEPS_ansatz.jl")
-include("../../../../src/bosonic/CTMRG.jl")
-include("../../../../src/fermionic/Fermionic_CTMRG.jl")
-include("../../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
-include("../../../../src/fermionic/triangle_fiPESS_method.jl")
+include("../../../src/fermionic/swap_funs.jl")
+include("../../../src/fermionic/fermi_permute.jl")
+include("../../../src/mps_algorithms/Projector_funs.jl")
+include("../../../src/bosonic/Settings.jl")
+include("../../../src/bosonic/Settings_cell.jl")
+include("../../../src/bosonic/AD_lib.jl")
+include("../../../src/bosonic/iPEPS_ansatz.jl")
+include("../../../src/bosonic/CTMRG.jl")
+include("../../../src/fermionic/Fermionic_CTMRG.jl")
+include("../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
+include("../../../src/fermionic/triangle_fiPESS_method.jl")
 
 import LinearAlgebra.BLAS as BLAS
 n_cpu=8;
@@ -33,8 +33,8 @@ function get_CTM(y_translation,force_redo_CTMRG)
     global chi
     chi=40;
 
-    #@show filenm="newnewversion_stochastic_iPESS_LS_D_8_chi_120.jld2";
-    @show filenm="newnewversion_FU_iPESS_LS_D_10_chi_80.jld2";
+    @show filenm="newnewversion_stochastic_iPESS_LS_D_8_chi_120.jld2";
+    #@show filenm="newnewversion_FU_iPESS_LS_D_10_chi_100.jld2";
     data=load(filenm);
     # A=data["x"][1].T;
     # B=data["x"][2].T;
@@ -158,15 +158,8 @@ ca=1;
 cb=1;
 TL01=CTM_cell.Tset[ca][cb].T4;
 TR01=CTM_cell_tran.Tset[mod1(ca+1,Lx)][cb].T2;
-U_L=U_L_cell[ca][cb];
-U_R=U_R_cell_tran[ca+1][cb];
-
-cb=2;
-TL02=CTM_cell.Tset[ca][cb].T4;
-TR02=CTM_cell_tran.Tset[mod1(ca+1,Lx)][cb].T2;
-U_L=U_L_cell[ca][cb];
-U_R=U_R_cell_tran[ca+1][cb];
-
+U_L=U_L_cell[ca+1][cb];
+U_R=U_R_cell_tran[ca][cb];
 #############################
 #extra swap gate that was not included when construct double layer tensor
 gate=swap_gate(U_L,2,3);
@@ -176,8 +169,26 @@ gate=swap_gate(U_R,1,2);
 
 @tensor TL01[:]:=TL01[-1,1,-3]*U_R_new'[-2,1]; 
 @tensor TR01[:]:=TR01[-1,1,-3]*U_L_new'[-2,1];
+
+
+
+#############################
+#get T tensors
+cb=2;
+TL02=CTM_cell.Tset[ca][cb].T4;
+TR02=CTM_cell_tran.Tset[mod1(ca+1,Lx)][cb].T2;
+U_L=U_L_cell[ca+1][cb];
+U_R=U_R_cell_tran[ca][cb];
+#############################
+#extra swap gate that was not included when construct double layer tensor
+gate=swap_gate(U_L,2,3);
+@tensor U_L_new[:]:=U_L'[1,2,-1]*gate[1,2,3,4]*U_L[-2,3,4];
+gate=swap_gate(U_R,1,2);
+@tensor U_R_new[:]:=U_R'[-1,1,2]*gate[1,2,3,4]*U_R[3,4,-2];
+
 @tensor TL02[:]:=TL02[-1,1,-3]*U_R_new'[-2,1]; 
 @tensor TR02[:]:=TR02[-1,1,-3]*U_L_new'[-2,1]; 
+
 
 TL01=TL01*10;
 TR01=TR01*10;
@@ -374,7 +385,7 @@ eu=Vector{ComplexF64}(undef,0);
 k_phase=Vector{ComplexF64}(undef,0);
 Spin=Vector{Float64}(undef,0);
 
-@show S_ind=3;
+@show S_ind=5;
 
 
 global Spin_set, n_Es,eu,k_phase,Spin

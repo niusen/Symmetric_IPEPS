@@ -181,6 +181,7 @@ global chi, parameters, energy_setting, grad_ctm_setting
 
 if optim_setting.init_statenm=="nothing"
     V=Rep[SU₄]("1"=>1, "4"=>1, "6"=>1, "4⁺"=>1);
+    V=Rep[SU₄]("1"=>1, "4"=>1, "4⁺"=>1);
     Vp=Rep[SU₄]("4"=>1);
     B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp); 
     # B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS_uniform(Lx,Ly,V,Vp);    
@@ -245,13 +246,17 @@ D_max0=maximum(D0set);
 B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, D_max0, trun_tol);
 
 
+
+point_group_projection
+
+
 tau=20;
 dt=0.1;
 B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
-tau=20;
-dt=0.05;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+# tau=20;
+# dt=0.05;
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.02;
@@ -259,9 +264,9 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting,
 
 
 
-tau=20;
-dt=0.002;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+# tau=20;
+# dt=0.002;
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 

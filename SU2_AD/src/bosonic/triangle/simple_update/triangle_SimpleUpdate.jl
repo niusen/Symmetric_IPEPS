@@ -705,7 +705,7 @@ end
 
 
 
-function gate_RU_LD_RD(energy_setting, parameters,dt, space_type)
+function gate_RU_LD_RD(parameters,energy_setting, dt, space_type)
     Lx=energy_setting.Lx;
     Ly=energy_setting.Ly;
 
@@ -736,7 +736,7 @@ function gate_RU_LD_RD(energy_setting, parameters,dt, space_type)
             ####################
             @tensor hh=J*(SS12+SS23+SS13);
             #################
-            hh=permute(hh,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
+            hh=permute(hh,(1,2,3,),(4,5,6,));#
             @assert norm(hh-hh')/norm(hh)<1e-12;
             @assert norm(hh-permute(hh,(2,3,1,),(5,6,4,)))/norm(hh)<1e-12;
             eu,ev=eigh(hh);

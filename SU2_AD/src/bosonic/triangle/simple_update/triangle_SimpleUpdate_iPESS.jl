@@ -60,9 +60,22 @@ function initial_iPESS(Lx,Ly,V,Vp)
             Tset[ca,cb]=BA;
             Bset[ca,cb]=TA;
             t_A=TA;
-            λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
-            λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
-            λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+            # λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
+            # λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
+            # λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+
+            vv=space(t_A,1)';
+            # λ_A_1=DiagonalTensorMap(ones(dim(vv)),vv);
+            λ_A_1=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+
+            vv=space(t_A,2)';
+            # λ_A_2=DiagonalTensorMap(ones(dim(vv)),vv);
+            λ_A_2=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+
+            vv=space(t_A,3)';
+            # λ_A_3=DiagonalTensorMap(ones(dim(vv)),vv);
+            λ_A_3=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+
             lambdaset1[ca,cb]=λ_A_1;
             lambdaset2[ca,cb]=λ_A_2;
             lambdaset3[ca,cb]=λ_A_3;
@@ -137,8 +150,9 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     T1_T2_B_T3=permute(T1_T2_B_T3,(1,3,2,4,5,6,));# M1_R1, d1, M2_D2, d2, d3, R3_D3
     T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
 
-    T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
+    
 
+    T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
 
     if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         try
@@ -158,8 +172,13 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
         U1,S1,V1=Truncations(U1,S1,V1,D_max,trun_tol);#println(norm(U1*S1*V1-M_old)/norm(M_old))
         U3,S3,V3=tsvd(T1_T2_B_T3,(1,2,3,4,),(5,6,));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
         U3,S3,V3=Truncations(U3,S3,V3,D_max,trun_tol);#println(norm(U3*S3*V3-M_old)/norm(M_old))
+    elseif isa(space(T1,1), GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}})
+        #U,S,V,trunc_err=tsvd(tt;trunc=truncbelow(truncbelow_cutoff) & truncdim(Dmax),alg=TensorKit.SVD());
+        U1,S1,V1=tsvd(permute(T1_T2_B_T3,(1,2,),(3,4,5,6,)); trunc=truncbelow(trun_tol) & truncdim(D_max));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
+        #U1,S1,V1=Truncations(U1,S1,V1,D_max,trun_tol);#println(norm(U1*S1*V1-M_old)/norm(M_old))
+        U3,S3,V3=tsvd(permute(T1_T2_B_T3,(1,2,3,4,),(5,6,)); trunc=truncbelow(trun_tol) & truncdim(D_max));#(M1_R1, d1, M2_D2, d2, M3_new) (M3_new, d3, R3_D3)
+        #U3,S3,V3=Truncations(U3,S3,V3,D_max,trun_tol);#println(norm(U3*S3*V3-M_old)/norm(M_old))
     end
-
 
 
 
@@ -183,8 +202,9 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
         U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
         U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
     elseif isa(space(T1,1), GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}})
-        U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
-        U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
+        #U,S,V,trunc_err=tsvd(tt;trunc=truncbelow(truncbelow_cutoff) & truncdim(Dmax),alg=TensorKit.SVD());
+        U2,S2,V2=tsvd(permute(T1_T2_B_T3,(1,2,),(3,4,5,6,)); trunc=truncbelow(trun_tol) & truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+        #U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
     end
 
     λ_2_new=permute(S2,(2,),(1,));
@@ -306,18 +326,18 @@ end
 
 
 
-function itebd_iPESS(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  tau, dt, Dmax, trun_tol)
+function itebd_iPESS(parameters,energy_setting, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  tau, dt, Dmax, trun_tol)
     tol=dt*1e-3;#for determining convergence 
     println("tau, dt="*string([tau,dt]))
     # println("one step")
     # println(space(T_u))
     # println(space(T_d))
-    Lx,Ly=size(Tset);
+
     lambdaset1_old=deepcopy(lambdaset1);
     lambdaset2_old=deepcopy(lambdaset2);
     lambdaset3_old=deepcopy(lambdaset3);
 
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(Bset[1],1)),Lx);
+    gates_ru_ld_rd=gate_RU_LD_RD(parameters,energy_setting,dt, typeof(space(Bset[1],1)));
 
     for ct=1:Int(round(tau/abs(dt)))
         #println("iteration "*string(ct));flush(stdout)
@@ -351,13 +371,14 @@ function itebd_iPESS_no_Hamiltonian(parameters,energy_setting, Bset, Tset, lambd
     lambdaset1_old=deepcopy(lambdaset1);
     lambdaset2_old=deepcopy(lambdaset2);
     lambdaset3_old=deepcopy(lambdaset3);
-    gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)));
+    gates_ru_ld_rd=gate_RU_LD_RD(parameters,energy_setting, 0, typeof(space(Bset[1],1)));
     #gates_ru_ld_rd=gate_RU_LD_RD(parameters,0, typeof(space(Bset[1],1)),Lx);
 
     for ct=1:10000
         println(ct)
         #println("iteration "*string(ct));flush(stdout)
         Bset, Tset, lambdaset1, lambdaset2, lambdaset3= triangle_update_iPESS(Dmax, ct, Bset, Tset, lambdaset1, lambdaset2, lambdaset3, gates_ru_ld_rd, trun_tol);
+        
         err_1=check_convergence(lambdaset1,lambdaset1_old);
         err_2=check_convergence(lambdaset2,lambdaset2_old);
         err_3=check_convergence(lambdaset3,lambdaset3_old);

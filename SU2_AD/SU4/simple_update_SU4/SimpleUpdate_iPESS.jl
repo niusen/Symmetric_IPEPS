@@ -247,21 +247,21 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters,
 
 tau=20;
 dt=0.1;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.05;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.02;
-#B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
-# tau=20;
-# dt=0.002;
-# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+
+tau=20;
+dt=0.002;
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 

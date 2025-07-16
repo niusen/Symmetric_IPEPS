@@ -79,39 +79,39 @@ function iPESS_to_iPEPS_matrix(A_set::Matrix{Triangle_iPESS})
     return A_cell
 end
 
+##move following part to bosonic iPESS code
+# function to_C3_symmetric_iPESS(B_set,T_set)
+#     B_set=deepcopy(B_set);
+#     T_set=deepcopy(T_set);#M,d,R,D
+#     Lx,Ly=size(B_set);
 
-function to_C3_symmetric_iPESS(B_set,T_set)
-    B_set=deepcopy(B_set);
-    T_set=deepcopy(T_set);#M,d,R,D
-    Lx,Ly=size(B_set);
+#     function C3rotate_B(Bm)
+#         return permute(Bm,(2,3,1,));
+#     end
+#     function C3rotate_T(Tm)
+#         return permute(Tm,(3,2,4,1,));
+#     end
+#     for cx=1:Lx
+#         for cy=1:Ly
+#             Bm=permute(B_set[cx,cy],(1,2,3,));#L,U,M
+#             Tm=permute(T_set[cx,cy],(1,2,3,4,));#MdRD
+#             @assert space(Bm,1)==space(Bm,2)
+#             @assert space(Bm,1)==space(Bm,3)
+#             @assert space(Tm,1)==space(Tm,3)
+#             @assert space(Tm,1)==space(Tm,4)
 
-    function C3rotate_B(Bm)
-        return permute(Bm,(2,3,1,));
-    end
-    function C3rotate_T(Tm)
-        return permute(Tm,(3,2,4,1,));
-    end
-    for cx=1:Lx
-        for cy=1:Ly
-            Bm=permute(B_set[cx,cy],(1,2,3,));#L,U,M
-            Tm=permute(T_set[cx,cy],(1,2,3,4,));#MdRD
-            @assert space(Bm,1)==space(Bm,2)
-            @assert space(Bm,1)==space(Bm,3)
-            @assert space(Tm,1)==space(Tm,3)
-            @assert space(Tm,1)==space(Tm,4)
+#             Bm=Bm+C3rotate_B(Bm)+C3rotate_B(C3rotate_B(Bm));
+#             Tm=Tm+C3rotate_T(Tm)+C3rotate_T(C3rotate_T(Tm));
+#             Bm=permute(Bm,(1,2,),(3,));
+#             Tm=permute(Tm,(1,),(2,3,4,));
 
-            Bm=Bm+C3rotate_B(Bm)+C3rotate_B(C3rotate_B(Bm));
-            Tm=Tm+C3rotate_T(Tm)+C3rotate_T(C3rotate_T(Tm));
-            Bm=permute(Bm,(1,2,),(3,));
-            Tm=permute(Tm,(1,),(2,3,4,));
+#             B_set[cx,cy]=Bm;
+#             T_set[cx,cy]=Tm;
+#         end
+#     end
 
-            B_set[cx,cy]=Bm;
-            T_set[cx,cy]=Tm;
-        end
-    end
-
-    return B_set,T_set
-end
+#     return B_set,T_set
+# end
 
 function to_C3_symmetric_fiPESS(B_set,T_set,k)
     @assert k in (0,1,2,);

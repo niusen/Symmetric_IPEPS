@@ -96,7 +96,7 @@ trun_tol=1e-6;
 
 
 
-chi=40;
+chi=200;
 
 "Unit-cell format:
 ABABAB
@@ -221,7 +221,7 @@ else
 end
 
 
-
+B_set,T_set=to_C3_symmetric_iPESS(B_set,T_set);
 
 
 

@@ -557,6 +557,87 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
 
         E_total=E_total/(Lx*Ly);
         return E_total,  ex_set, ey_set, e_diagonal_set, triangle_right_bot_set, triangle_left_top_set
+    elseif energy_setting.model=="Heisenberg"
+        Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=@ignore_derivatives SUN_spin(energy_setting.N);
+
+        J=parameters["J"];
+        K=parameters["K"];
+        Φ=parameters["Φ"];
+        @assert K==0;
+
+        @tensor P_ij[:]:=Sa[1,2,-1,-3]*Sb[2,1,-2,-4];
+        @tensor P_ijk[:]:=P_123_a[1,2,-1,-4]*P_123_b[2,3,-2,-5]*P_123_c[3,1,-3,-6];
+        @tensor P_kji[:]:=P_132_a[1,2,-1,-4]*P_132_b[2,3,-2,-5]*P_132_c[3,1,-3,-6];
+
+        ex_set=zeros(Lx,Ly)*im;
+        ey_set=zeros(Lx,Ly)*im;
+        e_diagonal_set=zeros(Lx,Ly)*im;
+        triangle_right_bot_set=zeros(Lx,Ly)*im;
+        triangle_left_top_set=zeros(Lx,Ly)*im;
+
+        E_total=0;
+
+  
+        AA_open_cell=initial_tuple_cell(Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                global U_ss
+                AA_open,U_ss=build_double_layer_open(A_cell[cx][cy]);
+                AA_open_cell=fill_tuple(AA_open_cell, AA_open, cx,cy);
+            end
+        end
+
+        @tensor P_ij[:]:=P_ij[1,3,2,4]*U_ss[1,2,-1]*U_ss[3,4,-2];
+        @tensor P_ijk[:]:=P_ijk[1,3,5,2,4,6]*U_ss[1,2,-1]*U_ss[3,4,-2]*U_ss[5,6,-3];
+        @tensor P_kji[:]:=P_kji[1,3,5,2,4,6]*U_ss[1,2,-1]*U_ss[3,4,-2]*U_ss[5,6,-3];
+        
+
+        for cx=1:Lx
+            for cy=1:Ly
+
+                pos_LU=[mod1(cx+1,Lx),mod1(cy+1,Ly)];
+                pos_RU=[mod1(cx+2,Lx),mod1(cy+1,Ly)];
+                pos_LD=[mod1(cx+1,Lx),mod1(cy+2,Ly)];
+                pos_RD=[mod1(cx+2,Lx),mod1(cy+2,Ly)];
+            
+
+                # rho_LD_RD_RU=rho_2x2_LD_RD_RU(CTM_cell,AA_LU,AA_RU_open,AA_LD_open,AA_RD_open,cx,cy);
+                # rho_LD_RU_LU=rho_2x2_LD_RU_LU(CTM_cell,AA_LU_open,AA_RU_open,AA_LD_open,AA_RD,cx,cy);
+                rho_LD_RD_RU=rho_2x2_LD_RD_RU(CTM_cell,AA_cell[pos_LU[1]][pos_LU[2]],AA_open_cell[pos_RU[1]][pos_RU[2]],AA_open_cell[pos_LD[1]][pos_LD[2]],AA_open_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+                rho_LD_RU_LU=rho_2x2_LD_RU_LU(CTM_cell,AA_open_cell[pos_LU[1]][pos_LU[2]],AA_open_cell[pos_RU[1]][pos_RU[2]],AA_open_cell[pos_LD[1]][pos_LD[2]],AA_cell[pos_RD[1]][pos_RD[2]],cx,cy);
+
+                norm_LD_RD_RU=@tensor rho_LD_RD_RU[1,3,5]*U_ss[2,2,1]*U_ss[4,4,3]*U_ss[6,6,5];
+                norm_LD_RU_LU=@tensor rho_LD_RU_LU[1,3,5]*U_ss[2,2,1]*U_ss[4,4,3]*U_ss[6,6,5];
+
+                @tensor rho_LD_RD[:]:=rho_LD_RD_RU[-1,-2,1]*U_ss[2,2,1];
+                @tensor rho_RD_RU[:]:=rho_LD_RD_RU[1,-1,-2]*U_ss[2,2,1];
+                @tensor rho_RU_LD[:]:=rho_LD_RD_RU[-2,1,-1]*U_ss[2,2,1];
+
+                ex=@tensor rho_LD_RD[1,2]*P_ij[1,2];
+                ey=@tensor rho_RD_RU[1,2]*P_ij[1,2];
+                e_diagonal=@tensor rho_RU_LD[1,2]*P_ij[1,2];
+                triangle_right_bot=@tensor rho_LD_RD_RU[1,2,3]*P_ijk[1,2,3];
+                triangle_left_top=@tensor rho_LD_RU_LU[1,2,3]*P_ijk[1,2,3];
+
+                ex=ex/norm_LD_RD_RU;
+                ey=ey/norm_LD_RD_RU;
+                e_diagonal=e_diagonal/norm_LD_RD_RU;
+                triangle_right_bot=triangle_right_bot/norm_LD_RD_RU;
+                triangle_left_top=triangle_left_top/norm_LD_RU_LU;
+
+                @ignore_derivatives ex_set[cx,cy]=ex;
+                @ignore_derivatives ey_set[cx,cy]=ey;
+                @ignore_derivatives e_diagonal_set[cx,cy]=e_diagonal;
+                @ignore_derivatives triangle_right_bot_set[cx,cy]=triangle_right_bot;
+                @ignore_derivatives triangle_left_top_set[cx,cy]=triangle_left_top;
+
+                E_total=E_total+J*real(ex+ey+e_diagonal) +3*K*cos(Φ)*real(triangle_left_top+triangle_left_top'+triangle_right_bot+triangle_right_bot') +3*K*sin(Φ)*imag(im*triangle_left_top-im*triangle_left_top'+im*triangle_right_bot-im*triangle_right_bot');
+                
+            end
+        end
+
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_set, ey_set, e_diagonal_set, triangle_right_bot_set, triangle_left_top_set
     end
 end
 

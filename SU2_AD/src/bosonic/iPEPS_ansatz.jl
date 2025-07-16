@@ -141,6 +141,14 @@ Base.@kwdef mutable struct Square_2site_Energy_settings
 end
 
 
+Base.@kwdef mutable struct Triangle_SUN_Spin_settings
+    model :: String = "Heisenberg"
+    N :: Int=2
+    Lx :: Int =1
+    Ly :: Int =1
+end
+
+
 
 
 

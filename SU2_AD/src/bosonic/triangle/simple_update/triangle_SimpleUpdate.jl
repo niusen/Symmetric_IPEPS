@@ -700,3 +700,49 @@ function itebd(parameters, Tset, lambdaxset,lambdayset,  tau,dt, Dmax)
     return Tset, lambdaxset,lambdayset
 end
 
+
+
+
+
+
+function gate_RU_LD_RD(energy_setting, parameters,dt, space_type)
+    Lx=energy_setting.Lx;
+    Ly=energy_setting.Ly;
+
+    @assert energy_setting.model in ("Heisenberg",)
+    if space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+        #Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_SU2();
+    elseif space_type==GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}} 
+        Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=SUN_spin(energy_setting.N);
+    end
+    
+    J=parameters["J"];
+    K=parameters["K"];
+    Φ=parameters["Φ"];
+
+    @assert K==0;#Heisenberg model
+
+    Id=unitary(space(Sa,3),space(Sa,3));
+    @tensor SS[:]:=Sa[1,2,-1,-2]*Sb[2,1,-3,-4];
+
+    @tensor SS12[:]:=SS[-1,-4,-2,-5]*Id[-3,-6];
+    @tensor SS13[:]:=SS[-1,-4,-3,-6]*Id[-2,-5];
+    @tensor SS23[:]:=SS[-2,-5,-3,-6]*Id[-1,-4];
+
+
+    gate_set=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx;
+        for cy=1:Ly
+            ####################
+            @tensor hh=J*(SS12+SS23+SS13);
+            #################
+            hh=permute(hh,(1,2,3,),(4,5,6,));#hh_tx+hh_ty+hh_t2+hh_U
+            @assert norm(hh-hh')/norm(hh)<1e-12;
+            @assert norm(hh-permute(hh,(2,3,1,),(5,6,4,)))/norm(hh)<1e-12;
+            eu,ev=eigh(hh);
+            gate=ev*exp(-dt*eu)*ev';
+            gate_set[cx,cy]=gate;
+        end
+    end
+    return gate_set
+end

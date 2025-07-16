@@ -96,15 +96,15 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     # T3=|M3, d3><D3, R3|=|M3, d3><|R3, D3 
     # """
 
-    T1=permute_neighbour_ind(T1,2,3,4);#M1, R1, d1,  D1
+    T1=permute(T1,(1,3,2,4,));#M1, R1, d1,  D1
     Ut1=unitary(fuse(space(T1,1)*space(T1,2)), space(T1,1)*space(T1,2));
     @tensor T1[:]:=Ut1[-1,1,2]*T1[1,2,-2,-3];#M1_R1, d1,  D1
     uu,ss,vv=tsvd(permute(T1,(1,),(2,3,)));
     T1_res=uu;
     T1_keep=ss*vv;
 
-    T2=permute_neighbour_ind(T2,3,4,4);#M2, d2, D2, R2
-    T2=permute_neighbour_ind(T2,2,3,4);#M2, D2, d2, R2
+    T2=permute(T2,(1,2,4,3));#M2, d2, D2, R2
+    T2=permute(T2,(1,3,2,4,));#M2, D2, d2, R2
     Ut2=unitary(fuse(space(T2,1)*space(T2,2)), space(T2,1)*space(T2,2));
     @tensor T2[:]:=Ut2[-1,1,2]*T2[1,2,-2,-3];#M2_D2, d2, R2
     uu,ss,vv=tsvd(permute(T2,(1,),(2,3,)));
@@ -119,22 +119,22 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     T3_res=vv;
 
     @tensor T2_B[:]:=T2_keep[-1,-2,1]*B[1,-3,-4];     #(M2_D2, d2, R2),  (R2, D1, M3) => (M2_D2, d2, D1, M3)
-    T2_B=permute_neighbour_ind(T2_B,2,3,4);#(M2_D2, D1, d2, M3)
-    T2_B=permute_neighbour_ind(T2_B,1,2,4);#(D1, M2_D2, d2, M3)
+    T2_B=permute(T2_B,(1,3,2,4,));#(M2_D2, D1, d2, M3)
+    T2_B=permute(T2_B,(2,1,3,4,));#(D1, M2_D2, d2, M3)
     @tensor T1_T2_B[:]:=T1_keep[-1,-2,1]*T2_B[1,-3,-4,-5];#(M1_R1, d1,  D1), (D1, M2_D2, d2, M3) => (M1_R1, d1, M2_D2, d2, M3)
 
     @tensor T1_T2_B_T3[:]:=T1_T2_B[-1,-2,-3,-4,1]*T3_keep[1,-5,-6];#(M1_R1, d1, M2_D2, d2, M3), (M3, d3, R3_D3) => (M1_R1, d1, M2_D2, d2, d3, R3_D3)
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, M2_D2, d1, d2, d3, R3_D3
+    T1_T2_B_T3=permute(T1_T2_B_T3,(1,3,2,4,5,6,));# M1_R1, M2_D2, d1, d2, d3, R3_D3
 
     #d2',d3',d1', d2,d3,d1
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,5,6,6);#d2',d3',d1', d2,d1,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,4,5,6);#d2',d3',d1', d1,d2,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,2,3,6);#d2',d1',d3', d1,d2,d3
-    op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,1,2,6);#d1',d2',d3', d1,d2,d3
+    op_LD_RD_RU=permute(op_LD_RD_RU,(1,2,3,4,6,5,));#d2',d3',d1', d2,d1,d3
+    op_LD_RD_RU=permute(op_LD_RD_RU,(1,2,3,5,4,6,));#d2',d3',d1', d1,d2,d3
+    op_LD_RD_RU=permute(op_LD_RD_RU,(1,3,2,4,5,6,));#d2',d1',d3', d1,d2,d3
+    op_LD_RD_RU=permute(op_LD_RD_RU,(2,1,3,4,5,6,));#d1',d2',d3', d1,d2,d3
     @tensor T1_T2_B_T3[:]:=T1_T2_B_T3[-1,-2,1,2,3,-6]*op_LD_RD_RU[-3,-4,-5,1,2,3];
 
 
-    T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, d1, M2_D2, d2, d3, R3_D3
+    T1_T2_B_T3=permute(T1_T2_B_T3,(1,3,2,4,5,6,));# M1_R1, d1, M2_D2, d2, d3, R3_D3
     T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
 
     T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
@@ -161,15 +161,12 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     end
 
 
-    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M1_R1, M2_D2, d1, d2, d3, R3_D3
-    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,1,2,6);# M2_D2, M1_R1, d1, d2, d3, R3_D3
-    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,3,4,6);# M2_D2, M1_R1, d2, d1, d3, R3_D3
-    # T1_T2_B_T3=permute_neighbour_ind(T1_T2_B_T3,2,3,6);# M2_D2, d2, M1_R1, d1, d3, R3_D3
 
-    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,2,3);# M1_R1, M2_D2, d1, d2, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,1,2);# M2_D2, M1_R1, d1, d2, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,3,4);# M2_D2, M1_R1, d2, d1, d3, R3_D3
-    T1_T2_B_T3=permute_neighbour_ind_Rank6_fast(T1_T2_B_T3,2,3);# M2_D2, d2, M1_R1, d1, d3, R3_D3
+
+    T1_T2_B_T3=permute(T1_T2_B_T3,(1,3,2,4,5,6,));# M1_R1, M2_D2, d1, d2, d3, R3_D3
+    T1_T2_B_T3=permute(T1_T2_B_T3,(2,1,3,4,5,6,));# M2_D2, M1_R1, d1, d2, d3, R3_D3
+    T1_T2_B_T3=permute(T1_T2_B_T3,(1,2,4,3,5,6,));# M2_D2, M1_R1, d2, d1, d3, R3_D3
+    T1_T2_B_T3=permute(T1_T2_B_T3,(1,3,2,4,5,6,));# M2_D2, d2, M1_R1, d1, d3, R3_D3
 
     T1_T2_B_T3=T1_T2_B_T3/norm(T1_T2_B_T3);
 
@@ -185,6 +182,9 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     elseif isa(space(T1,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
         U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
         U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
+    elseif isa(space(T1,1), GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}})
+        U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
+        U2,S2,V2=Truncations(U2,S2,V2,D_max,trun_tol);#println(norm(U2*S2*V2-M_old)/norm(M_old))
     end
 
     λ_2_new=permute(S2,(2,),(1,));
@@ -195,24 +195,24 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
     @tensor T3_new[:]:=V3[-1,-2,1]*T3_res[1,-3];#(M3_new, d3, R3_D3)
     λ_3_new=S3;
 
-    T1_B=permute_neighbour_ind(T1_B,1,2,4);#(M1_R1, R2_new, d1, M3_new) 
-    T1_B=permute_neighbour_ind(T1_B,2,3,4);#(M1_R1, d1, R2_new, M3_new) 
+    T1_B=permute(T1_B,(2,1,3,4,));#(M1_R1, R2_new, d1, M3_new) 
+    T1_B=permute(T1_B,(1,3,2,4,));#(M1_R1, d1, R2_new, M3_new) 
     @tensor B_new[:]:=U1'[-1,1,2]*T1_B[1,2,-2,-3];#(D1_new, R2_new, M3_new) 
     @tensor T1_new[:]:=T1_res[-1,1]*U1[1,-2,-3];#(M1_R1, d1, D1_new) 
     λ_1_new=permute(S1,(2,),(1,));
 
     #B_new: (D1_new, R2_new, M3_new) => (R2, D1, M3)
-    B_new=permute_neighbour_ind(B_new,1,2,3);#(R2_new, D1_new, M3_new)
+    B_new=permute(B_new,(2,1,3,));#(R2_new, D1_new, M3_new)
     B_new=permute(B_new,(1,2,),(3,));
 
     #T1_new: (M1_R1, d1, D1_new) => (M1, d1, R1, D1)
     @tensor T1_new[:]:=T1_new[1,-3,-4]*Ut1'[-1,-2,1];#(M1, R1, d1, D1_new)
-    T1_new=permute_neighbour_ind(T1_new,2,3,4);#(M1, d1, R1, D1_new)
+    T1_new=permute(T1_new,(1,3,2,4,));#(M1, d1, R1, D1_new)
 
     #T2_new: (M2_D2, d2, R2_new) => (M2, d2, R2, D2) 
     @tensor T2_new[:]:=T2_new[1,-3,-4]*Ut2'[-1,-2,1];#(M2, D2, d2, R2_new)
-    T2_new=permute_neighbour_ind(T2_new,2,3,4);#(M2, d2, D2, R2_new)
-    T2_new=permute_neighbour_ind(T2_new,3,4,4);#(M2, d2, R2_new, D2)
+    T2_new=permute(T2_new,(1,3,2,4,));#(M2, d2, D2, R2_new)
+    T2_new=permute(T2_new,(1,2,4,3,));#(M2, d2, R2_new, D2)
 
     #T3_new: (M3_new, d3, R3_D3) => (M3, d3, R3, D3)
     @tensor T3_new[:]:=T3_new[-1,-2,1]*Ut3'[-3,-4,1];#(M3_new, d3, R3, D3)
@@ -341,7 +341,7 @@ end
 
 
 
-function itebd_iPESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  Dmax, trun_tol)
+function itebd_iPESS_no_Hamiltonian(parameters,energy_setting, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  Dmax, trun_tol)
     tol=1e-6;#for determining convergence 
 
     # println("one step")
@@ -351,7 +351,7 @@ function itebd_iPESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdase
     lambdaset1_old=deepcopy(lambdaset1);
     lambdaset2_old=deepcopy(lambdaset2);
     lambdaset3_old=deepcopy(lambdaset3);
-    gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
+    gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)));
     #gates_ru_ld_rd=gate_RU_LD_RD(parameters,0, typeof(space(Bset[1],1)),Lx);
 
     for ct=1:10000

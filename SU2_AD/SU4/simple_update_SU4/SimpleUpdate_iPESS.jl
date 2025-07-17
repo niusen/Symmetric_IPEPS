@@ -130,7 +130,7 @@ dump(optim_setting);
 
 LS_ctm_setting=LS_CTMRG_settings();
 LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=10;
+LS_ctm_setting.CTM_ite_nums=50;
 LS_ctm_setting.CTM_trun_tol=1e-8;
 LS_ctm_setting.svd_lanczos_tol=1e-8;
 LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
@@ -181,10 +181,10 @@ global chi, parameters, energy_setting, grad_ctm_setting
 
 if optim_setting.init_statenm=="nothing"
     V=Rep[SU₄]("1"=>1, "4"=>1, "6"=>1, "4⁺"=>1);
-    V=Rep[SU₄]("1"=>1, "4"=>1, "4⁺"=>1);
+    #V=Rep[SU₄]("1"=>1, "4"=>1, "4⁺"=>1);
     Vp=Rep[SU₄]("4"=>1);
-    B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp); 
-    # B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS_uniform(Lx,Ly,V,Vp);    
+    #B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp); 
+    B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS_uniform(Lx,Ly,V,Vp);    
 else
     data=load(optim_setting.init_statenm);
     if haskey(data,"x")
@@ -247,26 +247,26 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters,
 
 
 
-point_group_projection
-
-
-tau=20;
-dt=0.1;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-
-# tau=20;
-# dt=0.05;
-# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-
-tau=20;
-dt=0.02;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 
 # tau=20;
-# dt=0.002;
+# dt=0.1;
 # B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+# # tau=20;
+# # dt=0.05;
+# # B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+# tau=20;
+# dt=0.02;
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+
+
+# # tau=20;
+# # dt=0.002;
+# # B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 

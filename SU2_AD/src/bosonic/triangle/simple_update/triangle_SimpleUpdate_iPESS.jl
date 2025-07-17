@@ -33,9 +33,22 @@ function initial_iPESS_uniform(Lx,Ly,V,Vp)
             Tset[ca,cb]=BA;
             Bset[ca,cb]=TA;
             t_A=TA;
-            λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
-            λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
-            λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+            # λ_A_1=unitary(space(t_A,1)',space(t_A,1)');
+            # λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
+            # λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
+
+            vv=space(t_A,1)';
+            # λ_A_1=DiagonalTensorMap(ones(dim(vv)),vv);
+            λ_A_1=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+
+            vv=space(t_A,2)';
+            # λ_A_2=DiagonalTensorMap(ones(dim(vv)),vv);
+            λ_A_2=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+
+            vv=space(t_A,3)';
+            # λ_A_3=DiagonalTensorMap(ones(dim(vv)),vv);
+            λ_A_3=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+            
             lambdaset1[ca,cb]=λ_A_1;
             lambdaset2[ca,cb]=λ_A_2;
             lambdaset3[ca,cb]=λ_A_3;

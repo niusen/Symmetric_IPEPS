@@ -128,12 +128,20 @@ end
 function NamedTuple_to_Struc_special(∂E,x)
     ∂E_new=deepcopy(x);
     Keys=keys(∂E);
+    # jldsave("test.jld2";∂E,∂E_new);
+    # println(∂E)
+    # println(∂E_new)
     for cc in Keys
-        setfield!(∂E_new,cc,getindex(∂E,cc))
+        ele=getindex(∂E,cc);
+        if isa(ele, Thunk)
+            ele=unthunk(ele);
+        end
+        setfield!(∂E_new,cc,ele);
     end
     return ∂E_new
 end
 function NamedTuple_to_Struc_cell(∂E,x)
+    # jldsave("test0.jld2";∂E,x);
     ∂E_new=deepcopy(x);
     for cc in eachindex(x)
         ∂E_new[cc]=NamedTuple_to_Struc_special(∂E[cc],x[cc])

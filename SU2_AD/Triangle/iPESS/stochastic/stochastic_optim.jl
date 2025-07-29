@@ -156,9 +156,9 @@ E_history=[10000];
 E_all_history=[10000];
 delta_history=[10000];
 
-maxiter=100;
-gtol=1e-3;
-delta=1e-3;
+@show maxiter=100;
+@show gtol=1e-3;
+@show delta=1e-3;
 state_vec=stochastic_opt(state_vec, delta, maxiter, gtol);
 
 

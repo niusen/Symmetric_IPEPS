@@ -399,7 +399,7 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
         # println("error of truncated svd: "*string(norm(TT_-TT)/norm(TT)))
     else
         #uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
-        uM,sM,vM = my_tsvd(M; trunc=truncdim(chi+chi_extra));
+        uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
         #uM,sM,vM = tsvd(M);
     end
 
@@ -865,7 +865,8 @@ end
 
 function ChainRulesCore.rrule(::typeof(sdiag_inv_sqrt),S::AbstractTensorMap)
     toret = sdiag_inv_sqrt(S);
-    toret,c̄ -> (ChainRulesCore.NoTangent(),-1/2*_elementwise_mult(c̄,toret'^3))
+
+    toret,c̄ -> (ChainRulesCore.NoTangent(),-1/2*_elementwise_mult(unthunk(c̄),toret'^3))
 end
 
 
@@ -1072,7 +1073,7 @@ function verify_truncate_svd()
     V4=Rep[U₁](-1=>10, -2=>20, 1=>10,0=>10,2=>10);
 
     V_set=[V1,V2,V3,V4];
-    for cc=1:length(V_set)
+    for cc in eachindex(V_set)
         V=V_set[cc]
         M=TensorMap(randn,V*V,V*V);
         # M=TensorMap(randn,V,V);
@@ -1082,7 +1083,7 @@ function verify_truncate_svd()
         chi=Int(round(dim(V)/2));
 
 
-        uM1,sM1,vM1 = my_tsvd(M; trunc=truncdim(chi));
+        uM1,sM1,vM1 = tsvd(M; trunc=truncdim(chi));#for new version Pkgs, tsvd backward is much better
 
 
         # println(space(M))

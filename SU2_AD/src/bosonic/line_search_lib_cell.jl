@@ -311,30 +311,70 @@ function FD(state_vec::Matrix{TT}) where TT<:iPEPS_ansatz
     for ct in eachindex(state_vec)
         Fields=fieldnames(typeof(state_vec[ct]));
         for fi in Fields
-            for n_block in eachindex(getfield(state_vec[ct], fi).data.values)
-                for elem in eachindex(getfield(state_vec[ct], fi).data.values[n_block])
-                    state_vec_tem=deepcopy(state_vec);
-                    tensor_=getfield(state_vec_tem[ct], fi);
-                    T=tensor_.data.values[n_block];
-                    T[elem]=T[elem]+dt;
-                    tensor_.data.values[n_block]=T;
-                    setfield!(state_vec_tem[ct],fi,tensor_);
-                    real_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
+            for elem in eachindex(getfield(state_vec[ct], fi).data)
+                state_vec_tem=deepcopy(state_vec);
+                tensor_=getfield(state_vec_tem[ct], fi);
+                T=tensor_.data;
+                T[elem]=T[elem]+dt;
+                tensor_.data.=T;
+                setfield!(state_vec_tem[ct],fi,tensor_);
+                real_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
 
-                    state_vec_tem=deepcopy(state_vec);
-                    tensor_=getfield(state_vec_tem[ct], fi);
-                    T=tensor_.data.values[n_block];
-                    T[elem]=T[elem]+dt*im;
-                    tensor_.data.values[n_block]=T;
-                    setfield!(state_vec_tem[ct],fi,tensor_);
-                    imag_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
+                state_vec_tem=deepcopy(state_vec);
+                tensor_=getfield(state_vec_tem[ct], fi);
+                T=tensor_.data;
+                T[elem]=T[elem]+dt*im;
+                tensor_.data.=T;
+                setfield!(state_vec_tem[ct],fi,tensor_);
+                imag_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
 
-                    tensor__=getfield(grad[ct],fi);
-                    tensor__.data.values[n_block][elem]=real_part+im*imag_part;
-                    setfield!(grad[ct],fi,tensor__);
-                end
+                tensor__=getfield(grad[ct],fi);
+                tensor__.data[elem]=real_part+im*imag_part;
+                setfield!(grad[ct],fi,tensor__);
             end
         end
+    end
+    return E0, grad
+end
+
+
+function FD_Triangle(state_vec::Matrix{Triangle_iPESS}, fi::Symbol) 
+
+    dt=0.0001
+
+    E0=cost_fun_testt(state_vec);
+
+    grad=similar(state_vec);
+    for ct in eachindex(state_vec)
+        grad[ct]=similar(state_vec[ct])*0;
+    end
+    @show fi
+    for ct in eachindex(state_vec)
+        @show ct
+        
+        for elem in eachindex(getfield(state_vec[ct], fi).data)
+            state_vec_tem=deepcopy(state_vec);
+            tensor_=getfield(state_vec_tem[ct], fi);
+            T=tensor_.data;
+            T[elem]=T[elem]+dt;
+            tensor_.data.=T;
+            setfield!(state_vec_tem[ct],fi,tensor_);
+            real_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
+
+            state_vec_tem=deepcopy(state_vec);
+            tensor_=getfield(state_vec_tem[ct], fi);
+            T=tensor_.data;
+            T[elem]=T[elem]+dt*im;
+            tensor_.data.=T;
+            setfield!(state_vec_tem[ct],fi,tensor_);
+            imag_part=(cost_fun_testt(state_vec_tem)-E0)/dt;
+
+            tensor__=getfield(grad[ct],fi);
+            tensor__.data[elem]=real_part+im*imag_part;
+            setfield!(grad[ct],fi,tensor__);
+            println("grad ele="*string(real_part+im*imag_part));flush(stdout);
+        end
+        
     end
     return E0, grad
 end

@@ -684,9 +684,9 @@ function cost_fun_testt(x::Matrix{T})  where T<:iPEPS_ansatz #variational parame
     A_cell=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            if isa(x[cx,cy],Square_iPEPS_immutable)
+            if isa(x[cx,cy],Square_iPEPS)
                 A=x[cx,cy].T;
-            elseif isa(x[cx,cy],Triangle_iPESS_immutable)
+            elseif isa(x[cx,cy],Triangle_iPESS)
                 tm=x[cx,cy].Tm;#|LU><M|
                 bm=x[cx,cy].Bm;#|Md><|RD
                 A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,

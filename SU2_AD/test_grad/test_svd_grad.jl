@@ -29,7 +29,21 @@ include("../src/fermionic/double_layer_funs.jl")
 include("../src/fermionic/square_Hubbard_AD_cell.jl")
 include("../src/fermionic/triangle_fiPESS_method.jl")
 
+backward_settings=Backward_settings();
+backward_settings.grad_inverse_tol=1e-8
+backward_settings.grad_regulation_epsilon=1e-12;
+backward_settings.show_ite_grad_norm=false;
+dump(backward_settings);
+
+global chi,multiplet_tol,projector_trun_tol
+multiplet_tol=1e-5;
+projector_trun_tol=1e-8;
+
+
+
 data=load("stochastic_iPESS_LS_D_8_chi_80.jld2");
+
+
 
 
 x=data["x"]
@@ -57,14 +71,32 @@ pos=[1,1];
 AA, U_L,U_D,U_R,U_U=build_double_layer_swap(A_set[pos[1],pos[2]]',A_set[pos[1],pos[2]]);
 
 
+chi=30;
 function cfun1(M)
     M=permute(M,(1,2,),(3,4,));
-    uM,sM,vM = my_tsvd(M; trunc=truncdim(30));
+    uM,sM,vM = my_tsvd(M; trunc=truncdim(chi));
+    sM_inv_sqrt=sdiag_inv_sqrt(sM);
 
-    mm=uM*sM*vM;
+    mm=uM*sM_inv_sqrt*vM;
     return real(dot(mm,mm))
 end
 
-y=cfun(uM,sM,vM);
+y1=cfun1(AA);
 
-∂E=gradient(x ->cfun(x), A_set);
+∂E1=gradient(x ->cfun1(x), AA)[1];
+
+
+function cfun2(M)
+    M=permute(M,(1,2,),(3,4,));
+    uM,sM,vM = tsvd(M; trunc=truncdim(chi));
+    sM_inv_sqrt=sdiag_inv_sqrt(sM);
+
+    mm=uM*sM_inv_sqrt*vM;
+    return real(dot(mm,mm))
+end
+
+y2=cfun2(AA);
+
+∂E2=gradient(x ->cfun2(x), AA)[1];
+
+dot(∂E1,∂E2)/sqrt(dot(∂E1,∂E1)*dot(∂E2,∂E2))

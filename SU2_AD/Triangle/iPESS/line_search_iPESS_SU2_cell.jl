@@ -102,12 +102,27 @@ Ly=2;
 
 
 
+data=load(optim_setting.init_statenm);
+if haskey(data,"x")
+    init_complex_tensor=true;
+
+    state_vec=initial_fiPESS_spinful_SU2(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+else
+    Tset=data["T_set"];
+    Bset=data["B_set"];
+    Lx,Ly=size(Tset);
+
+    state_vec=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+    for ca=1:Lx
+        for cb=1:Ly
+            state_vec[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+            iPESS_to_iPEPS(state_vec[ca,cb]);
+        end
+    end
+end
 
 
 
-init_complex_tensor=true;
-
-state_vec=initial_fiPESS_spinful_SU2(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 state_vec=normalize_ansatz(state_vec);
 
 

@@ -47,6 +47,8 @@ println("number of cpus: "*string(BLAS.get_num_threads()))
 Base.Sys.set_process_title("C"*string(n_cpu)*"_stoch_"*"iPESS_U"*string(U)*"_D"*string(D))
 pid=getpid();
 println("pid="*string(pid));
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;

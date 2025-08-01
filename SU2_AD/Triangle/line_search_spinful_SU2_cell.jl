@@ -37,7 +37,15 @@ t=1;
 U=0;
 parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
-
+import LinearAlgebra.BLAS as BLAS
+n_cpu=10;
+BLAS.set_num_threads(n_cpu);
+println("number of cpus: "*string(BLAS.get_num_threads()))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_grad_"*"iPESS_U"*string(U)*"_D"*string(D))
+pid=getpid();
+println("pid="*string(pid));
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;

@@ -122,22 +122,37 @@ end
 
 Base.@kwdef mutable struct Square_Hubbard_Energy_settings
     model :: String = "spinless_Hubbard"
+    Lx :: Int =1
+    Ly :: Int =1
+    energy_checkpoint::Bool=false
+end
+
+Base.@kwdef mutable struct Triangle_Hubbard_Energy_settings
+    model :: String = "spinless_Hubbard"
+    Lx :: Int =1
+    Ly :: Int =1
+    energy_checkpoint::Bool=false
 end
 
 Base.@kwdef mutable struct Triangle_Hofstadter_Hubbard_settings
     model :: String = "spinful_Hubbard"
+    Lx :: Int =1
+    Ly :: Int =1
     Magnetic_cell :: Int64 =2;
+    energy_checkpoint::Bool=false
 end
 
 Base.@kwdef mutable struct Square_Energy_settings
     model :: String = "triangle_J1_J2_Jchi"
-
+    Lx :: Int =1
+    Ly :: Int =1
+    energy_checkpoint::Bool=false
 end
 
 Base.@kwdef mutable struct Square_2site_Energy_settings
     model :: String = "triangle_J1_J2_Jchi"
     print_all_terms :: Bool=false
-
+    energy_checkpoint::Bool=false
 end
 
 
@@ -146,6 +161,7 @@ Base.@kwdef mutable struct Triangle_SUN_Spin_settings
     N :: Int=2
     Lx :: Int =1
     Ly :: Int =1
+    energy_checkpoint::Bool=false
 end
 
 

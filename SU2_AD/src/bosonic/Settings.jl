@@ -1,5 +1,9 @@
 using LinearAlgebra: diagind
 
+function Rank(T::TensorMap)
+    return length(domain(T))+length(codomain(T))
+end
+
 Base.@kwdef mutable struct grad_CTMRG_settings
     CTM_conv_tol :: Float64 = 1e-6
     CTM_ite_nums :: Int64 =200

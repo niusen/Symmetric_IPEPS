@@ -18,27 +18,32 @@ function add_noise(A::TensorMap,nois,init_complex_tensor)
     A_new=A+A_noise*nois*norm(A)/norm(A_noise);
     return A_new
 end
-function initial_fiPESS_spinful_SU2(init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+function initial_fiPESS_spinful_SU2(init_statenm="nothing",init_noise=0,init_complex_tensor=false; V=nothing)
     Vp=SU2Space(0=>2,1/2=>1)';
     global Lx,Ly
     if init_statenm=="nothing" 
-        
-        # println("Random initial state");flush(stdout);
-        
-        # state=Matrix{Square_iPEPS}(undef,Lx,Ly);
-        # for cx=1:Lx
-        #     for cy=1:Ly
-        #         if init_complex_tensor
-        #             A=TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)+TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp)*im;
-        #         else
-        #             A=TensorMap(randn,Vv*Vv'*Vv'*Vv,Vp);
-        #         end
-        #         A=permute(A,(1,2,3,4,5,));
-        #         A=A/norm(A);
-        #         state[cx,cy]=Square_iPEPS(A);
-        #     end
-        # end
-        # return state
+        @show Vv
+        println("Random initial state");flush(stdout);
+        Bset=Matrix{Any}(undef,Lx,Ly);
+        Tset=Matrix{Any}(undef,Lx,Ly);
+        state=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                if init_complex_tensor
+                    BA=permute(TensorMap(randn,V'*Vp',V*V),(1,),(2,3,4,))+permute(TensorMap(randn,V'*Vp',V*V),(1,),(2,3,4,))*im;
+                    TA=TensorMap(randn,V*V,V')+TensorMap(randn,V*V,V')*im;
+                else
+                    BA=permute(TensorMap(randn,V'*Vp',V*V),(1,),(2,3,4,));
+                    TA=TensorMap(randn,V*V,V');
+                end
+                Tset[ca,cb]=BA;
+                Bset[ca,cb]=TA;
+
+                state[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+                iPESS_to_iPEPS(state[ca,cb]);
+            end
+        end
+        return state
     else
         println("load iPESS state: "*init_statenm);flush(stdout);
         x=load(init_statenm)["x"];

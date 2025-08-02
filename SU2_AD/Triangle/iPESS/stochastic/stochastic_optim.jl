@@ -101,7 +101,7 @@ global algrithm_CTMRG_settings
 
 
 global chi,multiplet_tol,projector_trun_tol
-multiplet_tol=1e-5;
+multiplet_tol=1e-12;
 projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
 global backward_settings
@@ -114,27 +114,39 @@ Ly=2;
 
 
 
+global Vv
+
+if D==4
+    Vv=SU2Space(0=>2,1/2=>1);
+elseif D==6
+    Vv=SU2Space(0=>2,1/2=>2);
+elseif D==8
+    Vv=SU2Space(0=>4,1/2=>2);
+end
+@assert dim(Vv)==D;
 
 
 
 
-
-
-data=load(optim_setting.init_statenm);
-if haskey(data,"x")
+if optim_setting.init_statenm=="nothing"
     init_complex_tensor=true;
-
-    state_vec=initial_fiPESS_spinful_SU2(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+    state_vec=initial_fiPESS_spinful_SU2(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor;V=Vv)
 else
-    Tset=data["T_set"];
-    Bset=data["B_set"];
-    Lx,Ly=size(Tset);
+    data=load(optim_setting.init_statenm);
+    if haskey(data,"x")
+        init_complex_tensor=true;
+        state_vec=initial_fiPESS_spinful_SU2(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
+    else
+        Tset=data["T_set"];
+        Bset=data["B_set"];
+        Lx,Ly=size(Tset);
 
-    state_vec=Matrix{Triangle_iPESS}(undef,Lx,Ly);
-    for ca=1:Lx
-        for cb=1:Ly
-            state_vec[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
-            iPESS_to_iPEPS(state_vec[ca,cb]);
+        state_vec=Matrix{Triangle_iPESS}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                state_vec[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+                iPESS_to_iPEPS(state_vec[ca,cb]);
+            end
         end
     end
 end

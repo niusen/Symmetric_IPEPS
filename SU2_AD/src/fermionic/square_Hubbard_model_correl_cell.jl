@@ -218,6 +218,9 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
     densityL=N_occu_set[1];
     densityR=N_occu_set[1];
 
+    PairL=Pairinga_set[1];
+    PairR=Pairingb_set[1];
+
     S1L=Sa_set[1]; 
     S1R=Sb_set[1];
 
@@ -227,6 +230,9 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
     AA_density_L_set=initial_tuple_cell(Lx,Ly);
     AA_density_R_set=initial_tuple_cell(Lx,Ly);
 
+    AA_pair_L_set=initial_tuple_cell(Lx,Ly);
+    AA_pair_R_set=initial_tuple_cell(Lx,Ly);
+
     AA_spin_L_set=initial_tuple_cell(Lx,Ly);
     AA_spin_R_set=initial_tuple_cell(Lx,Ly);
     AA_spin_mid_set=initial_tuple_cell(Lx,Ly);
@@ -235,6 +241,7 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
     AA_CdagC_mid_set=initial_tuple_cell(Lx,Ly);
 
     rhorho_ob_set=Vector{Any}(undef,Lx*Ly);
+    pairpair_ob_set=Vector{Any}(undef,Lx*Ly);
     SS_ob_set=Vector{Any}(undef,Lx*Ly);
     CdagC_ob_set=Vector{Any}(undef,Lx*Ly);
     for ca=1:Lx
@@ -270,6 +277,16 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
                 @tensor A_new[:]:= A_cell[mod1(ca+2,Lx)][cb][-1,-2,-3,-4,1]*densityR[-5,1] 
                 AA,_,_,_,_=build_double_layer_swap(A_cell[mod1(ca+2,Lx)][cb]',A_new);
                 AA_density_R_set=fill_tuple(AA_density_R_set, AA, mod1(ca+2,Lx),cb);
+
+                #pair-pair correlation
+                @tensor A_new[:]:= A_cell[ca][cb][-1,-2,-3,-4,1]*PairL[-5,1]
+                AA,_,_,_,_=build_double_layer_swap(A_cell[ca][cb]',A_new);
+                AA_pair_L_set=fill_tuple(AA_pair_L_set, AA, ca,cb);
+
+
+                @tensor A_new[:]:= A_cell[mod1(ca+2,Lx)][cb][-1,-2,-3,-4,1]*PairR[-5,1] 
+                AA,_,_,_,_=build_double_layer_swap(A_cell[mod1(ca+2,Lx)][cb]',A_new);
+                AA_pair_R_set=fill_tuple(AA_pair_R_set, AA, mod1(ca+2,Lx),cb);
 
                 ###########################################################
         
@@ -316,16 +333,21 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
             # println(norms)
             norm_coe=(norms[4+Lx]/norms[4])^(1/Lx); #get a rough normalization coefficient to avoid that the number becomes two small
             norms=evaluate_correl([ca,cb],1/norm_coe,"x", AA_cell, AA_cell, AA_cell, CTM_cell, distance);
+
             density_ob=evaluate_correl([ca,cb], 1/norm_coe, "x", AA_cell, AA_density_L_set, AA_density_R_set, CTM_cell, distance);
+            pair_ob=evaluate_correl([ca,cb], 1/norm_coe, "x", AA_cell, AA_pair_L_set, AA_pair_R_set, CTM_cell, distance);
+
             Spin_ob=evaluate_correl([ca,cb], 1/norm_coe, "x", AA_spin_mid_set, AA_spin_L_set, AA_spin_R_set, CTM_cell, distance);
             hopping_ob=evaluate_correl([ca,cb], 1/norm_coe, "x", AA_CdagC_mid_set, AA_CdagC_L_set, AA_CdagC_R_set, CTM_cell, distance);
 
 
             density_ob=density_ob./norms;
+            pair_ob=pair_ob./norms;
             Spin_ob=Spin_ob./norms;
             hopping_ob=hopping_ob./norms;
 
             rhorho_ob_set[step]=density_ob;
+            pairpair_ob_set[step]=pair_ob;
             SS_ob_set[step]=Spin_ob;
             CdagC_ob_set[step]=hopping_ob;
             step=step+1;
@@ -338,12 +360,13 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
     matwrite(mat_filenm, Dict(
         "rhorho_ob_set" => rhorho_ob_set,
         "SS_ob_set" => SS_ob_set,
-        "CdagC_ob_set" => CdagC_ob_set
+        "CdagC_ob_set" => CdagC_ob_set,
+        "pairpair_ob_set"=>pairpair_ob_set
         # "eu_allspin_x" => eu_allspin_x,
         # "allspin_x"=> allspin_x,
         # "eu_allspin_y" => eu_allspin_y,
         # "allspin_y"=> allspin_y
     ); compress = false)
 
-    return SS_ob_set,CdagC_ob_set,rhorho_ob_set
+    return SS_ob_set, CdagC_ob_set, rhorho_ob_set, pairpair_ob_set
 end

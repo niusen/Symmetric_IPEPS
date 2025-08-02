@@ -65,19 +65,22 @@ end
 #save 
 filenm="Gutz0.3.jld2";
 data=load(filenm);
-T_set=data["T_set"];
-B_set=data["B_set"];
+if haskey(data,"B_set")
+    T_set=data["T_set"];
+    B_set=data["B_set"];
+elseif haskey(data,"x")
+    #for triangle_iPESS structure 
+    x=data["x"];
+    T_set=Matrix{TensorMap}(undef,2,2);
+    B_set=Matrix{TensorMap}(undef,2,2);
+    for cx=1:2
+        for cy=1:2
+            T_set[cx,cy]=x[cx,cy].Bm;
+            B_set[cx,cy]=x[cx,cy].Tm;
+        end
+    end
+end
 
-# #for triangle_iPESS structure 
-# x=data["x"];
-# T_set=Matrix{TensorMap}(undef,2,2);
-# B_set=Matrix{TensorMap}(undef,2,2);
-# for cx=1:2
-# for cy=1:2
-# T_set[cx,cy]=x[cx,cy].Bm;
-# B_set[cx,cy]=x[cx,cy].Tm;
-# end
-# end
 
 T_set=tensor_to_dict(T_set);
 B_set=tensor_to_dict(B_set);

@@ -431,7 +431,10 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
             elseif isa(space(M,1), ComplexSpace)
                 chi_extra=1;
             end
-            uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
+            
+            # uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
+            global multiplet_tol
+            uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra; multiplet_tol=multiplet_tol));#for new version Pkgs, tsvd backward is much better
 
             sM_norm=norm(sM);
             sM=sM/sM_norm;
@@ -623,7 +626,10 @@ function CTM_ite_cell_together_update(Cset_cell, Tset_cell, AA_cell, chi, direct
             elseif isa(space(M,1), ComplexSpace)
                 chi_extra=1;
             end
-            uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
+            
+            #uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
+            global multiplet_tol
+            uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra; multiplet_tol=multiplet_tol));#for new version Pkgs, tsvd backward is much better
 
             sM_norm=norm(sM);
             sM=sM/sM_norm;

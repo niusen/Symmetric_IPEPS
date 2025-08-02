@@ -377,15 +377,24 @@ function Operators_spinful_SU2()
     CdagupCdagdn[[1,4,3,2],[1,4,3,2]]=kron(sp,sp);
     CdagupCdagdn=TensorMap(CdagupCdagdn,  V ← V );
 
-    Vdummy0=SU2Space(0=>1);
-    Pairinga=zeros(4,4,1);#CdagupCdagdn
-    Pairinga[[1,4,3,2],[1,4,3,2],1]=kron(sp,sp);
-    Pairinga=TensorMap(Pairinga,  V ← V ⊗Vdummy0);
-    Pairinga=permute(Pairinga,(3,1,),(2,))
+    # Vdummy0=SU2Space(0=>1);
+    # Pairinga=zeros(4,4,1);#CdagupCdagdn
+    # Pairinga[[1,4,3,2],[1,4,3,2],1]=kron(sp,sp);
+    # Pairinga=TensorMap(Pairinga,  V ← V ⊗Vdummy0);
+    # Pairinga=permute(Pairinga,(3,1,),(2,))
 
-    Pairingb=zeros(1,4,4);#CupCdn
-    Pairingb[1,[1,4,3,2],[1,4,3,2]]=kron(sm,sm);
-    Pairingb=TensorMap(Pairingb, Vdummy0 ⊗ V ← V);
+    # Pairingb=zeros(1,4,4);#CupCdn
+    # Pairingb[1,[1,4,3,2],[1,4,3,2]]=kron(sm,sm);
+    # Pairingb=TensorMap(Pairingb, Vdummy0 ⊗ V ← V);
+
+    Pairinga=zeros(4,4);#CdagupCdagdn
+    Pairinga[[1,4,3,2],[1,4,3,2]]=kron(sp,sp);
+    Pairinga=TensorMap(Pairinga,  V ← V );
+    Pairinga=permute(Pairinga,(1,),(2,))
+
+    Pairingb=zeros(4,4);#CupCdn
+    Pairingb[[1,4,3,2],[1,4,3,2]]=kron(sm,sm);
+    Pairingb=TensorMap(Pairingb,  V ← V);
 
     #Spin operator
     Sp=zeros(4,4);

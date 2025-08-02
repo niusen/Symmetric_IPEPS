@@ -1,35 +1,35 @@
-using Revise, TensorKit
-using LinearAlgebra, OptimKit
+using Revise
+using LinearAlgebra:diag,I,diagm 
 using TensorKit
 using JSON
 using ChainRulesCore,Zygote
 using HDF5, JLD2, MAT
 using Zygote:@ignore_derivatives
 using Random
-using LineSearches
+using LineSearches,OptimKit
 using Dates
 cd(@__DIR__)
 
-include("..\\src\\bosonic\\Settings.jl")
-include("..\\src\\bosonic\\Settings_cell.jl")
-include("..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\src\\bosonic\\AD_lib.jl")
-include("..\\src\\bosonic\\line_search_lib.jl")
-include("..\\src\\bosonic\\line_search_lib_cell.jl")
-include("..\\src\\bosonic\\optimkit_lib.jl")
-include("..\\src\\bosonic\\CTMRG.jl")
-include("..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\src\\fermionic\\square_Hubbard_model_cell.jl")
-include("..\\src\\fermionic\\swap_funs.jl")
-include("..\\src\\fermionic\\mpo_mps_funs.jl")
-include("..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
+include("../src/bosonic/Settings.jl")
+include("../src/bosonic/Settings_cell.jl")
+include("../src/bosonic/iPEPS_ansatz.jl")
+include("../src/bosonic/AD_lib.jl")
+include("../src/bosonic/line_search_lib.jl")
+include("../src/bosonic/line_search_lib_cell.jl")
+include("../src/bosonic/optimkit_lib.jl")
+include("../src/bosonic/CTMRG.jl")
+include("../src/fermionic/Fermionic_CTMRG.jl")
+include("../src/fermionic/Fermionic_CTMRG_unitcell.jl")
+include("../src/fermionic/square_Hubbard_model_cell.jl")
+include("../src/fermionic/swap_funs.jl")
+include("../src/fermionic/mpo_mps_funs.jl")
+include("../src/fermionic/double_layer_funs.jl")
+include("../src/fermionic/square_Hubbard_AD_cell.jl")
 
 Random.seed!(888)
 
-D=4;
-chi=40
+D=8;
+chi=80
 
 t=1;
 ϕ=pi/2;
@@ -98,7 +98,7 @@ global algrithm_CTMRG_settings
 
 
 global chi,multiplet_tol,projector_trun_tol
-multiplet_tol=1e-5;
+multiplet_tol=1e-12;
 projector_trun_tol=grad_ctm_setting.CTM_trun_tol
 
 global backward_settings
@@ -112,6 +112,8 @@ elseif D==5
     Vv=SU2Space(0=>3,1/2=>1);
 elseif D==6
     Vv=SU2Space(0=>2,1/2=>2);
+elseif D==8
+    Vv=SU2Space(0=>4,1/2=>2);
 elseif D==10
     Vv=SU2Space(0=>3,1/2=>2,1=>1);
 end
@@ -124,7 +126,7 @@ end
 
 global Lx,Ly
 Lx=2;
-Ly=1;
+Ly=2;
 
 
 
@@ -134,7 +136,7 @@ Ly=1;
 init_complex_tensor=true;
 
 state_vec=initial_fPEPS_state_spinful_SU2(Vv, optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
-state_vec=normalize_tensor_group(state_vec);
+state_vec=normalize_ansatz(state_vec);
 
 
 global save_filenm

@@ -1272,8 +1272,8 @@ function itebd(parameters, Tset, lambdaxset,lambdayset,  tau,dt, Dmax)
     # println(space(T_u))
     # println(space(T_d))
     Lx,Ly=size(Tset);
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(Tset[1,1],1)),Lx);
-    gates_lu_ru_ld=gate_LU_RU_LD(parameters,dt, typeof(space(Tset[1,1],1)),Lx);
+    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(Tset[1,1],1)),Lx,Ly);
+    gates_lu_ru_ld=gate_LU_RU_LD(parameters,dt, typeof(space(Tset[1,1],1)),Lx,Ly);
 
     lambdaxset_old=deepcopy(lambdaxset);
     lambdayset_old=deepcopy(lambdayset);

@@ -1,6 +1,6 @@
 using Revise, TensorKit, Zygote
 using JLD2,ChainRulesCore,MAT
-using KrylovKit
+# using KrylovKit
 using JSON
 using Random
 using Zygote:@ignore_derivatives
@@ -51,9 +51,10 @@ D_max=4;
 t1=1;
 t2=1;
 ϕ=pi/2;
-μ=0;
 U=12;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+μ=0;
+B=0;
+parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
 
 
 
@@ -87,7 +88,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU_iPESS_Z2_csl_D4_U0.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -109,6 +110,8 @@ dump(LS_ctm_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
 energy_setting.model = "spinful_triangle_lattice";
+energy_setting.Lx =2;
+energy_setting.Ly =2;
 dump(energy_setting);
 
 
@@ -129,8 +132,8 @@ multiplet_tol=1e-5;
 projector_trun_tol=LS_ctm_setting.CTM_trun_tol
 ###################################
 global Lx,Ly
-Lx=2;
-Ly=2;
+@show Lx=energy_setting.Lx;
+@show Ly=energy_setting.Ly;
 
 
 LS_ctm_setting.CTM_ite_nums=30;
@@ -168,6 +171,12 @@ println(e0_set)
 println(eU_set)
 
 
+D0set=[];
+for cc in eachindex(B_set)
+    D0set=vcat(D0set,[dim(space(B_set[cc],1)), dim(space(B_set[cc],2)), dim(space(B_set[cc],3))]);
+end
+D_max0=maximum(D0set);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, D_max0, trun_tol);
 
 
 # tau=20;

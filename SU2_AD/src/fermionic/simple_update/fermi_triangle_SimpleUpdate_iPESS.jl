@@ -57,9 +57,15 @@ function initial_iPESS(Lx,Ly,V,Vp)
             # λ_A_2=unitary(space(t_A,2)',space(t_A,2)');
             # λ_A_3=unitary(space(t_A,3)',space(t_A,3)');
 
-            λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims.values)), space(t_A,1)');
-            λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims.values)), space(t_A,2)');
-            λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims.values)), space(t_A,3)');
+            if isa(space(t_A,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+                λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims)), space(t_A,1)');
+                λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims)), space(t_A,2)');
+                λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims)), space(t_A,3)');
+            else
+                λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims.values)), space(t_A,1)');
+                λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims.values)), space(t_A,2)');
+                λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims.values)), space(t_A,3)');
+            end
             lambdaset1[ca,cb]=λ_A_1;
             lambdaset2[ca,cb]=λ_A_2;
             lambdaset3[ca,cb]=λ_A_3;

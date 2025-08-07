@@ -64,6 +64,7 @@ function get_CTM(y_translation,force_redo_CTMRG)
     global Lx,Ly
     if haskey(data,"x")
         global Lx,Ly
+        state=data["x"];
         Lx,Ly=size(state);
         A_cell=initial_tuple_cell(Lx,Ly);
         for ca=1:Lx

@@ -2145,7 +2145,7 @@ function twosite_pairing_spinful_SU2()
 
 
     pairing_singlet_site1=Cdaga;
-    pairing_singlet_site2=Cdagb'
+    pairing_singlet_site2=Cdagb;
 
 
     return pairing_singlet_site1, pairing_singlet_site2
@@ -2164,13 +2164,13 @@ function evaluate_ob_pairing_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, 
 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard","standard_triangle_Hubbard_spiral","standard_triangle_Hubbard_Bfield")
-            Hamiltonian_terms=Hamiltonians_spinful_Z2;
+
             operator_terms=Operators_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
-            Hamiltonian_terms=Hamiltonians_spinless_Z2;
+  
         end
     elseif isa(space(A_cell[1][1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
-        Hamiltonian_terms=Hamiltonians_spinless_U1;
+
     elseif isa(space(A_cell[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
         operator_terms=twosite_pairing_spinful_SU2;
     elseif isa(space(A_cell[1][1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
@@ -2178,13 +2178,13 @@ function evaluate_ob_pairing_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, 
             @assert mod(Ly,2)==0;
             #if use U1 symmetry, use different dummy physical space along y direction along Ly, where Ly should be even number
         end
-        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+
     end
 
 
     if energy_setting.model=="spinful_triangle_lattice"
 
-        pairing_singlet_site1, pairing_singlet_site2 =@ignore_derivatives Hamiltonian_terms();
+        pairing_singlet_site1, pairing_singlet_site2 =@ignore_derivatives operator_terms();
 
         pairing_x_set=zeros(Lx,Ly)*im;
         pairing_y_set=zeros(Lx,Ly)*im;

@@ -16,21 +16,21 @@ cd(@__DIR__)
 
 
 
-include("..\\..\\src\\bosonic\\Settings.jl")
-include("..\\..\\src\\bosonic\\Settings_cell.jl")
-include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\..\\src\\bosonic\\SUN_spin_op.jl")
-include("..\\..\\src\\bosonic\\AD_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
-include("..\\..\\src\\bosonic\\optimkit_lib.jl")
-include("..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\src\\bosonic\\CTMRG_unitcell.jl")
-include("..\\..\\src\\bosonic\\triangle\\triangle_spin_model_cell.jl")
-include("..\\..\\src\\bosonic\\triangle\\triangle_spin_AD_cell.jl")
-include("..\\..\\src\\bosonic\\triangle\\triangle_iPESS_method.jl")
-include("..\\..\\src\\bosonic\\triangle\\simple_update\\triangle_SimpleUpdate.jl")
-include("..\\..\\src\\bosonic\\triangle\\simple_update\\triangle_SimpleUpdate_iPESS.jl")
+include("../../src/bosonic/Settings.jl")
+include("../../src/bosonic/Settings_cell.jl")
+include("../../src/bosonic/iPEPS_ansatz.jl")
+include("../../src/bosonic/SUN_spin_op.jl")
+include("../../src/bosonic/AD_lib.jl")
+include("../../src/bosonic/line_search_lib.jl")
+include("../../src/bosonic/line_search_lib_cell.jl")
+include("../../src/bosonic/optimkit_lib.jl")
+include("../../src/bosonic/CTMRG.jl")
+include("../../src/bosonic/CTMRG_unitcell.jl")
+include("../../src/bosonic/triangle/triangle_spin_model_cell.jl")
+include("../../src/bosonic/triangle/triangle_spin_AD_cell.jl")
+include("../../src/bosonic/triangle/triangle_iPESS_method.jl")
+include("../../src/bosonic/triangle/simple_update/triangle_SimpleUpdate.jl")
+include("../../src/bosonic/triangle/simple_update/triangle_SimpleUpdate_iPESS.jl")
 
 ###########################
 """
@@ -239,7 +239,9 @@ B_set,T_set=to_C3_symmetric_iPESS(B_set,T_set);
 # println(eU_set)
 
 D0set=[];
+global D0set
 for cc in eachindex(B_set)
+    global D0set
     D0set=vcat(D0set,[dim(space(B_set[cc],1)), dim(space(B_set[cc],2)), dim(space(B_set[cc],3))]);
 end
 D_max0=maximum(D0set);
@@ -250,17 +252,17 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters,
 
 
 
-# tau=20;
-# dt=0.1;
-# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
-
-# # tau=20;
-# # dt=0.05;
-# # B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+tau=2;
+dt=0.1;
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 # tau=20;
-# dt=0.02;
+# dt=0.05;
 # B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+
+tau=20;
+dt=0.02;
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
 
@@ -268,6 +270,8 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters,
 # # dt=0.002;
 # # B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters,energy_setting, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
+filenm="SU_iPESS_D"*string(D_max)*".jld2";
+jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
@@ -282,8 +286,7 @@ println(triangle_right_bot_set)
 println(triangle_left_top_set)
 
 
-filenm="SU_iPESS_SU2_D"*string(D_max)*".jld2";
-jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
+
 
 
 # end

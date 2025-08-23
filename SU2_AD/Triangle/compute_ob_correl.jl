@@ -165,6 +165,7 @@ for cchi=1:length(chis)
     println("eU_set= "*string(eU_set[:])); flush(stdout);
 
     triangle_up_set,triangle_dn_set,SS_x_set,SS_y_set,SS_diagonal_set=evaluate_spin_ob_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+    pairing_x_set, pairing_y_set, pairing_diagonala_set=evaluate_ob_pairing_cell(parameters, A_cell, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 
 
 
@@ -180,7 +181,10 @@ for cchi=1:length(chis)
         "triangle_dn_set" =>triangle_dn_set,
         "SS_x_set"=>SS_x_set,
         "SS_y_set"=>SS_y_set,
-        "SS_diagonal_set"=>SS_diagonal_set
+        "SS_diagonal_set"=>SS_diagonal_set,
+        "pairing_x_set"=>pairing_x_set, 
+        "pairing_y_set"=>pairing_y_set, 
+        "pairing_diagonala_set"=>pairing_diagonala_set
     ); compress = false)
 
 

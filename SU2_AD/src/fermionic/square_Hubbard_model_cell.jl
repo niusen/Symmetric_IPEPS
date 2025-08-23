@@ -2107,7 +2107,103 @@ end
 
 
 
+###############
+#superconductivity order parameter
+function twosite_pairing_spinful_SU2()
+    
 
+    Vdummy=SU2Space(1/2=>1);
+    V=SU2Space(0=>2,1/2=>1);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order: (0,0), (0,1), (1,0), (1,1)
+    
+
+
+
+    # singlet pairing
+    Cdagupa=zeros(4,4,2);
+    Cdagupa[[1,4,3,2],[1,4,3,2],1]=kron(sp,Id);
+    Cdagdna=zeros(4,4,2);
+    Cdagdna[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
+    Cdaga=TensorMap(Cdagupa+Cdagdna,  V ← V ⊗Vdummy);
+    Cdaga=permute(Cdaga,(3,1,),(2,))
+
+    Cdagupb=zeros(2,4,4);
+    Cdagupb[2,[1,4,3,2],[1,4,3,2]]=kron(sp,Id);
+    Cdagdnb=zeros(2,4,4);
+    Cdagdnb[1,[1,4,3,2],[1,4,3,2]]=kron(sz,sp);
+    Cdagb=TensorMap(Cdagupb-Cdagdnb, Vdummy ⊗ V ← V);
+
+
+
+    @tensor pairing[:]:=Cdaga[1,-1,-3]*Cdagb[1,-2,-4];
+
+
+
+    pairing_singlet_site1=Cdaga;
+    pairing_singlet_site2=Cdagb'
+
+
+    return pairing_singlet_site1, pairing_singlet_site2
+end
+
+
+function evaluate_ob_pairing_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting)
+    """change of coordinate 
+    (1,1)  (2,1)
+    (1,2)  (2,2)
+
+    coordinate of C1 tensor: (cx,cy)
+    """    
+
+    global Lx,Ly
+
+    if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard","standard_triangle_Hubbard_spiral","standard_triangle_Hubbard_Bfield")
+            Hamiltonian_terms=Hamiltonians_spinful_Z2;
+            operator_terms=Operators_spinful_Z2;
+        elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
+            Hamiltonian_terms=Hamiltonians_spinless_Z2;
+        end
+    elseif isa(space(A_cell[1][1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+        Hamiltonian_terms=Hamiltonians_spinless_U1;
+    elseif isa(space(A_cell[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        operator_terms=twosite_pairing_spinful_SU2;
+    elseif isa(space(A_cell[1][1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+        if mod(energy_setting.Magnetic_cell,2)==1 #odd number of sites in unitcell
+            @assert mod(Ly,2)==0;
+            #if use U1 symmetry, use different dummy physical space along y direction along Ly, where Ly should be even number
+        end
+        Hamiltonian_terms=Hamiltonians_spinful_U1_SU2;
+    end
+
+
+    if energy_setting.model=="spinful_triangle_lattice"
+
+        pairing_singlet_site1, pairing_singlet_site2 =@ignore_derivatives Hamiltonian_terms();
+
+        pairing_x_set=zeros(Lx,Ly)*im;
+        pairing_y_set=zeros(Lx,Ly)*im;
+        pairing_diagonala_set=zeros(Lx,Ly)*im;
+
+        for cx =1:Lx
+            for cy=1:Ly
+                ex=hopping_x(CTM_cell,pairing_singlet_site1,pairing_singlet_site2,A_cell,AA_cell,cx,cy,ctm_setting);
+                ey=hopping_y(CTM_cell,pairing_singlet_site1,pairing_singlet_site2,A_cell,AA_cell,cx,cy,ctm_setting);
+                e_diagonala=hopping_diagonala(CTM_cell,pairing_singlet_site1,pairing_singlet_site2,A_cell,AA_cell,cx,cy,ctm_setting);
+
+                @ignore_derivatives pairing_x_set[cx,cy]=ex;
+                @ignore_derivatives pairing_y_set[cx,cy]=ey;
+                @ignore_derivatives pairing_diagonala_set[cx,cy]=e_diagonala;
+            end
+        end
+        return  pairing_x_set, pairing_y_set, pairing_diagonala_set
+    end
+end
 
 
 

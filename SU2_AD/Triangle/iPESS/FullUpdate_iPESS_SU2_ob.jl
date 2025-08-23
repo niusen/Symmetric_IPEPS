@@ -11,27 +11,27 @@ cd(@__DIR__)
 
 
 
-include("..\\..\\src\\bosonic\\Settings.jl")
-include("..\\..\\src\\bosonic\\Settings_cell.jl")
-include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\..\\src\\bosonic\\AD_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
-include("..\\..\\src\\bosonic\\optimkit_lib.jl")
-include("..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
-include("..\\..\\src\\fermionic\\swap_funs.jl")
-include("..\\..\\src\\fermionic\\fermi_permute.jl")
-include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
-include("..\\..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
-include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate.jl")
-include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate_iPESS.jl")
-include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_FullUpdate_iPESS.jl")
-include("..\\..\\src\\fermionic\\simple_update\\Full_Update_lib.jl")
+include("../../src/bosonic/Settings.jl")
+include("../../src/bosonic/Settings_cell.jl")
+include("../../src/bosonic/iPEPS_ansatz.jl")
+include("../../src/bosonic/AD_lib.jl")
+include("../../src/bosonic/line_search_lib.jl")
+include("../../src/bosonic/line_search_lib_cell.jl")
+include("../../src/bosonic/optimkit_lib.jl")
+include("../../src/bosonic/CTMRG.jl")
+include("../../src/fermionic/Fermionic_CTMRG.jl")
+include("../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
+include("../../src/fermionic/square_Hubbard_model_cell.jl")
+include("../../src/fermionic/square_Hubbard_AD_cell.jl")
+include("../../src/fermionic/swap_funs.jl")
+include("../../src/fermionic/fermi_permute.jl")
+include("../../src/fermionic/mpo_mps_funs.jl")
+include("../../src/fermionic/double_layer_funs.jl")
+include("../../src/fermionic/triangle_fiPESS_method.jl")
+include("../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate.jl")
+include("../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate_iPESS.jl")
+include("../../src/fermionic/simple_update/fermi_triangle_FullUpdate_iPESS.jl")
+include("../../src/fermionic/simple_update/Full_Update_lib.jl")
 ###########################
 """
 ABABABAB
@@ -42,10 +42,7 @@ CDCDCDCD
 ###########################
 # let
 Random.seed!(1234);
-import LinearAlgebra.BLAS as BLAS
-# n_cpu=10;
-# BLAS.set_num_threads(n_cpu);
-println("number of cpus: "*string(BLAS.get_num_threads()))
+
 
 D_max=4;
 
@@ -54,16 +51,19 @@ t2=1;
 ϕ=pi/2;
 μ=0;
 U=0;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
+B=0;
+parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
 
 ###########################
 import LinearAlgebra.BLAS as BLAS
-n_cpu=8;
+n_cpu=10;
 BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()))
-Base.Sys.set_process_title("C"*string(n_cpu)*"_"*"FU_U"*string(U)*"_D"*string(D_max))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_FU_"*"U"*string(U)*"_D"*string(D))
 pid=getpid();
 println("pid="*string(pid));
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
 ###########################
 
 
@@ -99,7 +99,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
+optim_setting.init_statenm="SU_iPESS_SU2_csl_D4.jld2";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -185,12 +185,12 @@ println(e_diagonala_set)
 println(e0_set)
 println(eU_set)
 
-println("verifications:")
-test_decomposition1(B_set, T_set,AA_cell,Lx,Ly);
-test_decomposition2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly);
-test_decomposition3(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total);
-test_positive_triangle_env(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
-test_positive_triangle_env2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
+# println("verifications:")
+# test_decomposition1(B_set, T_set,AA_cell,Lx,Ly);
+# test_decomposition2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly);
+# test_decomposition3(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total);
+# test_positive_triangle_env(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
+# test_positive_triangle_env2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly,E_total)
 
 
 

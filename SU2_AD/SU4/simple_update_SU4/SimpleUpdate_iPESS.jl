@@ -145,8 +145,8 @@ dump(LS_ctm_setting);
 energy_setting=Triangle_SUN_Spin_settings();
 energy_setting.model = "Heisenberg";
 energy_setting.N=4;
-energy_setting.Lx=2;
-energy_setting.Ly=2;
+energy_setting.Lx=4;
+energy_setting.Ly=4;
 dump(energy_setting);
 
 

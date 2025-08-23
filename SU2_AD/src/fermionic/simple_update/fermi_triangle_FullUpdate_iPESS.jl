@@ -7,33 +7,18 @@ using LinearAlgebra:diag,I,diagm
 """
 ###########################
 
-function check_positive(T)
-    T_dense=convert(Array,T);
+function check_positive(T::DiagonalTensorMap)
+
     T_new=deepcopy(T);
-    @assert (norm(diag(T_dense))-norm(T_dense))/norm(T_dense)<1e-14;#verify diagonal
-
-
     #change negative eigenvalue to zero
-    if sectortype(space(T,1)) == Trivial
-        mm=T.data;
-        for cc=1:size(mm,1)
-            if real(mm[cc,cc])<0
-                mm[cc,cc]=0;
-            end
-        end
-        T_new=TensorMap(mm,codomain(eu),domain(eu));
-    else
-        for cc=1:length(T.data.values)
-            mm=T.data.values[cc];
-            for dd=1:size(mm,1)
-                if real(mm[dd,dd])<0
-                    mm[dd,dd]=0;
-                end
-            end
-            T_new.data.values[cc]=mm;
+
+    mm=T.data;
+    for cc in eachindex(mm)
+        if real(mm[cc])<0
+            T_new.data[cc]=0;
         end
     end
-
+ 
     @assert norm(T-T_new)/norm(T_new)<0.01;
     return T_new
 end
@@ -62,7 +47,8 @@ function test_decomposition2(B_set, T_set,AA_cell,CTM_cell,Lx,Ly)
     for c1=1:Lx
         for c2=1:Ly
             dt=0;
-            gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+            #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+            gates_ru_ld_rd=gate_RU_LD_RD(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
 
             B1_res, B1_keep, B2_res, B2_keep, B3_res, B3_keep,  B1_B2_T_B3, B1_B2_T_B3_op = split_3Tesnsors(T_set[mod1(c1+1,Lx),c2], T_set[c1,mod1(c2+1,Ly)], T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)], gates_ru_ld_rd[mod1(c1,2)]);
 
@@ -285,7 +271,8 @@ end
 function test_triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol)
     (c1,c2)=coord;
 
-    gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+    #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
+    gates_ru_ld_rd=gate_RU_LD_RD(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     #gates_ru_ld_rd=H_RU_LD_RD(parameters, typeof(space(B_set[1],1)),Lx);
     gates_ru_ld_rd=gates_ru_ld_rd[mod1(c1,Lx)];
     
@@ -969,6 +956,7 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
         #eu,ev=eigen(BigTriangle_double_env_expand);
         eu,ev=eigh(BigTriangle_double_env_expand);
         eu=check_positive(eu);
+
         #M=ev*eu*ev';
         # env_bot=ev';#new_ind,1,2,3
         # env_top=ev;# 1,2,3, new_ind

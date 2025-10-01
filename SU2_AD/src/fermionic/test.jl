@@ -930,7 +930,7 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
                 #(cx,cy): coordinate of left-top C1 tensor
                 cx=mod1(px-1,Lx);
                 cy=mod1(py-1,Ly);
-                if energy_setting.energy_checkpoint
+                if if energy_setting.energy_checkpoint
                     ex=Zygote.checkpointed(hopping_x_iPESS, CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
                     ey=Zygote.checkpointed(hopping_y_iPESS, CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
                     e_diagonala=Zygote.checkpointed(hopping_diagonala_iPESS, CTM_cell,Cdag_set[mod1(py+1,2)],C_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);

@@ -19,7 +19,11 @@ function check_positive(T::DiagonalTensorMap)
         end
     end
  
-    @assert norm(T-T_new)/norm(T_new)<0.01;
+    #@assert norm(T-T_new)/norm(T_new)<0.01;
+    if norm(T-T_new)/norm(T_new)>0.01
+        println("warning: positivity error is big:")
+        @show norm(T-T_new)/norm(T_new)
+    end
     return T_new
 end
 

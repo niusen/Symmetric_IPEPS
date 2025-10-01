@@ -61,7 +61,7 @@ function initial_fiPESS_spinful_SU2(init_statenm="nothing",init_noise=0,init_com
         return state
     end
 end
-function initial_fiPESS_spinful_Z2(V,init_statenm="nothing",init_noise=0,init_complex_tensor=false)
+function initial_fiPESS_spinful_Z2(init_statenm="nothing",init_noise=0,init_complex_tensor=false; V=nothing)
     Vp=Rep[ℤ₂](0=>2,1=>2);
     global Lx,Ly
 
@@ -94,26 +94,26 @@ function initial_fiPESS_spinful_Z2(V,init_statenm="nothing",init_noise=0,init_co
         V0=space(state0[1].Tm,1);
         D0=dim(V0);
         state=deepcopy(state0);
-        if dim(V)==D0
-        elseif dim(V)>D0
-            println("extend bond dimension");
-            for cc in eachindex(state0)
-                if (V0==Rep[ℤ₂](0=>2,1=>2)) & (V==Rep[ℤ₂](0=>3,1=>3))
-                    Bm=state0[cc].Bm;#rank 4
-                    Tm=state0[cc].Tm;#rank 3
-                    bm=convert(Array,Bm);
-                    tm=convert(Array,Tm);
-                    bm_large=zeros(6,dim(Vp),6,6)*im;
-                    tm_large=zeros(6,6,6)*im;
-                    bm_large[[1,2,4,5],:,[1,2,4,5],[1,2,4,5]]=bm;
-                    tm_large[[1,2,4,5],[1,2,4,5],[1,2,4,5]]=tm;
-                    Bm=permute(TensorMap(bm_large,V'*Vp,V*V),(1,),(2,3,4,));
-                    Tm=TensorMap(tm_large,V*V,V');
-                    state0[cc]=Triangle_iPESS(Bm,Tm);
-                    iPESS_to_iPEPS(state0[cc]);
-                end
-            end
-        end
+        # if dim(V)==D0
+        # elseif dim(V)>D0
+        #     println("extend bond dimension");
+        #     for cc in eachindex(state0)
+        #         if (V0==Rep[ℤ₂](0=>2,1=>2)) & (V==Rep[ℤ₂](0=>3,1=>3))
+        #             Bm=state0[cc].Bm;#rank 4
+        #             Tm=state0[cc].Tm;#rank 3
+        #             bm=convert(Array,Bm);
+        #             tm=convert(Array,Tm);
+        #             bm_large=zeros(6,dim(Vp),6,6)*im;
+        #             tm_large=zeros(6,6,6)*im;
+        #             bm_large[[1,2,4,5],:,[1,2,4,5],[1,2,4,5]]=bm;
+        #             tm_large[[1,2,4,5],[1,2,4,5],[1,2,4,5]]=tm;
+        #             Bm=permute(TensorMap(bm_large,V'*Vp,V*V),(1,),(2,3,4,));
+        #             Tm=TensorMap(tm_large,V*V,V');
+        #             state0[cc]=Triangle_iPESS(Bm,Tm);
+        #             iPESS_to_iPEPS(state0[cc]);
+        #         end
+        #     end
+        # end
 
         for cc in eachindex(state0)
             ansatz=state0[cc];

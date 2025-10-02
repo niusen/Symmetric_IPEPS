@@ -155,12 +155,12 @@ function rotate_AA_cell(AA_fused_cell,construct_double_layer)
     elseif (Lx==2)&(Ly==4)
         AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
         AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
-        AA_13=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
-        AA_14=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+        AA_13=rotate_AA(AA_fused_cell[1][3],construct_double_layer);
+        AA_14=rotate_AA(AA_fused_cell[1][4],construct_double_layer);
         AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
         AA_22=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
-        AA_23=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
-        AA_24=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
+        AA_23=rotate_AA(AA_fused_cell[2][3],construct_double_layer);
+        AA_24=rotate_AA(AA_fused_cell[2][4],construct_double_layer);
         
         direction=1;
         AA_set1=((AA_11.T1, AA_12.T1, AA_13.T1, AA_14.T1), (AA_21.T1, AA_22.T1, AA_23.T1, AA_24.T1),);

@@ -6,9 +6,7 @@ function cost_fun(x::Matrix{T})  where T<:iPEPS_ansatz_immutable #variational pa
     A_cell=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            if isa(x[cx,cy],Square_iPEPS_immutable)
-                A=x[cx,cy].T;
-            elseif isa(x[cx,cy],Triangle_iPESS_immutable)
+            if isa(x[cx,cy],Triangle_iPESS_immutable)
                 tm=x[cx,cy].Tm;#|LU><M|
                 bm=x[cx,cy].Bm;#|Md><|RD
                 A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
@@ -159,40 +157,6 @@ function observable_CTM(x, chi, parameters, ctm_setting, energy_setting, init, i
 end
 
 
-
-
-function cost_fun_testt(x::Matrix{T})  where T<:iPEPS_ansatz #variational parameters are vector of TensorMap
-    global Lx,Ly
-    global chi, parameters, energy_setting, grad_ctm_setting
-
-    A_cell=initial_tuple_cell(Lx,Ly);
-    for cx=1:Lx
-        for cy=1:Ly
-            if isa(x[cx,cy],Square_iPEPS)
-                A=x[cx,cy].T;
-            elseif isa(x[cx,cy],Triangle_iPESS)
-                tm=x[cx,cy].Tm;#|LU><M|
-                bm=x[cx,cy].Bm;#|Md><|RD
-                A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
-            end
-            norm_A=norm(A)
-            A=A/norm_A;
-
-            A_cell=fill_tuple(A_cell, A, cx,cy);
-        end
-    end
-    
-    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
-    E_total,  _=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-    E=real(E_total);
-
-    println("E0= "*string(E));flush(stdout);
-    global E_tem, CTM_tem
-    CTM_tem=deepcopy(CTM_cell);
-    E_tem=deepcopy(E)
-    return E
-end
 
 
 function evaluate_all_ob_cell(A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting)

@@ -10,23 +10,26 @@ using LineSearches,OptimKit
 using Dates
 cd(@__DIR__)
 
-include("..\\..\\src\\bosonic\\Settings.jl")
-include("..\\..\\src\\bosonic\\Settings_cell.jl")
-include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\..\\src\\bosonic\\AD_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
-include("..\\..\\src\\bosonic\\optimkit_lib.jl")
-include("..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell_iPESS.jl")
-include("..\\..\\src\\fermionic\\triangle_Hubbard_model_cell.jl")
-include("..\\..\\src\\fermionic\\swap_funs.jl")
-include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
-include("..\\..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
-include("..\\..\\src\\fermionic\\triangle_iPESS_Hubbard_AD_cell.jl")
-include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
+include("../../../src/bosonic/Settings.jl")
+include("../../../src/bosonic/Settings_cell.jl")
+include("../../../src/bosonic/iPEPS_ansatz.jl")
+include("../../../src/bosonic/AD_lib.jl")
+include("../../../src/bosonic/line_search_lib.jl")
+include("../../../src/bosonic/line_search_lib_cell.jl")
+include("../../../src/bosonic/optimkit_lib.jl")
+include("../../../src/bosonic/CTMRG.jl")
+include("../../../src/fermionic/Fermionic_CTMRG.jl")
+include("../../../src/fermionic/Fermionic_CTMRG_unitcell_iPESS.jl")
+include("../../../src/fermionic/square_Hubbard_model_cell.jl")
+include("../../../src/fermionic/triangle_Hubbard_model_cell.jl")
+include("../../../src/fermionic/swap_funs.jl")
+include("../../../src/fermionic/mpo_mps_funs.jl")
+include("../../../src/fermionic/double_layer_funs.jl")
+include("../../../src/fermionic/square_Hubbard_AD_cell.jl")
+include("../../../src/fermionic/triangle_iPESS_Hubbard_AD_cell.jl")
+include("../../../src/fermionic/triangle_fiPESS_method.jl")
+include("../../../src/fermionic/simple_update/fermi_triangle_FullUpdate_iPESS.jl")
+
 Random.seed!(888)
 
 D=4;
@@ -52,6 +55,7 @@ grad_ctm_setting.CTM_conv_info=true;
 grad_ctm_setting.CTM_trun_svd=false;
 grad_ctm_setting.construct_double_layer=true;
 grad_ctm_setting.grad_checkpoint=true;
+grad_ctm_setting.use_sub_checkpoint=true;
 dump(grad_ctm_setting);
 
 LS_ctm_setting=LS_CTMRG_settings();
@@ -65,7 +69,7 @@ LS_ctm_setting.CTM_ite_info=false;
 LS_ctm_setting.CTM_conv_info=true;
 LS_ctm_setting.CTM_trun_svd=false;
 LS_ctm_setting.construct_double_layer=true;
-LS_ctm_setting.grad_checkpoint=true;
+LS_ctm_setting.grad_checkpoint=false;
 dump(LS_ctm_setting);
 
 backward_settings=Backward_settings();
@@ -82,6 +86,7 @@ dump(optim_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
 energy_setting.model = "spinful_triangle_lattice";
+energy_setting.energy_checkpoint=true;
 dump(energy_setting);
 
 algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
@@ -101,6 +106,9 @@ global Lx,Ly
 Lx=2;
 Ly=2;
 
+
+energy_setting.Lx=Lx;
+energy_setting.Ly=Ly;
 
 
 data=load(optim_setting.init_statenm);
@@ -135,31 +143,55 @@ starting_time=now();
 
 ################################################
 
+    # A_cell=initial_tuple_cell(Lx,Ly);
+    # for cx=1:Lx
+    #     for cy=1:Ly
+    #         if isa(x[cx,cy],Triangle_iPESS)
+    #             tm=x[cx,cy].Tm;#|LU><M|
+    #             bm=x[cx,cy].Bm;#|Md><|RD
+    #             A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
+    #         end
+    #         norm_A=norm(A)
+    #         A=A/norm_A;
+
+    #         A_cell=fill_tuple(A_cell, A, cx,cy);
+    #     end
+    # end
 
 
-global E_history
-E_history=[10000];
+    ctm_setting=grad_ctm_setting;
+
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    CTM_cell, B_set, T_set, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(state_vec,chi,init, init_CTM,ctm_setting);    
+    
+    E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set =evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ctm_setting, energy_setting);
 
 
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
+################################################
 
-# ls = StrongWolfe()
+# global E_history
+# E_history=[10000];
+
+
+# ls = BackTracking(order=3)
 # println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
+# fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
 
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
+# # ls = StrongWolfe()
+# # println(ls)
+# # fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
 
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
+# # ls = LineSearches.HagerZhang()
+# # println(ls)
+# # fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# # ls = MoreThuente()
+# # println(ls)
+# # fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
 
 
-# #optimize with OptimKit
-# optimkit_op(state_vec)
+# # #optimize with OptimKit
+# # optimkit_op(state_vec)
 
 
-println(E_tem)
+# println(E_tem)

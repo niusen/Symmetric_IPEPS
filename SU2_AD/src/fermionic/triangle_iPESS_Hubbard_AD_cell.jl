@@ -19,7 +19,7 @@ function cost_fun(x::Matrix{T})  where T<:iPEPS_ansatz_immutable #variational pa
     end
     
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init,[],grad_ctm_setting);
+    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(A_cell,chi,init,[],grad_ctm_setting);
     E_total,  _=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
     E=real(E_total);
 
@@ -39,9 +39,7 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
     A_cell=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            if isa(x[cx,cy],Square_iPEPS)
-                A=x[cx,cy].T;
-            elseif isa(x[cx,cy],Triangle_iPESS)
+            if isa(x[cx,cy],Triangle_iPESS)
                 tm=x[cx,cy].Tm;#|LU><M|
                 bm=x[cx,cy].Bm;#|Md><|RD
                 A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
@@ -53,21 +51,9 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         end
     end
 
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,ctm_setting);    
+    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(x0,chi,init, init_CTM,ctm_setting);    
 
-    if energy_setting.model=="spinless_Hubbard"
-        E_total,  ex_set, ey_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        E=real(E_total);
-        return E, ex_set, ey_set, e0_set, ite_num,ite_err,CTM_cell
-    elseif energy_setting.model=="spinless_Hubbard_pairing"
-        E_total,  ex_set, ey_set, px_set, py_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        E=real(E_total);
-        return E, ex_set, ey_set, px_set, py_set, e0_set, ite_num,ite_err,CTM_cell
-    elseif energy_setting.model=="spinless_triangle_lattice"
-        E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        E=real(E_total);
-        return E, ex_set, ey_set, e_diagonala_set, e0_set, ite_num,ite_err,CTM_cell
-    elseif energy_setting.model == "spinful_triangle_lattice"
+    if energy_setting.model == "spinful_triangle_lattice"
         E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
         E=real(E_total);
 
@@ -93,34 +79,6 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
         end
 
         return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set, ite_num,ite_err,CTM_cell
-    elseif energy_setting.model == "standard_triangle_Hubbard_spiral"
-        if ctm_setting.grad_checkpoint #use checkpoint to save memory
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set=Zygote.checkpointed(evaluate_ob_cell, parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        else
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        end
-        E=real(E_total);
-
-        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
-            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
-            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
-        end
-        return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, SSx_set, SSy_set, SSdiagonal_set, ite_num,ite_err,CTM_cell
-    elseif energy_setting.model == "standard_triangle_Hubbard_Bfield"
-        if ctm_setting.grad_checkpoint #use checkpoint to save memory
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set,em_set=Zygote.checkpointed(evaluate_ob_cell, parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        else
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set,em_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        end
-        E=real(E_total);
-
-        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
-            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
-            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
-        end
-        return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, em_set, ite_num,ite_err,CTM_cell
     end
 end
 
@@ -146,7 +104,7 @@ function observable_CTM(x, chi, parameters, ctm_setting, energy_setting, init, i
     end
 
 
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,ctm_setting);
+    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(A_cell,chi,init, init_CTM,ctm_setting);
     
 
     if energy_setting.model=="spinful_triangle_lattice"

@@ -16,6 +16,7 @@ Base.@kwdef mutable struct grad_CTMRG_settings
     CTM_trun_svd :: Bool = false
     construct_double_layer :: Bool=true
     grad_checkpoint :: Bool = false #use check point to save memory, i.e., only store CTM tensors in each iteration and disgard larger intermidiate tensors.
+    use_sub_checkpoint :: Bool =false
 end
 
 Base.@kwdef mutable struct LS_CTMRG_settings
@@ -30,6 +31,7 @@ Base.@kwdef mutable struct LS_CTMRG_settings
     CTM_trun_svd :: Bool = false
     construct_double_layer :: Bool=true
     grad_checkpoint :: Bool = false #use check point to save memory, i.e., only store CTM tensors in each iteration and disgard larger intermidiate tensors.
+    use_sub_checkpoint :: Bool =false
 end
 
 

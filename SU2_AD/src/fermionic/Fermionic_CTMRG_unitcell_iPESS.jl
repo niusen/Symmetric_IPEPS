@@ -2,12 +2,12 @@ using LinearAlgebra:diag,I
 using TensorKit
 using Statistics
 
-function build_doublelayer_swap_iPESS(B_set,T_set, pos)
+function build_doublelayer_swap_iPESS(B_set::Tuple,T_set::Tuple, pos)
     c1=pos[1];
     c2=pos[2];
-    B=B_set[c1,c2];
+    B=B_set[c1][c2];
     B_double, U_L,U_M,U_U = build_double_layer_swap_Tm(B',B, false);#L M U
-    T=T_set[c1,c2];
+    T=T_set[c1][c2];
     T_double, U_D,U_R,U_M = build_double_layer_swap_Bm(T',T, true);#D R M
     # @tensor AA[:]:=B_double[-1,1,-4]*T_double[-2,-3,1];#(L M U),(D R M) =>(L,D,R,U)
     # return AA, T_double, B_double, U_L,U_D,U_R,U_U
@@ -28,12 +28,12 @@ function convert_cell_posit(cx,cy,dx,dy,direction, Lx,Ly)
     return posit
 end
 
-function rotate_AA_direction(AA_fused,direction)
+function rotate_AA_direction(AA_fused::TensorMap,direction)
     AA_rotated=permute(AA_fused, (mod1(2-direction,4),mod1(3-direction,4),mod1(4-direction,4),mod1(1-direction,4),),());
     return AA_rotated
 end
 
-function Fermionic_CTMRG_cell_iPESS(B_set,T_set,chi,init,CTM0, ctm_setting) 
+function Fermionic_CTMRG_cell_iPESS(x0,chi,init,CTM0, ctm_setting) 
     global Lx,Ly
     global algrithm_CTMRG_settings
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
@@ -51,6 +51,16 @@ function Fermionic_CTMRG_cell_iPESS(B_set,T_set,chi,init,CTM0, ctm_setting)
         println("Attention: truncated svd with 4x4 projector could give large error");
     end
 
+    ##################
+    B_set=initial_tuple_cell(Lx,Ly);
+    T_set=initial_tuple_cell(Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            B_set=fill_tuple(B_set, x0[cx,cy].Tm, cx,cy);
+            T_set=fill_tuple(T_set, x0[cx,cy].Bm, cx,cy);
+        end
+    end
+
     #initial corner transfer matrix
     if init.reconstruct_AA
         double_B_cell=initial_tuple_cell(Lx,Ly);
@@ -61,7 +71,7 @@ function Fermionic_CTMRG_cell_iPESS(B_set,T_set,chi,init,CTM0, ctm_setting)
         U_U_cell=initial_tuple_cell(Lx,Ly);
         for cx=1:Lx
             for cy=1:Ly
-                T_double, B_double, U_L,U_D,U_R,U_U=build_doublelayer_swap_iPESS(B_set,T_set, [cx,cy]);
+                T_double, B_double, U_L_,U_D_,U_R_,U_U_=build_doublelayer_swap_iPESS(B_set,T_set, [cx,cy]);
 
                 double_B_cell=fill_tuple(double_B_cell, B_double, cx,cy);
                 double_T_cell=fill_tuple(double_T_cell, T_double, cx,cy);
@@ -179,9 +189,10 @@ function Fermionic_CTMRG_cell_iPESS(B_set,T_set,chi,init,CTM0, ctm_setting)
 
             # @time begin
                 if ctm_setting.grad_checkpoint #use checkpoint to save memory
-                    Cset_cell,Tset_cell= Zygote.checkpointed(CTM_ite_cell, Cset_cell, Tset_cell, double_B_cell, double_T_cell, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                    Cset_cell,Tset_cell= Zygote.checkpointed(CTM_ite_cell, Cset_cell, Tset_cell, double_B_cell, double_T_cell, chi, direction,ctm_setting, Lx,Ly);
+                                                                          
                 else
-                    Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, double_B_cell, double_T_cell, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+                    Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, double_B_cell, double_T_cell, chi, direction,ctm_setting, Lx,Ly);
                 end
             # end
         end
@@ -270,11 +281,11 @@ function Fermionic_CTMRG_cell_iPESS(B_set,T_set,chi,init,CTM0, ctm_setting)
     end
 
     CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
-    if CTM_conv_info
-        return CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
-    else
-        return CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
-    end
+    # if CTM_conv_info
+        return CTM_cell, B_set, T_set, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
+    # else
+    #     return CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
+    # end
 
 end
 
@@ -388,8 +399,10 @@ function get_M(coord,direction,double_B_cell,double_T_cell,Cset_cell,Tset_cell, 
     MMup_reflect=build_corner_MMup_reflect(coord,direction,double_B_cell,double_T_cell,Cset_cell,Tset_cell, Lx,Ly);
     MMlow_reflect=build_corner_MMlow_reflect(coord,direction,double_B_cell,double_T_cell,Cset_cell,Tset_cell, Lx,Ly);
 
-    RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
-    RMlow=MMlow*MMlow_reflect;
+    @tensor RMup[:]:=MMup[-1,-2,1,2]*MMup_reflect[1,2,-3,-4];
+    RMup=permute(RMup,(3,4,),(1,2,));
+    @tensor RMlow[:]:=MMlow[-1,-2,1,2]*MMlow_reflect[1,2,-3,-4];
+    RMlow=permute(RMlow,(1,2,),(3,4,));
 
     RMlow_norm=norm(RMlow);
     RMlow= RMlow/RMlow_norm;
@@ -506,7 +519,7 @@ function ctm_update_single_cx(chi, cx,cy_max, Cset_cell, Tset_cell, double_B_cel
     return Cset_cell,Tset_cell
 end
 
-function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,double_T_cell, direction, ctm_setting, Lx,Ly)
+function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,double_T_cell, chi, direction, ctm_setting, Lx,Ly)
     #println(direction)    
     #
     """change of coordinate 
@@ -522,9 +535,9 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
 
     for cx in range(1,cx_max)
         if ctm_setting.grad_checkpoint
-            Cset_cell,Tset_cell=Zygote.checkpointed(ctm_update_single_cx, cx,cy_max,Cset_cell, Tset_cell, double_B_cell,double_T_cell, direction, ctm_setting, Lx,Ly);
+            Cset_cell,Tset_cell=Zygote.checkpointed(ctm_update_single_cx, chi, cx,cy_max,Cset_cell, Tset_cell, double_B_cell,double_T_cell, direction, ctm_setting, Lx,Ly);
         else
-            Cset_cell,Tset_cell=ctm_update_single_cx(cx,cy_max,Cset_cell, Tset_cell, double_B_cell,double_T_cell, direction, ctm_setting, Lx,Ly);
+            Cset_cell,Tset_cell=ctm_update_single_cx(chi, cx,cy_max,Cset_cell, Tset_cell, double_B_cell,double_T_cell, direction, ctm_setting, Lx,Ly);
         end
     end
     return Cset_cell,Tset_cell
@@ -547,8 +560,6 @@ function init_CTM_cell(chi,B_set,T_set, type,CTM_ite_info)
         for cx=1:Lx
             for cy=1:Ly
                 T_double, B_double, U_L,U_D,U_R,U_U=build_doublelayer_swap_iPESS(B_set,T_set, [cx,cy]);
-                small_tensor=B_set[1,1];#the value not important
-
                 CTM_=init_CTM_swap_iPESS(chi,T_double, B_double, U_L,U_D,U_R,U_U);
                 Cset_cell=fill_tuple(Cset_cell,CTM_.Cset,cx,cy);
                 Tset_cell=fill_tuple(Tset_cell,CTM_.Tset,cx,cy);

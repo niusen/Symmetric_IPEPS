@@ -72,7 +72,7 @@ function ob_2x2_iPESS(CTM, AA_LU_::TensorMap, AA_RU_::TensorMap, AA_LD_::TensorM
     return rho
 end
 
-function get_AA_simple(double_B_set,double_T_set, pos::Int)
+function get_AA_simple(double_B_set,double_T_set, pos)
     @tensor AA[:]:=double_B_set[pos[1]][pos[2]][-1,1,-4]*double_T_set[pos[1]][pos[2]][-2,-3,1];
     return AA
 end
@@ -90,8 +90,8 @@ function ob_onsite_iPESS(CTM,O1,B_set,T_set, double_B_set, double_T_set,cx::Int,
 
     # @tensor A1[:]:= A_cell[pos_LU[1]][pos_LU[2]][-1,-2,-3,-4,1]*O1[-5,1]
 
-    B_LU=B_set[pos_LU[1],pos_LU[2]];#(LU,M)
-    T_LU=T_set[pos_LU[1],pos_LU[2]];#(M,dRD)
+    B_LU=B_set[pos_LU[1]][pos_LU[2]];#(LU,M)
+    T_LU=T_set[pos_LU[1]][pos_LU[2]];#(M,dRD)
     B_LU0=deepcopy(B_LU);
     T_LU0=deepcopy(T_LU);
 
@@ -109,8 +109,8 @@ function ob_onsite_iPESS(CTM,O1,B_set,T_set, double_B_set, double_T_set,cx::Int,
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
-    ob=ob_2x2_iPESS(CTM,AA_LU, AA_RU0,AA_LD0,AA_RD0,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU, AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
 end
@@ -134,8 +134,8 @@ function hopping_x_iPESS(CTM,O1,O2,string12, B_set,T_set, double_B_set, double_T
     # U=@ignore_derivatives unitary(fuse(space(A_LU,3)⊗space(A_LU,6)), space(A_LU,3)⊗space(A_LU,6)); 
     # @tensor A_LU[:]:=A_LU[-1,-2,1,-4,-5,2]*U[-3,1,2];
 
-    B_LU=B_set[pos_LU[1],pos_LU[2]];#(LU,M)
-    T_LU=T_set[pos_LU[1],pos_LU[2]];#(M,dRD)
+    B_LU=B_set[pos_LU[1]][pos_LU[2]];#(LU,M)
+    T_LU=T_set[pos_LU[1]][pos_LU[2]];#(M,dRD)
     B_LU0=deepcopy(B_LU);
     T_LU0=deepcopy(T_LU);
 
@@ -161,8 +161,8 @@ function hopping_x_iPESS(CTM,O1,O2,string12, B_set,T_set, double_B_set, double_T
     # @tensor A_RU[:]:=A_RU[-1,-2,-3,1,-5,-6]*gate[-4,1];
     # @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,2]*U'[1,2,-1];
 
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -195,8 +195,8 @@ function hopping_x_iPESS(CTM,O1,O2,string12, B_set,T_set, double_B_set, double_T
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
-    ob=ob_2x2_iPESS(CTM,AA_LU,AA_RU,AA_LD0,AA_RD0,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU,AA_RU,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
 end
@@ -221,8 +221,8 @@ function hopping_y_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, double_T_
     # U1=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
     # @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U1[-2,1,2];
     ####
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -244,8 +244,8 @@ function hopping_y_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, double_T_
     # @tensor A_RD[:]:= A_cell[pos_RD[1]][pos_RD[2]][-1,-2,-3,-4,1]*O2[-6,-5,1]
     # @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,2]*U1'[1,2,-4];
     ####
-    B_RD=B_set[pos_RD[1],pos_RD[2]];#(LU,M)
-    T_RD=T_set[pos_RD[1],pos_RD[2]];#(M,dRD)
+    B_RD=B_set[pos_RD[1]][pos_RD[2]];#(LU,M)
+    T_RD=T_set[pos_RD[1]][pos_RD[2]];#(M,dRD)
     B_RD0=deepcopy(B_RD);
     T_RD0=deepcopy(T_RD);
 
@@ -274,8 +274,8 @@ function hopping_y_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, double_T_
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
     
-    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD0,AA_RD,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD0,AA_RD,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
 end
@@ -300,8 +300,8 @@ function hopping_diagonala_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, d
     # U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
     # @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
     ######
-    B_LD=B_set[pos_LD[1],pos_LD[2]];#(LU,M)
-    T_LD=T_set[pos_LD[1],pos_LD[2]];#(M,dRD)
+    B_LD=B_set[pos_LD[1]][pos_LD[2]];#(LU,M)
+    T_LD=T_set[pos_LD[1]][pos_LD[2]];#(M,dRD)
     B_LD0=deepcopy(B_LD);
     T_LD0=deepcopy(T_LD);
 
@@ -331,8 +331,8 @@ function hopping_diagonala_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, d
     # U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
     # @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
     ######
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -360,8 +360,8 @@ function hopping_diagonala_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, d
     # @tensor A_RD[:]:=A_RD[-1,-2,-3,-4,1]*gate[-5,1];
     # @tensor A_RD[:]:=A_RD[1,-2,-3,3,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-4];
     ######
-    B_RD=B_set[pos_RD[1],pos_RD[2]];#(LU,M)
-    T_RD=T_set[pos_RD[1],pos_RD[2]];#(M,dRD)
+    B_RD=B_set[pos_RD[1]][pos_RD[2]];#(LU,M)
+    T_RD=T_set[pos_RD[1]][pos_RD[2]];#(M,dRD)
     B_RD0=deepcopy(B_RD);
     T_RD0=deepcopy(T_RD);
 
@@ -392,8 +392,8 @@ function hopping_diagonala_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, d
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
-    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD,AA_RD,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD,AA_RD,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob        
 end  
@@ -411,8 +411,8 @@ function ob_dn_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
 
     ####################
 
-    B_LD=B_set[pos_LD[1],pos_LD[2]];#(LU,M)
-    T_LD=T_set[pos_LD[1],pos_LD[2]];#(M,dRD)
+    B_LD=B_set[pos_LD[1]][pos_LD[2]];#(LU,M)
+    T_LD=T_set[pos_LD[1]][pos_LD[2]];#(M,dRD)
     B_LD0=deepcopy(B_LD);
     T_LD0=deepcopy(T_LD);
 
@@ -432,8 +432,8 @@ function ob_dn_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     T_LD_double, _ = build_double_layer_swap_Bm(T_LD0',T_LD, true);#D R M
     ####################
 
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -451,8 +451,8 @@ function ob_dn_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     B_RU_double, _ = build_double_layer_swap_Tm(B_RU0',B_RU, false);#L M U
     T_RU_double, _ = build_double_layer_swap_Bm(T_RU0',T_RU, true);#D R M
     ####################
-    B_LU=B_set[pos_LU[1],pos_LU[2]];#(LU,M)
-    T_LU=T_set[pos_LU[1],pos_LU[2]];#(M,dRD)
+    B_LU=B_set[pos_LU[1]][pos_LU[2]];#(LU,M)
+    T_LU=T_set[pos_LU[1]][pos_LU[2]];#(M,dRD)
     B_LU0=deepcopy(B_LU);
     T_LU0=deepcopy(T_LU);
 
@@ -476,8 +476,8 @@ function ob_dn_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
-    ob=ob_2x2_iPESS(CTM,AA_LU,AA_RU,AA_LD,AA_RD0,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU,AA_RU,AA_LD,AA_RD0,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob        
 end
@@ -492,8 +492,8 @@ function ob_up_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
 
 
 
-    B_LD=B_set[pos_LD[1],pos_LD[2]];#(LU,M)
-    T_LD=T_set[pos_LD[1],pos_LD[2]];#(M,dRD)
+    B_LD=B_set[pos_LD[1]][pos_LD[2]];#(LU,M)
+    T_LD=T_set[pos_LD[1]][pos_LD[2]];#(M,dRD)
     B_LD0=deepcopy(B_LD);
     T_LD0=deepcopy(T_LD);
 
@@ -510,8 +510,8 @@ function ob_up_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
 
     ###################
 
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -527,8 +527,8 @@ function ob_up_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     T_RU_double, _ = build_double_layer_swap_Bm(T_RU0',T_RU, true);#D R M
     ########################
 
-    B_RD=B_set[pos_RD[1],pos_RD[2]];#(LU,M)
-    T_RD=T_set[pos_RD[1],pos_RD[2]];#(M,dRD)
+    B_RD=B_set[pos_RD[1]][pos_RD[2]];#(LU,M)
+    T_RD=T_set[pos_RD[1]][pos_RD[2]];#(M,dRD)
     B_RD0=deepcopy(B_RD);
     T_RD0=deepcopy(T_RD);
 
@@ -556,8 +556,8 @@ function ob_up_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
-    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD,AA_RD,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD,AA_RD,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
 
     return ob        
@@ -576,8 +576,8 @@ function hopping_x_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
     #########################################
 
 
-    B_LU=B_set[pos_LU[1],pos_LU[2]];#(LU,M)
-    T_LU=T_set[pos_LU[1],pos_LU[2]];#(M,dRD)
+    B_LU=B_set[pos_LU[1]][pos_LU[2]];#(LU,M)
+    T_LU=T_set[pos_LU[1]][pos_LU[2]];#(M,dRD)
     B_LU0=deepcopy(B_LU);
     T_LU0=deepcopy(T_LU);
 
@@ -592,8 +592,8 @@ function hopping_x_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
     ###########################################
 
 
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -622,8 +622,8 @@ function hopping_x_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
-    ob=ob_2x2_iPESS(CTM,AA_LU,AA_RU,AA_LD0,AA_RD0,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU,AA_RU,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
 end
@@ -639,8 +639,8 @@ function hopping_y_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
     #############################################
 
     ####
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -655,8 +655,8 @@ function hopping_y_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
     ####################################
 
     ####
-    B_RD=B_set[pos_RD[1],pos_RD[2]];#(LU,M)
-    T_RD=T_set[pos_RD[1],pos_RD[2]];#(M,dRD)
+    B_RD=B_set[pos_RD[1]][pos_RD[2]];#(LU,M)
+    T_RD=T_set[pos_RD[1]][pos_RD[2]];#(M,dRD)
     B_RD0=deepcopy(B_RD);
     T_RD0=deepcopy(T_RD);
 
@@ -685,8 +685,8 @@ function hopping_y_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
     
-    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD0,AA_RD,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD0,AA_RD,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
 end
@@ -703,8 +703,8 @@ function hopping_diagonala_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, d
 
 
     ######
-    B_LD=B_set[pos_LD[1],pos_LD[2]];#(LU,M)
-    T_LD=T_set[pos_LD[1],pos_LD[2]];#(M,dRD)
+    B_LD=B_set[pos_LD[1]][pos_LD[2]];#(LU,M)
+    T_LD=T_set[pos_LD[1]][pos_LD[2]];#(M,dRD)
     B_LD0=deepcopy(B_LD);
     T_LD0=deepcopy(T_LD);
 
@@ -722,8 +722,8 @@ function hopping_diagonala_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, d
     #############################################
 
     ######
-    B_RU=B_set[pos_RU[1],pos_RU[2]];#(LU,M)
-    T_RU=T_set[pos_RU[1],pos_RU[2]];#(M,dRD)
+    B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
+    T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
@@ -740,8 +740,8 @@ function hopping_diagonala_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, d
     ################################################
 
     ######
-    B_RD=B_set[pos_RD[1],pos_RD[2]];#(LU,M)
-    T_RD=T_set[pos_RD[1],pos_RD[2]];#(M,dRD)
+    B_RD=B_set[pos_RD[1]][pos_RD[2]];#(LU,M)
+    T_RD=T_set[pos_RD[1]][pos_RD[2]];#(M,dRD)
     B_RD0=deepcopy(B_RD);
     T_RD0=deepcopy(T_RD);
 
@@ -766,8 +766,8 @@ function hopping_diagonala_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, d
     AA_RU0=get_AA_simple(double_B_set,double_T_set,pos_RU);
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
-    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD,AA_RD,cx,cy);
-    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy);
+    ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD,AA_RD,cx,cy,Lx,Ly);
+    Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob        
 end
@@ -788,18 +788,18 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
     """      
     Lx=energy_setting.Lx
     Ly=energy_setting.Ly
-    if isa(space(B_set[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+    if isa(space(B_set[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         
         if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard")
             Hamiltonian_terms=Hamiltonians_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
             Hamiltonian_terms=Hamiltonians_spinless_Z2;
         end
-    elseif isa(space(B_set[1,1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
+    elseif isa(space(B_set[1][1],1),GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}})
         Hamiltonian_terms=Hamiltonians_spinless_U1;
-    elseif isa(space(B_set[1,1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+    elseif isa(space(B_set[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
         Hamiltonian_terms=Hamiltonians_spinful_SU2;
-    elseif isa(space(B_set[1,1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
+    elseif isa(space(B_set[1][1],1),GradedSpace{ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}})
         if mod(energy_setting.Magnetic_cell,2)==1 #odd number of sites in unitcell
             @assert mod(Ly,2)==0;
             #if use U1 symmetry, use different dummy physical space along y direction along Ly, where Ly should be even number
@@ -829,17 +829,17 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
         for cx=1:Lx
             for cy=1:Ly
                 if energy_setting.energy_checkpoint
-                    ex=Zygote.checkpointed(hopping_x_iPESS, CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    ey=Zygote.checkpointed(hopping_y_iPESS, CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e_diagonala=Zygote.checkpointed(hopping_diagonala_iPESS, CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e0=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    eU=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
+                    ex=Zygote.checkpointed(hopping_x_iPESS, CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    ey=Zygote.checkpointed(hopping_y_iPESS, CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e_diagonala=Zygote.checkpointed(hopping_diagonala_iPESS, CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e0=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    eU=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
                 else
-                    ex=hopping_x_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    ey=hopping_y_iPESS(CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e_diagonala=hopping_diagonala_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e0=ob_onsite_iPESS(CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    eU=ob_onsite_iPESS(CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
+                    ex=hopping_x_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    ey=hopping_y_iPESS(CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e_diagonala=hopping_diagonala_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e0=ob_onsite_iPESS(CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    eU=ob_onsite_iPESS(CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
                 end
                 @ignore_derivatives ex_set[cx,cy]=ex;
                 @ignore_derivatives ey_set[cx,cy]=ey;

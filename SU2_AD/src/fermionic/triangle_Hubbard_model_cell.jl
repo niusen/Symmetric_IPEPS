@@ -835,9 +835,9 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
                     e0=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
                     eU=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
                 else
-                    ex=hopping_x_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
-                    ey=hopping_y_iPESS(CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
-                    e_diagonala=hopping_diagonala_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    ex=hopping_x_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    ey=hopping_y_iPESS(CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e_diagonala=hopping_diagonala_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
                     e0=ob_onsite_iPESS(CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
                     eU=ob_onsite_iPESS(CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
                 end
@@ -856,107 +856,7 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
 
         E_total=E_total/(Lx*Ly);
         return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
-    
 
-    elseif energy_setting.model in ("Triangle_Hofstadter_Hubbard","Triangle_Hofstadter_spinless")
-        @assert mod(Lx,energy_setting.Magnetic_cell)==0;
-        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
-
-        parameters_site=@ignore_derivatives get_Hofstadter_coefficients(Lx,Ly,parameters,energy_setting);
-        tx_coe_set=parameters_site["tx_coe_set"];
-        ty_coe_set=parameters_site["ty_coe_set"];
-        t2_coe_set=parameters_site["t2_coe_set"];
-        U_coe_set=parameters_site["U_coe_set"];
-        μ_coe_set=parameters_site["μ_coe_set"];
-
-        ex_set=zeros(Lx,Ly)*im;
-        ey_set=zeros(Lx,Ly)*im;
-        e_diagonala_set=zeros(Lx,Ly)*im;
-        e0_set=zeros(Lx,Ly)*im;
-        eU_set=zeros(Lx,Ly)*im;
-        
-        E_total=0;
-        for px=1:Lx
-            for py=1:Ly
-                #(cx,cy): coordinate of left-top C1 tensor
-                cx=mod1(px-1,Lx);
-                cy=mod1(py-1,Ly);
-                if energy_setting.energy_checkpoint
-                    ex=Zygote.checkpointed(hopping_x_iPESS, CTM_cell,Cdag_set[mod1(py,Ly)],C_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    ey=Zygote.checkpointed(hopping_y_iPESS, CTM_cell,Cdag_set[mod1(py,Ly)],C_set[mod1(py+1,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e_diagonala=Zygote.checkpointed(hopping_diagonala_iPESS, CTM_cell,Cdag_set[mod1(py+1,Ly)],C_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e0=Zygote.checkpointed, ob_onsite_iPESS(CTM_cell,N_occu_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    eU=Zygote.checkpointed, ob_onsite_iPESS(CTM_cell,n_double_set[mod1(py,Ly)]-(1/2)*N_occu_set[mod1(py,Ly)]+(1/4)*Ident_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                else
-                    ex=hopping_x_iPESS(CTM_cell,Cdag_set[mod1(py,Ly)],C_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    ey=hopping_y_iPESS(CTM_cell,Cdag_set[mod1(py,Ly)],C_set[mod1(py+1,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e_diagonala=hopping_diagonala_iPESS(CTM_cell,Cdag_set[mod1(py+1,Ly)],C_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e0=ob_onsite_iPESS(CTM_cell,N_occu_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    eU=ob_onsite_iPESS(CTM_cell,n_double_set[mod1(py,Ly)]-(1/2)*N_occu_set[mod1(py,Ly)]+(1/4)*Ident_set[mod1(py,Ly)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                end
-                @ignore_derivatives ex_set[px,py]=ex;
-                @ignore_derivatives ey_set[px,py]=ey;
-                @ignore_derivatives e_diagonala_set[px,py]=e_diagonala;
-                @ignore_derivatives e0_set[px,py]=e0;
-                @ignore_derivatives eU_set[px,py]=eU;
-                tx_coe=tx_coe_set[px,py];
-                ty_coe=ty_coe_set[px,py];
-                t2_coe=t2_coe_set[px,py];
-                U_coe=U_coe_set[px,py];
-                μ_coe=μ_coe_set[px,py];
-                E_temp=tx_coe*ex +ty_coe*ey +t2_coe*e_diagonala -μ_coe*e0/2  +U_coe*eU/2;
-                E_total=E_total+real(E_temp+E_temp');
-                
-            end
-        end 
-        E_total=E_total/(Lx*Ly);
-        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
-    elseif energy_setting.model =="standard_triangle_Hubbard" 
-        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
-        t1=parameters["t1"];
-        t2=parameters["t2"];
-        μ=parameters["μ"];
-        U=parameters["U"];
-
-        ex_set=zeros(Lx,Ly)*im;
-        ey_set=zeros(Lx,Ly)*im;
-        e_diagonala_set=zeros(Lx,Ly)*im;
-        e0_set=zeros(Lx,Ly)*im;
-        eU_set=zeros(Lx,Ly)*im;
-        
-        E_total=0;
-        for px=1:Lx
-            for py=1:Ly
-                #(cx,cy): coordinate of left-top C1 tensor
-                cx=mod1(px-1,Lx);
-                cy=mod1(py-1,Ly);
-                if energy_setting.energy_checkpoint
-                    ex=Zygote.checkpointed(hopping_x_iPESS, CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    ey=Zygote.checkpointed(hopping_y_iPESS, CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e_diagonala=Zygote.checkpointed(hopping_diagonala_iPESS, CTM_cell,Cdag_set[mod1(py+1,2)],C_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e0=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,N_occu_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    eU=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,n_double_set[mod1(py,2)]-(1/2)*N_occu_set[mod1(py,2)]+(1/4)*Ident_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                else
-                    ex=hopping_x_iPESS(CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    ey=hopping_y_iPESS(CTM_cell,Cdag_set[mod1(py,2)],C_set[mod1(py+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e_diagonala=hopping_diagonala_iPESS(CTM_cell,Cdag_set[mod1(py+1,2)],C_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    e0=ob_onsite_iPESS(CTM_cell,N_occu_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                    eU=ob_onsite_iPESS(CTM_cell,n_double_set[mod1(py,2)]-(1/2)*N_occu_set[mod1(py,2)]+(1/4)*Ident_set[mod1(py,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,ctm_setting);
-                end
-                @ignore_derivatives ex_set[px,py]=ex;
-                @ignore_derivatives ey_set[px,py]=ey;
-                @ignore_derivatives e_diagonala_set[px,py]=e_diagonala;
-                @ignore_derivatives e0_set[px,py]=e0;
-                @ignore_derivatives eU_set[px,py]=eU;
-
-                E_temp=-t1*ex -t1*ey -t2*e_diagonala -μ*e0/2  +U*eU/2;
-                #E_temp=-t1*ex -t1*ey -t2*e_diagonala  +U*eU/2; # do not include chemical potential
-                E_total=E_total+real(E_temp+E_temp');
-                
-            end
-        end 
-        E_total=E_total/(Lx*Ly);
-        return torch.real(E_total),  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
     end
     
 end

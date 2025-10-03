@@ -1,26 +1,20 @@
 
-function cost_fun(x::Matrix{T})  where T<:iPEPS_ansatz_immutable #variational parameters are vector of TensorMap
+function cost_fun(x0::Matrix{T})  where T<:iPEPS_ansatz_immutable #variational parameters are vector of TensorMap
     global Lx,Ly
     global chi, parameters, energy_setting, grad_ctm_setting
 
-    A_cell=initial_tuple_cell(Lx,Ly);
+    B_set=initial_tuple_cell(Lx,Ly);
+    T_set=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            if isa(x[cx,cy],Triangle_iPESS_immutable)
-                tm=x[cx,cy].Tm;#|LU><M|
-                bm=x[cx,cy].Bm;#|Md><|RD
-                A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
-            end
-            norm_A=norm(A)
-            A=A/norm_A;
-
-            A_cell=fill_tuple(A_cell, A, cx,cy);
+            B_set=fill_tuple(B_set, x0[cx,cy].Tm, cx,cy);
+            T_set=fill_tuple(T_set, x0[cx,cy].Bm, cx,cy);
         end
     end
     
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(A_cell,chi,init,[],grad_ctm_setting);
-    E_total,  _=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+    CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(B_set, T_set, chi,init,[],grad_ctm_setting);
+    E_total,  _=evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, grad_ctm_setting, energy_setting);
     E=real(E_total);
 
     println("E0= "*string(E));flush(stdout);
@@ -34,81 +28,53 @@ end
 
 
 
-function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
+function energy_CTM(x0, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
     global Lx,Ly
-    A_cell=initial_tuple_cell(Lx,Ly);
+
+    B_set=initial_tuple_cell(Lx,Ly);
+    T_set=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            if isa(x[cx,cy],Triangle_iPESS)
-                tm=x[cx,cy].Tm;#|LU><M|
-                bm=x[cx,cy].Bm;#|Md><|RD
-                A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
-            end
-            norm_A=norm(A)
-            A=A/norm_A;
-
-            A_cell=fill_tuple(A_cell, A, cx,cy);
+            B_set=fill_tuple(B_set, x0[cx,cy].Tm, cx,cy);
+            T_set=fill_tuple(T_set, x0[cx,cy].Bm, cx,cy);
         end
     end
 
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(x0,chi,init, init_CTM,ctm_setting);    
+    CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(B_set, T_set, chi,init, init_CTM,ctm_setting);    
 
     if energy_setting.model == "spinful_triangle_lattice"
-        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ctm_setting, energy_setting);
         E=real(E_total);
 
-        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
+        if isa(space(B_set[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+            sx_set,sy_set,sz_set=evaluate_spin_cell_iPESS(B_set, T_set, double_B_cell, double_T_cell, CTM_cell, ctm_setting,energy_setting);
             S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
             println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
         end
 
         return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, ite_num,ite_err,CTM_cell
-    elseif energy_setting.model == "standard_triangle_Hubbard"
-        if ctm_setting.grad_checkpoint #use checkpoint to save memory
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set=Zygote.checkpointed(evaluate_ob_cell, parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        else
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
-        end
-        E=real(E_total);
-
-        if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell, AA_cell, CTM_cell, ctm_setting);
-            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
-            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);
-        end
-
-        return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set, ite_num,ite_err,CTM_cell
     end
 end
 
 
 
-function observable_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
+function observable_CTM(x0, chi, parameters, ctm_setting, energy_setting, init, init_CTM)
     global Lx,Ly
-    A_cell=initial_tuple_cell(Lx,Ly);
+
+    B_set=initial_tuple_cell(Lx,Ly);
+    T_set=initial_tuple_cell(Lx,Ly);
     for cx=1:Lx
         for cy=1:Ly
-            if isa(x[cx,cy],Square_iPEPS)
-                A=x[cx,cy].T;
-            elseif isa(x[cx,cy],Triangle_iPESS)
-                tm=x[cx,cy].Tm;#|LU><M|
-                bm=x[cx,cy].Bm;#|Md><|RD
-                A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
-            end
-            norm_A=norm(A)
-            A=A/norm_A;
-
-            A_cell=fill_tuple(A_cell, A, cx,cy);
+            B_set=fill_tuple(B_set, x0[cx,cy].Tm, cx,cy);
+            T_set=fill_tuple(T_set, x0[cx,cy].Bm, cx,cy);
         end
     end
 
-
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(A_cell,chi,init, init_CTM,ctm_setting);
+    CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(B_set, T_set, chi,init, init_CTM,ctm_setting);
     
 
     if energy_setting.model=="spinful_triangle_lattice"
-        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ctm_setting, energy_setting);
         E=real(E_total);
         return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, ite_num,ite_err,CTM_cell
     end

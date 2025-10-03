@@ -33,7 +33,7 @@ function rotate_AA_direction(AA_fused::TensorMap,direction)
     return AA_rotated
 end
 
-function Fermionic_CTMRG_cell_iPESS(x0,chi,init,CTM0, ctm_setting) 
+function Fermionic_CTMRG_cell_iPESS(B_set, T_set, chi,init,CTM0, ctm_setting) 
     global Lx,Ly
     global algrithm_CTMRG_settings
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
@@ -52,14 +52,7 @@ function Fermionic_CTMRG_cell_iPESS(x0,chi,init,CTM0, ctm_setting)
     end
 
     ##################
-    B_set=initial_tuple_cell(Lx,Ly);
-    T_set=initial_tuple_cell(Lx,Ly);
-    for cx=1:Lx
-        for cy=1:Ly
-            B_set=fill_tuple(B_set, x0[cx,cy].Tm, cx,cy);
-            T_set=fill_tuple(T_set, x0[cx,cy].Bm, cx,cy);
-        end
-    end
+
 
     #initial corner transfer matrix
     if init.reconstruct_AA
@@ -282,7 +275,7 @@ function Fermionic_CTMRG_cell_iPESS(x0,chi,init,CTM0, ctm_setting)
 
     CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
     # if CTM_conv_info
-        return CTM_cell, B_set, T_set, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
+        return CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
     # else
     #     return CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
     # end

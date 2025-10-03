@@ -38,10 +38,18 @@ chi=40
 t=1;
 ϕ=pi/2;
 μ=0;
-U=0;
+U=14;
 parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U)]);
 
-
+import LinearAlgebra.BLAS as BLAS
+n_cpu=10;
+BLAS.set_num_threads(n_cpu);
+println("number of cpus: "*string(BLAS.get_num_threads()))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_grad_"*"iPESS_U"*string(U)*"_D"*string(D))
+pid=getpid();
+println("pid="*string(pid));
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
 
 grad_ctm_setting=grad_CTMRG_settings();
 grad_ctm_setting.CTM_conv_tol=1e-6;
@@ -141,57 +149,32 @@ save_filenm="Optim_iPESS_LS_D_"*string(D)*"_chi_"*string(chi)*".jld2"
 global starting_time
 starting_time=now();
 
-################################################
-
-    # A_cell=initial_tuple_cell(Lx,Ly);
-    # for cx=1:Lx
-    #     for cy=1:Ly
-    #         if isa(x[cx,cy],Triangle_iPESS)
-    #             tm=x[cx,cy].Tm;#|LU><M|
-    #             bm=x[cx,cy].Bm;#|Md><|RD
-    #             A=permute(tm*bm,(1,5,4,2,3,));#L,D,R,U,d,
-    #         end
-    #         norm_A=norm(A)
-    #         A=A/norm_A;
-
-    #         A_cell=fill_tuple(A_cell, A, cx,cy);
-    #     end
-    # end
-
-
-    ctm_setting=grad_ctm_setting;
-
-    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    CTM_cell, B_set, T_set, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(state_vec,chi,init, init_CTM,ctm_setting);    
-    
-    E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set =evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ctm_setting, energy_setting);
-
 
 ################################################
 
-# global E_history
-# E_history=[10000];
+global E_history
+E_history=[10000];
 
 
-# ls = BackTracking(order=3)
+ls = BackTracking(order=3)
+println(ls)
+fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
+
+# ls = StrongWolfe()
 # println(ls)
-# fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
+# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
 
-# # ls = StrongWolfe()
-# # println(ls)
-# # fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
+# ls = LineSearches.HagerZhang()
+# println(ls)
+# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
 
-# # ls = LineSearches.HagerZhang()
-# # println(ls)
-# # fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# # ls = MoreThuente()
-# # println(ls)
-# # fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
+# ls = MoreThuente()
+# println(ls)
+# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
 
 
-# # #optimize with OptimKit
-# # optimkit_op(state_vec)
+# #optimize with OptimKit
+# optimkit_op(state_vec)
 
 
-# println(E_tem)
+println(E_tem)

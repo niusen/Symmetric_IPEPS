@@ -10,11 +10,11 @@ CDCDCDCD
 
 
 function initial_iPESS_uniform(Lx,Ly,V,Vp)
-    Bset=Matrix{Any}(undef,Lx,Ly);
-    Tset=Matrix{Any}(undef,Lx,Ly);
-    lambdaset1=Matrix{Any}(undef,Lx,Ly);
-    lambdaset2=Matrix{Any}(undef,Lx,Ly);
-    lambdaset3=Matrix{Any}(undef,Lx,Ly);
+    Bset=Matrix{TensorMap}(undef,Lx,Ly);
+    Tset=Matrix{TensorMap}(undef,Lx,Ly);
+    lambdaset1=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+    lambdaset2=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+    lambdaset3=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
     BA=permute(TensorMap(randn,V'*Vp,V*V),(1,),(2,3,4,));
     TA=TensorMap(randn,V*V,V');
     for ca=1:Lx
@@ -40,11 +40,11 @@ end
 
 
 function initial_iPESS(Lx,Ly,V,Vp)
-    Bset=Matrix{Any}(undef,Lx,Ly);
-    Tset=Matrix{Any}(undef,Lx,Ly);
-    lambdaset1=Matrix{Any}(undef,Lx,Ly);
-    lambdaset2=Matrix{Any}(undef,Lx,Ly);
-    lambdaset3=Matrix{Any}(undef,Lx,Ly);
+    Bset=Matrix{TensorMap}(undef,Lx,Ly);
+    Tset=Matrix{TensorMap}(undef,Lx,Ly);
+    lambdaset1=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+    lambdaset2=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+    lambdaset3=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
 
     for ca=1:Lx
         for cb=1:Ly

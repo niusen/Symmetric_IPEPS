@@ -11,25 +11,25 @@ cd(@__DIR__)
 
 
 
-include("..\\..\\src\\bosonic\\Settings.jl")
-include("..\\..\\src\\bosonic\\Settings_cell.jl")
-include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\..\\src\\bosonic\\AD_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\src\\bosonic\\line_search_lib_cell.jl")
-include("..\\..\\src\\bosonic\\optimkit_lib.jl")
-include("..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\src\\fermionic\\Fermionic_CTMRG.jl")
-include("..\\..\\src\\fermionic\\Fermionic_CTMRG_unitcell.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_model_cell.jl")
-include("..\\..\\src\\fermionic\\square_Hubbard_AD_cell.jl")
-include("..\\..\\src\\fermionic\\swap_funs.jl")
-include("..\\..\\src\\fermionic\\fermi_permute.jl")
-include("..\\..\\src\\fermionic\\mpo_mps_funs.jl")
-include("..\\..\\src\\fermionic\\double_layer_funs.jl")
-include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
-include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate.jl")
-include("..\\..\\src\\fermionic\\simple_update\\fermi_triangle_SimpleUpdate_iPESS.jl")
+include("../../../src/bosonic/Settings.jl")
+include("../../../src/bosonic/Settings_cell.jl")
+include("../../../src/bosonic/iPEPS_ansatz.jl")
+include("../../../src/bosonic/AD_lib.jl")
+include("../../../src/bosonic/line_search_lib.jl")
+include("../../../src/bosonic/line_search_lib_cell.jl")
+include("../../../src/bosonic/optimkit_lib.jl")
+include("../../../src/bosonic/CTMRG.jl")
+include("../../../src/fermionic/Fermionic_CTMRG.jl")
+include("../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
+include("../../../src/fermionic/square_Hubbard_model_cell.jl")
+include("../../../src/fermionic/square_Hubbard_AD_cell.jl")
+include("../../../src/fermionic/swap_funs.jl")
+include("../../../src/fermionic/fermi_permute.jl")
+include("../../../src/fermionic/mpo_mps_funs.jl")
+include("../../../src/fermionic/double_layer_funs.jl")
+include("../../../src/fermionic/triangle_fiPESS_method.jl")
+include("../../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate.jl")
+include("../../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate_iPESS.jl")
 
 ###########################
 """
@@ -40,27 +40,28 @@ CDCDCDCD
 """
 ###########################
 # let
-Random.seed!(1234);
+###########################
 import LinearAlgebra.BLAS as BLAS
-# n_cpu=10;
-# BLAS.set_num_threads(n_cpu);
+n_cpu=10;
+BLAS.set_num_threads(n_cpu);
 println("number of cpus: "*string(BLAS.get_num_threads()))
+Base.Sys.set_process_title("C"*string(n_cpu)*"_SU")
+pid=getpid();
+println("pid="*string(pid));
+@show num_logical_cores = Sys.CPU_THREADS
+@show hostnm=gethostname()
+###########################
 
-D_max=4;
+D_max=8;
 
-t1=1;
-t2=1;
+t=1;
 ϕ=pi/2;
-U=0;
-μ=0;
+μ=-3;
+U=9;
 B=0;
-parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
-
-
+parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
 
 trun_tol=1e-6;
-
-
 
 chi=40;
 
@@ -88,7 +89,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="D_8.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -153,11 +154,28 @@ else
     data=load(optim_setting.init_statenm);
     T_set=data["T_set"];
     B_set=data["B_set"];
+
+    @assert size(T_set,1)==Lx;
+    @assert size(T_set,2)==Ly;
     if haskey(data,"λ_set1")
         λ_set1=data["λ_set1"];
         λ_set2=data["λ_set2"];
         λ_set3=data["λ_set3"];
     else
+        λ_set1=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+        λ_set2=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+        λ_set3=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                t_A=B_set[ca,cb];
+                λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims.values)), space(t_A,1)');
+                λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims.values)), space(t_A,2)');
+                λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims.values)), space(t_A,3)');
+                λ_set1[ca,cb]=λ_A_1;
+                λ_set2[ca,cb]=λ_A_2;
+                λ_set3[ca,cb]=λ_A_3;
+            end
+        end
     end
 end
 
@@ -174,9 +192,10 @@ end
 # println(e0_set)
 # println(eU_set)
 
-
+global D0set
 D0set=[];
 for cc in eachindex(B_set)
+    global D0set
     D0set=vcat(D0set,[dim(space(B_set[cc],1)), dim(space(B_set[cc],2)), dim(space(B_set[cc],3))]);
 end
 D_max0=maximum(D0set);
@@ -204,6 +223,8 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting,
 filenm="SU_iPESS_SU2_csl_D"*string(D_max)*".jld2";
 jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
+
+chi=80;
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
@@ -215,6 +236,11 @@ println(e_diagonala_set)
 println(e0_set)
 println(eU_set)
 
+
+pairing_x_set, pairing_y_set, pairing_diagonala_set=evaluate_ob_pairing_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+@show pairing_x_set
+@show pairing_y_set
+@show pairing_diagonala_set
 
 
 

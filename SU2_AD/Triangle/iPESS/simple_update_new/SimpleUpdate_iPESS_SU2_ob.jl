@@ -60,7 +60,7 @@ t=1;
 U=9;
 B=0;
 parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
-
+@show parameters;
 trun_tol=1e-6;
 
 chi=40;
@@ -152,11 +152,26 @@ if optim_setting.init_statenm=="nothing"
     # B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS_uniform(Lx,Ly,V,Vp);    
 else
     data=load(optim_setting.init_statenm);
-    T_set=data["T_set"];
-    B_set=data["B_set"];
+    if haskey(data,"x")
+        x=data["x"];
+        @assert size(x,1)==Lx;
+        @assert size(x,2)==Ly;
+        B_set=Matrix{TensorMap}(undef,Lx,Ly);
+        T_set=Matrix{TensorMap}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                B_set[ca,cb]=state[ca,cb].Tm;
+                T_set[ca,cb]=state[ca,cb].Bm;
+            end
+        end
+    else
+        T_set=data["T_set"];
+        B_set=data["B_set"];
+        @assert size(T_set,1)==Lx;
+        @assert size(T_set,2)==Ly;
+    end
 
-    @assert size(T_set,1)==Lx;
-    @assert size(T_set,2)==Ly;
+
     if haskey(data,"λ_set1")
         λ_set1=data["λ_set1"];
         λ_set2=data["λ_set2"];

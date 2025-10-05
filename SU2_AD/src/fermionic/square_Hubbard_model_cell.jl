@@ -2151,6 +2151,46 @@ function twosite_pairing_spinful_SU2()
     return pairing_singlet_site1, pairing_singlet_site2
 end
 
+function twosite_pairing_spinful_Z2()
+    
+    Vdummy=Rep[ℤ₂](1=>2);
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order: (0,0), (0,1), (1,0), (1,1)
+    
+
+
+
+    # singlet pairing
+    Cdagupa=zeros(4,4,2);
+    Cdagupa[[1,4,3,2],[1,4,3,2],1]=kron(sp,Id);
+    Cdagdna=zeros(4,4,2);
+    Cdagdna[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
+    Cdaga=TensorMap(Cdagupa+Cdagdna,  V ← V ⊗Vdummy);
+    Cdaga=permute(Cdaga,(3,1,),(2,))
+
+    Cdagupb=zeros(2,4,4);
+    Cdagupb[2,[1,4,3,2],[1,4,3,2]]=kron(sp,Id);
+    Cdagdnb=zeros(2,4,4);
+    Cdagdnb[1,[1,4,3,2],[1,4,3,2]]=kron(sz,sp);
+    Cdagb=TensorMap(Cdagupb-Cdagdnb, Vdummy ⊗ V ← V);
+
+
+
+    @tensor pairing[:]:=Cdaga[1,-1,-3]*Cdagb[1,-2,-4];
+
+
+
+    pairing_singlet_site1=Cdaga;
+    pairing_singlet_site2=Cdagb;
+
+
+    return pairing_singlet_site1, pairing_singlet_site2
+end
 
 function evaluate_ob_pairing_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting)
     """change of coordinate 
@@ -2165,7 +2205,7 @@ function evaluate_ob_pairing_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard","standard_triangle_Hubbard_spiral","standard_triangle_Hubbard_Bfield")
 
-            operator_terms=Operators_spinful_Z2;
+            operator_terms=twosite_pairing_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
   
         end

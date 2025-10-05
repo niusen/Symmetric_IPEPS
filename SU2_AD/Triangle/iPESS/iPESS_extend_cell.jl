@@ -19,7 +19,7 @@ include("..\\..\\src\\fermionic\\triangle_fiPESS_method.jl")
 
 filenm="D_8.jld2";
 
-Lx_new=4;
+Lx_new=8;
 Ly_new=2;
 
 filenm_new="extended_Lx"*string(Lx_new)*"_Ly"*string(Ly_new)*"_"*filenm;

@@ -89,7 +89,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="D_8.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
+optim_setting.init_statenm="Z2_extended_Lx2_Ly4_D_8.jld2";#"SU_iPESS_SU2_csl_D4.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -112,7 +112,7 @@ dump(LS_ctm_setting);
 energy_setting=Square_Hubbard_Energy_settings();
 energy_setting.model = "spinful_triangle_lattice";
 energy_setting.Lx =2;
-energy_setting.Ly =2;
+energy_setting.Ly =4;
 dump(energy_setting);
 
 
@@ -146,6 +146,8 @@ global chi, parameters, energy_setting, grad_ctm_setting
 
 
 if optim_setting.init_statenm=="nothing"
+    # Vp=Rep[ℤ₂](0=>2,1=>2);
+    # V=Rep[ℤ₂](0=>2,1=>2);
     V=Rep[SU₂](0=>2, 1/2=>1);
     Vp=Rep[SU₂](0=>2, 1/2=>1);
     B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS(Lx,Ly,V,Vp); 
@@ -177,20 +179,7 @@ else
         λ_set2=data["λ_set2"];
         λ_set3=data["λ_set3"];
     else
-        λ_set1=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
-        λ_set2=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
-        λ_set3=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
-        for ca=1:Lx
-            for cb=1:Ly
-                t_A=B_set[ca,cb];
-                λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims.values)), space(t_A,1)');
-                λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims.values)), space(t_A,2)');
-                λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims.values)), space(t_A,3)');
-                λ_set1[ca,cb]=λ_A_1;
-                λ_set2[ca,cb]=λ_A_2;
-                λ_set3[ca,cb]=λ_A_3;
-            end
-        end
+        λ_set1,λ_set2,λ_set3=initial_trivial_lambda(Lx,Ly,B_set);
     end
 end
 
@@ -235,7 +224,7 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting,
 
 
 
-filenm="SU_iPESS_SU2_csl_D"*string(D_max)*".jld2";
+filenm="SU_iPESS_D"*string(D_max)*".jld2";
 jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 

@@ -7,6 +7,29 @@ ABABABAB
 CDCDCDCD
 """
 ###########################
+function initial_trivial_lambda(Lx,Ly,B_set)
+    λ_set1=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+    λ_set2=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+    λ_set3=Matrix{DiagonalTensorMap}(undef,Lx,Ly);
+    for ca=1:Lx
+        for cb=1:Ly
+            t_A=B_set[ca,cb];
+            if isa(space(t_A,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+                λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims)), space(t_A,1)');
+                λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims)), space(t_A,2)');
+                λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims)), space(t_A,3)');
+            else
+                λ_A_1=DiagonalTensorMap(ones(sum(space(t_A,1).dims.values)), space(t_A,1)');
+                λ_A_2=DiagonalTensorMap(ones(sum(space(t_A,2).dims.values)), space(t_A,2)');
+                λ_A_3=DiagonalTensorMap(ones(sum(space(t_A,3).dims.values)), space(t_A,3)');
+            end
+            λ_set1[ca,cb]=λ_A_1;
+            λ_set2[ca,cb]=λ_A_2;
+            λ_set3[ca,cb]=λ_A_3;
+        end
+    end
+    return λ_set1,λ_set2,λ_set3
+end
 
 
 function initial_iPESS_uniform(Lx,Ly,V,Vp)

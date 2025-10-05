@@ -153,23 +153,26 @@ else
     data=load(optim_setting.init_statenm);
     T_set=data["T_set"];
     B_set=data["B_set"];
-    λ_set1=data["λ_set1"];
-    λ_set2=data["λ_set2"];
-    λ_set3=data["λ_set3"];
+    if haskey(data,"λ_set1")
+        λ_set1=data["λ_set1"];
+        λ_set2=data["λ_set2"];
+        λ_set3=data["λ_set3"];
+    else
+    end
 end
 
 
 
-A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
-println(E_total)
-println(ex_set)
-println(ey_set)
-println(e_diagonala_set)
-println(e0_set)
-println(eU_set)
+# A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
+# init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+# CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
+# E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+# println(E_total)
+# println(ex_set)
+# println(ey_set)
+# println(e_diagonala_set)
+# println(e0_set)
+# println(eU_set)
 
 
 D0set=[];
@@ -182,21 +185,24 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(parameters,
 
 # tau=20;
 # dt=0.1;
-# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
-# tau=20;
-# dt=0.05;
-# B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+tau=20;
+dt=0.05;
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.01;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 tau=20;
 dt=0.002;
-B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS(parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
+B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
 
+
+filenm="SU_iPESS_SU2_csl_D"*string(D_max)*".jld2";
+jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
@@ -210,8 +216,6 @@ println(e0_set)
 println(eU_set)
 
 
-# filenm="SU_iPESS_SU2_csl_D"*string(D_max)*".jld2";
-# jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 
 # end

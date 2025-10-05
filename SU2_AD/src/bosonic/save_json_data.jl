@@ -3,6 +3,8 @@ using JLD2
 using HDF5
 using JSON
 
+cd(@__DIR__)
+
 function convert_to_Dict(T)
     T_dense=convert(Array,T);
     Rank=length(domain(T))+length(codomain(T));
@@ -21,7 +23,7 @@ function convert_to_Dict(T)
     return Dict("T_real"=>T_real[:],"T_imag"=>T_imag[:],"even_dims"=>even_dims,"odd_dims"=>odd_dims,"dual"=>dual);
 end
 
-filenm="Z2_Optim_iPESS_LS_D_8_chi_80_mu-2";
+filenm="Z2_extended_Lx4_Ly2_D_8";
 
 
 

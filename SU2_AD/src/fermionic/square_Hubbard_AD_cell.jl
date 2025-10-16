@@ -22,7 +22,7 @@ function initial_fiPESS_spinful_SU2(init_statenm="nothing",init_noise=0,init_com
     Vp=SU2Space(0=>2,1/2=>1)';
     global Lx,Ly
     if init_statenm=="nothing" 
-        @show Vv
+        @show V
         println("Random initial state");flush(stdout);
         Bset=Matrix{Any}(undef,Lx,Ly);
         Tset=Matrix{Any}(undef,Lx,Ly);

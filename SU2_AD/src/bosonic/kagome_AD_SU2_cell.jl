@@ -26,7 +26,7 @@ function build_A_kagome(x::Kagome_iPESS)
     return A_unfused,A_fused,U_phy
 end
 
-function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
+function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0,complex=true)
     if init_statenm=="nothing" 
         global Lx,Ly
         println("Random initial state");flush(stdout);
@@ -34,11 +34,20 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
         state=Matrix{Kagome_iPESS}(undef,Lx,Ly);
         for cx=1:Lx
             for cy=1:Ly
-                b1=TensorMap(randn,Vv*Vv,Vp)*(1+0*im);
-                b2=TensorMap(randn,Vv*Vv,Vp)*(1+0*im);
-                b3=TensorMap(randn,Vv*Vv,Vp)*(1+0*im);
-                tup=TensorMap(randn,Vv',Vv*Vv)*(1+0*im);
-                tdn=TensorMap(randn,Vv',Vv*Vv)*(1+0*im);
+                if complex
+                    b1=TensorMap(randn,Vv*Vv,Vp)+TensorMap(randn,Vv*Vv,Vp)*im;
+                    b2=TensorMap(randn,Vv*Vv,Vp)+TensorMap(randn,Vv*Vv,Vp)*im;
+                    b3=TensorMap(randn,Vv*Vv,Vp)+TensorMap(randn,Vv*Vv,Vp)*im;
+                    tup=TensorMap(randn,Vv',Vv*Vv)+TensorMap(randn,Vv',Vv*Vv)*im;
+                    tdn=TensorMap(randn,Vv',Vv*Vv)+TensorMap(randn,Vv',Vv*Vv)*im;
+                else
+                    b1=TensorMap(randn,Vv*Vv,Vp);
+                    b2=TensorMap(randn,Vv*Vv,Vp);
+                    b3=TensorMap(randn,Vv*Vv,Vp);
+                    tup=TensorMap(randn,Vv',Vv*Vv);
+                    tdn=TensorMap(randn,Vv',Vv*Vv);
+                end
+
                 b1=permute(b1,(1,2,3,));
                 b2=permute(b2,(1,2,3,));
                 b3=permute(b3,(1,2,3,));
@@ -46,7 +55,7 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
                 tdn=permute(tdn,(1,2,3,));
 
                 #state=define_tensor_group(b1,b2,b3,tup,tdn)
-                state[cx,cy]=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
+                state[cx,cy]=Kagome_iPESS(b1,b2,b3,tup,tdn);
             end
         end
         return state
@@ -64,11 +73,19 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
             T_d=ansatz.Tdn;
 
             @assert space(B_a,1)==Vspace
-            Ba_noise=TensorMap(randn,codomain(B_a),domain(B_a));
-            Bb_noise=TensorMap(randn,codomain(B_b),domain(B_b));
-            Bc_noise=TensorMap(randn,codomain(B_c),domain(B_c));
-            Tu_noise=TensorMap(randn,codomain(T_u),domain(T_u));
-            Td_noise=TensorMap(randn,codomain(T_d),domain(T_d));
+            if complex
+                Ba_noise=TensorMap(randn,codomain(B_a),domain(B_a))+im*TensorMap(randn,codomain(B_a),domain(B_a));
+                Bb_noise=TensorMap(randn,codomain(B_b),domain(B_b))+im*TensorMap(randn,codomain(B_b),domain(B_b));
+                Bc_noise=TensorMap(randn,codomain(B_c),domain(B_c))+im*TensorMap(randn,codomain(B_c),domain(B_c));
+                Tu_noise=TensorMap(randn,codomain(T_u),domain(T_u))+im*TensorMap(randn,codomain(T_u),domain(T_u));
+                Td_noise=TensorMap(randn,codomain(T_d),domain(T_d))+im*TensorMap(randn,codomain(T_d),domain(T_d));
+            else
+                Ba_noise=TensorMap(randn,codomain(B_a),domain(B_a));
+                Bb_noise=TensorMap(randn,codomain(B_b),domain(B_b));
+                Bc_noise=TensorMap(randn,codomain(B_c),domain(B_c));
+                Tu_noise=TensorMap(randn,codomain(T_u),domain(T_u));
+                Td_noise=TensorMap(randn,codomain(T_d),domain(T_d));
+            end
             
             Ba=B_a+Ba_noise*init_noise*norm(B_a)/norm(Ba_noise);
             Bb=B_b+Bb_noise*init_noise*norm(B_b)/norm(Bb_noise);

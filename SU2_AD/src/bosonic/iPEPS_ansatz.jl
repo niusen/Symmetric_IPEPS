@@ -44,7 +44,8 @@ Base.@kwdef mutable struct Kagome_Energy_settings
     E_up_method :: String = "1x1";#"1x1", "2x2"
     E_dn_method :: String = "simplified";#"open_leg", "simplfied"
     cal_chiral_order :: Bool = false;
-
+    Lx :: Int =1
+    Ly :: Int =1
 end
 
 

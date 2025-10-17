@@ -1,4 +1,12 @@
-using TensorKit
+
+
+
+
+
+
+
+
+################################################### old code 
 
 #load elementary tensor coefficients from json file
 function read_string(string)

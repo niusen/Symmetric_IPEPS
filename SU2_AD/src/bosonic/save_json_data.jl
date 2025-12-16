@@ -23,7 +23,7 @@ function convert_to_Dict(T)
     return Dict("T_real"=>T_real[:],"T_imag"=>T_imag[:],"even_dims"=>even_dims,"odd_dims"=>odd_dims,"dual"=>dual);
 end
 
-filenm="Z2_extended_Lx4_Ly2_D_8";
+filenm="Z2_extended_Lx2_Ly2_D_8";
 
 
 

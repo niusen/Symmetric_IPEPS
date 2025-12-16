@@ -161,11 +161,35 @@ if optim_setting.init_statenm=="nothing"
     # B_set, T_set, λ_set1, λ_set2, λ_set3=initial_iPESS_uniform(Lx,Ly,V,Vp);    
 else
     data=load(optim_setting.init_statenm);
-    T_set=data["T_set"];
-    B_set=data["B_set"];
-    # λ_set1=data["λ_set1"];
-    # λ_set2=data["λ_set2"];
-    # λ_set3=data["λ_set3"];
+    if haskey(data,"T_set")
+        T_set=data["T_set"];
+        B_set=data["B_set"];
+    else
+        state=data["x"];
+        Lx,Ly=size(state);
+        B_set=Matrix{TensorMap}(undef,Lx,Ly);
+        T_set=Matrix{TensorMap}(undef,Lx,Ly);
+        for ca=1:Lx
+            for cb=1:Ly
+                B_set[ca,cb]=state[ca,cb].Tm;
+                T_set[ca,cb]=state[ca,cb].Bm;
+                # state_new[ca,cb]=Triangle_iPESS(Tset[ca,cb],Bset[ca,cb]);
+                # iPESS_to_iPEPS(state_new[ca,cb]);
+            end
+        end
+    end
+    for ca=1:Lx
+        for cb=1:Ly
+            bm=B_set[ca,cb];
+            bm=add_noise(bm,optim_setting.init_noise,true);
+            B_set[ca,cb]=bm;
+
+            tm=T_set[ca,cb];
+            tm=add_noise(tm,optim_setting.init_noise,true);
+            T_set[ca,cb]=tm;
+        end
+    end
+
 end
 
 # init_complex_tensor=true;

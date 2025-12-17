@@ -9,17 +9,17 @@ cd(@__DIR__)
 
 
 
-include("../../../src/fermionic/swap_funs.jl")
-include("../../../src/fermionic/fermi_permute.jl")
-include("../../../src/mps_algorithms/Projector_funs.jl")
-include("../../../src/bosonic/Settings.jl")
-include("../../../src/bosonic/Settings_cell.jl")
-include("../../../src/bosonic/AD_lib.jl")
-include("../../../src/bosonic/iPEPS_ansatz.jl")
-include("../../../src/bosonic/CTMRG.jl")
-include("../../../src/fermionic/Fermionic_CTMRG.jl")
-include("../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
-include("../../../src/fermionic/triangle_fiPESS_method.jl")
+include("../../../../../../src/fermionic/swap_funs.jl")
+include("../../../../../../src/fermionic/fermi_permute.jl")
+include("../../../../../../src/mps_algorithms/Projector_funs.jl")
+include("../../../../../../src/bosonic/Settings.jl")
+include("../../../../../../src/bosonic/Settings_cell.jl")
+include("../../../../../../src/bosonic/AD_lib.jl")
+include("../../../../../../src/bosonic/iPEPS_ansatz.jl")
+include("../../../../../../src/bosonic/CTMRG.jl")
+include("../../../../../../src/fermionic/Fermionic_CTMRG.jl")
+include("../../../../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
+include("../../../../../../src/fermionic/triangle_fiPESS_method.jl")
 
 import LinearAlgebra.BLAS as BLAS
 n_cpu=8;
@@ -33,7 +33,7 @@ function get_CTM(y_translation,force_redo_CTMRG)
     global chi
     chi=40;
 
-    @show filenm="newnewversion_stochastic_iPESS_LS_D_8_chi_120.jld2";
+    @show filenm="FU_iPESS_LS_D_12_chi_80_-0.56847.jld2";
     #@show filenm="newnewversion_FU_iPESS_LS_D_10_chi_100.jld2";
     data=load(filenm);
     # A=data["x"][1].T;
@@ -159,14 +159,14 @@ ca=1;
 cb=1;
 TL01=CTM_cell.Tset[ca][cb].T4;
 TR01=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
-U_L=U_L_cell[ca+1][cb];
-U_R=U_R_cell[ca][cb];
+U_L1=U_L_cell[ca+1][cb];
+U_R1=U_R_cell[ca][cb];
 #############################
 #extra swap gate that was not included when construct double layer tensor
-gate=swap_gate(U_L,2,3);
-@tensor U_L_new[:]:=U_L'[1,2,-1]*gate[1,2,3,4]*U_L[-2,3,4];
-gate=swap_gate(U_R,1,2);
-@tensor U_R_new[:]:=U_R'[-1,1,2]*gate[1,2,3,4]*U_R[3,4,-2];
+gate=swap_gate(U_L1,2,3);
+@tensor U_L_new[:]:=U_L1'[1,2,-1]*gate[1,2,3,4]*U_L1[-2,3,4];
+gate=swap_gate(U_R1,1,2);
+@tensor U_R_new[:]:=U_R1'[-1,1,2]*gate[1,2,3,4]*U_R1[3,4,-2];
 
 @tensor TL01[:]:=TL01[-1,1,-3]*U_R_new'[-2,1]; 
 @tensor TR01[:]:=TR01[-1,1,-3]*U_L_new'[-2,1];
@@ -178,14 +178,14 @@ gate=swap_gate(U_R,1,2);
 cb=2;
 TL02=CTM_cell.Tset[ca][cb].T4;
 TR02=CTM_cell.Tset[mod1(ca+1,Lx)][cb].T2;
-U_L=U_L_cell[ca+1][cb];
-U_R=U_R_cell[ca][cb];
+U_L2=U_L_cell[ca+1][cb];
+U_R2=U_R_cell[ca][cb];
 #############################
 #extra swap gate that was not included when construct double layer tensor
-gate=swap_gate(U_L,2,3);
-@tensor U_L_new[:]:=U_L'[1,2,-1]*gate[1,2,3,4]*U_L[-2,3,4];
-gate=swap_gate(U_R,1,2);
-@tensor U_R_new[:]:=U_R'[-1,1,2]*gate[1,2,3,4]*U_R[3,4,-2];
+gate=swap_gate(U_L2,2,3);
+@tensor U_L_new[:]:=U_L2'[1,2,-1]*gate[1,2,3,4]*U_L2[-2,3,4];
+gate=swap_gate(U_R2,1,2);
+@tensor U_R_new[:]:=U_R2'[-1,1,2]*gate[1,2,3,4]*U_R2[3,4,-2];
 
 @tensor TL02[:]:=TL02[-1,1,-3]*U_R_new'[-2,1]; 
 @tensor TR02[:]:=TR02[-1,1,-3]*U_L_new'[-2,1]; 
@@ -225,19 +225,19 @@ if y_anti_pbc
 end
 #############################
 #expand T tensors
-@tensor TL1[:]:=TL1[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
-@tensor TL2[:]:=TL2[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
-@tensor TL3[:]:=TL3[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
-@tensor TL4[:]:=TL4[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
-@tensor TL5[:]:=TL5[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
-@tensor TL6[:]:=TL6[-2,1,-4]*U_L[1,-3,-1]; #R,D,R',U
+@tensor TL1[:]:=TL1[-2,1,-4]*U_L1[1,-3,-1]; #R,D,R',U
+@tensor TL2[:]:=TL2[-2,1,-4]*U_L2[1,-3,-1]; #R,D,R',U
+@tensor TL3[:]:=TL3[-2,1,-4]*U_L1[1,-3,-1]; #R,D,R',U
+@tensor TL4[:]:=TL4[-2,1,-4]*U_L2[1,-3,-1]; #R,D,R',U
+@tensor TL5[:]:=TL5[-2,1,-4]*U_L1[1,-3,-1]; #R,D,R',U
+@tensor TL6[:]:=TL6[-2,1,-4]*U_L2[1,-3,-1]; #R,D,R',U
 
-@tensor TR1[:]:=TR1[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
-@tensor TR2[:]:=TR2[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
-@tensor TR3[:]:=TR3[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
-@tensor TR4[:]:=TR4[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
-@tensor TR5[:]:=TR5[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
-@tensor TR6[:]:=TR6[-4,1,-2]*U_L'[-1,-3,1]; #L',D,L',U
+@tensor TR1[:]:=TR1[-4,1,-2]*U_L1'[-1,-3,1]; #L',D,L',U
+@tensor TR2[:]:=TR2[-4,1,-2]*U_L2'[-1,-3,1]; #L',D,L',U
+@tensor TR3[:]:=TR3[-4,1,-2]*U_L1'[-1,-3,1]; #L',D,L',U
+@tensor TR4[:]:=TR4[-4,1,-2]*U_L2'[-1,-3,1]; #L',D,L',U
+@tensor TR5[:]:=TR5[-4,1,-2]*U_L1'[-1,-3,1]; #L',D,L',U
+@tensor TR6[:]:=TR6[-4,1,-2]*U_L2'[-1,-3,1]; #L',D,L',U
 
 #############################
 #apply on-site swap gate on T tensors
@@ -329,14 +329,31 @@ function vr_ML_MR(vr0,  TL_set,TR_set, gate_middle_set)
     println("apply Mr");flush(stdout);
     ################
     global U_D_D1a,U_D_D2a,y_anti_pbc
+
+    @tensor vr0[:]:=vr0[-1,1,2,-6,-7]*U_D_D1a'[-2,-3,1]*U_D_D1a'[-4,-5,2];
+    #first translate
     if y_anti_pbc
         op=parity_gate(vr0,1);
-        @tensor vr0[:]:=op[-1,1]*vr0[1,-2,-3,-4,-5];
+        @tensor vr0[:]:=op[-1,1]*vr0[1,-2,-3,-4,-5,-6,-7];
     end
-    vr0=permute_neighbour_ind(vr0,1,2,5);
-    vr0=permute_neighbour_ind(vr0,2,3,5);
-    vr0=permute_neighbour_ind(vr0,3,4,5);
-    @tensor vr0[:]:=vr0[4,1,3,-4,-5]*U_D_D1a'[-1,5,4]*U_D_D1a'[6,2,1]*U_D_D1a[-2,5,6]*U_D_D1a[-3,2,3];
+    vr0=permute_neighbour_ind(vr0,1,2,7);
+    vr0=permute_neighbour_ind(vr0,2,3,7);
+    vr0=permute_neighbour_ind(vr0,3,4,7);
+    vr0=permute_neighbour_ind(vr0,4,5,7);
+    vr0=permute_neighbour_ind(vr0,5,6,7);
+
+    #second translate
+    if y_anti_pbc
+        op=parity_gate(vr0,1);
+        @tensor vr0[:]:=op[-1,1]*vr0[1,-2,-3,-4,-5,-6,-7];
+    end
+    vr0=permute_neighbour_ind(vr0,1,2,7);
+    vr0=permute_neighbour_ind(vr0,2,3,7);
+    vr0=permute_neighbour_ind(vr0,3,4,7);
+    vr0=permute_neighbour_ind(vr0,4,5,7);
+    vr0=permute_neighbour_ind(vr0,5,6,7);
+
+    @tensor vr0[:]:=vr0[-1,1,2,3,4,-4,-5]*U_D_D1a[-2,1,2]*U_D_D1a[-3,3,4];
     ################
     
     TL1_set,TL23,TL45,TL6_set=TL_set;
@@ -458,8 +475,8 @@ for ss=S_ind:S_ind#1:length(Spin_set)
     ks=Vector{ComplexF64}(undef,length(eu0));
     spins=Vector{ComplexF64}(undef,length(eu0));
     for cc=1:length(eu0)
-        #ks[cc]=eu0[cc]/abs(eu0[cc]);
-        ks[cc]=compute_k(ev[cc],U_D_D_seta,y_anti_pbc);
+        ks[cc]=eu0[cc]/abs(eu0[cc]);
+        # ks[cc]=compute_k(ev[cc],U_D_D_seta,y_anti_pbc);
         spins[cc]=Spin_set[ss];
     end    
 

@@ -22,39 +22,38 @@ include("../../../../../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
 include("../../../../../../../src/fermionic/triangle_fiPESS_method.jl")
 
 y_anti_pbc=false;
-@show filenm="Optim_iPESS_LS_D_8_chi_80_-1.49617.jld2";
-#@show filenm="newnewversion_FU_iPESS_LS_D_10_chi_100.jld2";
-data=load(filenm);
-
-# A=data["x"][1].T;
-# B=data["x"][2].T;
-state=data["x"]
-#convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
 
 
-algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
-algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
-dump(algrithm_CTMRG_settings);
-global algrithm_CTMRG_settings
+function get_CTM(y_translation)
+    chi=40;
+    filenm="Optim_iPESS_LS_D_8_chi_80_-1.49617.jld2";
+    data=load(filenm);
+    # A=data["x"][1].T;
+    # B=data["x"][2].T;
+    state=data["x"]
+    #convention of fermionic PEPS: |L,U,P><D,R|====L,U,P|><|R,D
 
-LS_ctm_setting=LS_CTMRG_settings();
-LS_ctm_setting.CTM_conv_tol=1e-6;
-LS_ctm_setting.CTM_ite_nums=30;
-LS_ctm_setting.CTM_trun_tol=1e-8;
-LS_ctm_setting.svd_lanczos_tol=1e-8;
-LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
-LS_ctm_setting.conv_check="singular_value";
-LS_ctm_setting.CTM_ite_info=true;
-LS_ctm_setting.CTM_conv_info=true;
-LS_ctm_setting.CTM_trun_svd=false;
-LS_ctm_setting.construct_double_layer=true;
-LS_ctm_setting.grad_checkpoint=true;
-dump(LS_ctm_setting);
 
-global Lx,Ly
-if haskey(data,"x")
+    algrithm_CTMRG_settings=Algrithm_CTMRG_settings()
+    algrithm_CTMRG_settings.CTM_cell_ite_method= "continuous_update";#"continuous_update", "together_update"
+    dump(algrithm_CTMRG_settings);
+    global algrithm_CTMRG_settings
+
+    LS_ctm_setting=LS_CTMRG_settings();
+    LS_ctm_setting.CTM_conv_tol=1e-6;
+    LS_ctm_setting.CTM_ite_nums=30;
+    LS_ctm_setting.CTM_trun_tol=1e-8;
+    LS_ctm_setting.svd_lanczos_tol=1e-8;
+    LS_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"
+    LS_ctm_setting.conv_check="singular_value";
+    LS_ctm_setting.CTM_ite_info=true;
+    LS_ctm_setting.CTM_conv_info=true;
+    LS_ctm_setting.CTM_trun_svd=false;
+    LS_ctm_setting.construct_double_layer=true;
+    LS_ctm_setting.grad_checkpoint=true;
+    dump(LS_ctm_setting);
+
     global Lx,Ly
-    state=data["x"];
     Lx,Ly=size(state);
     A_cell=initial_tuple_cell(Lx,Ly);
     for ca=1:Lx
@@ -70,26 +69,31 @@ if haskey(data,"x")
             end
         end
     end
-else
-    global Lx,Ly
-    B_set=data["B_set"];
-    T_set=data["T_set"];
-    Lx,Ly=size(B_set);
-    A_cell=convert_iPESS_to_iPEPS(B_set,T_set);
-end
-global D
-D=dim(space(A_cell[1][1],1));
+    global D
+    D=dim(space(A_cell[1][1],1));
 
-##################################
-global chi,multiplet_tol,projector_trun_tol
-multiplet_tol=1e-5;
-projector_trun_tol=LS_ctm_setting.CTM_trun_tol
+    ##################################
+    global chi,multiplet_tol,projector_trun_tol
+    multiplet_tol=1e-5;
+    projector_trun_tol=LS_ctm_setting.CTM_trun_tol
+    ###################################
+
+
+    init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
+    if y_translation
+        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_y_translate(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    else
+        CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
+    end
+    return CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
+end
+#############################
+
+y_translation=false;
+CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell=get_CTM(y_translation);
 ###################################
 
 
-chi=40;
-init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell,chi,init, init_CTM,LS_ctm_setting);
 #############################
 #get T tensors
 ca=1;

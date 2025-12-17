@@ -1,4 +1,6 @@
 using LinearAlgebra:diag,I,diagm 
+using JLD2,ChainRulesCore,MAT, Zygote
+using Zygote:@ignore_derivatives
 using TensorKit
 using KrylovKit
 using JSON
@@ -23,7 +25,7 @@ include("../../../../../../../src/fermionic/triangle_fiPESS_method.jl")
 
 y_anti_pbc=false;
 filenm="Optim_cell_LS_D_4_chi_40_2.368055.jld2";
-
+data=load(filenm);
 
 global Lx,Ly
 if haskey(data,"x")
@@ -56,11 +58,17 @@ global D
 D=dim(space(A_cell[1][1],1));
 
 
-A=data["x"][1].T;
-B=data["x"][2].T;
+A1=A_cell[1][1];
+B1=A_cell[2][1];
 
-A=A*100;
-B=B*100;
+C1=A_cell[1][2];
+D1=A_cell[2][2];
+
+A1=A1*100;
+B1=B1*100;
+
+C1=C1*100;
+D1=D1*100;
 
 
 
@@ -72,23 +80,23 @@ B=B*100;
 
 #############################
 # #convert to the order of PEPS code
-A1=deepcopy(A);
-A2=deepcopy(A);
-A3=deepcopy(A);
-A4=deepcopy(A);
-A5=deepcopy(A);
-A6=deepcopy(A);
+A1=deepcopy(A1);
+A2=deepcopy(C1);
+A3=deepcopy(A1);
+A4=deepcopy(C1);
+A5=deepcopy(A1);
+A6=deepcopy(C1);
 if y_anti_pbc
     gauge_gate1=parity_gate(A1,4);
     @tensor A1[:]:=A1[-1,-2,-3,1,-5]*gauge_gate1[-4,1];
 end
 
-B1=deepcopy(B);
-B2=deepcopy(B);
-B3=deepcopy(B);
-B4=deepcopy(B);
-B5=deepcopy(B);
-B6=deepcopy(B);
+B1=deepcopy(B1);
+B2=deepcopy(D1);
+B3=deepcopy(B1);
+B4=deepcopy(D1);
+B5=deepcopy(B1);
+B6=deepcopy(D1);
 if y_anti_pbc
     gauge_gate1=parity_gate(B1,4);
     @tensor B1[:]:=B1[-1,-2,-3,1,-5]*gauge_gate1[-4,1];
@@ -1022,9 +1030,9 @@ Spin=Spin[order]
 ##########################
 
 if y_anti_pbc
-    matnm="ES_unprojected_M1_Nv6_APBC"*".mat";
+    matnm="ES_Nv6_APBC"*".mat";
 else
-    matnm="ES_unprojected_M1_Nv6_PBC"*".mat";
+    matnm="ES_Nv6_PBC"*".mat";
 end
 matwrite(matnm, Dict(
     "k_phase" => k_phase,

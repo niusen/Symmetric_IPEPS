@@ -77,10 +77,11 @@ println("pid="*string(pid));;flush(stdout);
 
 # @everywhere TensorKit.usebraidcache_abelian[] = false 
 # @everywhere TensorKit.usebraidcache_nonabelian[] = false
-@everywhere TensorKit.braidcache.maxsize=1000
-@everywhere TensorKit.transposecache.maxsize=1000
+@everywhere TensorKit.GLOBAL_FSBRAID_CACHE.maxsize=1000
+@everywhere TensorKit.GLOBAL_FSTRANSPOSE_CACHE.maxsize=1000
+@everywhere TensorKit.GLOBAL_TREETRANSPOSER_CACHE.maxsize=1000
 # @everywhere TensorKit.usetransposecache
-@everywhere TensorKit.treepermutercache.maxsize=1000
+@everywhere TensorKit.GLOBAL_TREEPERMUTER_CACHE.maxsize=1000
 @everywhere TensorKit.GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE.maxsize=1000
 # Base.summarysize(TensorKit.treepermutercache)
 # Base.summarysize(TensorKit.GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE)

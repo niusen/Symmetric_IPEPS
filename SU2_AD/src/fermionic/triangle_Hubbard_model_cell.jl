@@ -790,7 +790,7 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
     Ly=energy_setting.Ly
     if isa(space(B_set[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         
-        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard")
+        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "Triangle_Hofstadter_Hubbard_spinHall", "spinful_triangle_lattice", "standard_triangle_Hubbard")
             Hamiltonian_terms=Hamiltonians_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
             Hamiltonian_terms=Hamiltonians_spinless_Z2;
@@ -856,6 +856,55 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
 
         E_total=E_total/(Lx*Ly);
         return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
+
+    elseif energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
+        @assert mod(Lx,2)==0
+        #for 120 degree magnetic order in the Hofstadter M2 model. Unit-cell for 120 degree order should be at least 3x3.  
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+        t1=parameters["t1"];
+        t2=parameters["t2"];
+        ϕ=parameters["ϕ"];
+        μ=parameters["μ"];
+        U=parameters["U"];
+
+        ex_set=zeros(Lx,Ly)*im;
+        ey_set=zeros(Lx,Ly)*im;
+        e_diagonala_set=zeros(Lx,Ly)*im;
+        e0_set=zeros(Lx,Ly)*im;
+        eU_set=zeros(Lx,Ly)*im;
+
+        E_total=0;
+        for cx=1:Lx
+            for cy=1:Ly
+                if energy_setting.energy_checkpoint
+                    ex=Zygote.checkpointed(hopping_x_iPESS, CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    ey=Zygote.checkpointed(hopping_y_iPESS, CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e_diagonala=Zygote.checkpointed(hopping_diagonala_iPESS, CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e0=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    eU=Zygote.checkpointed(ob_onsite_iPESS, CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                else
+                    ex=hopping_x_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    ey=hopping_y_iPESS(CTM_cell,Cdag_set[mod1(cx+2,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e_diagonala=hopping_diagonala_iPESS(CTM_cell,Cdag_set[mod1(cx+1,2)],C_set[mod1(cx+2,2)],[],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    e0=ob_onsite_iPESS(CTM_cell,N_occu_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                    eU=ob_onsite_iPESS(CTM_cell,n_double_set[mod1(cx+1,2)]-(1/2)*N_occu_set[mod1(cx+1,2)]+(1/4)*Ident_set[mod1(cx+1,2)],B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                end
+                @ignore_derivatives ex_set[cx,cy]=ex;
+                @ignore_derivatives ey_set[cx,cy]=ey;
+                @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
+                @ignore_derivatives e0_set[cx,cy]=e0;
+                @ignore_derivatives eU_set[cx,cy]=eU;
+                if mod(cx,2)==1
+                    E_total=E_total+real(t1*2*real(exp(im*ϕ)*ex)-t1*2*real(ey)-t2*2*real(e_diagonala) -μ*e0 +U*eU);
+                else
+                    E_total=E_total+real(t1*2*real(exp(im*ϕ)*ex)+t1*2*real(ey)+t2*2*real(e_diagonala) -μ*e0 +U*eU);
+                end
+            end
+        end
+
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
+
 
     end
     

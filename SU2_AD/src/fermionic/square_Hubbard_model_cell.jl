@@ -626,6 +626,44 @@ function Hamiltonians_spinful_Z2()
     return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
 end
 
+
+
+function Hamiltonians_spinful_Z2_split()
+    
+
+    # Vdummy=Rep[ℤ₂](1=>1);
+    Vdummy=Rep[ℤ₂](1=>2);
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order of kron() command: (0,0), (0,1), (1,0), (1,1)
+    order=[1,4,3,2];
+
+    # return Ident, N_occu, n_double, Cdagup, Cup, Cdagdn, Cdn
+
+    # method 1
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,Id);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(sz,sp);
+    Cdagup=TensorMap(Cdagup,  V ← V ⊗Vdummy);
+    Cdagup=permute(Cdagup,(3,1,),(2,));
+    Cdagdn=TensorMap(Cdagdn,  V ← V ⊗Vdummy);
+    Cdagdn=permute(Cdagdn,(3,1,),(2,));
+
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+    Cup=TensorMap(Cup, Vdummy ⊗ V ← V);
+    Cdn=TensorMap(Cdn, Vdummy ⊗ V ← V);
+   
+    return  Cdagup, Cup, Cdagdn, Cdn
+end
+
 function spin_operator_Z2()
     
     V=Rep[ℤ₂](0=>2,1=>2);
@@ -739,6 +777,45 @@ function special_Hamiltonians_spinful_Z2()
 
 
     return (Ident,Ident,), (N_occu,N_occu,), (n_double,n_double,), (Cdag,Cdag,), (C,C,)
+end
+
+
+
+function special_Hamiltonians_spinful_Z2_split()
+    
+    Vdummy=Rep[ℤ₂](1=>2);
+    V=Rep[ℤ₂](0=>2,1=>2);
+
+
+    Id=[1.0 0;0 1.0];
+    sm=[0 1.0;0 0]; sp=[0 0;1.0 0]; sz=[1.0 0; 0 -1.0]; occu=[0 0; 0 1.0];
+    
+    #order of kron() command: (0,0), (0,1), (1,0), (1,1)
+    order=[1,4,3,2];
+
+    # return Ident, N_occu, n_double, Cdagup, Cup, Cdagdn, Cdn
+
+    # method 1
+    Cdagup=zeros(4,4,2);
+    Cdagup[[1,4,3,2],[1,4,3,2],1]=kron(sp,sz);
+    Cdagdn=zeros(4,4,2);
+    Cdagdn[[1,4,3,2],[1,4,3,2],2]=kron(Id,sp);
+
+    Cdagup=TensorMap(Cdagup,  V ← V ⊗Vdummy);
+    Cdagup=permute(Cdagup,(3,1,),(2,))
+    Cdagdn=TensorMap(Cdagdn,  V ← V ⊗Vdummy);
+    Cdagdn=permute(Cdagdn,(3,1,),(2,))
+
+    Cup=zeros(2,4,4);
+    Cup[1,[1,4,3,2],[1,4,3,2]]=kron(sm,Id);
+    Cdn=zeros(2,4,4);
+    Cdn[2,[1,4,3,2],[1,4,3,2]]=kron(sz,sm);
+
+    Cup=TensorMap(Cup, Vdummy ⊗ V ← V);
+    Cdn=TensorMap(Cdn, Vdummy ⊗ V ← V);
+
+
+    return  Cdagup, Cup, Cdagdn,Cdn
 end
 
 
@@ -1249,7 +1326,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
     global Lx,Ly
 
     if isa(space(A_cell[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard","standard_triangle_Hubbard_spiral","standard_triangle_Hubbard_Bfield")
+        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "Triangle_Hofstadter_Hubbard_spinHall", "spinful_triangle_lattice", "standard_triangle_Hubbard","standard_triangle_Hubbard_spiral","standard_triangle_Hubbard_Bfield")
             Hamiltonian_terms=Hamiltonians_spinful_Z2;
             operator_terms=Operators_spinful_Z2;
         elseif (energy_setting.model == "Triangle_Hofstadter_spinless")
@@ -1637,6 +1714,71 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         end 
         E_total=E_total/(Lx*Ly);
         return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
+
+
+    elseif energy_setting.model =="Triangle_Hofstadter_Hubbard_spinHall"
+        @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+        Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+
+        Cdagup, Cup, Cdagdn, Cdn =@ignore_derivatives Hamiltonians_spinful_Z2_split();
+
+        parameters_site=@ignore_derivatives get_Hofstadter_spinHall_coefficients(Lx,Ly,parameters,energy_setting);
+        tx_up_coe_set=parameters_site["tx_up_coe_set"];
+        ty_up_coe_set=parameters_site["ty_up_coe_set"];
+        t2_up_coe_set=parameters_site["t2_up_coe_set"];
+        tx_dn_coe_set=parameters_site["tx_dn_coe_set"];
+        ty_dn_coe_set=parameters_site["ty_dn_coe_set"];
+        t2_dn_coe_set=parameters_site["t2_dn_coe_set"];
+        U_coe_set=parameters_site["U_coe_set"];
+        μ_coe_set=parameters_site["μ_coe_set"];
+
+        ex_up_set=zeros(Lx,Ly)*im;
+        ey_up_set=zeros(Lx,Ly)*im;
+        e_diagonala_up_set=zeros(Lx,Ly)*im;
+        ex_dn_set=zeros(Lx,Ly)*im;
+        ey_dn_set=zeros(Lx,Ly)*im;
+        e_diagonala_dn_set=zeros(Lx,Ly)*im;
+        e0_set=zeros(Lx,Ly)*im;
+        eU_set=zeros(Lx,Ly)*im;
+        
+        E_total=0;
+        for px=1:Lx
+            for py=1:Ly
+                #(cx,cy): coordinate of left-top C1 tensor
+                cx=mod1(px-1,Lx);
+                cy=mod1(py-1,Ly);
+                ex_up=hopping_x(CTM_cell,Cdagup,Cup,A_cell,AA_cell,cx,cy,ctm_setting);
+                ey_up=hopping_y(CTM_cell,Cdagup,Cup,A_cell,AA_cell,cx,cy,ctm_setting);
+                e_diagonala_up=hopping_diagonala(CTM_cell,Cdagup,Cup,A_cell,AA_cell,cx,cy,ctm_setting);
+                ex_dn=hopping_x(CTM_cell,Cdagdn,Cdn,A_cell,AA_cell,cx,cy,ctm_setting);
+                ey_dn=hopping_y(CTM_cell,Cdagdn,Cdn,A_cell,AA_cell,cx,cy,ctm_setting);
+                e_diagonala_dn=hopping_diagonala(CTM_cell,Cdagdn,Cdn,A_cell,AA_cell,cx,cy,ctm_setting);
+                e0=ob_onsite(CTM_cell,N_occu_set[mod1(py,Ly)],A_cell,AA_cell,cx,cy,ctm_setting);
+                eU=ob_onsite(CTM_cell,n_double_set[mod1(py,Ly)]-(1/2)*N_occu_set[mod1(py,Ly)]+(1/4)*Ident_set[mod1(py,Ly)],A_cell,AA_cell,cx,cy,ctm_setting);
+                @ignore_derivatives ex_up_set[px,py]=ex_up;
+                @ignore_derivatives ey_up_set[px,py]=ey_up;
+                @ignore_derivatives e_diagonala_up_set[px,py]=e_diagonala_up;
+                @ignore_derivatives ex_dn_set[px,py]=ex_dn;
+                @ignore_derivatives ey_dn_set[px,py]=ey_dn;
+                @ignore_derivatives e_diagonala_dn_set[px,py]=e_diagonala_dn;
+                @ignore_derivatives e0_set[px,py]=e0;
+                @ignore_derivatives eU_set[px,py]=eU;
+                tx_up_coe=tx_up_coe_set[px,py];
+                ty_up_coe=ty_up_coe_set[px,py];
+                t2_up_coe=t2_up_coe_set[px,py];
+                tx_dn_coe=tx_dn_coe_set[px,py];
+                ty_dn_coe=ty_dn_coe_set[px,py];
+                t2_dn_coe=t2_dn_coe_set[px,py];
+                U_coe=U_coe_set[px,py];
+                μ_coe=μ_coe_set[px,py];
+                E_temp=tx_up_coe*ex_up +ty_up_coe*ey_up +t2_up_coe*e_diagonala_up +tx_dn_coe*ex_dn +ty_dn_coe*ey_dn +t2_dn_coe*e_diagonala_dn -μ_coe*e0/2  +U_coe*eU/2;
+                E_total=E_total+real(E_temp+E_temp');
+                
+            end
+        end 
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set
+
     elseif energy_setting.model =="standard_triangle_Hubbard" 
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
         (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3 =@ignore_derivatives  operator_terms();
@@ -2102,6 +2244,44 @@ function get_Hofstadter_coefficients(Lx,Ly,parameters,energy_setting)
         end
     end
     parameters_site=Dict([("tx_coe_set", tx_coe_set),("ty_coe_set", ty_coe_set), ("t2_coe_set",  t2_coe_set), ("U_coe_set",  U_coe_set), ("μ_coe_set", μ_coe_set)]);
+    return parameters_site
+end
+
+function get_Hofstadter_spinHall_coefficients(Lx,Ly,parameters,energy_setting)
+    """change of coordinate 
+    (1,1)  (2,1)
+    (1,2)  (2,2)
+
+    coordinate of C1 tensor: (cx,cy)=(1-1,1-1)
+    defining terms: (px,py)=(1,1)
+    """    
+    @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+    t1=parameters["t1"];
+    t2=parameters["t2"];
+    μ=parameters["μ"];
+    U=parameters["U"];
+    tx_up_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    ty_up_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    t2_up_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    tx_dn_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    ty_dn_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    t2_dn_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    U_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    μ_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    phi=2*pi/(energy_setting.Magnetic_cell);
+    for px=1:Lx
+        for py=1:Ly
+            tx_up_coe_set[px,py]=-t1';#(px,py+1) <- (px+1,py+1)
+            ty_up_coe_set[px,py]=-t1*exp(im*(px+1)*phi)'; #(px+1,py+1) <- (px+1,py)
+            t2_up_coe_set[px,py]=t2*exp(im*((px+1)*phi-phi/2)); #(px,py+1) <- (px+1,py)
+            tx_dn_coe_set[px,py]=(-t1')';#(px,py+1) <- (px+1,py+1)
+            ty_dn_coe_set[px,py]=(-t1*exp(im*(px+1)*phi)')'; #(px+1,py+1) <- (px+1,py)
+            t2_dn_coe_set[px,py]=(t2*exp(im*((px+1)*phi-phi/2)))'; #(px,py+1) <- (px+1,py)
+            U_coe_set[px,py]=U;
+            μ_coe_set[px,py]=μ;
+        end
+    end
+    parameters_site=Dict([("tx_up_coe_set", tx_up_coe_set),("ty_up_coe_set", ty_up_coe_set), ("t2_up_coe_set",  t2_up_coe_set), ("tx_dn_coe_set", tx_dn_coe_set),("ty_dn_coe_set", ty_dn_coe_set), ("t2_dn_coe_set",  t2_dn_coe_set), ("U_coe_set",  U_coe_set), ("μ_coe_set", μ_coe_set)]);
     return parameters_site
 end
 

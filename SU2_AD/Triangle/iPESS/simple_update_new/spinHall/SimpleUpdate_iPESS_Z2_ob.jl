@@ -11,25 +11,25 @@ cd(@__DIR__)
 
 
 
-include("../../../src/bosonic/Settings.jl")
-include("../../../src/bosonic/Settings_cell.jl")
-include("../../../src/bosonic/iPEPS_ansatz.jl")
-include("../../../src/bosonic/AD_lib.jl")
-include("../../../src/bosonic/line_search_lib.jl")
-include("../../../src/bosonic/line_search_lib_cell.jl")
-include("../../../src/bosonic/optimkit_lib.jl")
-include("../../../src/bosonic/CTMRG.jl")
-include("../../../src/fermionic/Fermionic_CTMRG.jl")
-include("../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
-include("../../../src/fermionic/square_Hubbard_model_cell.jl")
-include("../../../src/fermionic/square_Hubbard_AD_cell.jl")
-include("../../../src/fermionic/swap_funs.jl")
-include("../../../src/fermionic/fermi_permute.jl")
-include("../../../src/fermionic/mpo_mps_funs.jl")
-include("../../../src/fermionic/double_layer_funs.jl")
-include("../../../src/fermionic/triangle_fiPESS_method.jl")
-include("../../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate.jl")
-include("../../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate_iPESS.jl")
+include("../../../../src/bosonic/Settings.jl")
+include("../../../../src/bosonic/Settings_cell.jl")
+include("../../../../src/bosonic/iPEPS_ansatz.jl")
+include("../../../../src/bosonic/AD_lib.jl")
+include("../../../../src/bosonic/line_search_lib.jl")
+include("../../../../src/bosonic/line_search_lib_cell.jl")
+include("../../../../src/bosonic/optimkit_lib.jl")
+include("../../../../src/bosonic/CTMRG.jl")
+include("../../../../src/fermionic/Fermionic_CTMRG.jl")
+include("../../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
+include("../../../../src/fermionic/square_Hubbard_model_cell.jl")
+include("../../../../src/fermionic/square_Hubbard_AD_cell.jl")
+include("../../../../src/fermionic/swap_funs.jl")
+include("../../../../src/fermionic/fermi_permute.jl")
+include("../../../../src/fermionic/mpo_mps_funs.jl")
+include("../../../../src/fermionic/double_layer_funs.jl")
+include("../../../../src/fermionic/triangle_fiPESS_method.jl")
+include("../../../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate.jl")
+include("../../../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate_iPESS.jl")
 
 ###########################
 """
@@ -108,10 +108,11 @@ LS_ctm_setting.construct_double_layer=true;
 LS_ctm_setting.grad_checkpoint=true;
 dump(LS_ctm_setting);
 
-energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinful_triangle_lattice";
+energy_setting=Triangle_Hofstadter_Hubbard_settings();
+energy_setting.model = "Triangle_Hofstadter_Hubbard_spinHall";
 energy_setting.Lx =2;
 energy_setting.Ly =2;
+energy_setting.Magnetic_cell =2;
 dump(energy_setting);
 
 
@@ -163,11 +164,14 @@ end
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 println(E_total)
-println(ex_set)
-println(ey_set)
-println(e_diagonala_set)
+println(ex_up_set)
+println(ey_up_set)
+println(e_diagonala_up_set)
+println(ex_dn_set)
+println(ey_dn_set)
+println(e_diagonala_dn_set)
 println(e0_set)
 println(eU_set)
 
@@ -201,11 +205,14 @@ B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting,
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 println(E_total)
-println(ex_set)
-println(ey_set)
-println(e_diagonala_set)
+println(ex_up_set)
+println(ey_up_set)
+println(e_diagonala_up_set)
+println(ex_dn_set)
+println(ey_dn_set)
+println(e_diagonala_dn_set)
 println(e0_set)
 println(eU_set)
 

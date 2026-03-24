@@ -368,7 +368,7 @@ end
 
 
 
-function itebd_iPESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  Dmax, trun_tol)
+function itebd_iPESS_no_Hamiltonian(energy_setting, parameters, Bset, Tset, lambdaset1, lambdaset2, lambdaset3,  Dmax, trun_tol)
     tol=1e-6;#for determining convergence 
 
     # println("one step")
@@ -378,7 +378,13 @@ function itebd_iPESS_no_Hamiltonian(parameters, Bset, Tset, lambdaset1, lambdase
     lambdaset1_old=deepcopy(lambdaset1);
     lambdaset2_old=deepcopy(lambdaset2);
     lambdaset3_old=deepcopy(lambdaset3);
-    gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
+    if energy_setting.model=="spinful_triangle_lattice"
+        gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
+    elseif energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
+    else
+        error("unknown case");
+    end
     #gates_ru_ld_rd=gate_RU_LD_RD(parameters,0, typeof(space(Bset[1],1)),Lx);
 
     for ct=1:10000
@@ -498,6 +504,9 @@ function itebd_iPESS_Hofstadter(energy_setting, parameters, Bset, Tset, lambdase
     if energy_setting.model=="Triangle_Hofstadter_Hubbard"
         @assert mod(Lx,energy_setting.Magnetic_cell)==0;
         gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+    elseif energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
+        @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="standard_triangle_Hubbard"
         gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="spinful_triangle_lattice"

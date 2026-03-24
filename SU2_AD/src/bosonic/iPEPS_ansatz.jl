@@ -125,6 +125,7 @@ Base.@kwdef mutable struct Square_Hubbard_Energy_settings
     model :: String = "spinless_Hubbard"
     Lx :: Int =1
     Ly :: Int =1
+    Magnetic_cell :: Int64 =2;
     energy_checkpoint::Bool=false
 end
 

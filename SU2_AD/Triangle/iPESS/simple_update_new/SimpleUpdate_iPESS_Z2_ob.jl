@@ -109,7 +109,7 @@ LS_ctm_setting.grad_checkpoint=true;
 dump(LS_ctm_setting);
 
 energy_setting=Square_Hubbard_Energy_settings();
-energy_setting.model = "spinful_triangle_lattice";
+energy_setting.model = "Triangle_Hofstadter_Hubbard";#"spinful_triangle_lattice";
 energy_setting.Lx =2;
 energy_setting.Ly =2;
 dump(energy_setting);
@@ -179,6 +179,13 @@ end
 D_max0=maximum(D0set);
 B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, D_max0, trun_tol);
 
+if energy_setting.model == "spinful_triangle_lattice"
+    gates=gate_RU_LD_RD(energy_setting,parameters,0.1, typeof(space(B_set[1,1],1)),Lx,Ly);
+    jldsave("gates.jld2";gates);
+elseif energy_setting.model == "Triangle_Hofstadter_Hubbard"
+    gates=gate_RU_LD_RD_Hofstadter(energy_setting,parameters,0.1, typeof(space(B_set[1,1],1)),Lx,Ly);
+    jldsave("gates_Hofstadter.jld2";gates);
+end
 
 # tau=20;
 # dt=0.1;
@@ -210,7 +217,7 @@ println(e0_set)
 println(eU_set)
 
 
-filenm="SU_iPESS_Z2_csl_D"*string(D_max)*".jld2";
+filenm="SU_iPESS_Z2_"*(energy_setting.model)*"_D"*string(D_max)*".jld2";
 jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 

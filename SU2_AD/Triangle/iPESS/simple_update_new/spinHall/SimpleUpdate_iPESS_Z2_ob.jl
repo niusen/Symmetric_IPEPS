@@ -184,6 +184,9 @@ D_max0=maximum(D0set);
 B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, D_max0, trun_tol);
 
 
+gates=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,0.1, typeof(space(B_set[1,1],1)),Lx,Ly);
+jldsave("gates_spinHall.jld2";gates);
+
 # tau=20;
 # dt=0.1;
 # B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
@@ -217,7 +220,7 @@ println(e0_set)
 println(eU_set)
 
 
-filenm="SU_iPESS_Z2_csl_D"*string(D_max)*".jld2";
+filenm="SU_iPESS_Z2_"*(energy_setting.model)*"_D"*string(D_max)*".jld2";
 jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 

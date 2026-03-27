@@ -1,5 +1,27 @@
 
-using Zygote:@ignore_derivatives
+function Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
+
+    # Heisenberg interaction
+    Id=I(2);
+    sx=[[0,1] [1,0]]/2; sy=[[0,1] [-1,0]]/2*im; sz=[[1,0] [0,-1]]/2;
+    @tensor H12[:]:=sx[-1,-4]*sx[-2,-5]*Id[-3,-6]+sy[-1,-4]*sy[-2,-5]*Id[-3,-6]+sz[-1,-4]*sz[-2,-5]*Id[-3,-6];
+    @tensor H31[:]:=sx[-1,-4]*Id[-2,-5]*sx[-3,-6]+sy[-1,-4]*Id[-2,-5]*sy[-3,-6]+sz[-1,-4]*Id[-2,-5]*sz[-3,-6];
+    @tensor H23[:]:=Id[-1,-4]*sx[-2,-5]*sx[-3,-6]+Id[-1,-4]*sy[-2,-5]*sy[-3,-6]+Id[-1,-4]*sz[-2,-5]*sz[-3,-6];
+    @tensor H123chiral[:]:=sx[-1,-4]*sy[-2,-5]*sz[-3,-6]-sx[-1,-4]*sz[-2,-5]*sy[-3,-6]+sy[-1,-4]*sz[-2,-5]*sx[-3,-6]-sy[-1,-4]*sx[-2,-5]*sz[-3,-6]+sz[-1,-4]*sx[-2,-5]*sy[-3,-6]-sz[-1,-4]*sy[-2,-5]*sx[-3,-6];
+    H12_tensorkit=TensorMap(H12, domain(U_phy) ← domain(U_phy));
+    H31_tensorkit=TensorMap(H31, domain(U_phy) ← domain(U_phy));
+    H23_tensorkit=TensorMap(H23, domain(U_phy) ← domain(U_phy));
+    H123chiral_tensorkit=TensorMap(H123chiral, domain(U_phy) ← domain(U_phy));
+    @tensor H12_tensorkit[:]:=U_phy'[4,5,6,-1]*H12_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
+    @tensor H31_tensorkit[:]:=U_phy'[4,5,6,-1]*H31_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
+    @tensor H23_tensorkit[:]:=U_phy'[4,5,6,-1]*H23_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
+    @tensor H123chiral_tensorkit[:]:=U_phy'[4,5,6,-1]*H123chiral_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
+
+    @tensor H_Heisenberg[:]:=sx[-1,-3]*sx[-2,-4]+sy[-1,-3]*sy[-2,-4]+sz[-1,-3]*sz[-2,-4];
+
+    H_triangle=J1*H12_tensorkit+J1*H31_tensorkit+J1*H23_tensorkit+Jtrip*H123chiral_tensorkit;
+    return H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit 
+end
 
 function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fused::TensorMap, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting)
     kagome_method=energy_setting.kagome_method;
@@ -273,29 +295,7 @@ end
 
 
 
-function Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
 
-    # Heisenberg interaction
-    Id=I(2);
-    sx=[[0,1] [1,0]]/2; sy=[[0,1] [-1,0]]/2*im; sz=[[1,0] [0,-1]]/2;
-    @tensor H12[:]:=sx[-1,-4]*sx[-2,-5]*Id[-3,-6]+sy[-1,-4]*sy[-2,-5]*Id[-3,-6]+sz[-1,-4]*sz[-2,-5]*Id[-3,-6];
-    @tensor H31[:]:=sx[-1,-4]*Id[-2,-5]*sx[-3,-6]+sy[-1,-4]*Id[-2,-5]*sy[-3,-6]+sz[-1,-4]*Id[-2,-5]*sz[-3,-6];
-    @tensor H23[:]:=Id[-1,-4]*sx[-2,-5]*sx[-3,-6]+Id[-1,-4]*sy[-2,-5]*sy[-3,-6]+Id[-1,-4]*sz[-2,-5]*sz[-3,-6];
-    @tensor H123chiral[:]:=sx[-1,-4]*sy[-2,-5]*sz[-3,-6]-sx[-1,-4]*sz[-2,-5]*sy[-3,-6]+sy[-1,-4]*sz[-2,-5]*sx[-3,-6]-sy[-1,-4]*sx[-2,-5]*sz[-3,-6]+sz[-1,-4]*sx[-2,-5]*sy[-3,-6]-sz[-1,-4]*sy[-2,-5]*sx[-3,-6];
-    H12_tensorkit=TensorMap(H12, domain(U_phy) ← domain(U_phy));
-    H31_tensorkit=TensorMap(H31, domain(U_phy) ← domain(U_phy));
-    H23_tensorkit=TensorMap(H23, domain(U_phy) ← domain(U_phy));
-    H123chiral_tensorkit=TensorMap(H123chiral, domain(U_phy) ← domain(U_phy));
-    @tensor H12_tensorkit[:]:=U_phy'[4,5,6,-1]*H12_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
-    @tensor H31_tensorkit[:]:=U_phy'[4,5,6,-1]*H31_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
-    @tensor H23_tensorkit[:]:=U_phy'[4,5,6,-1]*H23_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
-    @tensor H123chiral_tensorkit[:]:=U_phy'[4,5,6,-1]*H123chiral_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
-
-    @tensor H_Heisenberg[:]:=sx[-1,-3]*sx[-2,-4]+sy[-1,-3]*sy[-2,-4]+sz[-1,-3]*sz[-2,-4];
-
-    H_triangle=J1*H12_tensorkit+J1*H31_tensorkit+J1*H23_tensorkit+Jtrip*H123chiral_tensorkit;
-    return H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit 
-end
 
 function build_double_layer_open(A_unfused0,inds,U_phy,U_L,U_D,U_R,U_U)
 

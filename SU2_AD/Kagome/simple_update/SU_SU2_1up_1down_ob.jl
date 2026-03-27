@@ -100,6 +100,8 @@ global backward_settings
 
 global Vv
 
+Vp=Rep[SU₂](1/2=>1);
+
 if D==3
     Vv=SU2Space(0=>1,1/2=>1);
 elseif D==6
@@ -161,7 +163,7 @@ lambda_d_c=deepcopy(lambda_u_a);
 # T_d=T_d+TensorMap(randn,codomain(T_d),domain(T_d))*0.1;
 
 
-U_d=space(B_a,3);
+U_d=Vp';
 U_phy_3=unitary(fuse(U_d ⊗ U_d ⊗ U_d), U_d ⊗ U_d ⊗ U_d);
 U_phy_2=unitary(fuse(U_d ⊗ U_d), U_d ⊗ U_d);
 H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy_3,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])

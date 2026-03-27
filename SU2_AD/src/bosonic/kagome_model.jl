@@ -1,9 +1,10 @@
 
 using Zygote:@ignore_derivatives
 
-function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fused::TensorMap, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, kagome_method,E_up_method="2x2",E_dn_method="simplfied")
-
-
+function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fused::TensorMap, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting, energy_setting)
+    kagome_method=energy_setting.kagome_method;
+    E_up_method=energy_setting.E_up_method;
+    E_dn_method=energy_setting.E_dn_method;
 
     norm_1site=ob_1site_closed(CTM,[],AA_fused,[]);
 
@@ -35,7 +36,7 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fu
 
         # down triangle
         if E_dn_method=="open_leg"
-            if construct_double_layer
+            if ctm_setting.construct_double_layer
                 AA1, U_ss=build_double_layer_open(A_unfused,"1",U_phy,U_L,U_D,U_R,U_U);
                 AA2, U_ss=build_double_layer_open(A_unfused,"2",U_phy,U_L,U_D,U_R,U_U);
                 AA3, U_ss=build_double_layer_open(A_unfused,"3",U_phy,U_L,U_D,U_R,U_U);
@@ -48,6 +49,7 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fu
             E_down=@tensor rho_LU_RU_LD[1,2]*H_triangle[2,1];
             norm_LU_RU_LD=@tensor rho_LU_RU_LD[1,1];
             E_down=E_down/norm_LU_RU_LD;    
+
         elseif  E_dn_method=="simplified"
             # B1=iPESS_tensors[1];
             # B2=iPESS_tensors[2];
@@ -412,12 +414,12 @@ function build_double_layer_open(A_unfused0,inds,U_phy,U_L,U_D,U_R,U_U)
 end
 
 function ob_1site_closed(CTM,A_fused,AA_fused,op)
-    Cset=CTM["Cset"];
-    Tset=CTM["Tset"];
+    Cset=CTM.Cset;
+    Tset=CTM.Tset;
 
-    @tensor envL[:]:=Cset[1][1,-1]*Tset[4][2,-2,1]*Cset[4][-3,2];
-    @tensor envR[:]:=Cset[2][-1,1]*Tset[2][1,-2,2]*Cset[3][2,-3];
-    @tensor envL[:]:=envL[1,2,4]*Tset[1][1,3,-1]*AA_fused[2,5,-2,3]*Tset[3][-3,5,4];
+    @tensor envL[:]:=Cset.C1[1,-1]*Tset.T4[2,-2,1]*Cset.C4[-3,2];
+    @tensor envR[:]:=Cset.C2[-1,1]*Tset.T2[1,-2,2]*Cset.C3[2,-3];
+    @tensor envL[:]:=envL[1,2,4]*Tset.T1[1,3,-1]*AA_fused[2,5,-2,3]*Tset.T3[-3,5,4];
     Norm=@tensor envL[1,2,3]*envR[1,2,3];
 
 

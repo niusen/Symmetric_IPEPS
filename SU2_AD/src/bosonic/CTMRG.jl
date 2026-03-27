@@ -89,7 +89,7 @@ function spectrum_conv_check(ss_old,C_new)
     return er,ss_new
 end
 
-function CTMRG(A,chi,init, CTM0,ctm_setting)
+function CTMRG(A, chi, init, CTM0, ctm_setting)
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
     ########################
     CTM_trun_tol=ctm_setting.CTM_trun_tol;

@@ -1,13 +1,13 @@
-function Truncations(uM,sM,vM,bond_dim,trun_tol)  
-    sM=truncate_multiplet(sM,bond_dim,1e-5,trun_tol);
-    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
-    @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
-    uM=uM_new;
-    sM=sM_new;
-    vM=vM_new;
-    sM=sM/norm(sM)
-    return uM,sM,vM
-end
+# function Truncations(uM,sM,vM,bond_dim,trun_tol)  
+#     sM=truncate_multiplet(sM,bond_dim,1e-5,trun_tol);
+#     uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+#     @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
+#     uM=uM_new;
+#     sM=sM_new;
+#     vM=vM_new;
+#     sM=sM/norm(sM)
+#     return uM,sM,vM
+# end
 
 function hosvd_rotation_symmetric(A,trun_tol,bond_dim)
     uM,sM,vM = tsvd(A, (1,2,),(3,4,5,6,); trunc=truncdim(bond_dim));
@@ -61,6 +61,7 @@ end
 
 
 function Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate,trun_tol,bond_dim,symmetric_hosvd)
+
     @tensor B_c_new[:]:=B_c[-1,1,-3]*lambda_u_c[-2,1];
     @tensor B_b_new[:]:=B_b[-1,1,-3]*lambda_u_b[-2,1];
     @tensor B_a_new[:]:=B_a[-1,1,-3]*lambda_u_a[-2,1];
@@ -68,6 +69,7 @@ function Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate,t
     @tensor A[:]:=T_d[1,2,3]*B_a_new[1,-1,-2]*B_b_new[2,-3,-4]*B_c_new[3,-5,-6];
 
     @tensor A[:]:=gate[1,2,3,-2,-4,-6]*A[-1,1,-3,2,-5,3];
+
     if symmetric_hosvd
         S_trun, U, lambda=hosvd_rotation_symmetric(A,trun_tol,bond_dim)
 
@@ -105,6 +107,13 @@ function Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate,t
     @tensor B_c[:]:=B_c[-1,1,-3]*lambda_u_c_inv[-2,1]
     @tensor B_b[:]:=B_b[-1,1,-3]*lambda_u_b_inv[-2,1]
     @tensor B_a[:]:=B_a[-1,1,-3]*lambda_u_a_inv[-2,1]
+
+    verify_D_max(S_trun,S_trun,B_a,B_b,B_c, bond_dim);
+
+    lambda_d_a=lambda_d_a/norm(lambda_d_a);
+    lambda_d_b=lambda_d_b/norm(lambda_d_b);
+    lambda_d_c=lambda_d_c/norm(lambda_d_c);
+    S_trun=S_trun/norm(S_trun);
     return B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, S_trun
 end
 
@@ -158,16 +167,32 @@ function Tri_T_up(T_u, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, gate, 
     @tensor B_b[:]:=B_b[1,-2,-3]*lambda_d_b_inv[-1,1]
     @tensor B_a[:]:=B_a[1,-2,-3]*lambda_d_a_inv[-1,1]
 
+    verify_D_max(S_trun,S_trun,B_a,B_b,B_c, bond_dim);
+
+    lambda_u_a=lambda_u_a/norm(lambda_u_a);
+    lambda_u_b=lambda_u_b/norm(lambda_u_b);
+    lambda_u_c=lambda_u_c/norm(lambda_u_c);
+    S_trun=S_trun/norm(S_trun);
     return B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, S_trun
+end
+
+function verify_D_max(T_u,T_d,B_a,B_b,B_c, bond_dim)
+    @assert dim(space(T_u,1))<=bond_dim;
+    @assert dim(space(T_u,2))<=bond_dim;
+    @assert dim(space(T_u,3))<=bond_dim;
+    @assert dim(space(T_d,1))<=bond_dim;
+    @assert dim(space(T_d,2))<=bond_dim;
+    @assert dim(space(T_d,3))<=bond_dim;
 end
 
 function itebd_step(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, trun_tol, gate, posit, bond_dim,symmetric_hosvd)
     
     if posit=="dn"
-        B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, T_d=Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate, trun_tol, bond_dim,symmetric_hosvd)
-    
+        B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, T_d=Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate, trun_tol, bond_dim,symmetric_hosvd);
+        verify_D_max(T_u,T_d,B_a,B_b,B_c, bond_dim);
     elseif posit=="up"
-        B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, T_u=Tri_T_up(T_u, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, gate, trun_tol, bond_dim,symmetric_hosvd)
+        B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, T_u=Tri_T_up(T_u, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, gate, trun_tol, bond_dim,symmetric_hosvd);
+        verify_D_max(T_u,T_d,B_a,B_b,B_c, bond_dim);
     end
     return T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c
 end

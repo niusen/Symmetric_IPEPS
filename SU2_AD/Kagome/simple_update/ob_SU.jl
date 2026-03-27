@@ -114,7 +114,7 @@ state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_n
 state_vec=normalize_ansatz(state_vec);
 
 
-cost_fun(state_vec[1])
+# cost_fun(state_vec[1])
 
 
 data=load(filenm);

@@ -1,4 +1,4 @@
-function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
+function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0, is_complex=false)
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);
         Vp=SU2Space(1/2=>1);
@@ -12,9 +12,12 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0)
         b3=permute(b3,(1,2,3,));
         tup=permute(tup,(1,2,3,));
         tdn=permute(tdn,(1,2,3,));
+        if is_complex
+            error("unfinished");
+        end
 
         #state=define_tensor_group(b1,b2,b3,tup,tdn)
-        state=Kagome_iPESS(Ba,Bb,Bc,Tu,Td);
+        state=Kagome_iPESS(b1,b2,b3,tup,tdn);
         return state
     else
         

@@ -117,39 +117,82 @@ projector_trun_tol=ctm_setting.CTM_trun_tol
 
 global backward_settings
 
+#prepare three-site simplex state
 N=3;
 Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=SUN_spin(N);
+@show Vp=space(Sa,4)';
+@tensor P_ij[:]:=Sa[1,2,-1,-2]*Sb[2,1,-3,-4];
+P_ij=permute(P_ij,(1,3,),(2,4,));
+Id_2site=unitary(Vp*Vp, Vp*Vp);
+P_ij=P_ij+Id_2site/N;
+Id_1site=unitary(Vp,Vp);
 
 
-global Vv
+@tensor H12[:]:=P_ij[-1,-2,-4,-5]*Id_1site[-3,-6];
+@tensor H13[:]:=P_ij[-1,-3,-4,-6]*Id_1site[-2,-5];
+@tensor H23[:]:=P_ij[-2,-3,-5,-6]*Id_1site[-1,-4];
+H_triangle=permute(H12+H13+H23,(1,2,3,),(4,5,6,));
+eu,ev=eig((H_triangle+H_triangle')/2);
 
-Vp=Rep[SU₂](1/2=>1);
 
-if D==3
-    Vv=SU2Space(0=>1,1/2=>1);
-elseif D==6
-    Vv=SU2Space(0=>1,1/2=>1,1=>1);
-elseif D==8
-    Vv=SU2Space(0=>1,1/2=>2,1=>1);
-elseif D==12
-    Vv=SU2Space(0=>1,1/2=>2,1=>1,3/2=>1);
-elseif D==13
-    Vv=SU2Space(0=>2,1/2=>2,1=>1,3/2=>1);    
-elseif D==16
-    Vv=SU2Space(0=>2,1/2=>2,1=>2,3/2=>1);
-elseif D==18
-    Vv=SU2Space(0=>2,1/2=>3,1=>2,3/2=>1);
-elseif Vv==23
-    Vv=SU2Space(0=>2,1/2=>3,1=>2,3/2=>1,2=>1);
-end
-@assert dim(Vv)==D;
+V_trivial=Rep[SU{N}](string(1)=>1);
+Projector=isometry(space(ev,4),V_trivial);
+@tensor ev[:]:=ev[-1,-2,-3,1]*Projector'[-4,1];
+
+#split the three-site ground state
+uni=unitary(space(ev,3),space(ev,3)*space(ev,4));
+@tensor ev[:]:=ev[-1,-2,1,2]*uni[-3,1,2];
+
+
+B_a=unitary(Vp'*V_trivial',Vp');
+B_b=deepcopy(B_a);
+B_c=deepcopy(B_a);
+T_d=deepcopy(ev);
+T_u=unitary(V_trivial*V_trivial,V_trivial');
+T_u=permute(T_u,(1,2,3,));
+
+
+U_d=Vp';
+U_phy_3=unitary(fuse(U_d ⊗ U_d ⊗ U_d), U_d ⊗ U_d ⊗ U_d);
+U_phy_2=unitary(fuse(U_d ⊗ U_d), U_d ⊗ U_d);
+
+H_triangle=permute(H_triangle,(4,5,6,),(1,2,3,));
+
+# @tensor H_triangle[:]:=U_phy_3[2,-1,-2,-3]*H_triangle[2,1]*U_phy_3'[-4,-5,-6,1];
+# H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
+# H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
+
+
+
+
+
+# global Vv
+
+# if D==3
+#     Vv=SU2Space(0=>1,1/2=>1);
+# elseif D==6
+#     Vv=SU2Space(0=>1,1/2=>1,1=>1);
+# elseif D==8
+#     Vv=SU2Space(0=>1,1/2=>2,1=>1);
+# elseif D==12
+#     Vv=SU2Space(0=>1,1/2=>2,1=>1,3/2=>1);
+# elseif D==13
+#     Vv=SU2Space(0=>2,1/2=>2,1=>1,3/2=>1);    
+# elseif D==16
+#     Vv=SU2Space(0=>2,1/2=>2,1=>2,3/2=>1);
+# elseif D==18
+#     Vv=SU2Space(0=>2,1/2=>3,1=>2,3/2=>1);
+# elseif Vv==23
+#     Vv=SU2Space(0=>2,1/2=>3,1=>2,3/2=>1,2=>1);
+# end
+# @assert dim(Vv)==D;
 
 global starting_time
 starting_time=now();
 
-is_complex=false;
-state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise, is_complex);
-state_vec=normalize_ansatz(state_vec);
+# is_complex=false;
+# state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_noise, is_complex);
+# state_vec=normalize_ansatz(state_vec);
 
 
 
@@ -162,22 +205,15 @@ state_vec=normalize_ansatz(state_vec);
 
 
 
-B_a=state_vec.B1;
-B_a=B_a-permute(B_a,(2,1,3,));
-B_b=deepcopy(B_a);
-B_c=deepcopy(B_a);
+#gauge convention: lambda tensor is attached to the simplex tensors
 
-T_u=state_vec.Tup;
-T_u=T_u+permute(T_u,(2,3,1,))+permute(permute(T_u,(2,3,1,)),(2,3,1,));
-T_d=deepcopy(T_u);
-
-lambda_u_a=unitary(space(B_a,1),space(B_a,1));
+lambda_u_a=unitary(space(B_a,2)',space(B_a,2)');
 lambda_u_a=lambda_u_a'*lambda_u_a;
 lambda_u_b=deepcopy(lambda_u_a);
 lambda_u_c=deepcopy(lambda_u_a);
-lambda_d_a=deepcopy(lambda_u_a);
-lambda_d_b=deepcopy(lambda_u_a);
-lambda_d_c=deepcopy(lambda_u_a);
+lambda_d_a=nothing;
+lambda_d_b=nothing;
+lambda_d_c=nothing;
 
 # B_a=B_a+TensorMap(randn,codomain(B_a),domain(B_a))*0.1;
 # B_b=B_b+TensorMap(randn,codomain(B_b),domain(B_b))*0.1;
@@ -186,13 +222,7 @@ lambda_d_c=deepcopy(lambda_u_a);
 # T_d=T_d+TensorMap(randn,codomain(T_d),domain(T_d))*0.1;
 
 
-U_d=Vp';
-U_phy_3=unitary(fuse(U_d ⊗ U_d ⊗ U_d), U_d ⊗ U_d ⊗ U_d);
-U_phy_2=unitary(fuse(U_d ⊗ U_d), U_d ⊗ U_d);
-H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy_3,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
-@tensor H_triangle[:]:=U_phy_3[2,-1,-2,-3]*H_triangle[2,1]*U_phy_3'[-4,-5,-6,1];
-H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
-H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
+
 
 tau=5;
 dt=0.01;

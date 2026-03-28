@@ -35,7 +35,7 @@ include("../../src/bosonic/kagome/funs_1up_1down.jl")
 Random.seed!(1234)
 
 
-D_max=3;
+D_max=8;
 symmetric_hosvd=false;
 itebd_trun_tol=1e-6;
 D=3;
@@ -148,13 +148,13 @@ T_u=state_vec.Tup;
 T_u=T_u+permute(T_u,(2,3,1,))+permute(permute(T_u,(2,3,1,)),(2,3,1,));
 T_d=deepcopy(T_u);
 
-lambda_u_a=unitary(space(B_a,1),space(B_a,1));
+lambda_u_a=unitary(space(B_a,2)',space(B_a,2)');
 lambda_u_a=lambda_u_a'*lambda_u_a;
 lambda_u_b=deepcopy(lambda_u_a);
 lambda_u_c=deepcopy(lambda_u_a);
-lambda_d_a=deepcopy(lambda_u_a);
-lambda_d_b=deepcopy(lambda_u_a);
-lambda_d_c=deepcopy(lambda_u_a);
+lambda_d_a=nothing;
+lambda_d_b=nothing;
+lambda_d_c=nothing;
 
 # B_a=B_a+TensorMap(randn,codomain(B_a),domain(B_a))*0.1;
 # B_b=B_b+TensorMap(randn,codomain(B_b),domain(B_b))*0.1;

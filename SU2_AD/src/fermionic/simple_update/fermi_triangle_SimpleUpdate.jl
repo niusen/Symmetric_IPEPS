@@ -312,7 +312,12 @@ end
 function Truncations(uM,sM,vM,bond_dim,trun_tol)  
     sM=truncate_multiplet_origin(sM,bond_dim,1e-5,trun_tol);
 
-    uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+    #uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
+    sM=sM/norm(sM);
+    ul,sM_new,vr=tsvd(sM; trunc=truncerr(1e-12));
+    uM_new=uM*ul;
+    vM_new=vr*vM;
+
     @assert (norm(uM_new*sM_new*vM_new-uM*sM*vM)/norm(uM*sM*vM))<1e-14
     uM=uM_new;
     sM=sM_new;

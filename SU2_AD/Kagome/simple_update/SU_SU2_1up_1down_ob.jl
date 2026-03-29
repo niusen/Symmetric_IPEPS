@@ -35,7 +35,7 @@ include("../../src/bosonic/kagome/funs_1up_1down.jl")
 Random.seed!(1234)
 
 
-D_max=8;
+D_max=3;
 symmetric_hosvd=false;
 itebd_trun_tol=1e-6;
 D=3;
@@ -167,7 +167,7 @@ U_d=Vp';
 U_phy_3=unitary(fuse(U_d ⊗ U_d ⊗ U_d), U_d ⊗ U_d ⊗ U_d);
 U_phy_2=unitary(fuse(U_d ⊗ U_d), U_d ⊗ U_d);
 H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=Hamiltonians(U_phy_3,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
-@tensor H_triangle[:]:=U_phy_3[2,-1,-2,-3]*H_triangle[2,1]*U_phy_3'[-4,-5,-6,1];
+@tensor H_triangle[:]:=U_phy_3[2,-1,-2,-3]*H_triangle[1,2]*U_phy_3'[-4,-5,-6,1];
 H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
 H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
 

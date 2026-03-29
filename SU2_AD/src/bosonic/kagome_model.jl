@@ -12,10 +12,10 @@ function Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip)
         H31_tensorkit=TensorMap(H31, domain(U_phy) ← domain(U_phy));
         H23_tensorkit=TensorMap(H23, domain(U_phy) ← domain(U_phy));
         H123chiral_tensorkit=TensorMap(H123chiral, domain(U_phy) ← domain(U_phy));
-        @tensor H12_tensorkit[:]:=U_phy'[4,5,6,-1]*H12_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
-        @tensor H31_tensorkit[:]:=U_phy'[4,5,6,-1]*H31_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
-        @tensor H23_tensorkit[:]:=U_phy'[4,5,6,-1]*H23_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
-        @tensor H123chiral_tensorkit[:]:=U_phy'[4,5,6,-1]*H123chiral_tensorkit[1,2,3,4,5,6]*U_phy[-2,1,2,3];
+        @tensor H12_tensorkit[:]:=U_phy'[4,5,6,-2]*H12_tensorkit[1,2,3,4,5,6]*U_phy[-1,1,2,3];
+        @tensor H31_tensorkit[:]:=U_phy'[4,5,6,-2]*H31_tensorkit[1,2,3,4,5,6]*U_phy[-1,1,2,3];
+        @tensor H23_tensorkit[:]:=U_phy'[4,5,6,-2]*H23_tensorkit[1,2,3,4,5,6]*U_phy[-1,1,2,3];
+        @tensor H123chiral_tensorkit[:]:=U_phy'[4,5,6,-2]*H123chiral_tensorkit[1,2,3,4,5,6]*U_phy[-1,1,2,3];
 
         @tensor H_Heisenberg[:]:=sx[-1,-3]*sx[-2,-4]+sy[-1,-3]*sy[-2,-4]+sz[-1,-3]*sz[-2,-4];
 
@@ -59,7 +59,7 @@ function evaluate_ob(parameters, U_phy,iPESS_tensors, A_unfused::TensorMap, A_fu
     H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit=@ignore_derivatives Hamiltonians(U_phy,parameters["J1"],parameters["J2"],parameters["J3"],parameters["Jchi"],parameters["Jtrip"])
     
     H_triangle=permute(H_triangle,(2,),(1,));
-    
+
     if kagome_method=="E_single_triangle"
         AA_H, _,_,_,_=build_double_layer(A_fused,H_triangle);
         E_up=ob_1site_closed(CTM,[],AA_H,[]);

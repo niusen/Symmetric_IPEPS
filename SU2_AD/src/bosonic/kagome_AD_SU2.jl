@@ -2,11 +2,11 @@ function initial_SU2_state(Vspace,init_statenm="nothing",init_noise=0, is_comple
     if init_statenm=="nothing" 
         println("Random initial state");flush(stdout);
         Vp=SU2Space(1/2=>1);
-        b1=TensorMap(randn,Vv*Vv,Vp);
-        b2=TensorMap(randn,Vv*Vv,Vp);
-        b3=TensorMap(randn,Vv*Vv,Vp);
-        tup=TensorMap(randn,Vv',Vv*Vv);
-        tdn=TensorMap(randn,Vv',Vv*Vv);
+        b1=TensorMap(randn,Vv'*Vv',Vp');
+        b2=TensorMap(randn,Vv'*Vv',Vp');
+        b3=TensorMap(randn,Vv'*Vv',Vp');
+        tup=TensorMap(randn,Vv,Vv'*Vv');
+        tdn=TensorMap(randn,Vv,Vv'*Vv');
         b1=permute(b1,(1,2,3,));
         b2=permute(b2,(1,2,3,));
         b3=permute(b3,(1,2,3,));

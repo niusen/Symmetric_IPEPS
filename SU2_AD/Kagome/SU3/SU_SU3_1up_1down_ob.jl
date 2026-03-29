@@ -119,19 +119,22 @@ global backward_settings
 
 #prepare three-site simplex state
 N=3;
-Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=SUN_spin(N);
-@show Vp=space(Sa,4)';
-@tensor P_ij[:]:=Sa[1,2,-1,-2]*Sb[2,1,-3,-4];
-P_ij=permute(P_ij,(1,3,),(2,4,));
-Id_2site=unitary(Vp*Vp, Vp*Vp);
-P_ij=P_ij+Id_2site/N;
-Id_1site=unitary(Vp,Vp);
+Vp=Rep[SU₃]("3"=>1);
+U_phy=unitary(fuse(Vp*Vp*Vp), Vp*Vp*Vp);
+
+H_triangle, H_Heisenberg, H12_tensorkit, H31_tensorkit, H23_tensorkit = Hamiltonians(U_phy,J1,J2,J3,Jchi,Jtrip);
 
 
-@tensor H12[:]:=P_ij[-1,-2,-4,-5]*Id_1site[-3,-6];
-@tensor H13[:]:=P_ij[-1,-3,-4,-6]*Id_1site[-2,-5];
-@tensor H23[:]:=P_ij[-2,-3,-5,-6]*Id_1site[-1,-4];
-H_triangle=permute(H12+H13+H23,(1,2,3,),(4,5,6,));
+
+
+
+@tensor H_triangle[:]:=U_phy[2,-4,-5,-6]*H_triangle[1,2]*U_phy'[-1,-2,-3,1];
+H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
+# H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
+
+
+
+
 eu,ev=eig((H_triangle+H_triangle')/2);
 
 
@@ -152,15 +155,6 @@ T_u=unitary(V_trivial*V_trivial,V_trivial');
 T_u=permute(T_u,(1,2,3,));
 
 
-U_d=Vp';
-U_phy_3=unitary(fuse(U_d ⊗ U_d ⊗ U_d), U_d ⊗ U_d ⊗ U_d);
-U_phy_2=unitary(fuse(U_d ⊗ U_d), U_d ⊗ U_d);
-
-H_triangle=permute(H_triangle,(4,5,6,),(1,2,3,));
-
-# @tensor H_triangle[:]:=U_phy_3[2,-1,-2,-3]*H_triangle[2,1]*U_phy_3'[-4,-5,-6,1];
-# H_triangle=permute(H_triangle,(1,2,3,),(4,5,6,));
-# H_Heisenberg=TensorMap(H_Heisenberg, U_d' ⊗ U_d' ← U_d' ⊗ U_d');
 
 
 
@@ -223,6 +217,9 @@ lambda_d_c=nothing;
 
 
 
+#H_triangle=permute(H_triangle,(4,5,6,),(1,2,3,));
+
+
 
 tau=5;
 dt=0.01;
@@ -237,6 +234,10 @@ T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambd
 # T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, itebd_trun_tol, tau, dt, D_max,symmetric_hosvd);
 
 
+state_vec=Kagome_iPESS(B_a,B_b,B_c,T_u,T_d);
+
+
+
 println(space(T_u))
 println(space(T_d))
 
@@ -246,7 +247,7 @@ jldsave(filenm; B_a,B_b,B_c,T_u,T_d);
 @tensor PEPS_tensor[:] := B_a[-1,1,-5]*B_b[4,3,-6]*B_c[-4,2,-7]*T_u[1,3,2]*T_d[-3,4,-2];
 A_unfused=PEPS_tensor;
 
-U_phy=unitary(fuse(space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7)), space(PEPS_tensor, 5) ⊗ space(PEPS_tensor, 6) ⊗ space(PEPS_tensor, 7));
+
 @tensor A_fused[:] :=PEPS_tensor[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3];
 
 CTM=[];
@@ -269,12 +270,12 @@ init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=tru
     println("chi= "*string(chi));flush(stdout);
     CTM, AA_fused, U_L,U_D,U_R,U_U,ite_num,ite_err=CTMRG(A_fused,chi,init,nothing,ctm_setting);
 
-    E_up, E_dn=evaluate_ob(parameters, U_phy,state_vec, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting,energy_setting);
+    E_up, E_dn=evaluate_ob(parameters, U_phy, state_vec, A_unfused, A_fused, AA_fused, U_L,U_D,U_R,U_U, CTM, ctm_setting,energy_setting);
     energy=(E_up+E_dn)/3;
     println("Up triangle energy: "*string(energy))
 
-    eu_allspin_x,allspin_x=solve_correl_length(5,[],CTM,"x",ctm_setting);
-    eu_allspin_y,allspin_y=solve_correl_length(5,[],CTM,"y",ctm_setting);
+    # eu_allspin_x,allspin_x=solve_correl_length(5,[],CTM,"x",ctm_setting);
+    # eu_allspin_y,allspin_y=solve_correl_length(5,[],CTM,"y",ctm_setting);
 
     init=Dict([("CTM", CTM), ("init_type", "PBC"),("AA_fused",AA_fused),("U_L",U_L),("U_R",U_R),("U_U",U_U),("U_D",U_D)]);
 

@@ -387,6 +387,8 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
         chi_extra=20;
     elseif isa(space(M,1), ComplexSpace)
         chi_extra=1;
+    else
+        chi_extra=10;
     end
 
 
@@ -401,6 +403,7 @@ function CTM_ite(Cset, Tset, AA, chi, direction, trun_tol,CTM_ite_info,projector
         #uM,sM,vM = tsvd(M; trunc=truncdim(chi+20));
         #uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
         global multiplet_tol
+
         uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra; multiplet_tol=multiplet_tol));#for new version Pkgs, tsvd backward is much better
         #uM,sM,vM = tsvd(M);
     end

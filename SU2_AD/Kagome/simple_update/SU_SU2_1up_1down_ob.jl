@@ -184,6 +184,8 @@ T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambd
 # T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c=itebd(T_u,T_d,B_a,B_b,B_c,lambda_u_a,lambda_u_b,lambda_u_c,lambda_d_a,lambda_d_b,lambda_d_c, H_triangle, itebd_trun_tol, tau, dt, D_max,symmetric_hosvd);
 
 
+state_vec=Kagome_iPESS(B_a,B_b,B_c,T_u,T_d);
+
 println(space(T_u))
 println(space(T_d))
 

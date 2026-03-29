@@ -54,15 +54,14 @@ end
 
 
 function Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate,trun_tol,bond_dim,symmetric_hosvd)
-    println(space(B_c))
-    println(space(lambda_u_c))
+
     @tensor B_c_new[:]:=B_c[-1,1,-3]*lambda_u_c[1,-2];
     @tensor B_b_new[:]:=B_b[-1,1,-3]*lambda_u_b[1,-2];
     @tensor B_a_new[:]:=B_a[-1,1,-3]*lambda_u_a[1,-2];
 
     @tensor A[:]:=T_d[1,2,3]*B_a_new[1,-1,-2]*B_b_new[2,-3,-4]*B_c_new[3,-5,-6];
 
-    @tensor A[:]:=gate[1,2,3,-2,-4,-6]*A[-1,1,-3,2,-5,3];
+    @tensor A[:]:=gate[-2,-4,-6,1,2,3]*A[-1,1,-3,2,-5,3];
 
     if symmetric_hosvd
         S_trun, U, lambda=hosvd_rotation_symmetric(A,trun_tol,bond_dim)
@@ -112,14 +111,13 @@ function Tri_T_dn(T_d, B_a, B_b, B_c, lambda_u_a, lambda_u_b, lambda_u_c, gate,t
 end
 
 function Tri_T_up(T_u, B_a, B_b, B_c, lambda_d_a, lambda_d_b, lambda_d_c, gate, trun_tol,bond_dim,symmetric_hosvd)
-    println(space(B_c))
-    println(space(lambda_d_c))
+
     @tensor B_c_new[:]:=B_c[1,-2,-3]*lambda_d_c[1,-1]
     @tensor B_b_new[:]:=B_b[1,-2,-3]*lambda_d_b[1,-1]
     @tensor B_a_new[:]:=B_a[1,-2,-3]*lambda_d_a[1,-1]
 
     @tensor A[:]:=T_u[1,2,3]*B_a_new[-1,1,-2]*B_b_new[-3,2,-4]*B_c_new[-5,3,-6]
-    @tensor A[:]:=gate[1,2,3,-2,-4,-6]*A[-1,1,-3,2,-5,3]
+    @tensor A[:]:=gate[-2,-4,-6,1,2,3]*A[-1,1,-3,2,-5,3]
     if symmetric_hosvd
         S_trun, U, lambda=hosvd_rotation_symmetric(A,trun_tol,bond_dim)
         

@@ -22,6 +22,11 @@ end
 
 function hosvd(A,trun_tol,bond_dim)
     A=A/norm(A);
+
+    ######################
+    # uMa,sMa,vMa = tsvd(A, (1,2,),(3,4,5,6,));
+    # @show space(sMa,1)
+    ######################
     
     uMa,sMa,vMa = tsvd(A, (1,2,),(3,4,5,6,); trunc=truncdim(bond_dim));
     uMa,sMa,vMa=Truncations(uMa,sMa,vMa,bond_dim,trun_tol);

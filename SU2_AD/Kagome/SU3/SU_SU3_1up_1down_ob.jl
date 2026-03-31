@@ -54,7 +54,7 @@ println("pid="*string(pid));flush(stdout);
 Random.seed!(1234)
 
 
-D_max=3;
+D_max=18;#D_set= 3, 10
 symmetric_hosvd=false;
 itebd_trun_tol=1e-6;
 D=3;
@@ -281,10 +281,10 @@ init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=tru
 
     matwrite("SimpleUpdate_ob"*"_D"*string(D_max)*"_chi"*string(chi)*".mat", Dict(
         "energy" => energy,
-        "eu_allspin_x"=>eu_allspin_x,
-        "allspin_x"=>allspin_x,
-        "eu_allspin_y"=>eu_allspin_y,
-        "allspin_y"=>allspin_y,
+        # "eu_allspin_x"=>eu_allspin_x,
+        # "allspin_x"=>allspin_x,
+        # "eu_allspin_y"=>eu_allspin_y,
+        # "allspin_y"=>allspin_y,
         "space_T_u"=>string(space(T_u)),
         "space_T_d"=>string(space(T_d))
     ); compress = false)

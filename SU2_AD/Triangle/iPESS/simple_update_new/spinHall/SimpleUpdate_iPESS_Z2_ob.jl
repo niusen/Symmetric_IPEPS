@@ -57,8 +57,10 @@ t=1;
 ϕ=pi/2;
 μ=0;
 U=0;
+mx=0;
 B=0;
-parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
+mx_type="uniform";#"uniform" or "x_stagger"
+parameters=Dict([("t1", t),("t2", t), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B), ("mx", mx), ("mx_type", mx_type)]);
 @show parameters;
 trun_tol=1e-6;
 
@@ -164,7 +166,7 @@ end
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set, mx_ob_set, my_ob_set, mz_ob_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 println(E_total)
 println(ex_up_set)
 println(ey_up_set)
@@ -174,18 +176,29 @@ println(ey_dn_set)
 println(e_diagonala_dn_set)
 println(e0_set)
 println(eU_set)
+@show mx_ob_set
+@show my_ob_set
+@show mz_ob_set
 
 
-D0set=[];
-for cc in eachindex(B_set)
-    D0set=vcat(D0set,[dim(space(B_set[cc],1)), dim(space(B_set[cc],2)), dim(space(B_set[cc],3))]);
+function get_Dmax0(B_set)
+    D0set = Int[]
+    for cc in eachindex(B_set)
+        append!(D0set, [
+            dim(space(B_set[cc],1)),
+            dim(space(B_set[cc],2)),
+            dim(space(B_set[cc],3))
+        ])
+    end
+    return maximum(D0set)
 end
-D_max0=maximum(D0set);
+D_max0 = get_Dmax0(B_set)
+
 B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_no_Hamiltonian(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, D_max0, trun_tol);
 
 
 gates=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,0.1, typeof(space(B_set[1,1],1)),Lx,Ly);
-jldsave("gates_spinHall.jld2";gates);
+
 
 # tau=20;
 # dt=0.1;
@@ -203,12 +216,13 @@ tau=20;
 dt=0.002;
 B_set, T_set, λ_set1, λ_set2, λ_set3 = itebd_iPESS_Hofstadter(energy_setting, parameters, B_set, T_set, λ_set1, λ_set2, λ_set3, tau, dt,D_max, trun_tol);
 
-
+filenm="SU_iPESS_Z2_"*(energy_setting.model)*"_D"*string(D_max)*".jld2";
+jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
 
 A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
 CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,LS_ctm_setting);
-E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
+E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set, mx_ob_set, my_ob_set, mz_ob_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, LS_ctm_setting, energy_setting);
 println(E_total)
 println(ex_up_set)
 println(ey_up_set)
@@ -218,10 +232,12 @@ println(ey_dn_set)
 println(e_diagonala_dn_set)
 println(e0_set)
 println(eU_set)
+@show mx_ob_set
+@show my_ob_set
+@show mz_ob_set
 
 
-filenm="SU_iPESS_Z2_"*(energy_setting.model)*"_D"*string(D_max)*".jld2";
-jldsave(filenm; B_set, T_set, λ_set1, λ_set2, λ_set3)
+
 
 
 # end

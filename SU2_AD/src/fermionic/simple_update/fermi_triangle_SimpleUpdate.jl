@@ -972,7 +972,8 @@ function gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,dt, space_t
     t2_dn_coe_set=parameters_site["t2_dn_coe_set"]/2;
     U_coe_set=parameters_site["U_coe_set"]/6;
     μ_coe_set=parameters_site["μ_coe_set"]/6;
-
+    mx_coe_set=parameters_site["mx_coe_set"]/6;
+    
 
     B_coe=parameters["B"]/6;
     if abs(B_coe)>0
@@ -1032,7 +1033,19 @@ function gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,dt, space_t
             @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
             hh_μ=(hh_LD+hh_RU+hh_RD)*μ_coe_set[cx,cy];
             #################
-            hh=hh_tx+hh_ty+hh_t2+hh_U-hh_μ;
+            #mx term
+            OU_LD=sx_op;
+            OU_RU=sx_op;
+            OU_RD=sx_op;
+            Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
+            Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
+            Id_RD=unitary(space(OU_RD,1),space(OU_RD,1));
+            @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_RD[-2,-5]*Id_RU[-3,-6];
+            @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_RD[-2,-5]*OU_RU[-3,-6];
+            @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
+            hh_mx=(hh_LD+hh_RU+hh_RD)*mx_coe_set[cx,cy];
+            #################
+            hh=hh_tx+hh_ty+hh_t2+hh_U-hh_μ+hh_mx;
             #################
             if abs(B_coe)>0
                 OU_LD=N_occu_set[mod1(cy+1,2)];

@@ -1097,6 +1097,8 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
         gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     elseif energy_setting.model=="standard_triangle_Hubbard" #uniform
         gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
+    elseif energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     end
 
     #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);

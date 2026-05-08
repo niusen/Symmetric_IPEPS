@@ -136,8 +136,8 @@ multiplet_tol=1e-5;
 projector_trun_tol=LS_ctm_setting.CTM_trun_tol
 ###################################
 global Lx,Ly
-@show Lx=energy_setting.Lx;
-@show Ly=energy_setting.Ly;
+Lx=energy_setting.Lx;
+Ly=energy_setting.Ly;
 
 
 LS_ctm_setting.CTM_ite_nums=30;
@@ -146,7 +146,6 @@ LS_ctm_setting.CTM_ite_nums=30;
 
 global Lx,Ly,A_cell
 global chi, parameters, energy_setting, grad_ctm_setting
-
 
 if optim_setting.init_statenm=="nothing"
     Vp=Rep[ℤ₂](0=>2,1=>2);

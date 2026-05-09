@@ -602,13 +602,10 @@ function energy_CTM(x, chi, parameters, ctm_setting, energy_setting, init, init_
 
         return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, ite_num,ite_err,CTM_cell
     elseif energy_setting.model in ("Triangle_Hofstadter_Hubbard_spinHall",)
-        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, sx_set,sy_set,sz_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
+        E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set, sx_set,sy_set,sz_set=evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);
         E=real(E_total);
-
-        S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
-        println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout);        
-
-        return E, ex_set, ey_set, e_diagonala_set, e0_set, eU_set, sx_set,sy_set,sz_set, ite_num,ite_err,CTM_cell
+    
+        return E, ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set, sx_set,sy_set,sz_set, ite_num,ite_err,CTM_cell
     elseif energy_setting.model == "standard_triangle_Hubbard"
         if ctm_setting.grad_checkpoint #use checkpoint to save memory
             E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set, triangle_up_set, triangle_dn_set=Zygote.checkpointed(evaluate_ob_cell, parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_setting, energy_setting);

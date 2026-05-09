@@ -79,12 +79,15 @@ function f(x::Matrix{T}) where T<:iPEPS_ansatz
             println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonal1_set= "*string(e_diagonal1_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
             println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
         elseif energy_setting.model in ("Triangle_Hofstadter_Hubbard_spinHall",);
-            E, ex_set, ey_set, e_diagonal1_set, e0_set, eU_set, sx_set,sy_set,sz_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
-            println("E= "*string(E)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonal1_set= "*string(e_diagonal1_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
+            E, ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set, sx_set,sy_set,sz_set, ite_num,ite_err,_=energy_CTM(x, chi, parameters, LS_ctm_setting, energy_setting, init, CTM0); 
+            println("E= "*string(E));flush(stdout);
+            println("ex_up_set= "*string(ex_up_set[:])*", "*"ey_up_set= "*string(ey_up_set[:])*", "*"e_diagonal1_up_set= "*string(e_diagonala_up_set[:]));flush(stdout);
+            println("ex_dn_set= "*string(ex_dn_set[:])*", "*"ey_dn_set= "*string(ey_dn_set[:])*", "*"e_diagonal1_dn_set= "*string(e_diagonala_dn_set[:]));flush(stdout);
+            println("e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:])*", "*"ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
             println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
 
             S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
-            println("S2= "*string(abs.(S2)));flush(stdout);
+            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));flush(stdout); 
         end
     elseif isa(x[1],Square_iPEPS)
         if energy_setting.model =="triangle_J1_J2_Jchi"

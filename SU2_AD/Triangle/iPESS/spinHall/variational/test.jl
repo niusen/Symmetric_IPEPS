@@ -16,7 +16,7 @@ include("../../../../src/bosonic/iPEPS_ansatz.jl")
 include("../../../../src/bosonic/AD_lib.jl")
 include("../../../../src/bosonic/line_search_lib.jl")
 include("../../../../src/bosonic/line_search_lib_cell.jl")
-# include("../../../../src/bosonic/optimkit_lib.jl")
+include("../../../../src/bosonic/optimkit_lib.jl")
 include("../../../../src/bosonic/CTMRG.jl")
 include("../../../../src/fermionic/Fermionic_CTMRG.jl")
 include("../../../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
@@ -93,7 +93,7 @@ optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_c
 dump(optim_setting);
 
 energy_setting=Triangle_Hofstadter_Hubbard_settings();
-energy_setting.model = "Triangle_Hofstadter_Hubbard_spinHall";
+energy_setting.model = "simple_test";
 energy_setting.Lx =2;
 energy_setting.Ly =2;
 energy_setting.Magnetic_cell =2;
@@ -162,25 +162,16 @@ global E_history
 E_history=[10000];
 
 
-ls = BackTracking(order=3)
-println(ls)
-fx_bt3, x_bt3, iter_bt3 = gdoptimize(f, g!, fg!, state_vec, ls)
+sigmax_op,sigmay_op,sigmaz_op =@ignore_derivatives spin_operator_Z2();
+function simple_cfun(A_cell)
+    A=A_cell[1][1];
+    y=@tensor A'[1,2,3,4,5]*sigmax_op[5,6]*A[1,2,3,4,6];
+return y
+end
 
-# ls = StrongWolfe()
-# println(ls)
-# fx_sw, x_sw, iter_sw = gdoptimize(f, g!, fg!, state_vec, ls)
+x=Matrix{Triangle_iPESS_immutable}(undef,Lx,Ly);
 
-# ls = LineSearches.HagerZhang()
-# println(ls)
-# fx_hz, x_hz, iter_hz = gdoptimize(f, g!, fg!, state_vec, ls)
-
-# ls = MoreThuente()
-# println(ls)
-# fx_mt, x_mt, iter_mt = gdoptimize(f, g!, fg!, state_vec, ls)
-
-
-# #optimize with OptimKit
-# optimkit_op(state_vec)
-
-
-println(E_tem)
+for cc in eachindex(x)
+    x[cc]=Triangle_iPESS_convert(state_vec[cc]);#convert to immutable ansatz
+end
+x_opt, fx, gx, numfg, grad_history = optimkit_op(x);

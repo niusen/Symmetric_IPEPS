@@ -229,7 +229,7 @@ println(eU_set)
 
 
 global save_filenm
-save_filenm="FU_iPESS_Z2_"*(energy_setting.model)*"_D"*string(D_max)*string(chi)*".jld2";
+save_filenm="FU_iPESS_Z2_"*(energy_setting.model)*"_D"*string(D_max)*"_chi"*string(chi)*".jld2";
 
 global starting_time
 starting_time=now();

@@ -1,3 +1,5 @@
+const OPTIMKIT_FG_COUNT = Ref(0)
+
 # my_retract is not an in place function which should not change x
 function my_retract(x,dx,α::Number)
     ψ = deepcopy(x)
@@ -269,6 +271,11 @@ end
 # end
 
 function costfun_grad(x::Matrix{T}) where T<:iPEPS_ansatz_immutable
+
+    OPTIMKIT_FG_COUNT[] += 1
+    println("\noptim iteration $(OPTIMKIT_FG_COUNT[])")
+    flush(stdout)
+
     out = Zygote.withgradient(y -> cost_fun_optimkit(y), x)
 
     E = out.val
@@ -334,7 +341,7 @@ function optimkit_op(state_vec)
     x_opt, fx, gx, numfg, grad_history=optimize(
         costfun_grad, 
         state_vec,
-        LBFGS(8;); 
+        LBFGS(8;verbosity = 3); 
         inner=my_inner,
         retract=my_retract,
         scale! = my_scale!,

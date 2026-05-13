@@ -1125,13 +1125,26 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
             end
         end
 
-        E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
-        println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
-        println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
-        if isa(space(A_cell_iPEPS[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-            sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting);
-            S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
-            println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
+        if energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
+            E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+            println("E= "*string(E_total)*", e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
+            println("ex_up_set= "*string(ex_up_set[:])*", "*"ey_up_set= "*string(ey_up_set[:])*", "*"e_diagonala_up_set= "*string(e_diagonala_up_set[:]));flush(stdout);
+            println("ex_dn_set= "*string(ex_dn_set[:])*", "*"ey_dn_set= "*string(ey_dn_set[:])*", "*"e_diagonala_dn_set= "*string(e_diagonala_dn_set[:]));flush(stdout);
+            println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
+            if isa(space(A_cell_iPEPS[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+                sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting);
+                S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
+                println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
+            end
+        else
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+            println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
+            println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
+            if isa(space(A_cell_iPEPS[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+                sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting);
+                S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
+                println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
+            end
         end
         
 

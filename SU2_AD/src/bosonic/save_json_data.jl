@@ -23,24 +23,42 @@ function convert_to_Dict(T)
     return Dict("T_real"=>T_real[:],"T_imag"=>T_imag[:],"even_dims"=>even_dims,"odd_dims"=>odd_dims,"dual"=>dual);
 end
 
-filenm="Z2_extended_Lx2_Ly2_D_8";
+filenm="var_iPESS_Z2_Triangle_Hofstadter_Hubbard_spinHall_D4_chi_40_-2.3854";
 
-
-
-data=load(filenm*".jld2");
 
 T_set=Dict{String,Any}();
 B_set=Dict{String,Any}();
-Lx,Ly=size(data["T_set"]);
 
-for cx=1:Lx
-    for cy=1:Ly
-        tm=data["T_set"][cx,cy];
-        bm=data["B_set"][cx,cy];
-        merge!(T_set,Dict{String,Any}(string(cx)*","*string(cy)=>convert_to_Dict(tm)));
-        merge!(B_set,Dict{String,Any}(string(cx)*","*string(cy)=>convert_to_Dict(bm)));
+data=load(filenm*".jld2");
+
+    if haskey(data,"T_set")
+        Lx,Ly=size(data["T_set"]);
+        for cx=1:Lx
+            for cy=1:Ly
+                tm=data["T_set"][cx,cy];
+                bm=data["B_set"][cx,cy];
+                merge!(T_set,Dict{String,Any}(string(cx)*","*string(cy)=>convert_to_Dict(tm)));
+                merge!(B_set,Dict{String,Any}(string(cx)*","*string(cy)=>convert_to_Dict(bm)));
+            end
+        end
+
+    else
+        state=data["x"];
+        Lx,Ly=size(state);
+
+        for cx=1:Lx
+            for cy=1:Ly
+                tm=state[cx,cy].Bm;
+                bm=state[cx,cy].Tm;
+                merge!(T_set,Dict{String,Any}(string(cx)*","*string(cy)=>convert_to_Dict(tm)));
+                merge!(B_set,Dict{String,Any}(string(cx)*","*string(cy)=>convert_to_Dict(bm)));
+            end
+        end
     end
-end
+
+
+
+
 
 
 

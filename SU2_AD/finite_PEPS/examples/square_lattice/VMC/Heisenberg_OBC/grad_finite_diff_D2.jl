@@ -168,7 +168,7 @@ for cx=1:Lx
             D2=TensorKit.dim(space(T,2));
             D3=TensorKit.dim(space(T,3));
             for d1=1:D1
-                for d2=1:D1
+                for d2=1:D2
                     for d3=1:D3
                         if global_eltype==ComplexF64
                             psi_=deepcopy(psi);
@@ -208,7 +208,7 @@ for cx=1:Lx
             D3=TensorKit.dim(space(T,3));
             D4=TensorKit.dim(space(T,4));
             for d1=1:D1
-                for d2=1:D1
+                for d2=1:D2
                     for d3=1:D3
                         for d4=1:D4
                             if global_eltype==ComplexF64
@@ -249,7 +249,7 @@ for cx=1:Lx
             D4=TensorKit.dim(space(T,4));
             D5=TensorKit.dim(space(T,5));
             for d1=1:D1
-                for d2=1:D1
+                for d2=1:D2
                     for d3=1:D3
                         for d4=1:D4
                             for d5=1:D5

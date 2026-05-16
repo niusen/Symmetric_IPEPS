@@ -95,7 +95,7 @@ function Hamiltonians_spinless_Z2()
 
     #return Ident, occu, Cdag, C, Cdag_ 
     n_double=Ident*0;#no hubbard interaction for spinless model
-    return (Ident,Ident), (occu,occu), (n_double,n_double), (Cdag,Cdag), (C,C)
+    return Ident, occu, n_double, Cdag, C
 end
 
 
@@ -1460,50 +1460,49 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         # println(E_LU_LD_RD_set)
         # println(E_LU_RU_RD_set)
         return E_total,  ex_set, ey_set, e_diagonalb_set, e_diagonala_set, e0_set
-    elseif energy_setting.model=="spinless_triangle_lattice"
-        if (Lx==2) & (Ly==1) #2x1 cell
-            Ident, occu, Cdag, C, Cdag_ =@ignore_derivatives Hamiltonian_terms();
-            t1=parameters["t1"];
-            t2=parameters["t2"];
-            ϕ=parameters["ϕ"];
-            μ=parameters["μ"];
+    elseif energy_setting.model=="Triangle_Hofstadter_spinless"
+        @assert mod(Lx,2)==0
 
-            ex_set=zeros(Lx,Ly)*im;
-            ey_set=zeros(Lx,Ly)*im;
-            e_diagonala_set=zeros(Lx,Ly)*im;
-            e0_set=zeros(Lx,Ly)*im;
+        Ident, occu, n_double, Cdag, C =@ignore_derivatives Hamiltonian_terms();
+        
+        t1=parameters["t1"];
+        t2=parameters["t2"];
+        ϕ=parameters["ϕ"];
+        μ=parameters["μ"];
 
-            
-            E_total=0;
+        ex_set=zeros(Lx,Ly)*im;
+        ey_set=zeros(Lx,Ly)*im;
+        e_diagonala_set=zeros(Lx,Ly)*im;
+        e0_set=zeros(Lx,Ly)*im;
 
-            cx=1;cy=1;
-            ex=hopping_x(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
-            ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
-            e_diagonala=hopping_diagonala(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
-            e0=ob_onsite(CTM_cell,occu,A_cell,AA_cell,cx,cy,ctm_setting);
-            @ignore_derivatives ex_set[cx,cy]=ex;
-            @ignore_derivatives ey_set[cx,cy]=ey;
-            @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
-            @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala') -μ*e0);
+        
+        E_total=0;
+        for cx=1:Lx
+            for cy=1:Ly
+                ex=hopping_x(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+                ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+                e_diagonala=hopping_diagonala(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
+                e0=ob_onsite(CTM_cell,occu,A_cell,AA_cell,cx,cy,ctm_setting);
+                @ignore_derivatives ex_set[cx,cy]=ex;
+                @ignore_derivatives ey_set[cx,cy]=ey;
+                @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
+                @ignore_derivatives e0_set[cx,cy]=e0;
 
-            cx=2;cy=1;
-            ex=hopping_x(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
-            ey=hopping_y(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
-            e_diagonala=hopping_diagonala(CTM_cell,Cdag,C,A_cell,AA_cell,cx,cy,ctm_setting);
-            e0=ob_onsite(CTM_cell,occu,A_cell,AA_cell,cx,cy,ctm_setting);
-            @ignore_derivatives ex_set[cx,cy]=ex;
-            @ignore_derivatives ey_set[cx,cy]=ey;
-            @ignore_derivatives e_diagonala_set[cx,cy]=e_diagonala;
-            @ignore_derivatives e0_set[cx,cy]=e0;
-            E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala') -μ*e0);
+                if mod(cx,2)==1
+                    E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')-t1*(ey+ey')-t2*(e_diagonala+e_diagonala') -μ*e0);
+                else
+                    E_total=E_total+real(t1*(exp(im*ϕ)*ex+exp(-im*ϕ)*ex')+t1*(ey+ey')+t2*(e_diagonala+e_diagonala') -μ*e0);
+                end
             
-                
-            
-            E_total=E_total/(Lx*Ly);
-            return E_total,  ex_set, ey_set, e_diagonala_set, e0_set
-            
+            end
         end
+                
+
+
+        E_total=E_total/(Lx*Ly);
+        return E_total,  ex_set, ey_set, e_diagonala_set, e0_set
+            
+        
     elseif energy_setting.model=="spinful_triangle_lattice"
         if (Lx==2) & (Ly==1) #2x1 cell
             Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
@@ -1670,7 +1669,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
         end
 
-    elseif energy_setting.model in ("Triangle_Hofstadter_Hubbard","Triangle_Hofstadter_spinless")
+    elseif energy_setting.model == "Triangle_Hofstadter_Hubbard"
         @assert mod(Lx,energy_setting.Magnetic_cell)==0;
         Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
 
@@ -2318,6 +2317,42 @@ function get_Hofstadter_spinHall_coefficients(Lx,Ly,parameters,energy_setting)
         end
     end
     parameters_site=Dict([("tx_up_coe_set", tx_up_coe_set),("ty_up_coe_set", ty_up_coe_set), ("t2_up_coe_set",  t2_up_coe_set), ("tx_dn_coe_set", tx_dn_coe_set),("ty_dn_coe_set", ty_dn_coe_set), ("t2_dn_coe_set",  t2_dn_coe_set), ("U_coe_set",  U_coe_set), ("μ_coe_set", μ_coe_set), ("mx_coe_set", mx_coe_set)]);
+    return parameters_site
+end
+
+
+function get_Hofstadter_spinless_coefficients(Lx,Ly,parameters,energy_setting)
+    """change of coordinate 
+    (1,1)  (2,1)
+    (1,2)  (2,2)
+
+    coordinate of C1 tensor: (cx,cy)=(1-1,1-1)
+    defining terms: (px,py)=(1,1)
+    """    
+    @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+    t1=parameters["t1"];
+    t2=parameters["t2"];
+    μ=parameters["μ"];
+    tx_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    ty_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    t2_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    μ_coe_set=Matrix{ComplexF64}(undef,Lx,Ly);
+    
+    phi=2*pi/(energy_setting.Magnetic_cell);
+    for px=1:Lx
+        for py=1:Ly
+
+            #original gauge
+            tx_coe_set[px,py]=t1*im;#(px,py+1) <- (px+1,py+1)
+            ty_coe_set[px,py]=t1*exp(im*(px+1)*pi); #(px+1,py+1) <- (px+1,py)
+            t2_coe_set[px,py]=t2*exp(im*((px+1)*pi)); #(px,py+1) <- (px+1,py)
+
+            #the extra minus sign is to ensure that the edge modes of spin up and spin down are at the same ky
+            #it is equivalent to a gauge transformation c_{x,y}->(-1)^{y}*c_{x,y}
+            μ_coe_set[px,py]=μ;
+        end
+    end
+    parameters_site=Dict([("tx_coe_set", tx_coe_set),("ty_coe_set", ty_coe_set), ("t2_coe_set",  t2_coe_set), ("μ_coe_set", μ_coe_set)]);
     return parameters_site
 end
 

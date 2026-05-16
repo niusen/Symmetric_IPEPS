@@ -951,6 +951,72 @@ function gate_RU_LD_RD_Hofstadter(energy_setting,parameters,dt, space_type,Lx,Ly
 end
 
 
+function gate_RU_LD_RD_Hofstadter_spinless(energy_setting,parameters,dt, space_type,Lx,Ly)
+    @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+    if space_type==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}
+        if energy_setting.model == "Triangle_Hofstadter_spinless"
+            Ident, occu, n_double, Cdag, C=Hamiltonians_spinless_Z2();
+        else
+            error("unknown case")
+        end
+    end
+    
+    parameters_site=@ignore_derivatives get_Hofstadter_spinless_coefficients(Lx,Ly,parameters,energy_setting);
+    tx_coe_set=parameters_site["tx_coe_set"]/2;
+    ty_coe_set=parameters_site["ty_coe_set"]/2;
+    t2_coe_set=parameters_site["t2_coe_set"]/2;
+    μ_coe_set=parameters_site["μ_coe_set"]/6;
+    
+
+    gate_set=Matrix{TensorMap}(undef,Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            ####################
+            @tensor op[:]:=Cdag[1,-1,-3]*C[1,-2,-4];
+            op=permute(op*tx_coe_set[cx,cy],(1,2,),(3,4,));
+            hh=op+op';
+            Id=unitary(space(Cdag,2),space(Cdag,2));
+            @tensor hh_tx[:]:=hh[-1,-2,-4,-5]*Id[-3,-6];
+            ######################
+            @tensor op[:]:=Cdag[1,-1,-3]*C[1,-2,-4];
+            op=permute(op*ty_coe_set[cx,cy]',(1,2,),(3,4,));
+            hh=op+op';
+            Id=unitary(space(Cdag,2),space(C,2));
+            @tensor hh_ty[:]:=hh[-2,-3,-5,-6]*Id[-1,-4];
+            #####################
+            @tensor op[:]:=Cdag[1,-1,-3]*C[1,-2,-4];
+            op=-op;#!!!!!!! somehow this minus sign is required
+            op=op*t2_coe_set[cx,cy];
+            op=permute(op,(1,2,),(3,4,));
+            hh=op+op';
+            Id=unitary(space(Cdag,2),space(Cdag,2));
+            @tensor hh[:]:=hh[-1,-3,-4,-6]*Id[-2,-5];
+            sgate=swap_gate(hh,2,3);
+            @tensor hh_t2[:]:=sgate[-2,-3,1,2]*hh[-1,1,2,-4,3,4]*sgate'[3,4,-5,-6];
+            #################
+            OU_LD=occu;
+            OU_RU=occu;
+            OU_RD=occu;
+            Id_LD=unitary(space(OU_LD,1),space(OU_LD,1));
+            Id_RU=unitary(space(OU_RU,1),space(OU_RU,1));
+            Id_RD=unitary(space(OU_RD,1),space(OU_RD,1));
+            @tensor hh_LD[:]:=OU_LD[-1,-4]*Id_RD[-2,-5]*Id_RU[-3,-6];
+            @tensor hh_RU[:]:=Id_LD[-1,-4]*Id_RD[-2,-5]*OU_RU[-3,-6];
+            @tensor hh_RD[:]:=Id_LD[-1,-4]*OU_RD[-2,-5]*Id_RU[-3,-6];
+            hh_μ=(hh_LD+hh_RU+hh_RD)*μ_coe_set[cx,cy];
+            #################
+            hh=hh_tx+hh_ty+hh_t2-hh_μ;
+            #################
+            hh=permute(hh,(1,2,3,),(4,5,6,));
+            eu,ev=eigh(hh);
+            gate=ev*exp(-dt*eu)*ev';
+            gate_set[cx,cy]=gate;
+        end
+    end
+    return gate_set
+end
+
+
 function gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,dt, space_type,Lx,Ly)
     @assert mod(Lx,energy_setting.Magnetic_cell)==0;
     if space_type==GradedSpace{Z2Irrep, Tuple{Int64, Int64}}

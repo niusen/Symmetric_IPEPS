@@ -382,6 +382,8 @@ function itebd_iPESS_no_Hamiltonian(energy_setting, parameters, Bset, Tset, lamb
         gates_ru_ld_rd=gate_RU_LD_RD(energy_setting, parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
         gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
+    elseif energy_setting.model=="Triangle_Hofstadter_spinless"
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinless(energy_setting,parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="Triangle_Hofstadter_Hubbard"
         gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter(energy_setting,parameters,0, typeof(space(Bset[1],1)),Lx,Ly);
     else
@@ -509,6 +511,9 @@ function itebd_iPESS_Hofstadter(energy_setting, parameters, Bset, Tset, lambdase
     elseif energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
         @assert mod(Lx,energy_setting.Magnetic_cell)==0;
         gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
+    elseif energy_setting.model=="Triangle_Hofstadter_spinless"
+        @assert mod(Lx,energy_setting.Magnetic_cell)==0;
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinless(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="standard_triangle_Hubbard"
         gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting, parameters,dt, typeof(space(Bset[1],1)),Lx,Ly);
     elseif energy_setting.model=="spinful_triangle_lattice"

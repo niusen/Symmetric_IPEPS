@@ -1099,6 +1099,8 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
         gates_ru_ld_rd=gate_RU_LD_RD_standard_triangle_Hubbard(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     elseif energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
         gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinHall(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
+    elseif energy_setting.model=="Triangle_Hofstadter_spinless"
+        gates_ru_ld_rd=gate_RU_LD_RD_Hofstadter_spinless(energy_setting,parameters,dt, typeof(space(B_set[1],1)),Lx,Ly);
     end
 
     #gates_ru_ld_rd=gate_RU_LD_RD(parameters,dt, typeof(space(B_set[1],1)),Lx);
@@ -1136,6 +1138,10 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
                 S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
                 println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
             end
+        elseif energy_setting.model=="Triangle_Hofstadter_spinless"
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+            println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:]));flush(stdout);
+            println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
         else
             E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
             println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);

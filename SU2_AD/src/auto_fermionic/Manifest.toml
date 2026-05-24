@@ -1,0 +1,390 @@
+# This file is machine-generated - editing it directly is not advised
+
+julia_version = "1.11.6"
+manifest_format = "2.0"
+project_hash = "53b371df41fb26046ccae1bd3f4025a403b83fdf"
+
+[[deps.Accessors]]
+deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
+git-tree-sha1 = "2eeb2c9bef11013efc6f8f97f32ee59b146b09fb"
+uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
+version = "0.1.44"
+
+    [deps.Accessors.extensions]
+    AxisKeysExt = "AxisKeys"
+    IntervalSetsExt = "IntervalSets"
+    LinearAlgebraExt = "LinearAlgebra"
+    StaticArraysExt = "StaticArrays"
+    StructArraysExt = "StructArrays"
+    TestExt = "Test"
+    UnitfulExt = "Unitful"
+
+    [deps.Accessors.weakdeps]
+    AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
+    IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
+    LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+    StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
+    Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+    Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[[deps.Artifacts]]
+uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+version = "1.11.0"
+
+[[deps.BangBang]]
+deps = ["Accessors", "ConstructionBase", "InitialValues", "LinearAlgebra"]
+git-tree-sha1 = "cceb62468025be98d42a5dc581b163c20896b040"
+uuid = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
+version = "0.4.9"
+
+    [deps.BangBang.extensions]
+    BangBangChainRulesCoreExt = "ChainRulesCore"
+    BangBangDataFramesExt = "DataFrames"
+    BangBangStaticArraysExt = "StaticArrays"
+    BangBangStructArraysExt = "StructArrays"
+    BangBangTablesExt = "Tables"
+    BangBangTypedTablesExt = "TypedTables"
+
+    [deps.BangBang.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+    StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
+    Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
+    TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
+
+[[deps.ChunkSplitters]]
+git-tree-sha1 = "1c52c8e2673edc030191177ff1aee42d25149acb"
+uuid = "ae650224-84b6-46f8-82ea-d812ca08434e"
+version = "3.2.0"
+
+[[deps.CompilerSupportLibraries_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version = "1.1.1+0"
+
+[[deps.CompositionsBase]]
+git-tree-sha1 = "802bb88cd69dfd1509f6670416bd4434015693ad"
+uuid = "a33af91c-f02d-484b-be07-31d278c5ca2b"
+version = "0.1.2"
+weakdeps = ["InverseFunctions"]
+
+    [deps.CompositionsBase.extensions]
+    CompositionsBaseInverseFunctionsExt = "InverseFunctions"
+
+[[deps.ConstructionBase]]
+git-tree-sha1 = "b4b092499347b18a015186eae3042f72267106cb"
+uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
+version = "1.6.0"
+
+    [deps.ConstructionBase.extensions]
+    ConstructionBaseIntervalSetsExt = "IntervalSets"
+    ConstructionBaseLinearAlgebraExt = "LinearAlgebra"
+    ConstructionBaseStaticArraysExt = "StaticArrays"
+
+    [deps.ConstructionBase.weakdeps]
+    IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
+    LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[[deps.Dates]]
+deps = ["Printf"]
+uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+version = "1.11.0"
+
+[[deps.Dictionaries]]
+deps = ["Indexing", "Random", "Serialization"]
+git-tree-sha1 = "a55766a9c8f66cf19ffcdbdb1444e249bb4ace33"
+uuid = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
+version = "0.4.6"
+
+[[deps.HalfIntegers]]
+git-tree-sha1 = "9c3149243abb5bc0bad0431d6c4fcac0f4443c7c"
+uuid = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
+version = "1.6.0"
+
+[[deps.HashArrayMappedTries]]
+git-tree-sha1 = "2eaa69a7cab70a52b9687c8bf950a5a93ec895ae"
+uuid = "076d061b-32b6-4027-95e0-9a2c6f6d7e74"
+version = "0.2.0"
+
+[[deps.Indexing]]
+git-tree-sha1 = "ce1566720fd6b19ff3411404d4b977acd4814f9f"
+uuid = "313cdc1a-70c2-5d6a-ae34-0150d3930a38"
+version = "1.1.1"
+
+[[deps.InitialValues]]
+git-tree-sha1 = "4da0f88e9a39111c2fa3add390ab15f3a44f3ca3"
+uuid = "22cec73e-a1b8-11e9-2c92-598750a2cf9c"
+version = "0.3.1"
+
+[[deps.IntegerMathUtils]]
+git-tree-sha1 = "4c1acff2dc6b6967e7e750633c50bc3b8d83e617"
+uuid = "18e54dd8-cb9d-406c-a71d-865a43cbb235"
+version = "0.1.3"
+
+[[deps.InverseFunctions]]
+git-tree-sha1 = "a779299d77cd080bf77b97535acecd73e1c5e5cb"
+uuid = "3587e190-3f89-42d0-90ee-14403ec27112"
+version = "0.1.17"
+
+    [deps.InverseFunctions.extensions]
+    InverseFunctionsDatesExt = "Dates"
+    InverseFunctionsTestExt = "Test"
+
+    [deps.InverseFunctions.weakdeps]
+    Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+    Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.LRUCache]]
+git-tree-sha1 = "5519b95a490ff5fe629c4a7aa3b3dfc9160498b3"
+uuid = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
+version = "1.6.2"
+weakdeps = ["Serialization"]
+
+    [deps.LRUCache.extensions]
+    SerializationExt = ["Serialization"]
+
+[[deps.Libdl]]
+uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+version = "1.11.0"
+
+[[deps.LinearAlgebra]]
+deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
+uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+version = "1.11.0"
+
+[[deps.Logging]]
+uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+version = "1.11.0"
+
+[[deps.MacroTools]]
+git-tree-sha1 = "1e0228a030642014fe5cfe68c2c0a818f9e3f522"
+uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+version = "0.5.16"
+
+[[deps.MatrixAlgebraKit]]
+deps = ["LinearAlgebra", "PrecompileTools"]
+git-tree-sha1 = "489c8f2691b621830065c54d655b5c80ab6f278f"
+uuid = "6c742aac-3347-4629-af66-fc926824e5e4"
+version = "0.6.7"
+
+    [deps.MatrixAlgebraKit.extensions]
+    MatrixAlgebraKitAMDGPUExt = "AMDGPU"
+    MatrixAlgebraKitCUDAExt = "CUDA"
+    MatrixAlgebraKitChainRulesCoreExt = "ChainRulesCore"
+    MatrixAlgebraKitEnzymeExt = "Enzyme"
+    MatrixAlgebraKitGenericLinearAlgebraExt = "GenericLinearAlgebra"
+    MatrixAlgebraKitGenericSchurExt = "GenericSchur"
+    MatrixAlgebraKitMooncakeExt = "Mooncake"
+
+    [deps.MatrixAlgebraKit.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    GenericLinearAlgebra = "14197337-ba66-59df-a3e3-ca00e7dcff7a"
+    GenericSchur = "c145ed77-6b09-5dd9-b285-bf645a82121e"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+
+[[deps.OhMyThreads]]
+deps = ["BangBang", "ChunkSplitters", "ScopedValues", "StableTasks", "TaskLocalValues"]
+git-tree-sha1 = "b3c63491156b66f60c2cd181ba05bc0b327e5c7d"
+uuid = "67456a42-1dca-4109-a031-0a68de7e3ad5"
+version = "0.8.5"
+
+    [deps.OhMyThreads.extensions]
+    MarkdownExt = "Markdown"
+
+    [deps.OhMyThreads.weakdeps]
+    Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+
+[[deps.OpenBLAS_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
+version = "0.3.27+1"
+
+[[deps.PackageExtensionCompat]]
+git-tree-sha1 = "fb28e33b8a95c4cee25ce296c817d89cc2e53518"
+uuid = "65ce6f38-6b18-4e1d-a461-8949797d7930"
+version = "1.0.2"
+
+    [deps.PackageExtensionCompat.weakdeps]
+    Requires = "ae029012-a4dd-5104-9daa-d747884805df"
+    TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+
+[[deps.PrecompileTools]]
+deps = ["Preferences"]
+git-tree-sha1 = "5aa36f7049a63a1528fe8f7c3f2113413ffd4e1f"
+uuid = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
+version = "1.2.1"
+
+[[deps.Preferences]]
+deps = ["TOML"]
+git-tree-sha1 = "8b770b60760d4451834fe79dd483e318eee709c4"
+uuid = "21216c6a-2e73-6563-6e65-726566657250"
+version = "1.5.2"
+
+[[deps.Primes]]
+deps = ["IntegerMathUtils"]
+git-tree-sha1 = "25cdd1d20cd005b52fc12cb6be3f75faaf59bb9b"
+uuid = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
+version = "0.5.7"
+
+[[deps.Printf]]
+deps = ["Unicode"]
+uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+version = "1.11.0"
+
+[[deps.PtrArrays]]
+git-tree-sha1 = "4fbbafbc6251b883f4d2705356f3641f3652a7fe"
+uuid = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
+version = "1.4.0"
+
+[[deps.Random]]
+deps = ["SHA"]
+uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+version = "1.11.0"
+
+[[deps.RationalRoots]]
+git-tree-sha1 = "e5f5db699187a4810fda9181b34250deeedafd81"
+uuid = "308eb6b3-cc68-5ff3-9e97-c3c4da4fa681"
+version = "0.2.1"
+
+[[deps.SHA]]
+uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+version = "0.7.0"
+
+[[deps.ScopedValues]]
+deps = ["HashArrayMappedTries", "Logging"]
+git-tree-sha1 = "67a144433c4ce877ee6d1ada69a124d6b1ecf7be"
+uuid = "7e506255-f358-4e82-b7e4-beb19740aa63"
+version = "1.6.2"
+
+[[deps.Serialization]]
+uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+version = "1.11.0"
+
+[[deps.StableTasks]]
+git-tree-sha1 = "c4f6610f85cb965bee5bfafa64cbeeda55a4e0b2"
+uuid = "91464d47-22a1-43fe-8b7f-2d57ee82463f"
+version = "0.1.7"
+
+[[deps.Strided]]
+deps = ["LinearAlgebra", "StridedViews", "TupleTools"]
+git-tree-sha1 = "b7476eb9926fd385063fdd8f880f8e831aac9490"
+uuid = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
+version = "2.5.0"
+
+    [deps.Strided.extensions]
+    StridedGPUArraysExt = "GPUArrays"
+
+    [deps.Strided.weakdeps]
+    GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
+
+[[deps.StridedViews]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "0481af1fe93b9141cb5341dfc9e524ae95421a41"
+uuid = "4db3bf67-4bd7-4b4e-b153-31dc3fb37143"
+version = "0.5.1"
+
+    [deps.StridedViews.extensions]
+    StridedViewsAMDGPUExt = "AMDGPU"
+    StridedViewsAdaptExt = "Adapt"
+    StridedViewsCUDACoreExt = "CUDACore"
+    StridedViewsJLArraysExt = "JLArrays"
+    StridedViewsPtrArraysExt = "PtrArrays"
+
+    [deps.StridedViews.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+    Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+    CUDACore = "bd0ed864-bdfe-4181-a5ed-ce625a5fdea2"
+    JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
+    Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+    PtrArrays = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
+
+[[deps.TOML]]
+deps = ["Dates"]
+uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+version = "1.0.3"
+
+[[deps.TaskLocalValues]]
+git-tree-sha1 = "67e469338d9ce74fc578f7db1736a74d93a49eb8"
+uuid = "ed4db957-447d-4319-bfb6-7fa9ae7ecf34"
+version = "0.1.3"
+
+[[deps.TensorKit]]
+deps = ["Dictionaries", "LRUCache", "LinearAlgebra", "MatrixAlgebraKit", "OhMyThreads", "Printf", "Random", "ScopedValues", "Strided", "TensorKitSectors", "TensorOperations", "TupleTools", "VectorInterface"]
+git-tree-sha1 = "b479a85240c4b14cf3f952b31bf3ff798fa404a5"
+uuid = "07d1fe3e-3e46-537d-9eac-e9e13d0d4cec"
+version = "0.16.5"
+
+    [deps.TensorKit.extensions]
+    TensorKitAMDGPUExt = "AMDGPU"
+    TensorKitAdaptExt = "Adapt"
+    TensorKitCUDAExt = ["CUDA", "cuTENSOR"]
+    TensorKitChainRulesCoreExt = "ChainRulesCore"
+    TensorKitFiniteDifferencesExt = "FiniteDifferences"
+    TensorKitMooncakeExt = "Mooncake"
+
+    [deps.TensorKit.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+    Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    cuTENSOR = "011b41b2-24ef-40a8-b3eb-fa098493e9e1"
+
+[[deps.TensorKitSectors]]
+deps = ["HalfIntegers", "LinearAlgebra", "TensorOperations", "WignerSymbols"]
+git-tree-sha1 = "68a4bf39580f8120bfc3a45d93d7766e06fc8311"
+uuid = "13a9c161-d5da-41f0-bcbd-e1a08ae0647f"
+version = "0.3.8"
+
+[[deps.TensorOperations]]
+deps = ["LRUCache", "LinearAlgebra", "PackageExtensionCompat", "PrecompileTools", "Preferences", "PtrArrays", "Strided", "StridedViews", "TupleTools", "VectorInterface"]
+git-tree-sha1 = "3b3b6c21c9a7c7ff66f0854f45301737b7f3d805"
+uuid = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
+version = "5.6.0"
+
+    [deps.TensorOperations.extensions]
+    TensorOperationsBumperExt = "Bumper"
+    TensorOperationsChainRulesCoreExt = "ChainRulesCore"
+    TensorOperationsEnzymeExt = "Enzyme"
+    TensorOperationsMooncakeExt = "Mooncake"
+    TensorOperationscuTENSORExt = "cuTENSOR"
+
+    [deps.TensorOperations.weakdeps]
+    Bumper = "8ce10254-0962-460f-a3d8-1f77fea1446e"
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    cuTENSOR = "011b41b2-24ef-40a8-b3eb-fa098493e9e1"
+
+[[deps.TupleTools]]
+git-tree-sha1 = "41e43b9dc950775eac654b9f845c839cd2f1821e"
+uuid = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
+version = "1.6.0"
+
+[[deps.Unicode]]
+uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+version = "1.11.0"
+
+[[deps.VectorInterface]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "9166406dedd38c111a6574e9814be83d267f8aec"
+uuid = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
+version = "0.5.0"
+
+[[deps.WignerSymbols]]
+deps = ["HalfIntegers", "LRUCache", "Primes", "RationalRoots"]
+git-tree-sha1 = "960e5f708871c1d9a28a7f1dbcaf4e0ee34ee960"
+uuid = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
+version = "2.0.0"
+
+[[deps.libblastrampoline_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version = "5.11.0+0"

@@ -1,0 +1,13 @@
+name = "AutoFermionicPESS"
+uuid = "92302c2f-df0d-4cc5-9b83-6f8f1f6f4a72"
+version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+TensorKit = "07d1fe3e-3e46-537d-9eac-e9e13d0d4cec"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

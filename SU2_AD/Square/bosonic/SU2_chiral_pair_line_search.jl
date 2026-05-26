@@ -19,13 +19,18 @@ include(joinpath(@__DIR__, "..", "..", "src", "bosonic", "Settings.jl"))
 include(joinpath(@__DIR__, "..", "..", "src", "bosonic", "square", "square_chiral_pair_model.jl"))
 include(joinpath(@__DIR__, "..", "..", "src", "bosonic", "line_search_lib.jl"))
 include(joinpath(@__DIR__, "..", "..", "src", "bosonic", "optimkit_lib.jl"))
+include(joinpath(@__DIR__, "..", "..", "src", "bosonic", "stochastic_opt.jl"))
 
 @show Random.seed!(555)
 
 D = 9
 chi = 54
-optimizer = "backtracking" # "backtracking" or "optimkit"
+optimizer = "backtracking" # "backtracking", "optimkit", or "stochastic"
 @show optimizer
+
+stochastic_delta = 1e-3
+stochastic_maxiter = 100
+stochastic_gtol = 1e-5
 
 
 ###########################
@@ -218,6 +223,8 @@ function gdoptimize_chiral_pair(
         s = (-1) * gvec
         dphi_0 = real(dot(s, gvec))
         alpha, fx = linesearch(phi, dphi, phidphi, 1.0, fx, dphi_0)
+        println("accepted backtracking alpha = " * string(alpha))
+        flush(stdout)
 
         x = x + alpha * s
         g!(gvec, x)
@@ -225,6 +232,55 @@ function gdoptimize_chiral_pair(
     end
 
     return fx, x, iter
+end
+
+function stochastic_grad_step_chiral_pair(gvec::Square_iPEPS, delta::Real)
+    return Square_iPEPS(random_tensor_sign(gvec.T) * delta)
+end
+
+function stochastic_optimize_chiral_pair(
+    x0::Square_iPEPS,
+    delta::Real,
+    maxiter::Int,
+    gtol::Real,
+)
+    global chi, D
+    println("stochastic gradient optimization")
+    println("D=" * string(D))
+    println("chi=" * string(chi))
+    println("delta=" * string(delta))
+    flush(stdout)
+
+    x = deepcopy(x0)
+    gvec = similar(x)
+    gnorm = Inf
+    iter = 0
+
+    while iter < maxiter && gnorm > gtol
+        println("\nstochastic iteration " * string(iter))
+        x = normalize_ansatz(x)
+
+        gvec = g!(gvec, x)
+        gnorm = norm(gvec)
+        random_step = stochastic_grad_step_chiral_pair(gvec, delta)
+        x_updated = x - random_step
+
+        println("norm of grad = " * string(gnorm))
+        println("norm of random grad step = " * string(norm(x_updated - x)))
+        flush(stdout)
+
+        E_updated = f(x_updated)
+        if isfinite(E_updated)
+            x = x_updated
+        else
+            println("Reject stochastic step because the trial energy is not finite.")
+            flush(stdout)
+        end
+
+        iter += 1
+    end
+
+    return x
 end
 
 init_complex_tensor = true
@@ -251,6 +307,8 @@ E_history = [10000.0]
 global save_filenm
 save_filenm = if optimizer == "optimkit"
     "OptimKit_SU2_chiral_pair_D" * string(D) * "_chi_" * string(chi) * ".jld2"
+elseif optimizer == "stochastic"
+    "Stochastic_SU2_chiral_pair_D" * string(D) * "_chi_" * string(chi) * ".jld2"
 else
     "SU2_chiral_pair_D" * string(D) * "_chi_" * string(chi) * ".jld2"
 end
@@ -296,7 +354,7 @@ function chiral_pair_cost_fun_optimkit(x::Matrix{Square_iPEPS_immutable})
     )
     E = real(E)
 
-    println("E= " * string(E) *
+    println("  trial energy E= " * string(E) *
             ", E_triangle= " * string(real.(collect(E_triangles))) *
             ", ctm_ite_num= " * string(ite_num) *
             ", ctm_ite_err= " * string(ite_err))
@@ -310,7 +368,8 @@ end
 
 function chiral_pair_costfun_grad_optimkit(x::Matrix{Square_iPEPS_immutable})
     OPTIMKIT_FG_COUNT[] += 1
-    println("\noptimkit iteration $(OPTIMKIT_FG_COUNT[])")
+    println("\nOptimKit fg evaluation $(OPTIMKIT_FG_COUNT[])")
+    println("  This is a cost/gradient evaluation, often a line-search trial; it is not necessarily an accepted optimization step.")
     flush(stdout)
 
     out = Zygote.withgradient(y -> chiral_pair_cost_fun_optimkit(y), x)
@@ -318,7 +377,7 @@ function chiral_pair_costfun_grad_optimkit(x::Matrix{Square_iPEPS_immutable})
     grad = NamedTuple_to_Struc_cell_optimkit(out.grad[1], x)
 
     grad_norm = sqrt(max(my_inner(x, grad, grad), 0.0))
-    println("norm of grad = " * string(grad_norm))
+    println("  trial grad_norm = " * string(grad_norm))
     flush(stdout)
 
     if E < minimum(E_history)
@@ -341,6 +400,7 @@ function chiral_pair_costfun_grad_optimkit(x::Matrix{Square_iPEPS_immutable})
             observables=obs,
         )
 
+        println("  accepted new best energy = " * string(E_save))
         print_chiral_pair_observables(obs)
 
         global starting_time
@@ -348,10 +408,10 @@ function chiral_pair_costfun_grad_optimkit(x::Matrix{Square_iPEPS_immutable})
         elapsed = Dates.canonicalize(
             Dates.CompoundPeriod(Dates.DateTime(now_time) - Dates.DateTime(starting_time))
         )
-        println("Saved best chiral-pair state to " * save_filenm *
+        println("  Saved best chiral-pair state to " * save_filenm *
                 ", ctm_ite_num= " * string(ite_num) *
                 ", ctm_ite_err= " * string(ite_err))
-        println("Time consumed: " * string(elapsed))
+        println("  Time consumed: " * string(elapsed))
         flush(stdout)
     end
 
@@ -379,6 +439,13 @@ elseif optimizer == "optimkit"
     x0 = Matrix{Square_iPEPS_immutable}(undef, 1, 1)
     x0[1, 1] = Square_iPEPS_convert(state_vec)
     x_opt, fx, gx, numfg, grad_history = chiral_pair_optimkit_op(x0)
+elseif optimizer == "stochastic"
+    x_stochastic = stochastic_optimize_chiral_pair(
+        state_vec,
+        stochastic_delta,
+        stochastic_maxiter,
+        stochastic_gtol,
+    )
 else
-    error("Unknown optimizer=" * string(optimizer) * ". Use \"backtracking\" or \"optimkit\".")
+    error("Unknown optimizer=" * string(optimizer) * ". Use \"backtracking\", \"optimkit\", or \"stochastic\".")
 end

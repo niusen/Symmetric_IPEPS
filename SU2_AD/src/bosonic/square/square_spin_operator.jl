@@ -1,3 +1,5 @@
+using LinearAlgebra: I
+
 function Hamiltonians(VV)
     if isa(VV,ComplexSpace)
         # Heisenberg interaction

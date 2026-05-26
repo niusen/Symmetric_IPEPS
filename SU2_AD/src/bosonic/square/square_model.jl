@@ -1,4 +1,3 @@
-using LinearAlgebra
 using TensorKit
 using Zygote:@ignore_derivatives
 

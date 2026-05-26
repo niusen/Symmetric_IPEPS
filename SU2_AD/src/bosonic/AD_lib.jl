@@ -1,3 +1,5 @@
+using LinearAlgebra: diag, norm
+
 function normalize_no_grad(T)
     Norm=norm(T);
     return T/Norm;

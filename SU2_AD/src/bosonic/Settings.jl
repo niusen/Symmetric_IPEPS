@@ -1,4 +1,4 @@
-using LinearAlgebra: diagind
+using LinearAlgebra: diag, diagind, diagm, norm
 
 function Rank(T::TensorMap)
     return length(domain(T))+length(codomain(T))

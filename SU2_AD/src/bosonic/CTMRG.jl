@@ -1,4 +1,4 @@
-using LinearAlgebra: svd,diagm
+using LinearAlgebra: diag, diagm, svd
 
 function build_double_layer(A,operator)
     #display(space(A))

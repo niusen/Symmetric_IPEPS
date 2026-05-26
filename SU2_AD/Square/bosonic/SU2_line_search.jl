@@ -10,17 +10,17 @@ using Dates
 
 cd(@__DIR__)
 
-include("..\\..\\src\\bosonic\\square\\square_spin_operator.jl")
-include("..\\..\\src\\bosonic\\iPEPS_ansatz.jl")
-include("..\\..\\src\\bosonic\\AD_lib.jl")
-include("..\\..\\src\\bosonic\\CTMRG.jl")
-include("..\\..\\src\\bosonic\\square\\square_model.jl")
-include("..\\..\\src\\bosonic\\square\\square_AD_SU2.jl")
-include("..\\..\\src\\bosonic\\Settings.jl")
+include("../../src/bosonic/square/square_spin_operator.jl")
+include("../../src/bosonic/iPEPS_ansatz.jl")
+include("../../src/bosonic/AD_lib.jl")
+include("../../src/bosonic/CTMRG.jl")
+include("../../src/bosonic/square/square_model.jl")
+include("../../src/bosonic/square/square_AD_SU2.jl")
+include("../../src/bosonic/Settings.jl")
 
-include("..\\..\\src\\bosonic\\line_search_lib.jl")
-include("..\\..\\src\\bosonic\\optimkit_lib.jl")
-# include("..\\..\\src\\square_RVB_ansatz.jl")
+include("../../src/bosonic/line_search_lib.jl")
+include("../../src/bosonic/optimkit_lib.jl")
+# include("../../src/square_RVB_ansatz.jl")
 
 
 Random.seed!(555)
@@ -73,9 +73,9 @@ backward_settings.show_ite_grad_norm=false;
 dump(backward_settings);
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="D3.jld2";#"SimpleUpdate_D_6.jld2";#"nothing";
-optim_setting.init_noise=0;
-optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
+optim_setting.init_statenm="Optim_RVB_coefficients_D3_chi_54_-0.9834.jld2";#"D3.jld2";#"nothing";
+optim_setting.init_noise=0.4;
+optim_setting.linesearch_CTM_method="restart"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
 
 energy_setting=Square_Energy_settings();
@@ -140,7 +140,7 @@ state_vec=initial_SU2_state(Vv, optim_setting.init_statenm, optim_setting.init_n
 state_vec=normalize_ansatz(state_vec);
 
 # E0_, grad,CTM_tem=get_grad(state_vec);
-# include("src\\kagome_AD_SU2.jl")
+# include("src/kagome_AD_SU2.jl")
 # E0,grad_=FD(state_vec)
 
 global E_history

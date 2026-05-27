@@ -244,10 +244,10 @@ end
 
 function vison_op(V)
     op=unitary(V,V);
-    Keys=op.data.keys;
-    for cc=1:length(Keys)
-        if mod(Keys[cc].j,1)==1/2
-            op.data.values[cc]=op.data.values[cc]*(-1);
+    for (a,b) in blocks(op)
+        if mod(a.j,1)==1/2
+            M=TensorKit.block(op,a);
+            block(op,a).=-M;
         end
     end
     return op

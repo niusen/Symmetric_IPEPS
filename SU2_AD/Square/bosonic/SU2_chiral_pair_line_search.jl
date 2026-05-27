@@ -25,8 +25,11 @@ include(joinpath(@__DIR__, "..", "..", "src", "bosonic", "stochastic_opt.jl"))
 
 D = 9
 chi = 54
-optimizer = "backtracking" # "backtracking", "optimkit", or "stochastic"
+optimizer = "optimkit" # "backtracking", "optimkit", or "stochastic"
 @show optimizer
+
+optimkit_maxiter = 500
+optimkit_verbosity = 3
 
 stochastic_delta = 1e-3
 stochastic_maxiter = 100
@@ -418,11 +421,11 @@ function chiral_pair_costfun_grad_optimkit(x::Matrix{Square_iPEPS_immutable})
     return E, grad
 end
 
-function chiral_pair_optimkit_op(x)
+function chiral_pair_optimkit_op(x; maxiter::Int=500, verbosity::Int=3)
     x_opt, fx, gx, numfg, grad_history = optimize(
         chiral_pair_costfun_grad_optimkit,
         x,
-        LBFGS(8; verbosity=3);
+        LBFGS(8; maxiter=maxiter, verbosity=verbosity);
         inner=my_inner,
         retract=my_retract,
         scale! = my_scale!,
@@ -438,7 +441,11 @@ if optimizer == "backtracking"
 elseif optimizer == "optimkit"
     x0 = Matrix{Square_iPEPS_immutable}(undef, 1, 1)
     x0[1, 1] = Square_iPEPS_convert(state_vec)
-    x_opt, fx, gx, numfg, grad_history = chiral_pair_optimkit_op(x0)
+    x_opt, fx, gx, numfg, grad_history = chiral_pair_optimkit_op(
+        x0;
+        maxiter=optimkit_maxiter,
+        verbosity=optimkit_verbosity,
+    )
 elseif optimizer == "stochastic"
     x_stochastic = stochastic_optimize_chiral_pair(
         state_vec,

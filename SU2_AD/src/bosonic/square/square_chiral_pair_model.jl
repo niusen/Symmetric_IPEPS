@@ -13,6 +13,7 @@ function chiral_pair_physical_space()
 end
 
 const CHIRAL_PAIR_FUSE_UNITARY_CACHE = Ref{Any}(nothing)
+const CHIRAL_PAIR_VIRTUAL_ISOMETRY_CACHE = Dict{Tuple{Any, Any}, Any}()
 
 function chiral_pair_fuse_unitary()
     if CHIRAL_PAIR_FUSE_UNITARY_CACHE[] === nothing
@@ -20,6 +21,32 @@ function chiral_pair_fuse_unitary()
         CHIRAL_PAIR_FUSE_UNITARY_CACHE[] = unitary(fuse(Vcopy * Vcopy), Vcopy * Vcopy)
     end
     return CHIRAL_PAIR_FUSE_UNITARY_CACHE[]
+end
+
+function chiral_pair_virtual_isometry(Vsmall, Vbig)
+    @assert dim(Vbig) >= dim(Vsmall) "Cannot embed a larger virtual space into a smaller one."
+    key = (Vsmall, Vbig)
+    if !haskey(CHIRAL_PAIR_VIRTUAL_ISOMETRY_CACHE, key)
+        W = isometry(Vbig, Vsmall)
+        @assert norm(W' * W - unitary(Vsmall, Vsmall)) < 1e-12 "Virtual embedding isometry does not satisfy W' * W = I."
+        CHIRAL_PAIR_VIRTUAL_ISOMETRY_CACHE[key] = W
+    end
+    return CHIRAL_PAIR_VIRTUAL_ISOMETRY_CACHE[key]
+end
+
+function embed_chiral_pair_tensor_virtual_space(A, Vbig)
+    Vsmall = space(A, 1)
+    if Vsmall == Vbig
+        return A
+    end
+    @assert space(A, 2) == Vsmall "Only C4-like tensors with equal first two virtual spaces are supported."
+    @assert space(A, 3) == Vsmall' "Expected third virtual leg to be the dual of the first leg."
+    @assert space(A, 4) == Vsmall' "Expected fourth virtual leg to be the dual of the first leg."
+
+    W = chiral_pair_virtual_isometry(Vsmall, Vbig)
+    @tensor A_big[:] := W[-1, 1] * W[-2, 2] * W'[3, -3] * W'[4, -4] *
+        A[1, 2, 3, 4, -5]
+    return A_big
 end
 
 function initial_SU2_chiral_pair_state(
@@ -64,8 +91,14 @@ function initial_SU2_chiral_pair_state(
     @assert haskey(data, "A") "Initial state file must contain tensor `A`."
     A = data["A"]
 
-    @assert space(A, 1) == Vspace "Loaded virtual space does not match requested Vspace."
     @assert space(A, 5) == Vp_pair' "Loaded physical space is not the chiral-pair physical leg Rep[SU2](0=>1, 1=>1)'."
+    if space(A, 1) != Vspace
+        println("Embed loaded chiral-pair virtual space from " * string(space(A, 1)) *
+                " to " * string(Vspace))
+        flush(stdout)
+        A = embed_chiral_pair_tensor_virtual_space(A, Vspace)
+    end
+    @assert space(A, 1) == Vspace "Loaded virtual space does not match requested Vspace after embedding."
 
     if init_noise != 0
         if init_complex_tensor

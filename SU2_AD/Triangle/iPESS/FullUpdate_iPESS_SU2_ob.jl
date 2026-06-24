@@ -6,30 +6,40 @@ using Random
 using Zygote:@ignore_derivatives
 using Dates
 
+@show run_device="cuda:1"; # choose from "cpu", "cuda:0", "cuda:1"
+@show ctm_device=run_device;
+@show full_update_device=run_device;
+@show observable_device=run_device;
+if any(dev -> lowercase(strip(dev)) != "cpu", (run_device, ctm_device, full_update_device, observable_device))
+    using CUDA, cuTENSOR, Adapt
+end
+
 cd(@__DIR__)
 
-include("../../src/tensorkit_compat.jl")
-include("../../src/bosonic/Settings.jl")
-include("../../src/bosonic/Settings_cell.jl")
-include("../../src/bosonic/iPEPS_ansatz.jl")
-include("../../src/bosonic/AD_lib.jl")
-include("../../src/bosonic/line_search_lib.jl")
-include("../../src/bosonic/line_search_lib_cell.jl")
-include("../../src/bosonic/optimkit_lib.jl")
-include("../../src/bosonic/CTMRG.jl")
-include("../../src/fermionic/Fermionic_CTMRG.jl")
-include("../../src/fermionic/Fermionic_CTMRG_unitcell.jl")
-include("../../src/fermionic/square_Hubbard_model_cell.jl")
-include("../../src/fermionic/square_Hubbard_AD_cell.jl")
-include("../../src/fermionic/swap_funs.jl")
-include("../../src/fermionic/fermi_permute.jl")
-include("../../src/fermionic/mpo_mps_funs.jl")
-include("../../src/fermionic/double_layer_funs.jl")
-include("../../src/fermionic/triangle_fiPESS_method.jl")
-include("../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate.jl")
-include("../../src/fermionic/simple_update/fermi_triangle_SimpleUpdate_iPESS.jl")
-include("../../src/fermionic/simple_update/fermi_triangle_FullUpdate_iPESS.jl")
-include("../../src/fermionic/simple_update/Full_Update_lib.jl")
+include("../src/tensorkit_compat.jl")
+include("../src/bosonic/Settings.jl")
+include("../src/bosonic/Settings_cell.jl")
+include("../src/device_utils.jl")
+include("../src/bosonic/iPEPS_ansatz.jl")
+include("../src/bosonic/AD_lib.jl")
+include("../src/bosonic/line_search_lib.jl")
+include("../src/bosonic/line_search_lib_cell.jl")
+include("../src/bosonic/optimkit_lib.jl")
+include("../src/bosonic/CTMRG.jl")
+include("../src/fermionic/Fermionic_CTMRG.jl")
+include("../src/fermionic/Fermionic_CTMRG_unitcell_iPESS.jl")
+include("../src/fermionic/square_Hubbard_model_cell.jl")
+include("../src/fermionic/triangle_Hubbard_model_cell.jl")
+include("../src/fermionic/square_Hubbard_AD_cell.jl")
+include("../src/fermionic/swap_funs.jl")
+include("../src/fermionic/fermi_permute.jl")
+include("../src/fermionic/mpo_mps_funs.jl")
+include("../src/fermionic/double_layer_funs.jl")
+include("../src/fermionic/triangle_fiPESS_method.jl")
+include("../src/fermionic/simple_update/fermi_triangle_SimpleUpdate.jl")
+include("../src/fermionic/simple_update/fermi_triangle_SimpleUpdate_iPESS.jl")
+include("../src/fermionic/simple_update/fermi_triangle_FullUpdate_iPESS.jl")
+include("../src/fermionic/simple_update/Full_Update_lib.jl")
 ###########################
 """
 ABABABAB
@@ -64,6 +74,9 @@ println("pid="*string(pid));
 @show hostnm=gethostname()
 ###########################
 
+ipeps_select_device!(run_device)
+ipeps_set_step_devices!(ctm=ctm_device, full_update=full_update_device, observable=observable_device)
+
 
 function main(D_max,parameters)
 
@@ -97,7 +110,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="SU_iPESS_SU2_csl_D4.jld2";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
+optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -190,16 +203,18 @@ else
 
 end
 
+energy_setting.Lx = Lx;
+energy_setting.Ly = Ly;
+
 # init_complex_tensor=true;
 # state_vec=initial_fiPESS_spinful_SU2(optim_setting.init_statenm, optim_setting.init_noise,init_complex_tensor)
 # state_vec=normalize_ansatz(state_vec);
 
 
 
-A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
-E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=_ipeps_run_ctm_cell(B_set,T_set,chi,init, init_CTM,ENV_ctm_setting,Lx,Ly);
+E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=_ipeps_run_observable(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ENV_ctm_setting, energy_setting);
 println(E_total)
 println(ex_set)
 println(ey_set)

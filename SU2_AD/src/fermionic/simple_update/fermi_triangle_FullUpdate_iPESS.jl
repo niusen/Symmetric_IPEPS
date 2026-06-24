@@ -435,12 +435,12 @@ function build_double_layer_swap_Tm(Ap,A, with_physical)
         # println(space(Ap))
         # println(space(A))
 
-        gate=@ignore_derivatives swap_gate(Ap,2,3); #gate L'U'
+        gate=ipeps_to_storage_like(@ignore_derivatives(swap_gate(Ap,2,3)), A); #gate L'U'
         @tensor Ap[:]:=Ap[-1,1,2]*gate[-2,-3,1,2];  
 
-        gate=@ignore_derivatives parity_gate(Ap,1); #gate D'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,1)), A); #gate D'
         @tensor Ap[:]:=Ap[1,-2,-3]*gate[-1,1];
-        gate=@ignore_derivatives parity_gate(Ap,3); #gate U'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,3)), A); #gate U'
         @tensor Ap[:]:=Ap[-1,-2,1]*gate[-3,1];
 
         
@@ -448,9 +448,9 @@ function build_double_layer_swap_Tm(Ap,A, with_physical)
         Ap=permute(Ap,(1,),(2,3,));
         
 
-        U_L=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 1)), space(Ap, 2) ⊗ space(A, 1));
-        U_D=@ignore_derivatives unitary(fuse(space(Ap, 1) ⊗ space(A, 3)), space(Ap, 1) ⊗ space(A, 3));
-        U_U=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 2)', fuse(space(Ap, 3)' ⊗ space(A, 2)'));
+        U_L=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 2) ⊗ space(A, 1)), space(Ap, 2) ⊗ space(A, 1))), A);
+        U_D=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 1) ⊗ space(A, 3)), space(Ap, 1) ⊗ space(A, 3))), A);
+        U_U=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 3)' ⊗ space(A, 2)', fuse(space(Ap, 3)' ⊗ space(A, 2)'))), A);
 
         @tensor AA_fused[:]:=Ap[5,1,3]*A[2,4,6]*U_L[-1,1,2]*U_D[-2,5,6]*U_U[3,4,-3];
 
@@ -462,12 +462,12 @@ function build_double_layer_swap_Tm(Ap,A, with_physical)
         # println(space(Ap))
         # println(space(A))
 
-        gate=@ignore_derivatives swap_gate(Ap,3,4); #gate L'U'
+        gate=ipeps_to_storage_like(@ignore_derivatives(swap_gate(Ap,3,4)), A); #gate L'U'
         @tensor Ap[:]:=Ap[-1,-2,1,2]*gate[-3,-4,1,2];  
 
-        gate=@ignore_derivatives parity_gate(Ap,2); #gate D'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,2)), A); #gate D'
         @tensor Ap[:]:=Ap[-1,1,-3,-4]*gate[-2,1];
-        gate=@ignore_derivatives parity_gate(Ap,4); #gate U'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,4)), A); #gate U'
         @tensor Ap[:]:=Ap[-1,-2,-3,1]*gate[-4,1];
 
         
@@ -475,17 +475,20 @@ function build_double_layer_swap_Tm(Ap,A, with_physical)
         Ap=permute(Ap,(1,2,),(3,4,));
         
 
-        U_L=@ignore_derivatives unitary(fuse(space(Ap, 3) ⊗ space(A, 1)), space(Ap, 3) ⊗ space(A, 1));
-        U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 4)), space(Ap, 2) ⊗ space(A, 4));
-        U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 2)', fuse(space(Ap, 4)' ⊗ space(A, 2)'));
+        U_L=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 3) ⊗ space(A, 1)), space(Ap, 3) ⊗ space(A, 1))), A);
+        U_D=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 2) ⊗ space(A, 4)), space(Ap, 2) ⊗ space(A, 4))), A);
+        U_U=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 4)' ⊗ space(A, 2)', fuse(space(Ap, 4)' ⊗ space(A, 2)'))), A);
 
         @tensor AA_fused[:]:=Ap[3,6,1,4]*A[2,5,3,7]*U_L[-1,1,2]*U_D[-2,6,7]*U_U[4,5,-3];
     end
 
 
     P_odd_Lp,_=@ignore_derivatives projector_parity(space(U_L',1));
+    P_odd_Lp=ipeps_to_storage_like(P_odd_Lp,U_L);
     P_odd_Up,_=@ignore_derivatives projector_parity(space(U_U',2));
+    P_odd_Up=ipeps_to_storage_like(P_odd_Up,U_U);
     P_odd_U,_=@ignore_derivatives projector_parity(space(U_U',3));
+    P_odd_U=ipeps_to_storage_like(P_odd_U,U_U);
 
     @tensor isom_Lp[:]:=U_L[-1,4,3]*P_odd_Lp'[4,1]*P_odd_Lp[1,2]*U_L'[2,3,-2];
     @tensor isom_U[:]:=U_U[3,4,-1]*P_odd_U'[4,1]*P_odd_U[1,2]*U_U'[-2,3,2];
@@ -498,7 +501,9 @@ function build_double_layer_swap_Tm(Ap,A, with_physical)
 
 
     P_odd_Dp,_=@ignore_derivatives projector_parity(space(U_D',1));
+    P_odd_Dp=ipeps_to_storage_like(P_odd_Dp,U_D);
     P_odd_D,_=@ignore_derivatives projector_parity(space(U_D',2));
+    P_odd_D=ipeps_to_storage_like(P_odd_D,U_D);
     @tensor isom_Dp[:]:=U_D[-1,4,3]*P_odd_Dp'[4,1]*P_odd_Dp[1,2]*U_D'[2,3,-2];
     @tensor isom_Dp_D[:]:=U_D[-1,3,4]*P_odd_Dp'[3,1]*P_odd_Dp[1,5]*P_odd_D'[4,2]*P_odd_D[2,6]*U_D'[5,6,-2];
     @tensor AA_Dp_D[:]:=AA_fused[-1,2,-3]*isom_Dp_D[-2,2];
@@ -531,9 +536,9 @@ function build_double_layer_Noswap_Tm(Ap,A, with_physical)
         Ap=permute(Ap,(1,),(2,3,));
         
 
-        U_L=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 1)), space(Ap, 2) ⊗ space(A, 1));
-        U_D=@ignore_derivatives unitary(fuse(space(Ap, 1) ⊗ space(A, 3)), space(Ap, 1) ⊗ space(A, 3));
-        U_U=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 2)', fuse(space(Ap, 3)' ⊗ space(A, 2)'));
+        U_L=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 2) ⊗ space(A, 1)), space(Ap, 2) ⊗ space(A, 1))), A);
+        U_D=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 1) ⊗ space(A, 3)), space(Ap, 1) ⊗ space(A, 3))), A);
+        U_U=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 3)' ⊗ space(A, 2)', fuse(space(Ap, 3)' ⊗ space(A, 2)'))), A);
 
         @tensor AA_fused[:]:=Ap[5,1,3]*A[2,4,6]*U_L[-1,1,2]*U_D[-2,5,6]*U_U[3,4,-3];
 
@@ -558,9 +563,9 @@ function build_double_layer_Noswap_Tm(Ap,A, with_physical)
         Ap=permute(Ap,(1,2,),(3,4,));
         
 
-        U_L=@ignore_derivatives unitary(fuse(space(Ap, 3) ⊗ space(A, 1)), space(Ap, 3) ⊗ space(A, 1));
-        U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 4)), space(Ap, 2) ⊗ space(A, 4));
-        U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 2)', fuse(space(Ap, 4)' ⊗ space(A, 2)'));
+        U_L=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 3) ⊗ space(A, 1)), space(Ap, 3) ⊗ space(A, 1))), A);
+        U_D=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 2) ⊗ space(A, 4)), space(Ap, 2) ⊗ space(A, 4))), A);
+        U_U=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 4)' ⊗ space(A, 2)', fuse(space(Ap, 4)' ⊗ space(A, 2)'))), A);
 
         @tensor AA_fused[:]:=Ap[3,6,1,4]*A[2,5,3,7]*U_L[-1,1,2]*U_D[-2,6,7]*U_U[4,5,-3];
     end
@@ -602,20 +607,20 @@ function build_double_layer_swap_Bm(Ap,A, with_physical)
         # println(space(A))
 
 
-        gate=@ignore_derivatives swap_gate(Ap,2,3); #gate D'R'
+        gate=ipeps_to_storage_like(@ignore_derivatives(swap_gate(Ap,2,3)), A); #gate D'R'
         @tensor Ap[:]:=Ap[-1,1,2,-4]*gate[-2,-3,1,2];  
-        gate=@ignore_derivatives parity_gate(Ap,4); #gate U'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,4)), A); #gate U'
         @tensor Ap[:]:=Ap[-1,-2,-3,1]*gate[-4,1];
-        gate=@ignore_derivatives parity_gate(Ap,3);  #gate D'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,3)), A);  #gate D'
         @tensor Ap[:]:=Ap[-1,-2,1,-4]*gate[-3,1];
         
         A=permute(A,(1,),(2,3,4,));
         Ap=permute(Ap,(1,2,3,),(4,));
         
     
-        U_D=@ignore_derivatives unitary(fuse(space(Ap, 3) ⊗ space(A, 4)), space(Ap, 3) ⊗ space(A, 4));
-        U_R=@ignore_derivatives unitary(space(Ap, 2)' ⊗ space(A, 3)', fuse(space(Ap, 2)' ⊗ space(A, 3)'));
-        U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 1)', fuse(space(Ap, 4)' ⊗ space(A, 1)'));
+        U_D=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 3) ⊗ space(A, 4)), space(Ap, 3) ⊗ space(A, 4))), A);
+        U_R=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 2)' ⊗ space(A, 3)', fuse(space(Ap, 2)' ⊗ space(A, 3)'))), A);
+        U_U=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 4)' ⊗ space(A, 1)', fuse(space(Ap, 4)' ⊗ space(A, 1)'))), A);
 
 
         @tensor AA_fused[:]:=Ap[3,1,6,4]*A[5,3,2,7]*U_U[4,5,-3]*U_R[1,2,-2]*U_D[-1,6,7];
@@ -625,20 +630,20 @@ function build_double_layer_swap_Bm(Ap,A, with_physical)
         #treat (M,RD) as (U,RD)
         #treat (R'D',M') as (R'D',U')
 
-        gate=@ignore_derivatives swap_gate(Ap,1,2); #gate D'R'
+        gate=ipeps_to_storage_like(@ignore_derivatives(swap_gate(Ap,1,2)), A); #gate D'R'
         @tensor Ap[:]:=Ap[1,2,-3]*gate[-1,-2,1,2];  
-        gate=@ignore_derivatives parity_gate(Ap,3); #gate U'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,3)), A); #gate U'
         @tensor Ap[:]:=Ap[-1,-2,1]*gate[-3,1];
-        gate=@ignore_derivatives parity_gate(Ap,2);  #gate D'
+        gate=ipeps_to_storage_like(@ignore_derivatives(parity_gate(Ap,2)), A);  #gate D'
         @tensor Ap[:]:=Ap[-1,1,-3]*gate[-2,1];
         
         A=permute(A,(1,),(2,3,));
         Ap=permute(Ap,(1,2,),(3,));
         
     
-        U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 3)), space(Ap, 2) ⊗ space(A, 3));
-        U_R=@ignore_derivatives unitary(space(Ap, 1)' ⊗ space(A, 2)', fuse(space(Ap, 1)' ⊗ space(A, 2)'));
-        U_U=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 1)', fuse(space(Ap, 3)' ⊗ space(A, 1)'));
+        U_D=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(Ap, 2) ⊗ space(A, 3)), space(Ap, 2) ⊗ space(A, 3))), A);
+        U_R=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 1)' ⊗ space(A, 2)', fuse(space(Ap, 1)' ⊗ space(A, 2)'))), A);
+        U_U=ipeps_to_storage_like(@ignore_derivatives(unitary(space(Ap, 3)' ⊗ space(A, 1)', fuse(space(Ap, 3)' ⊗ space(A, 1)'))), A);
 
 
         @tensor AA_fused[:]:=Ap[1,6,4]*A[5,2,7]*U_U[4,5,-3]*U_R[1,2,-2]*U_D[-1,6,7];
@@ -650,7 +655,9 @@ function build_double_layer_swap_Bm(Ap,A, with_physical)
 
 
     P_odd_Up,_=@ignore_derivatives projector_parity(space(U_U',2));
+    P_odd_Up=ipeps_to_storage_like(P_odd_Up,U_U);
     P_odd_U,_=@ignore_derivatives projector_parity(space(U_U',3));
+    P_odd_U=ipeps_to_storage_like(P_odd_U,U_U);
 
 
     @tensor isom_U[:]:=U_U[3,4,-1]*P_odd_U'[4,1]*P_odd_U[1,2]*U_U'[-2,3,2];
@@ -661,8 +668,11 @@ function build_double_layer_swap_Bm(Ap,A, with_physical)
 
 
     P_odd_Dp,_=@ignore_derivatives projector_parity(space(U_D',1));
+    P_odd_Dp=ipeps_to_storage_like(P_odd_Dp,U_D);
     P_odd_D,_=@ignore_derivatives projector_parity(space(U_D',2));
+    P_odd_D=ipeps_to_storage_like(P_odd_D,U_D);
     P_odd_R,_=@ignore_derivatives projector_parity(space(U_R',3));
+    P_odd_R=ipeps_to_storage_like(P_odd_R,U_R);
     @tensor isom_Dp[:]:=U_D[-1,4,3]*P_odd_Dp'[4,1]*P_odd_Dp[1,2]*U_D'[2,3,-2];
     @tensor isom_R[:]:=U_R[3,4,-1]*P_odd_R'[4,1]*P_odd_R[1,2]*U_R'[-2,3,2];
     @tensor isom_Dp_D[:]:=U_D[-1,3,4]*P_odd_Dp'[3,1]*P_odd_Dp[1,5]*P_odd_D'[4,2]*P_odd_D[2,6]*U_D'[5,6,-2];
@@ -708,7 +718,7 @@ function build_triangle_from_4tensors(T,B1_keep,B2_keep,B3_keep)
     @tensor B1_B2_T_B3[:]:=B1_B2_T[-1,-2,-3,-4,1]*B3_keep[1,-5,-6];#(new1, d1, new2, d2, M3), (M3, d3, new3) => (new1, d1, new2, d2, d3, new3)
     B1_B2_T_B3=permute_neighbour_ind(B1_B2_T_B3,2,3,6);# new1, new2, d1, d2, d3, new3
 
-    Up=unitary(fuse(space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5)), space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5));
+    Up=ipeps_to_storage_like(unitary(fuse(space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5)), space(B1_B2_T_B3,3)*space(B1_B2_T_B3,4)*space(B1_B2_T_B3,5)), B1_B2_T_B3);
     global Up
     @tensor B1_B2_T_B3[:]:=B1_B2_T_B3[-1,-2,1,2,3,-4]*Up[-3,1,2,3];# new1, new2, d123, new3
 
@@ -942,17 +952,17 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
 
         BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));# storage order: L', D', U',       L, D, U
         #the fowllowing swap gates are taken from  function "build_double_layer_swap_Tm"
-        gate=swap_gate(BigTriangle_double_env_expand,1,3);#L'U'
+        gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,1,3), BigTriangle_double_env_expand);#L'U'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,2,-4,-5,-6]*gate[-1,-3,1,2];
-        gate=swap_gate(BigTriangle_double_env_expand,1,6);#L'U
+        gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,1,6), BigTriangle_double_env_expand);#L'U
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,-3,-4,-5,2]*gate[-1,-6,1,2];
-        gate=swap_gate(BigTriangle_double_env_expand,3,6);#U'U
+        gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,3,6), BigTriangle_double_env_expand);#U'U
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,2]*gate[-3,-6,1,2];
-        gate=swap_gate(BigTriangle_double_env_expand,2,5);#D'D'
+        gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,2,5), BigTriangle_double_env_expand);#D'D'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,2,-6]*gate[-2,-5,1,2];
-        gate=parity_gate(BigTriangle_double_env_expand,2);#D'
+        gate=ipeps_to_storage_like(parity_gate(BigTriangle_double_env_expand,2), BigTriangle_double_env_expand);#D'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,-5,-6]*gate[-2,1];
-        gate=parity_gate(BigTriangle_double_env_expand,3);#U'
+        gate=ipeps_to_storage_like(parity_gate(BigTriangle_double_env_expand,3), BigTriangle_double_env_expand);#U'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,-6]*gate[-3,1];
 
         BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));
@@ -1082,13 +1092,85 @@ end
 
 
 
+function _ipeps_as_tuple_cell(X, Lx, Ly)
+    X isa Tuple && return X
+    X_tuple=initial_tuple_cell(Lx,Ly);
+    for cx=1:Lx
+        for cy=1:Ly
+            X_tuple=fill_tuple(X_tuple, X[cx,cy], cx,cy);
+        end
+    end
+    return X_tuple
+end
+
+function _ipeps_run_ctm_cell(B_set, T_set, chi, init, CTM0, ENV_ctm_setting, Lx, Ly)
+    B_tuple=_ipeps_as_tuple_cell(B_set,Lx,Ly);
+    T_tuple=_ipeps_as_tuple_cell(T_set,Lx,Ly);
+    B_run=ipeps_to_device(IPESS_CTM_DEVICE[], B_tuple);
+    T_run=ipeps_to_device(IPESS_CTM_DEVICE[], T_tuple);
+    CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(B_run,T_run,chi,init,CTM0,ENV_ctm_setting);
+
+    CTM_cell=ipeps_to_cpu(CTM_cell);
+    double_B_cell=ipeps_to_cpu(double_B_cell);
+    double_T_cell=ipeps_to_cpu(double_T_cell);
+    U_L_cell=ipeps_to_cpu(U_L_cell);
+    U_D_cell=ipeps_to_cpu(U_D_cell);
+    U_R_cell=ipeps_to_cpu(U_R_cell);
+    U_U_cell=ipeps_to_cpu(U_U_cell);
+
+    B_run=nothing;
+    T_run=nothing;
+    ipeps_reclaim_device_memory!(aggressive=true);
+    return CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
+end
+
+function _ipeps_run_triangle_full_update(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
+    B_run=ipeps_to_device(IPESS_FULL_UPDATE_DEVICE[], B_set);
+    T_run=ipeps_to_device(IPESS_FULL_UPDATE_DEVICE[], T_set);
+    CTM_run=ipeps_to_device(IPESS_FULL_UPDATE_DEVICE[], CTM_cell);
+    gate_run=ipeps_to_device(IPESS_FULL_UPDATE_DEVICE[], gate);
+
+    B_run, T_run=triangle_FullUpdate(energy_setting, gate_run, dt,B_run, T_run,CTM_run,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep);
+    B_set=ipeps_to_cpu(B_run);
+    T_set=ipeps_to_cpu(T_run);
+
+    B_run=nothing;
+    T_run=nothing;
+    CTM_run=nothing;
+    gate_run=nothing;
+    ipeps_reclaim_device_memory!(aggressive=true);
+    return B_set, T_set
+end
+
+function _ipeps_run_observable(parameters, B_set, T_set, double_B_cell, double_T_cell, CTM_cell, ENV_ctm_setting, energy_setting)
+    Lx=energy_setting.Lx;
+    Ly=energy_setting.Ly;
+    B_tuple=_ipeps_as_tuple_cell(B_set,Lx,Ly);
+    T_tuple=_ipeps_as_tuple_cell(T_set,Lx,Ly);
+    B_run=ipeps_to_device(IPESS_OBSERVABLE_DEVICE[], B_tuple);
+    T_run=ipeps_to_device(IPESS_OBSERVABLE_DEVICE[], T_tuple);
+    double_B_run=ipeps_to_device(IPESS_OBSERVABLE_DEVICE[], double_B_cell);
+    double_T_run=ipeps_to_device(IPESS_OBSERVABLE_DEVICE[], double_T_cell);
+    CTM_run=ipeps_to_device(IPESS_OBSERVABLE_DEVICE[], CTM_cell);
+
+    obs=evaluate_ob_cell_iPESS(parameters, B_run, T_run, double_B_run, double_T_run, CTM_run, ENV_ctm_setting, energy_setting);
+    obs=ipeps_to_cpu(obs);
+
+    B_run=nothing;
+    T_run=nothing;
+    double_B_run=nothing;
+    double_T_run=nothing;
+    CTM_run=nothing;
+    ipeps_reclaim_device_memory!(aggressive=true);
+    return obs
+end
+
 function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
     println("tau, dt="*string([tau,dt]))
 
     #get initial CTM tensors
-    A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
     init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-    CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
+    CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=_ipeps_run_ctm_cell(B_set,T_set,chi,init, init_CTM,ENV_ctm_setting,Lx,Ly);
     ENV_ctm_setting.CTM_ite_info=false;
 
     if energy_setting.model=="spinful_triangle_lattice" #oldest code
@@ -1118,37 +1200,40 @@ function FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol
                 ca,cb=group[ccc];
                 coord=[ca,cb];
                 gate=gates_ru_ld_rd[ca,cb];
-                B_set, T_set=triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
+                B_set, T_set=_ipeps_run_triangle_full_update(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep)
                 
                 #get CTM tensors for energy and next optimization
-                A_cell_iPEPS=convert_iPESS_to_iPEPS(B_set,T_set);
                 init=initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true);
-                @time CTM_cell, AA_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell(A_cell_iPEPS,chi,init, init_CTM,ENV_ctm_setting);
+                @time CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=_ipeps_run_ctm_cell(B_set,T_set,chi,init, init_CTM,ENV_ctm_setting,Lx,Ly);
                 println("ctm_ite_num= "*string(ite_num)*", "*"ctm_ite_err= "*string(ite_err));flush(stdout);
             end
         end
 
         if energy_setting.model=="Triangle_Hofstadter_Hubbard_spinHall"
-            E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+            E_total,  ex_up_set, ey_up_set, e_diagonala_up_set, ex_dn_set, ey_dn_set, e_diagonala_dn_set, e0_set, eU_set=_ipeps_run_observable(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ENV_ctm_setting, energy_setting);
             println("E= "*string(E_total)*", e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
             println("ex_up_set= "*string(ex_up_set[:])*", "*"ey_up_set= "*string(ey_up_set[:])*", "*"e_diagonala_up_set= "*string(e_diagonala_up_set[:]));flush(stdout);
             println("ex_dn_set= "*string(ex_dn_set[:])*", "*"ey_dn_set= "*string(ey_dn_set[:])*", "*"e_diagonala_dn_set= "*string(e_diagonala_dn_set[:]));flush(stdout);
             println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
-            if isa(space(A_cell_iPEPS[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-                sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting);
+            if isa(space(B_set[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+                B_tuple=_ipeps_as_tuple_cell(B_set,Lx,Ly);
+                T_tuple=_ipeps_as_tuple_cell(T_set,Lx,Ly);
+                sx_set,sy_set,sz_set=evaluate_spin_cell_iPESS(B_tuple,T_tuple, double_B_cell, double_T_cell, CTM_cell, ENV_ctm_setting, energy_setting);
                 S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
                 println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
             end
         elseif energy_setting.model=="Triangle_Hofstadter_spinless"
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set=_ipeps_run_observable(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ENV_ctm_setting, energy_setting);
             println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:]));flush(stdout);
             println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
         else
-            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=evaluate_ob_cell(parameters, A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting, energy_setting);
+            E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set=_ipeps_run_observable(parameters, B_set,T_set, double_B_cell, double_T_cell, CTM_cell, ENV_ctm_setting, energy_setting);
             println("E= "*string(E_total)*", "*"ex_set= "*string(ex_set[:])*", "*"ey_set= "*string(ey_set[:])*", "*"e_diagonala_set= "*string(e_diagonala_set[:])*", "*"e0_set= "*string(e0_set[:])*", "*"eU_set= "*string(eU_set[:]));flush(stdout);
             println("occu="*string(sum(e0_set)/length(e0_set)));flush(stdout);
-            if isa(space(A_cell_iPEPS[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
-                sx_set,sy_set,sz_set=evaluate_spin_cell(A_cell_iPEPS, AA_cell, CTM_cell, ENV_ctm_setting);
+            if isa(space(B_set[1,1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+                B_tuple=_ipeps_as_tuple_cell(B_set,Lx,Ly);
+                T_tuple=_ipeps_as_tuple_cell(T_set,Lx,Ly);
+                sx_set,sy_set,sz_set=evaluate_spin_cell_iPESS(B_tuple,T_tuple, double_B_cell, double_T_cell, CTM_cell, ENV_ctm_setting, energy_setting);
                 S2=sqrt.(sx_set.^2+sy_set.^2+sz_set.^2);
                 println("S2= "*string(abs.(S2))*", sx= "*string(sx_set)*", sy= "*string(sy_set)*", sz= "*string(sz_set));
             end

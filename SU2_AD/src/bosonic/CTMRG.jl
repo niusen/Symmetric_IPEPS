@@ -1039,9 +1039,13 @@ function truncate_block_svd(v_secs,U_set,S_set,V_set,M,chi)
             # @show pos=pos[1];
             # println(size(block(Um,v_secs[cs])))
             # println(size(U_set[cs]))
-            block(Um,blocksectors(Um)[cs]).=U_set[cs];
-            block(Vm,blocksectors(Vm)[cs]).=V_set[cs];
-            block(Sm,blocksectors(Sm)[cs]).=diagm(S_set[cs]);
+            sec=Sector_name[cs];
+            @assert TensorKit.hasblock(Um,sec);
+            @assert TensorKit.hasblock(Vm,sec);
+            @assert TensorKit.hasblock(Sm,sec);
+            block(Um,sec).=U_set[cs];
+            block(Vm,sec).=V_set[cs];
+            block(Sm,sec).=diagm(S_set[cs]);
         end
         return Um,Sm,Vm
     end
@@ -1083,36 +1087,26 @@ function verify_truncate_svd()
         M=TensorMap(randn,V*V,V*V);
         # M=TensorMap(randn,V,V);
 
-
-
         chi=Int(round(dim(V)/2));
-
 
         uM1,sM1,vM1 = tsvd(M; trunc=truncdim(chi));#for new version Pkgs, tsvd backward is much better
 
-
         # println(space(M))
         #N_blocks=length(M.data.values);
-        v_secs=blocksectors((M));
-        N_blocks=length(v_secs);
-        uu_set=Vector{Array}(undef,N_blocks);
-        ss_set=Vector{Array}(undef,N_blocks);
-        vv_set=Vector{Array}(undef,N_blocks);
-        # for ccc =1:N_blocks
-        #     uu,ss,vv = svd(M.data.values[ccc]);
-        #     vv=vv';
-        #     uu_set[ccc]=uu;
-        #     ss_set[ccc]=ss;
-        #     vv_set[ccc]=vv;
-        # end
-        
-        for ccc= 1:N_blocks
-            uu,ss,vv = svd(block(M,v_secs[ccc]));
+        v_secs=Vector{Sector}(undef,0);
+        uu_set=Vector{Array}(undef,0);
+        ss_set=Vector{Array}(undef,0);
+        vv_set=Vector{Array}(undef,0);
+
+        for (sec_name,sec_data) in blocks(M)
+            uu,ss,vv = svd(sec_data);
             vv=vv';
-            uu_set[ccc]=uu;
-            ss_set[ccc]=ss;
-            vv_set[ccc]=vv;
+            push!(v_secs,sec_name);
+            push!(uu_set,uu);
+            push!(ss_set,ss);
+            push!(vv_set,vv);
         end
+
         # println(ss_set)
         uM2,sM2,vM2 = truncate_block_svd(v_secs,uu_set,ss_set,vv_set,M,chi);
         # println(V)
@@ -1123,4 +1117,4 @@ function verify_truncate_svd()
         # @show norm(uM1*sM1*vM1-uM2*sM2*vM2)/norm(M)
     end
 end
-verify_truncate_svd()
+# verify_truncate_svd()

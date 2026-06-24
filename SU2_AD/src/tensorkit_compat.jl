@@ -16,8 +16,12 @@ function TensorKit.permute(
 end
 
 if !isdefined(@__MODULE__, :truncdim)
-    function truncdim(rank::Integer; kwargs...)
-        return TensorKit.truncrank(rank; kwargs...)
+    function truncdim(rank::Integer; multiplet_tol=nothing, kwargs...)
+        if isnothing(multiplet_tol)
+            return TensorKit.truncrank(rank; kwargs...)
+        else
+            return TensorKit.truncmultiplet(rank; multiplet_tol=multiplet_tol, kwargs...)
+        end
     end
 end
 

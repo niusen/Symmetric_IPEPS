@@ -958,6 +958,7 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
         BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));
 
         #eu,ev=eigen(BigTriangle_double_env_expand);
+        BigTriangle_double_env_expand=(BigTriangle_double_env_expand+BigTriangle_double_env_expand')/2;
         eu,ev=eigh(BigTriangle_double_env_expand);
         eu=check_positive(eu);
 

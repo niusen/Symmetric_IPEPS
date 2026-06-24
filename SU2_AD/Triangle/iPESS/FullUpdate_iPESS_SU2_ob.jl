@@ -8,9 +8,7 @@ using Dates
 
 cd(@__DIR__)
 
-
-
-
+include("../../src/tensorkit_compat.jl")
 include("../../src/bosonic/Settings.jl")
 include("../../src/bosonic/Settings_cell.jl")
 include("../../src/bosonic/iPEPS_ansatz.jl")
@@ -242,13 +240,22 @@ n_sweep=10;
 
 
 
-tau=20;
-dt=0.1;
-Bset, Tset=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
+# tau=20;
+# dt=0.1;
+# Bset, Tset=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
 
-tau=2;
-dt=0.05;
-Bset, Tset=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
+# tau=2;
+# dt=0.05;
+# Bset, Tset=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
+
+# tau=4;
+# dt=0.05;
+# B_set, T_set=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
+
+
+tau=4;
+dt=0.02;
+B_set, T_set=FullUpdate_iPESS(tau,dt,B_set, T_set,Lx,Ly, D_max, trun_order, trun_tol, n_sweep, ENV_ctm_setting)
 
 end
 

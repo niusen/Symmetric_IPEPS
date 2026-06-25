@@ -52,13 +52,13 @@ CDCDCDCD
 Random.seed!(1234);
 
 
-D_max=4;
+D_max=14;
 
 t1=1;
 t2=1;
 ϕ=pi/2;
-μ=0;
-U=0;
+μ=-2;
+U=9;
 B=0;
 parameters=Dict([("t1", t1),("t2", t2), ("ϕ", ϕ), ("μ",  μ), ("U",  U), ("B",  B)]);
 
@@ -84,7 +84,7 @@ trun_tol=1e-6;
 
 
 
-chi=40;
+chi=80;
 
 "Unit-cell format:
 ABABAB
@@ -110,7 +110,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="nothing";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
+optim_setting.init_statenm="FU_iPESS_LS_D_12_chi_80_1.0314.jld2";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);
@@ -128,7 +128,6 @@ ENV_ctm_setting.CTM_trun_svd=false;
 ENV_ctm_setting.construct_double_layer=true;
 ENV_ctm_setting.grad_checkpoint=false;
 dump(ENV_ctm_setting);
-
 
 
 energy_setting=Square_Hubbard_Energy_settings();
@@ -157,7 +156,7 @@ Lx=2;
 Ly=2;
 
 
-ENV_ctm_setting.CTM_ite_nums=30;
+
 ##############
 
 

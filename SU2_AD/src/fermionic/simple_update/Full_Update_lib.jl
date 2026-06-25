@@ -1,3 +1,23 @@
+function _ipeps_fu_to_storage_like(x, ref)
+    if isdefined(@__MODULE__, :ipeps_to_storage_like)
+        return ipeps_to_storage_like(x,ref)
+    end
+    if (x isa TensorKit.AbstractTensorMap) && (ref isa TensorKit.AbstractTensorMap)
+        y=x
+        if TensorKit.scalartype(x) !== TensorKit.scalartype(ref)
+            y=similar(x,TensorKit.scalartype(ref))
+            copy!(y,x)
+        end
+        if TensorKit.storagetype(ref) <: Array
+            return y
+        end
+        if isdefined(@__MODULE__, :Adapt)
+            return Adapt.adapt(TensorKit.storagetype(ref).name.wrapper,y)
+        end
+    end
+    return x
+end
+
 function split_3Tesnsors(B1, B2, B3, T, op_LD_RD_RU)
     # """
     #          M1     R1
@@ -75,6 +95,7 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     # gate2=permute(gate2,(2,1,),(3,4,));
     gate3=swap_gate(space(B1_keep,2),space(B2_keep,1));
     gate3=permute(gate3,(2,1,),(3,4,));
+    gate3=_ipeps_fu_to_storage_like(gate3,B1_keep);
     # gate4=swap_gate(space(B1_keep,1),space(B2_keep,1));
     # gate4=permute(gate4,(2,1,),(3,4,));
 
@@ -89,6 +110,7 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     B2_T=permute_neighbour_ind(B2_T,1,2,4);#(D1, new2, d2, M3)
     @tensor B2_T_B3[:]:=B2_T[-1,-2,-3,1]*B3_keep[1,-4,-5];#(D1, new2, d2, M3) (M3, d3, new3) -> (D1, new2, d2, d3, new3)
     UU=unitary(fuse(space(B2_T_B3,3)*space(B2_T_B3,4)), space(B2_T_B3,3)*space(B2_T_B3,4));
+    UU=_ipeps_fu_to_storage_like(UU,B2_T_B3);
     @tensor B2_T_B3[:]:=B2_T_B3[-1,-2,1,2,-4]*UU[-3,1,2];#(D1, new2, d2d3, new3)
 
     @tensor gate3_B2_T_B3[:]:=gate3[-1,-2,-3,1]*B2_T_B3[-4,1,-5,-7];#(new2,d1),(d1,new2)  (D1, new2, d2d3, new3) -> (new2,d1,d1,  D1, d2d3, new3)
@@ -136,12 +158,16 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     #Big_triangle: (new2, new1), (d123, new3)
     gate1=swap_gate(space(B2_keep,2),space(T,2));
     gate1=permute(gate1,(2,1,),(3,4,));
+    gate1=_ipeps_fu_to_storage_like(gate1,T);
     gate2=swap_gate(space(B2_keep,1),space(T,2));
     gate2=permute(gate2,(2,1,),(3,4,));
+    gate2=_ipeps_fu_to_storage_like(gate2,T);
     gate3=swap_gate(space(B1_keep,2),space(B2_keep,1));
     gate3=permute(gate3,(2,1,),(3,4,));
+    gate3=_ipeps_fu_to_storage_like(gate3,B1_keep);
     gate4=swap_gate(space(B1_keep,1),space(B2_keep,1));
     gate4=permute(gate4,(2,1,),(3,4,));
+    gate4=_ipeps_fu_to_storage_like(gate4,B1_keep);
 
 
 
@@ -158,6 +184,7 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     @tensor leftside[:]:=env_bot_gate4_gate3_B1_gate2'[1,-1,2,-2,-3]*env_bot_gate4_gate3_B1_gate2[1,-4,2,-5,-6];#(new_ind, new3, d1, new2, D1) (new_ind, new3, d1, new2, D1) -> (, new3, , new2, D1) (, new3, , new2, D1)
     
     Uu=unitary(fuse(space(gate1_T_B3,5)*space(gate1_T_B3,6)), space(gate1_T_B3,5)*space(gate1_T_B3,6));
+    Uu=_ipeps_fu_to_storage_like(Uu,gate1_T_B3);
     @tensor gate1_T_B3[:]:=gate1_T_B3[-1,-2,-3,-4,1,2]*Uu[-5,1,2];#(D1,d2,d3, new3,   d2, R2), ->(D1,d2,d3, new3,   d2R2)
 
     @tensor double_gate1_T_B3[:]:=gate1_T_B3'[-1,1,2,-2,-3]*gate1_T_B3[-4,1,2,-5,-6];#(D1,d2,d3, new3,   d2R2),  (D1,d2,d3, new3,   d2R2) -> (D1, new3, d2R2,       D1, new3, d2R2)
@@ -174,6 +201,7 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
 
     global Up
     U21=unitary(fuse(space(Big_triangle,1)*space(Big_triangle,2)), space(Big_triangle,1)*space(Big_triangle,2));
+    U21=_ipeps_fu_to_storage_like(U21,Big_triangle);
     @tensor Big_triangle[:]:=Big_triangle[1,2,3,-6]*U21[-1,1,2]*Up'[-3,-4,-5,3];#(new2new1,  d1,d2,d3, new3) 
     @tensor rightside[:]:=gate1_T_B3'[-1,1,2,-2,-3]*Big_triangle[-4,-5,1,2,-6];#(D1,d2,d3, new3,   d2R2),  (new2new1,  d1,d2,d3, new3) -> (D1, new3,   d2R2 | new2new1,  d1, new3)
 
@@ -213,6 +241,7 @@ function partial_triangle_partial_B3(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-6]*Up'[-3,-4,-5,1];#(new2,new1,  d1,d2,d3, new3) 
     
     Id=unitary(space(B3_keep,2),space(B3_keep,2));
+    Id=_ipeps_fu_to_storage_like(Id,B3_keep);
     @tensor leftside[:]:=env_bot_B1_B2_T'[1,-1,2,3,-2]*env_bot_B1_B2_T[1,-3,2,3,-4];#(new_ind, new3, d1, d2, M3), (new_ind, new3, d1, d2, M3) ->(new3, M3,  new3,  M3) 
     @tensor rho[:]:=leftside[-1,-2,-4,-5]*Id[-3,-6];#(new3, M3,d3,    new3,  M3,d3) 
 
@@ -246,12 +275,16 @@ function partial_triangle_partial_T(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_k
     #Big_triangle: (new2, new1), (d123, new3)
     gate1=swap_gate(space(B2_keep,2),space(T,2));
     gate1=permute(gate1,(2,1,),(3,4,));
+    gate1=_ipeps_fu_to_storage_like(gate1,T);
     gate2=swap_gate(space(B2_keep,1),space(T,2));
     gate2=permute(gate2,(2,1,),(3,4,));
+    gate2=_ipeps_fu_to_storage_like(gate2,T);
     gate3=swap_gate(space(B1_keep,2),space(B2_keep,1));
     gate3=permute(gate3,(2,1,),(3,4,));
+    gate3=_ipeps_fu_to_storage_like(gate3,B1_keep);
     gate4=swap_gate(space(B1_keep,1),space(B2_keep,1));
     gate4=permute(gate4,(2,1,),(3,4,));
+    gate4=_ipeps_fu_to_storage_like(gate4,B1_keep);
 
 
 

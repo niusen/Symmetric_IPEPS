@@ -95,7 +95,7 @@ function ipeps_set_step_devices!(; ctm=IPESS_DEVICE_SPEC[], full_update=IPESS_DE
     return nothing
 end
 
-function ipeps_to_storage(storage, t::TensorMap)
+function ipeps_to_storage(storage, t::TensorKit.AbstractTensorMap)
     if storage === Array && TensorKit.storagetype(t) <: Array
         return t
     end
@@ -115,13 +115,13 @@ end
 
 function _ipeps_to_scalartype_like(t::TensorKit.AbstractTensorMap, ref::TensorKit.AbstractTensorMap)
     T = TensorKit.scalartype(ref)
-    TensorKit.scalartype(t) === T && t isa TensorMap && return t
+    TensorKit.scalartype(t) === T && return t
     y = similar(t, T)
     copy!(y, t)
     return y
 end
 
-function ipeps_to_storage_like(x, ref::TensorMap)
+function ipeps_to_storage_like(x, ref::TensorKit.AbstractTensorMap)
     y = x isa TensorKit.AbstractTensorMap ? _ipeps_to_scalartype_like(x, ref) : x
     return ipeps_to_storage(_ipeps_storage_family(TensorKit.storagetype(ref)), y)
 end
@@ -142,7 +142,7 @@ end
 function _ipeps_cpu_tensor_array(xs::AbstractArray)
     for ind in CartesianIndices(xs)
         if isassigned(xs, ind)
-            xs[ind] isa TensorMap || return false
+            xs[ind] isa TensorKit.AbstractTensorMap || return false
             TensorKit.storagetype(xs[ind]) <: Array || return false
         end
     end
@@ -151,9 +151,9 @@ end
 
 function ipeps_to_storage(storage, xs::AbstractArray)
     if storage === Array
-        if !(eltype(xs) <: TensorMap) && eltype(xs) !== Any
+        if !(eltype(xs) <: TensorKit.AbstractTensorMap) && eltype(xs) !== Any
             return Array(xs)
-        elseif eltype(xs) <: TensorMap && _ipeps_cpu_tensor_array(xs)
+        elseif eltype(xs) <: TensorKit.AbstractTensorMap && _ipeps_cpu_tensor_array(xs)
             return xs
         end
     end

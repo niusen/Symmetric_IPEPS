@@ -308,13 +308,23 @@ function delet_zero_block(U,Σ,V)
     end
 end
 
+function _ipeps_su_to_storage_like(x, ref)
+    if isdefined(@__MODULE__, :ipeps_to_storage_like)
+        return ipeps_to_storage_like(x,ref)
+    end
+    return x
+end
 
 function Truncations(uM,sM,vM,bond_dim,trun_tol)  
     sM=truncate_multiplet_origin(sM,bond_dim,1e-5,trun_tol);
+    sM=_ipeps_su_to_storage_like(sM,uM);
 
     #uM_new,sM_new,vM_new=delet_zero_block(uM,sM,vM);
     sM=sM/norm(sM);
     ul,sM_new,vr=tsvd(sM; trunc=truncerr(1e-12));
+    ul=_ipeps_su_to_storage_like(ul,uM);
+    sM_new=_ipeps_su_to_storage_like(sM_new,sM);
+    vr=_ipeps_su_to_storage_like(vr,vM);
     uM_new=uM*ul;
     vM_new=vr*vM;
 
@@ -361,6 +371,7 @@ function evo_hopping_RU_LD_RD(op_LD_RD_RU, A_RU0, A_LD0, A_RD0, Dmax)
         T_LD_RD=permute_neighbour_ind(T_LD_RD,4,5,6);#(virtual_ld, d_ld,   d_rd,R_rd,U_rd,D_rd,)
         T_LD_RD=permute_neighbour_ind(T_LD_RD,5,6,6);#(virtual_ld, d_ld,   d_rd,R_rd,D_rd,U_rd,)
         U_RD=unitary(fuse(space(T_LD_RD,4)*space(T_LD_RD,5)), space(T_LD_RD,4)*space(T_LD_RD,5));
+        U_RD=_ipeps_su_to_storage_like(U_RD,T_LD_RD);
         @tensor T_LD_RD[:]:=T_LD_RD[-1,-2,-3,1,2,-5]*U_RD[-4,1,2];#(virtual_ld, d_ld,   d_rd,R_D_rd,U_rd,)
         T_LD_RD=permute_neighbour_ind(T_LD_RD,3,4,5);#(virtual_ld, d_ld,   R_D_rd,d_rd,U_rd,)
         T_LD_RD=permute_neighbour_ind(T_LD_RD,2,3,5);#(virtual_ld,  R_D_rd, d_ld, d_rd, U_rd,)
@@ -474,6 +485,7 @@ function evo_hopping_LU_RU_LD(op_LD_LU_RU, A_RU0, A_LD0, A_LU0, Dmax)
         T_LU=permute_neighbour_ind(T_LU,4,5,5);#L_lu,U_lu,d_lu,D_lu,R_lu,
         @tensor T_LU_RU[:]:=T_LU[-1,-2,-3,-4,1]*RU_keep[1,-5,-6];#(L_lu,U_lu,d_lu,D_lu,R_lu,     L_ru,d_ru, virtual_ru)
         U_LU=unitary(fuse(space(T_LU_RU,1)*space(T_LU_RU,2)), space(T_LU_RU,1)*space(T_LU_RU,2));
+        U_LU=_ipeps_su_to_storage_like(U_LU,T_LU_RU);
         @tensor T_LU_RU[:]:=T_LU_RU[1,2,-2,-3,-4,-5]*U_LU[-1,1,2];#(L_U_lu, d_lu, D_lu, d_ru, virtual_ru)
         T_LU_RU=permute_neighbour_ind(T_LU_RU,2,3,5);#(L_U_lu, D_lu, d_lu, d_ru, virtual_ru)
         T_LU_RU=permute_neighbour_ind(T_LU_RU,1,2,5);#(D_lu, L_U_lu, d_lu, d_ru, virtual_ru)
@@ -1627,4 +1639,3 @@ function itebd(parameters, Tset, lambdaxset,lambdayset,  tau,dt, Dmax)
     end
     return Tset, lambdaxset,lambdayset
 end
-

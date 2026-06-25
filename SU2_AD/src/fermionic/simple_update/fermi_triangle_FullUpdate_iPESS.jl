@@ -9,10 +9,11 @@ using LinearAlgebra:diag,I,diagm
 
 function check_positive(T::DiagonalTensorMap)
 
-    T_new=deepcopy(T);
+    T_cpu=isdefined(@__MODULE__, :ipeps_to_cpu) ? ipeps_to_cpu(T) : T;
+    T_new=deepcopy(T_cpu);
     #change negative eigenvalue to zero
 
-    mm=T.data;
+    mm=T_cpu.data;
     for cc in eachindex(mm)
         if real(mm[cc])<0
             T_new.data[cc]=0;
@@ -20,9 +21,12 @@ function check_positive(T::DiagonalTensorMap)
     end
  
     #@assert norm(T-T_new)/norm(T_new)<0.01;
-    if norm(T-T_new)/norm(T_new)>0.01
+    if norm(T_cpu-T_new)/norm(T_new)>0.01
         println("warning: positivity error is big:")
-        @show norm(T-T_new)/norm(T_new)
+        @show norm(T_cpu-T_new)/norm(T_new)
+    end
+    if isdefined(@__MODULE__, :ipeps_to_storage_like)
+        return ipeps_to_storage_like(T_new,T)
     end
     return T_new
 end

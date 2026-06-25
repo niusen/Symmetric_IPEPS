@@ -5,6 +5,8 @@ const IPESS_CUDA_DEVICE = Ref{Any}(nothing)
 const IPESS_CTM_DEVICE = Ref{String}("cpu")
 const IPESS_FULL_UPDATE_DEVICE = Ref{String}("cpu")
 const IPESS_OBSERVABLE_DEVICE = Ref{String}("cpu")
+const IPESS_CONTRACT_TRIANGLE_ENV_DEVICE = Ref{String}("full_update")
+const IPESS_MEMORY_INFO = Ref{Bool}(false)
 
 function _ipeps_modcall(mod::Module, fname::Symbol, args...; kwargs...)
     return getfield(mod, fname)(args...; kwargs...)
@@ -86,12 +88,69 @@ function ipeps_use_selected_device!()
     return nothing
 end
 
-function ipeps_set_step_devices!(; ctm=IPESS_DEVICE_SPEC[], full_update=IPESS_DEVICE_SPEC[], observable=IPESS_DEVICE_SPEC[])
+function ipeps_set_step_devices!(; ctm=IPESS_DEVICE_SPEC[], full_update=IPESS_DEVICE_SPEC[],
+    observable=IPESS_DEVICE_SPEC[], contract_triangle_env="full_update")
     IPESS_CTM_DEVICE[] = lowercase(strip(String(ctm)))
     IPESS_FULL_UPDATE_DEVICE[] = lowercase(strip(String(full_update)))
     IPESS_OBSERVABLE_DEVICE[] = lowercase(strip(String(observable)))
+    IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[] = lowercase(strip(String(contract_triangle_env)))
     println("iPEPS step devices: CTM=", IPESS_CTM_DEVICE[], ", full_update=", IPESS_FULL_UPDATE_DEVICE[],
-        ", observable=", IPESS_OBSERVABLE_DEVICE[])
+        ", observable=", IPESS_OBSERVABLE_DEVICE[],
+        ", contract_triangle_env=", IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[])
+    return nothing
+end
+
+function ipeps_set_memory_info!(flag::Bool)
+    IPESS_MEMORY_INFO[] = flag
+    println("iPEPS memory info = ", flag)
+    return nothing
+end
+
+function _ipeps_format_bytes(bytes::Real)
+    bytes < 1024 && return string(bytes, " B")
+    units = ("KiB", "MiB", "GiB", "TiB")
+    value = Float64(bytes)
+    unit = units[1]
+    for u in units
+        value /= 1024
+        unit = u
+        abs(value) < 1024 && break
+    end
+    return string(round(value; digits=3), " ", unit)
+end
+
+function ipeps_tensor_data_bytes(t::TensorKit.AbstractTensorMap)
+    data = getproperty(t, :data)
+    return sizeof(data)
+end
+
+function ipeps_print_tensor_memory(label::AbstractString, t::TensorKit.AbstractTensorMap)
+    bytes = ipeps_tensor_data_bytes(t)
+    println(label, " actual tensor data = ", _ipeps_format_bytes(bytes),
+        " (", bytes, " bytes), storage = ", TensorKit.storagetype(t))
+    return bytes
+end
+
+function ipeps_print_device_memory(label::AbstractString)
+    IPESS_DEVICE_SPEC[] == "cpu" && return nothing
+    if isdefined(@__MODULE__, :CUDA)
+        cuda_mod = getfield(@__MODULE__, :CUDA)
+        println(label)
+        if isdefined(cuda_mod, :memory_status)
+            getfield(cuda_mod, :memory_status)()
+        elseif isdefined(cuda_mod, :pool_status)
+            getfield(cuda_mod, :pool_status)()
+        elseif isdefined(cuda_mod, :available_memory) && isdefined(cuda_mod, :total_memory)
+            free_bytes = getfield(cuda_mod, :available_memory)()
+            total_bytes = getfield(cuda_mod, :total_memory)()
+            used_bytes = total_bytes - free_bytes
+            println("CUDA memory used = ", _ipeps_format_bytes(used_bytes),
+                " / ", _ipeps_format_bytes(total_bytes),
+                ", free = ", _ipeps_format_bytes(free_bytes))
+        else
+            println("CUDA memory status is unavailable in this CUDA.jl version.")
+        end
+    end
     return nothing
 end
 

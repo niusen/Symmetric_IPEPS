@@ -334,7 +334,6 @@ function test_triangle_FullUpdate(dt,B_set, T_set,AA_cell,CTM_cell,Lx,Ly,coord, 
         env_bot=sqrt(eu)*ev';#new_ind,2,3,1
         env_top=ev*sqrt(eu);# 2,3,1, new_ind
 
-    
     # @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,2,3,4,5,6]*U_L'[1,4,-1]*U_D'[2,5,-2]*U_U'[-3,3,6];
     # ov1=@tensor BigTriangle_double_env_expand[1,2,3]*BigTriangle_double_Noswap[1,2,3];
     # ov2=ob_2x2(CTM_cell,AA_cell[c1][c2],AA_cell[mod1(c1+1,Lx)][c2],AA_cell[c1][mod1(c2+1,Ly)],AA_cell[mod1(c1+1,Lx)][mod1(c2+1,Ly)],mod1(c1-1,Lx),mod1(c2-1,Ly));
@@ -697,6 +696,19 @@ function contract_triangle_env(CTM, T_double_LU, T_double_RU, T_double_LD, B_dou
     #chi^2*D^4*d^4
     #D^6*d^6
     global Lx,Ly
+    env_device = isdefined(@__MODULE__, :IPESS_CONTRACT_TRIANGLE_ENV_DEVICE) ? IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[] : "full_update"
+    if env_device == "cpu"
+        CTM=ipeps_to_cpu(CTM);
+        T_double_LU=ipeps_to_cpu(T_double_LU);
+        T_double_RU=ipeps_to_cpu(T_double_RU);
+        T_double_LD=ipeps_to_cpu(T_double_LD);
+        B_double_LU=ipeps_to_cpu(B_double_LU);
+        B_double_RU=ipeps_to_cpu(B_double_RU);
+        B_double_LD=ipeps_to_cpu(B_double_LD);
+        B_double_RD=ipeps_to_cpu(B_double_RD);
+    elseif env_device != "full_update"
+        error("Unknown contract_triangle_env_device=\"$env_device\". Use \"full_update\" or \"cpu\".")
+    end
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
@@ -709,7 +721,21 @@ function contract_triangle_env(CTM, T_double_LU, T_double_RU, T_double_LD, B_dou
 
 
     @tensor LD_LU_RU[:]:=MM_LD[1,2,-1,-2]*MM_LU[1,2,3,4]*MM_RU[3,4,-3,-4];
+    mem_info = isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+    if mem_info
+        ipeps_print_tensor_memory("contract_triangle_env: LD_LU_RU", LD_LU_RU);
+        ipeps_print_device_memory("CUDA memory before BigTriangle contraction:");
+    end
+    MM_LD=nothing;
+    MM_LU=nothing;
+    MM_RU=nothing;
     @tensor BigTriangle[:]:= LD_LU_RU[1,-1,2,-3]*MM_RD[1,-2,2]; # L M U = L D U
+    if mem_info
+        ipeps_print_tensor_memory("contract_triangle_env: BigTriangle", BigTriangle);
+        ipeps_print_device_memory("CUDA memory after BigTriangle contraction:");
+    end
+    LD_LU_RU=nothing;
+    MM_RD=nothing;
     return BigTriangle
 end
 
@@ -750,7 +776,8 @@ end
 function truncation_direct(big_T,D_max, trun_order, trun_tol)
     #big_T: (new2, new1), (d123, new3)
     global Up
-    @tensor big_T[:]:=big_T[-1,-2,1,-6]*Up'[-3,-4,-5,1];# new2, new1, d1,d2,d3, new3
+    Up_run=ipeps_to_storage_like(Up,big_T);
+    @tensor big_T[:]:=big_T[-1,-2,1,-6]*Up_run'[-3,-4,-5,1];# new2, new1, d1,d2,d3, new3
     #big_T=big_T/norm(big_T);
     if trun_order=="simultaneous"
 
@@ -950,6 +977,13 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
     B_double_RD, _ = build_double_layer_swap_Bm(B3_res',B3_res,false);#D R M
     BigTriangle_double_Noswap, U_L,U_D,U_U = build_double_layer_Noswap_Tm(B1_B2_T_B3',B1_B2_T_B3_op, true);#L M U = L D U
     BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));#L M U = L D U
+    U_L=ipeps_to_storage_like(U_L, BigTriangle_double_env);
+    U_D=ipeps_to_storage_like(U_D, BigTriangle_double_env);
+    U_U=ipeps_to_storage_like(U_U, BigTriangle_double_env);
+    B1_B2_T_B3_op=ipeps_to_storage_like(B1_B2_T_B3_op, BigTriangle_double_env);
+    B1_res=ipeps_to_storage_like(B1_res, BigTriangle_double_env);
+    B2_res=ipeps_to_storage_like(B2_res, BigTriangle_double_env);
+    B3_res=ipeps_to_storage_like(B3_res, BigTriangle_double_env);
 
     @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env[1,2,3]*U_L[1,-1,-4]*U_D[2,-2,-5]*U_U[-3,-6,3]; # storage order: L', D', U',   L, D, U,  fermionic order: L',L,U',U,D,D'
     
@@ -981,6 +1015,33 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
         # env_top=ev;# 1,2,3, new_ind
         env_bot=sqrt(eu)*ev';#new_ind,2,3,1
         env_top=ev*sqrt(eu);# 2,3,1, new_ind
+
+        BigTriangle_double_env=nothing;
+        BigTriangle_double_env_expand=nothing;
+        eu=nothing;
+        ev=nothing;
+        T_double_LU=nothing;
+        T_double_RU=nothing;
+        T_double_LD=nothing;
+        B_double_LU=nothing;
+        B_double_RU=nothing;
+        B_double_LD=nothing;
+        B_double_RD=nothing;
+        BigTriangle_double_Noswap=nothing;
+        B1_B2_T_B3=nothing;
+        B1_keep=nothing;
+        B2_keep=nothing;
+        B3_keep=nothing;
+        T_LU=nothing;
+        T_RU=nothing;
+        T_LD=nothing;
+        B_LU=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
+        if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+            ipeps_print_device_memory("CUDA memory before full update sweep:");
+        end
 
     
     # @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,2,3,4,5,6]*U_L'[1,4,-1]*U_D'[2,5,-2]*U_U'[-3,3,6];

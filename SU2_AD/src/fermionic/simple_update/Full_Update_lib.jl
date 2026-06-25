@@ -76,7 +76,8 @@ function split_3Tesnsors(B1, B2, B3, T, op_LD_RD_RU)
     op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,4,5,6);#d2',d3',d1', d1,d2,d3
     op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,2,3,6);#d2',d1',d3', d1,d2,d3
     op_LD_RD_RU=permute_neighbour_ind(op_LD_RD_RU,1,2,6);#d1',d2',d3', d1,d2,d3
-    @tensor op_LD_RD_RU[:]:=Up[-1,1,2,3]*op_LD_RD_RU[1,2,3,4,5,6]*Up'[4,5,6,-2];
+    Up_run=_ipeps_fu_to_storage_like(Up,op_LD_RD_RU);
+    @tensor op_LD_RD_RU[:]:=Up_run[-1,1,2,3]*op_LD_RD_RU[1,2,3,4,5,6]*Up_run'[4,5,6,-2];
 
     @tensor B1_B2_T_B3_op[:]:=B1_B2_T_B3[-1,-2,1,-4]*op_LD_RD_RU[-3,1];# new2, new1, d123, new3
     B1_B2_T_B3_op=permute(B1_B2_T_B3_op,(1,2,),(3,4,));# (new2, new1), (d123, new3)
@@ -131,7 +132,8 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
 
     #right side
     global Up
-    @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-5]*Up'[-3,2,3,1]*UU[-4,2,3];#(new2, new1, d1, d2d3, new3)
+    Up_run=_ipeps_fu_to_storage_like(Up,Big_triangle);
+    @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-5]*Up_run'[-3,2,3,1]*UU[-4,2,3];#(new2, new1, d1, d2d3, new3)
     @tensor gate3_B2_T_B3_Big_triangle[:]:=gate3_B2_T_B3'[-1,1,-2,-3,2,-4]*Big_triangle[-5,-6,1,2,-7];#(new2,d1,d1,  D1, d2d3, new3)     (new2, new1, d1, d2d3, new3) -> (new2, d1,  D1, new3)     (new2, new1, new3)
     #env_bot_new: new_ind,new3,new1,new2
     #env_bot: new_ind,new2,new3,new1
@@ -202,7 +204,8 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     global Up
     U21=unitary(fuse(space(Big_triangle,1)*space(Big_triangle,2)), space(Big_triangle,1)*space(Big_triangle,2));
     U21=_ipeps_fu_to_storage_like(U21,Big_triangle);
-    @tensor Big_triangle[:]:=Big_triangle[1,2,3,-6]*U21[-1,1,2]*Up'[-3,-4,-5,3];#(new2new1,  d1,d2,d3, new3) 
+    Up_run=_ipeps_fu_to_storage_like(Up,Big_triangle);
+    @tensor Big_triangle[:]:=Big_triangle[1,2,3,-6]*U21[-1,1,2]*Up_run'[-3,-4,-5,3];#(new2new1,  d1,d2,d3, new3) 
     @tensor rightside[:]:=gate1_T_B3'[-1,1,2,-2,-3]*Big_triangle[-4,-5,1,2,-6];#(D1,d2,d3, new3,   d2R2),  (new2new1,  d1,d2,d3, new3) -> (D1, new3,   d2R2 | new2new1,  d1, new3)
 
     @tensor env_bot__[:]:=env_bot[-1,1,-3,2]*U21'[1,2,-2];#(new_ind,new2,new3,new1)->(new_ind,new2new1,new3)
@@ -238,7 +241,8 @@ function partial_triangle_partial_B3(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     #env_bot: new_ind,new2,new3,new1
     @tensor env_bot_B1_B2_T[:]:=env_bot[-1,2,-2,1]*B1_B2_T[2,1,-3,-4,-5];#(new_ind,new2,new3,new1), (new2, new1, d1, d2, M3) -> (new_ind, new3, d1, d2, M3)
 
-    @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-6]*Up'[-3,-4,-5,1];#(new2,new1,  d1,d2,d3, new3) 
+    Up_run=_ipeps_fu_to_storage_like(Up,Big_triangle);
+    @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-6]*Up_run'[-3,-4,-5,1];#(new2,new1,  d1,d2,d3, new3) 
     
     Id=unitary(space(B3_keep,2),space(B3_keep,2));
     Id=_ipeps_fu_to_storage_like(Id,B3_keep);
@@ -307,7 +311,8 @@ function partial_triangle_partial_T(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_k
     rho_inv=ev*my_pinv(eu)*ev';
 
     global Up
-    @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-6]*Up'[-3,-4,-5,1];#(new2,new1,  d1,d2,d3, new3) 
+    Up_run=_ipeps_fu_to_storage_like(Up,Big_triangle);
+    @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-6]*Up_run'[-3,-4,-5,1];#(new2,new1,  d1,d2,d3, new3) 
     @tensor env_bot_Big_triangle[:]:=env_bot[-1,2,3,1]*Big_triangle[2,1,-2,-3,-4,3];#(new_ind,new2,new3,new1), (new2,new1,  d1,d2,d3, new3) -> (new_ind,  d1,d2,d3)
     @tensor rightside[:]:=env_bot_new'[1,-1,2,3,-2,-3]*env_bot_Big_triangle[1,2,3,-4];#(new_ind,new3,  d1, d2, R2, D1), (new_ind,  d1,d2,d3) -> (new3, R2, D1, d3)
     @tensor rightside[:]:=rightside[1,-1,-2,2]*B3_keep'[1,-3,2];# (new3, R2, D1, d3),  (new3)(M3, d3) -> R2, D1, M3

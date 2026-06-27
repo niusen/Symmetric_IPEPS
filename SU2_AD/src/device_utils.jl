@@ -6,6 +6,9 @@ const IPESS_CTM_DEVICE = Ref{String}("cpu")
 const IPESS_FULL_UPDATE_DEVICE = Ref{String}("cpu")
 const IPESS_OBSERVABLE_DEVICE = Ref{String}("cpu")
 const IPESS_CONTRACT_TRIANGLE_ENV_DEVICE = Ref{String}("full_update")
+const IPESS_ENV_GAUGE_SVD_DEVICE = Ref{String}("full_update")
+const IPESS_ENV_GAUGE_SVD_DEBUG_BLOCKS = Ref{Bool}(false)
+const IPESS_CONTRACT_TRIANGLE_ENV_PROJECTOR = Ref{Bool}(false)
 const IPESS_MEMORY_INFO = Ref{Bool}(false)
 
 function _ipeps_modcall(mod::Module, fname::Symbol, args...; kwargs...)
@@ -89,20 +92,34 @@ function ipeps_use_selected_device!()
 end
 
 function ipeps_set_step_devices!(; ctm=IPESS_DEVICE_SPEC[], full_update=IPESS_DEVICE_SPEC[],
-    observable=IPESS_DEVICE_SPEC[], contract_triangle_env="full_update")
+    observable=IPESS_DEVICE_SPEC[], contract_triangle_env="full_update", env_gauge_svd="full_update")
     IPESS_CTM_DEVICE[] = lowercase(strip(String(ctm)))
     IPESS_FULL_UPDATE_DEVICE[] = lowercase(strip(String(full_update)))
     IPESS_OBSERVABLE_DEVICE[] = lowercase(strip(String(observable)))
     IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[] = lowercase(strip(String(contract_triangle_env)))
+    IPESS_ENV_GAUGE_SVD_DEVICE[] = lowercase(strip(String(env_gauge_svd)))
     println("iPEPS step devices: CTM=", IPESS_CTM_DEVICE[], ", full_update=", IPESS_FULL_UPDATE_DEVICE[],
         ", observable=", IPESS_OBSERVABLE_DEVICE[],
-        ", contract_triangle_env=", IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[])
+        ", contract_triangle_env=", IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[],
+        ", env_gauge_svd=", IPESS_ENV_GAUGE_SVD_DEVICE[])
     return nothing
 end
 
 function ipeps_set_memory_info!(flag::Bool)
     IPESS_MEMORY_INFO[] = flag
     println("iPEPS memory info = ", flag)
+    return nothing
+end
+
+function ipeps_set_contract_triangle_env_projector!(flag::Bool)
+    IPESS_CONTRACT_TRIANGLE_ENV_PROJECTOR[] = flag
+    println("iPEPS contract_triangle_env projector = ", flag)
+    return nothing
+end
+
+function ipeps_set_env_gauge_svd_debug_blocks!(flag::Bool)
+    IPESS_ENV_GAUGE_SVD_DEBUG_BLOCKS[] = flag
+    println("iPEPS env_gauge_svd block debug = ", flag)
     return nothing
 end
 

@@ -1,4 +1,4 @@
-using LinearAlgebra:diag,I,diagm 
+using LinearAlgebra:diag,I,diagm,svd
 ###########################
 """
 (1,1), (2,1), (3,1)
@@ -712,29 +712,81 @@ function contract_triangle_env(CTM, T_double_LU, T_double_RU, T_double_LD, B_dou
     Cset=CTM.Cset;
     Tset=CTM.Tset;
 
-    @tensor MM_LU[:]:=Cset[mod1(cx-1,Lx)][mod1(cy-1,Ly)].C1[1,2]*Tset[mod1(cx,Lx)][mod1(cy-1,Ly)].T1[2,3,-3]*Tset[mod1(cx-1,Lx)][mod1(cy,Ly)].T4[-1,4,1]*T_double_LU[4,5,3]*B_double_LU[-2,-4,5]; 
-    @tensor MM_RU[:]:=Tset[mod1(cx+1,Lx)][mod1(cy-1,Ly)].T1[-1,3,1]* Cset[mod1(cx+2,Lx)][mod1(cy-1,Ly)].C2[1,2]* T_double_RU[-2,5,3]*B_double_RU[-4,4,5]*Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T2[2,4,-3];
+    mem_info = isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+    use_projector = isdefined(@__MODULE__, :IPESS_CONTRACT_TRIANGLE_ENV_PROJECTOR) && IPESS_CONTRACT_TRIANGLE_ENV_PROJECTOR[]
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    if mem_info
+        ipeps_print_device_memory("CUDA memory before contract_triangle_env MM contractions:");
+    end
 
+    @tensor MM_LU[:]:=Cset[mod1(cx-1,Lx)][mod1(cy-1,Ly)].C1[1,2]*Tset[mod1(cx,Lx)][mod1(cy-1,Ly)].T1[2,3,-3]*Tset[mod1(cx-1,Lx)][mod1(cy,Ly)].T4[-1,4,1]*T_double_LU[4,5,3]*B_double_LU[-2,-4,5];
     @tensor MM_LD[:]:=Tset[mod1(cx-1,Lx)][mod1(cy+1,Ly)].T4[1,3,-1]*T_double_LD[3,5,-2]*B_double_LD[4,-4,5]*Cset[mod1(cx-1,Lx)][mod1(cy+2,Ly)].C4[2,1]*Tset[mod1(cx,Lx)][mod1(cy+2,Ly)].T3[-3,4,2]; 
+    @tensor LD_LU[:]:=MM_LD[1,2,-1,-2]*MM_LU[1,2,-3,-4];
+    if mem_info
+        ipeps_print_tensor_memory("contract_triangle_env: LD_LU", LD_LU);
+    end
+    MM_LD=nothing;
+    MM_LU=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+
+    @tensor MM_RU[:]:=Tset[mod1(cx+1,Lx)][mod1(cy-1,Ly)].T1[-1,3,1]* Cset[mod1(cx+2,Lx)][mod1(cy-1,Ly)].C2[1,2]* T_double_RU[-2,5,3]*B_double_RU[-4,4,5]*Tset[mod1(cx+2,Lx)][mod1(cy,Ly)].T2[2,4,-3];
     @tensor MM_RD[:]:=Tset[mod1(cx+2,Lx)][mod1(cy+1,Ly)].T2[-4,-3,2]*Tset[mod1(cx+1,Lx)][mod1(cy+2,Ly)].T3[1,-2,-1]*Cset[mod1(cx+2,Lx)][mod1(cy+2,Ly)].C3[2,1]; 
     @tensor MM_RD[:]:=MM_RD[-1,1,2,-3]*B_double_RD[1,2,-2]; 
 
+    if use_projector
+        P1_odd_set,P1_even_set=projector_split(space(MM_RD,1));
+        P3_odd_set,P3_even_set=projector_split(space(MM_RD,3));
+        P1_set=map(P -> ipeps_to_storage_like(P,MM_RD), vcat(P1_even_set,P1_odd_set));
+        P3_set=map(P -> ipeps_to_storage_like(P,MM_RD), vcat(P3_even_set,P3_odd_set));
+        if mem_info
+            println("contract_triangle_env: projector split sectors = ", length(P1_set), " x ", length(P3_set));
+            ipeps_print_device_memory("CUDA memory before projector BigTriangle contraction:");
+        end
 
-    @tensor LD_LU_RU[:]:=MM_LD[1,2,-1,-2]*MM_LU[1,2,3,4]*MM_RU[3,4,-3,-4];
-    mem_info = isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
-    if mem_info
-        ipeps_print_tensor_memory("contract_triangle_env: LD_LU_RU", LD_LU_RU);
-        ipeps_print_device_memory("CUDA memory before BigTriangle contraction:");
+        BigTriangle=nothing;
+        for P1 in P1_set
+            for P3 in P3_set
+                @tensor LD_LU_P1[:]:=LD_LU[1,-2,-3,-4]*P1'[1,-1];
+                @tensor RU_P3[:]:=MM_RU[-1,-2,1,-4]*P3'[1,-3];
+                @tensor RD_P1[:]:=P1[-1,1]*MM_RD[1,-2,-3];
+                @tensor RD_part[:]:=RD_P1[-1,-2,1]*P3[-3,1];
+                @tensor LD_part[:]:=LD_LU_P1[-1,-2,1,2]*RU_P3[1,2,-3,-4];
+                @tensor BigTriangle_part[:]:=LD_part[1,-1,2,-3]*RD_part[1,-2,2]; # L M U = L D U
+                BigTriangle = isnothing(BigTriangle) ? BigTriangle_part : BigTriangle + BigTriangle_part;
+                LD_LU_P1=nothing;
+                RU_P3=nothing;
+                RD_P1=nothing;
+                LD_part=nothing;
+                RD_part=nothing;
+                BigTriangle_part=nothing;
+            end
+        end
+        LD_LU=nothing;
+        if mem_info
+            ipeps_print_tensor_memory("contract_triangle_env: BigTriangle", BigTriangle);
+            ipeps_print_device_memory("CUDA memory after projector BigTriangle contraction:");
+        end
+    else
+        @tensor LD_LU_RU[:]:=LD_LU[-1,-2,1,2]*MM_RU[1,2,-3,-4];
+        if mem_info
+            ipeps_print_tensor_memory("contract_triangle_env: LD_LU_RU", LD_LU_RU);
+            ipeps_print_device_memory("CUDA memory before BigTriangle contraction:");
+        end
+        MM_RU=nothing;
+        @tensor BigTriangle[:]:= LD_LU_RU[1,-1,2,-3]*MM_RD[1,-2,2]; # L M U = L D U
+        if mem_info
+            ipeps_print_tensor_memory("contract_triangle_env: BigTriangle", BigTriangle);
+            ipeps_print_device_memory("CUDA memory after BigTriangle contraction:");
+        end
+        LD_LU_RU=nothing;
     end
     MM_LD=nothing;
     MM_LU=nothing;
     MM_RU=nothing;
-    @tensor BigTriangle[:]:= LD_LU_RU[1,-1,2,-3]*MM_RD[1,-2,2]; # L M U = L D U
-    if mem_info
-        ipeps_print_tensor_memory("contract_triangle_env: BigTriangle", BigTriangle);
-        ipeps_print_device_memory("CUDA memory after BigTriangle contraction:");
-    end
-    LD_LU_RU=nothing;
     MM_RD=nothing;
     return BigTriangle
 end
@@ -896,19 +948,90 @@ function truncation_direct(big_T,D_max, trun_order, trun_tol)
     end
 end
 
+function debug_svd_blocks(t, left_inds, right_inds; label="debug_svd_blocks")
+    println(label, ": permute tensor to matrix form, left=", left_inds, ", right=", right_inds);
+    M=permute(t,left_inds,right_inds);
+    ipeps_print_tensor_memory(label * ": matrix TensorMap", M);
+    for (sec,b) in blocks(M)
+        block_bytes = try
+            sizeof(b)
+        catch
+            "unknown"
+        end
+        println(label, ": sector=", sec,
+            ", block size=", size(b),
+            ", storage=", typeof(b),
+            ", bytes=", block_bytes);
+        try
+            finite_ok=all(isfinite,b);
+            println(label, ": sector=", sec, ", all finite=", finite_ok);
+        catch err
+            println(label, ": sector=", sec, ", finite check failed: ", typeof(err), ": ", err);
+        end
+        try
+            F=svd(copy(b));
+            println(label, ": sector=", sec, " svd succeeded, singular values=", length(F.S));
+            F=nothing;
+        catch err
+            println(label, ": sector=", sec, " svd failed");
+            println("  error type: ", typeof(err));
+            println("  error: ", err);
+        end
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
+    end
+    M=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    return nothing
+end
+
+function env_gauge_from_tsvd(t, left_inds, right_inds; safe_gpu=false)
+    tsvd_fun = safe_gpu ? tsvd_safe_gpu : tsvd;
+    u,s,v=tsvd_fun(t,left_inds,right_inds);
+    gauge=s*v;
+    gauge_inv=v'*my_pinv(s);
+    u=nothing; s=nothing; v=nothing;
+    return gauge,gauge_inv
+end
+
 function truncation_Env_gauge(env_top,env_bot, big_T,D_max, trun_order, trun_tol)
     #big_T: (2, 1), (d123, 3)
     #env_bot: new_ind,2,3,1
     #env_top: 2,3,1, new_ind
-    u,s,v=tsvd(env_bot,(1,2,3,),(4,));
-    gauge1=s*v;#11,1
-    gauge1_inv=v'*my_pinv(s);
-    u,s,v=tsvd(env_bot,(1,3,4,),(2,));
-    gauge2=s*v;#2,2
-    gauge2_inv=v'*my_pinv(s);
-    u,s,v=tsvd(env_bot,(1,2,4,),(3,));
-    gauge3=s*v;#33,3
-    gauge3_inv=v'*my_pinv(s);
+    svd_device = isdefined(@__MODULE__, :IPESS_ENV_GAUGE_SVD_DEVICE) ? IPESS_ENV_GAUGE_SVD_DEVICE[] : "full_update";
+    env_bot_svd = svd_device=="cpu" ? ipeps_to_cpu(env_bot) : env_bot;
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        println("truncation_Env_gauge: env_bot svd device = ", svd_device);
+        ipeps_print_tensor_memory("truncation_Env_gauge: env_bot_svd", env_bot_svd);
+    end
+
+    if isdefined(@__MODULE__, :IPESS_ENV_GAUGE_SVD_DEBUG_BLOCKS) && IPESS_ENV_GAUGE_SVD_DEBUG_BLOCKS[]
+        debug_svd_blocks(env_bot,(1,2,3,),(4,); label="truncation_Env_gauge gauge1");
+        debug_svd_blocks(env_bot,(1,3,4,),(2,); label="truncation_Env_gauge gauge2");
+        debug_svd_blocks(env_bot,(1,2,4,),(3,); label="truncation_Env_gauge gauge3");
+    end
+
+    safe_gpu_svd = svd_device!="cpu";
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        println("truncation_Env_gauge: use tsvd_safe_gpu = ", safe_gpu_svd);
+    end
+    gauge1,gauge1_inv=env_gauge_from_tsvd(env_bot_svd,(1,2,3,),(4,); safe_gpu=safe_gpu_svd);#11,1
+    gauge2,gauge2_inv=env_gauge_from_tsvd(env_bot_svd,(1,3,4,),(2,); safe_gpu=safe_gpu_svd);#2,2
+    gauge3,gauge3_inv=env_gauge_from_tsvd(env_bot_svd,(1,2,4,),(3,); safe_gpu=safe_gpu_svd);#33,3
+    env_bot_svd=nothing;
+
+    gauge1=ipeps_to_storage_like(gauge1,big_T);
+    gauge1_inv=ipeps_to_storage_like(gauge1_inv,big_T);
+    gauge2=ipeps_to_storage_like(gauge2,big_T);
+    gauge2_inv=ipeps_to_storage_like(gauge2_inv,big_T);
+    gauge3=ipeps_to_storage_like(gauge3,big_T);
+    gauge3_inv=ipeps_to_storage_like(gauge3_inv,big_T);
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
 
     @tensor big_T_new[:]:=big_T[2,1,-3,3]*gauge1[-2,1]*gauge2[-1,2]*gauge3[-4,3];
     big_T_new=permute(big_T_new,(1,2,),(3,4,));
@@ -976,32 +1099,110 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
     B_double_LD, _ = build_double_layer_swap_Bm(B2_res',B2_res,false);#D R M
     B_double_RD, _ = build_double_layer_swap_Bm(B3_res',B3_res,false);#D R M
     BigTriangle_double_Noswap, U_L,U_D,U_U = build_double_layer_Noswap_Tm(B1_B2_T_B3',B1_B2_T_B3_op, true);#L M U = L D U
+    BigTriangle_double_Noswap=nothing;
+    B1_B2_T_B3=nothing;
+    B1_keep=nothing;
+    B2_keep=nothing;
+    B3_keep=nothing;
+    B1_B2_T_B3_op_cpu=ipeps_to_cpu(B1_B2_T_B3_op);
+    B1_B2_T_B3_op=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    B1_res_cpu=ipeps_to_cpu(B1_res);
+    B1_res=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    B2_res_cpu=ipeps_to_cpu(B2_res);
+    B2_res=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    B3_res_cpu=ipeps_to_cpu(B3_res);
+    B3_res=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
     BigTriangle_double_env=contract_triangle_env(CTM_cell, T_double_LU, T_double_RU, T_double_LD, B_double_LU, B_double_RU, B_double_LD, B_double_RD, mod1(c1,Lx),mod1(c2,Ly));#L M U = L D U
+    CTM_cell=nothing;
+    T_double_LU=nothing;
+    T_double_RU=nothing;
+    T_double_LD=nothing;
+    B_double_LU=nothing;
+    B_double_RU=nothing;
+    B_double_LD=nothing;
+    B_double_RD=nothing;
+    T_LU=nothing;
+    T_RU=nothing;
+    T_LD=nothing;
+    B_LU=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
     U_L=ipeps_to_storage_like(U_L, BigTriangle_double_env);
     U_D=ipeps_to_storage_like(U_D, BigTriangle_double_env);
     U_U=ipeps_to_storage_like(U_U, BigTriangle_double_env);
-    B1_B2_T_B3_op=ipeps_to_storage_like(B1_B2_T_B3_op, BigTriangle_double_env);
-    B1_res=ipeps_to_storage_like(B1_res, BigTriangle_double_env);
-    B2_res=ipeps_to_storage_like(B2_res, BigTriangle_double_env);
-    B3_res=ipeps_to_storage_like(B3_res, BigTriangle_double_env);
+    B1_B2_T_B3_op=ipeps_to_storage_like(B1_B2_T_B3_op_cpu, BigTriangle_double_env);
+    B1_res=ipeps_to_storage_like(B1_res_cpu, BigTriangle_double_env);
+    B2_res=ipeps_to_storage_like(B2_res_cpu, BigTriangle_double_env);
+    B3_res=ipeps_to_storage_like(B3_res_cpu, BigTriangle_double_env);
+    B1_B2_T_B3_op_cpu=nothing;
+    B1_res_cpu=nothing;
+    B2_res_cpu=nothing;
+    B3_res_cpu=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
 
     @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env[1,2,3]*U_L[1,-1,-4]*U_D[2,-2,-5]*U_U[-3,-6,3]; # storage order: L', D', U',   L, D, U,  fermionic order: L',L,U',U,D,D'
+    BigTriangle_double_env=nothing;
+    U_L=nothing;
+    U_D=nothing;
+    U_U=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
     
 
         BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));# storage order: L', D', U',       L, D, U
         #the fowllowing swap gates are taken from  function "build_double_layer_swap_Tm"
         gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,1,3), BigTriangle_double_env_expand);#L'U'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,2,-4,-5,-6]*gate[-1,-3,1,2];
+        gate=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
         gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,1,6), BigTriangle_double_env_expand);#L'U
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[1,-2,-3,-4,-5,2]*gate[-1,-6,1,2];
+        gate=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
         gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,3,6), BigTriangle_double_env_expand);#U'U
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,2]*gate[-3,-6,1,2];
+        gate=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
         gate=ipeps_to_storage_like(swap_gate(BigTriangle_double_env_expand,2,5), BigTriangle_double_env_expand);#D'D'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,2,-6]*gate[-2,-5,1,2];
+        gate=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
         gate=ipeps_to_storage_like(parity_gate(BigTriangle_double_env_expand,2), BigTriangle_double_env_expand);#D'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,1,-3,-4,-5,-6]*gate[-2,1];
+        gate=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
         gate=ipeps_to_storage_like(parity_gate(BigTriangle_double_env_expand,3), BigTriangle_double_env_expand);#U'
         @tensor BigTriangle_double_env_expand[:]:=BigTriangle_double_env_expand[-1,-2,1,-4,-5,-6]*gate[-3,1];
+        gate=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
 
         BigTriangle_double_env_expand=permute(BigTriangle_double_env_expand,(1,2,3,),(4,5,6,));
 
@@ -1020,6 +1221,10 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
         BigTriangle_double_env_expand=nothing;
         eu=nothing;
         ev=nothing;
+        U_L=nothing;
+        U_D=nothing;
+        U_U=nothing;
+        gate=nothing;
         T_double_LU=nothing;
         T_double_RU=nothing;
         T_double_LD=nothing;
@@ -1060,9 +1265,56 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
     ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
     ov=ov12/sqrt(ov11*ov22);
     println("overlap without optimization:"*string(norm(ov)))
+    big_T_compressed=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        ipeps_print_device_memory("CUDA memory before direct sweep optimization:");
+    end
 
     println("overlap with environmen after optimization:");
-    B_new_a,T1_new_a,T2_new_a,T3_new_a,big_T_compressed_opt_a, ov_a=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top,env_bot, B_new,T1_new,T2_new,T3_new)
+    env_top_sweep=ipeps_to_cpu(env_top);
+    env_top=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    B_new_a,T1_new_a,T2_new_a,T3_new_a,big_T_compressed_opt_a, ov_a=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top_sweep,env_bot, B_new,T1_new,T2_new,T3_new)
+    env_top=ipeps_to_storage_like(env_top_sweep,env_bot);
+    env_top_sweep=nothing;
+    big_T_compressed_opt_a=nothing;
+    B_new=nothing;
+    T1_new=nothing;
+    T2_new=nothing;
+    T3_new=nothing;
+    B_new_a_cpu=ipeps_to_cpu(B_new_a);
+    B_new_a=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    B_new_a=B_new_a_cpu;
+    B_new_a_cpu=nothing;
+    T1_new_a_cpu=ipeps_to_cpu(T1_new_a);
+    T1_new_a=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    T1_new_a=T1_new_a_cpu;
+    T1_new_a_cpu=nothing;
+    T2_new_a_cpu=ipeps_to_cpu(T2_new_a);
+    T2_new_a=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    T2_new_a=T2_new_a_cpu;
+    T2_new_a_cpu=nothing;
+    T3_new_a_cpu=ipeps_to_cpu(T3_new_a);
+    T3_new_a=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    T3_new_a=T3_new_a_cpu;
+    T3_new_a_cpu=nothing;
 
 
     ####################################
@@ -1075,26 +1327,75 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
     ov22=get_overlap_env(env_top,env_bot,big_T_compressed',big_T_compressed);
     ov=ov12/sqrt(ov11*ov22);
     println("overlap without optimization:"*string(norm(ov)))
+    big_T_compressed=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        ipeps_print_device_memory("CUDA memory before gauge sweep optimization:");
+    end
     
     # println([ov12,ov11,ov22])
     println("overlap with environmen after optimization:");
-    B_new_b,T1_new_b,T2_new_b,T3_new_b,big_T_compressed_opt_b, ov_b=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top,env_bot, B_new,T1_new,T2_new,T3_new)
+    env_top_sweep=ipeps_to_cpu(env_top);
+    env_top=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    B_new_b,T1_new_b,T2_new_b,T3_new_b,big_T_compressed_opt_b, ov_b=sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top_sweep,env_bot, B_new,T1_new,T2_new,T3_new)
+    env_top_sweep=nothing;
+    big_T_compressed_opt_b=nothing;
+    B_new=nothing;
+    T1_new=nothing;
+    T2_new=nothing;
+    T3_new=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
 
     #########################################
     if ov_a>ov_b 
         println("direct truncation better")
-        B_new_=B_new_a;
-        T1_new_=T1_new_a;
-        T2_new_=T2_new_a;
-        T3_new_=T3_new_a;
-        big_T_compressed_opt_=big_T_compressed_opt_a;
+        B_new_b=nothing;
+        T1_new_b=nothing;
+        T2_new_b=nothing;
+        T3_new_b=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!(aggressive=true);
+        end
+        B_new_=ipeps_to_storage_like(B_new_a,B1_res);
+        T1_new_=ipeps_to_storage_like(T1_new_a,B1_res);
+        T2_new_=ipeps_to_storage_like(T2_new_a,B1_res);
+        T3_new_=ipeps_to_storage_like(T3_new_a,B1_res);
     else
         println("truncation with gauge better")
+        B_new_a=nothing;
+        T1_new_a=nothing;
+        T2_new_a=nothing;
+        T3_new_a=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!(aggressive=true);
+        end
         B_new_=B_new_b;
         T1_new_=T1_new_b;
         T2_new_=T2_new_b;
         T3_new_=T3_new_b;
-        big_T_compressed_opt_=big_T_compressed_opt_b;
+    end
+    B_new_a=nothing;
+    T1_new_a=nothing;
+    T2_new_a=nothing;
+    T3_new_a=nothing;
+    B_new_b=nothing;
+    T1_new_b=nothing;
+    T2_new_b=nothing;
+    T3_new_b=nothing;
+    big_T_compressed_opt_a=nothing;
+    big_T_compressed_opt_b=nothing;
+    B1_B2_T_B3_op=nothing;
+    env_top=nothing;
+    env_bot=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
     end
     # println(space(B_new_))
     # println(space(T1_new_))
@@ -1133,6 +1434,16 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
 
     #B=|R2, D1><M3|
     B_new_opt=B_new_;
+    B_new_=nothing;
+    T1_new_=nothing;
+    T2_new_=nothing;
+    T3_new_=nothing;
+    B1_res=nothing;
+    B2_res=nothing;
+    B3_res=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
 
     @assert (length(codomain(T1_new_opt))==1)&(length(domain(T1_new_opt))==3)
     @assert (length(codomain(T2_new_opt))==1)&(length(domain(T2_new_opt))==3)
@@ -1149,6 +1460,13 @@ function triangle_FullUpdate(energy_setting, gate, dt,B_set, T_set,CTM_cell,Lx,L
     T_set[c1,mod1(c2+1,Ly)]=T2_new_opt;
     T_set[mod1(c1+1,Lx),mod1(c2+1,Ly)]=T3_new_opt;
     B_set[mod1(c1+1,Lx),mod1(c2+1,Ly)]=B_new_opt;
+    T1_new_opt=nothing;
+    T2_new_opt=nothing;
+    T3_new_opt=nothing;
+    B_new_opt=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
 
     return B_set, T_set
 end
@@ -1175,13 +1493,55 @@ function _ipeps_run_ctm_cell(B_set, T_set, chi, init, CTM0, ENV_ctm_setting, Lx,
     T_run=ipeps_to_device(IPESS_CTM_DEVICE[], T_tuple);
     CTM_cell, double_B_cell, double_T_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err=Fermionic_CTMRG_cell_iPESS(B_run,T_run,chi,init,CTM0,ENV_ctm_setting);
 
-    CTM_cell=ipeps_to_cpu(CTM_cell);
-    double_B_cell=ipeps_to_cpu(double_B_cell);
-    double_T_cell=ipeps_to_cpu(double_T_cell);
-    U_L_cell=ipeps_to_cpu(U_L_cell);
-    U_D_cell=ipeps_to_cpu(U_D_cell);
-    U_R_cell=ipeps_to_cpu(U_R_cell);
-    U_U_cell=ipeps_to_cpu(U_U_cell);
+    CTM_cell_cpu=ipeps_to_cpu(CTM_cell);
+    CTM_cell=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    CTM_cell=CTM_cell_cpu;
+    CTM_cell_cpu=nothing;
+    double_B_cell_cpu=ipeps_to_cpu(double_B_cell);
+    double_B_cell=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    double_B_cell=double_B_cell_cpu;
+    double_B_cell_cpu=nothing;
+    double_T_cell_cpu=ipeps_to_cpu(double_T_cell);
+    double_T_cell=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    double_T_cell=double_T_cell_cpu;
+    double_T_cell_cpu=nothing;
+    U_L_cell_cpu=ipeps_to_cpu(U_L_cell);
+    U_L_cell=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    U_L_cell=U_L_cell_cpu;
+    U_L_cell_cpu=nothing;
+    U_D_cell_cpu=ipeps_to_cpu(U_D_cell);
+    U_D_cell=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    U_D_cell=U_D_cell_cpu;
+    U_D_cell_cpu=nothing;
+    U_R_cell_cpu=ipeps_to_cpu(U_R_cell);
+    U_R_cell=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    U_R_cell=U_R_cell_cpu;
+    U_R_cell_cpu=nothing;
+    U_U_cell_cpu=ipeps_to_cpu(U_U_cell);
+    U_U_cell=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    U_U_cell=U_U_cell_cpu;
+    U_U_cell_cpu=nothing;
 
     B_run=nothing;
     T_run=nothing;
@@ -1197,10 +1557,16 @@ function _ipeps_run_triangle_full_update(energy_setting, gate, dt,B_set, T_set,C
 
     B_run, T_run=triangle_FullUpdate(energy_setting, gate_run, dt,B_run, T_run,CTM_run,Lx,Ly,coord, D_max, trun_order, trun_tol, n_sweep);
     B_set=ipeps_to_cpu(B_run);
-    T_set=ipeps_to_cpu(T_run);
-
     B_run=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    T_set=ipeps_to_cpu(T_run);
     T_run=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+
     CTM_run=nothing;
     gate_run=nothing;
     ipeps_reclaim_device_memory!(aggressive=true);
@@ -1219,14 +1585,13 @@ function _ipeps_run_observable(parameters, B_set, T_set, double_B_cell, double_T
     CTM_run=ipeps_to_device(IPESS_OBSERVABLE_DEVICE[], CTM_cell);
 
     obs=evaluate_ob_cell_iPESS(parameters, B_run, T_run, double_B_run, double_T_run, CTM_run, ENV_ctm_setting, energy_setting);
-    obs=ipeps_to_cpu(obs);
-
     B_run=nothing;
     T_run=nothing;
     double_B_run=nothing;
     double_T_run=nothing;
     CTM_run=nothing;
     ipeps_reclaim_device_memory!(aggressive=true);
+    obs=ipeps_to_cpu(obs);
     return obs
 end
 

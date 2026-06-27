@@ -10,7 +10,10 @@ using Dates
 @show ctm_device=run_device;
 @show full_update_device=run_device;
 @show observable_device=run_device;
-@show contract_triangle_env_device="cpu"; # choose from "full_update", "cpu"
+@show contract_triangle_env_device="full_update"; # choose from "full_update", "cpu"
+@show env_gauge_svd_device="full_update"; # choose from "full_update", "cpu"
+@show env_gauge_svd_debug_blocks=false; # debug env-gauge SVD block by block
+@show contract_triangle_env_projector=true; # split two chi bonds by projectors
 @show memory_info=true; # print tensor/GPU memory diagnostics
 if any(dev -> lowercase(strip(dev)) != "cpu", (run_device, ctm_device, full_update_device, observable_device))
     using CUDA, cuTENSOR, Adapt
@@ -82,7 +85,10 @@ ipeps_set_step_devices!(
     full_update=full_update_device,
     observable=observable_device,
     contract_triangle_env=contract_triangle_env_device,
+    env_gauge_svd=env_gauge_svd_device,
 )
+ipeps_set_contract_triangle_env_projector!(contract_triangle_env_projector)
+ipeps_set_env_gauge_svd_debug_blocks!(env_gauge_svd_debug_blocks)
 ipeps_set_memory_info!(memory_info)
 
 
@@ -125,7 +131,7 @@ dump(optim_setting);
 
 ENV_ctm_setting=LS_CTMRG_settings();
 ENV_ctm_setting.CTM_conv_tol=1e-6;
-ENV_ctm_setting.CTM_ite_nums=5;
+ENV_ctm_setting.CTM_ite_nums=3;
 ENV_ctm_setting.CTM_trun_tol=1e-8;
 ENV_ctm_setting.svd_lanczos_tol=1e-8;
 ENV_ctm_setting.projector_strategy="4x4";#"4x4" or "4x2"

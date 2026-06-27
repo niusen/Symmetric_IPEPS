@@ -115,9 +115,23 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     @tensor B2_T_B3[:]:=B2_T_B3[-1,-2,1,2,-4]*UU[-3,1,2];#(D1, new2, d2d3, new3)
 
     @tensor gate3_B2_T_B3[:]:=gate3[-1,-2,-3,1]*B2_T_B3[-4,1,-5,-7];#(new2,d1),(d1,new2)  (D1, new2, d2d3, new3) -> (new2,d1,d1,  D1, d2d3, new3)
+    B2_T=nothing;
+    B2_T_B3=nothing;
+    gate3=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        ipeps_print_tensor_memory("partial_triangle_partial_B1: gate3_B2_T_B3", gate3_B2_T_B3);
+        ipeps_print_device_memory("CUDA memory before partial_triangle_partial_B1 env contraction:");
+    end
 
 
     @tensor env_bot_new_gate3_B2_T_B3[:]:=env_bot_new[-1,1,-2,2]*gate3_B2_T_B3[2,-3,-4,-5,-6,1];#new_ind,new3,new1,new2     (new2,d1,d1,  D1, d2d3, new3) -> new_ind, new1,  d1,d1,  D1, d2d3, 
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        ipeps_print_tensor_memory("partial_triangle_partial_B1: env_bot_new_gate3_B2_T_B3", env_bot_new_gate3_B2_T_B3);
+        ipeps_print_device_memory("CUDA memory after partial_triangle_partial_B1 env contraction:");
+    end
 
     #left side
     @tensor rho[:]:=env_bot_new_gate3_B2_T_B3'[1,-1,2,-2,-3,3]*env_bot_new_gate3_B2_T_B3[1,-4,2,-5,-6,3];#(new_ind,new1,  d1,d1,  D1, d2d3),     (new_ind,new1,  d1,d1,  D1, d2d3) -> (new1,  d1,  D1),     (new1,  d1,  D1)
@@ -128,6 +142,12 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     eu,ev=eigh(rho);
     eu=check_positive(eu);
     rho_inv=ev*my_pinv(eu)*ev';
+    eu=nothing;
+    ev=nothing;
+    env_bot_new_gate3_B2_T_B3=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     
 
     #right side
@@ -135,10 +155,23 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     Up_run=_ipeps_fu_to_storage_like(Up,Big_triangle);
     @tensor Big_triangle[:]:=Big_triangle[-1,-2,1,-5]*Up_run'[-3,2,3,1]*UU[-4,2,3];#(new2, new1, d1, d2d3, new3)
     @tensor gate3_B2_T_B3_Big_triangle[:]:=gate3_B2_T_B3'[-1,1,-2,-3,2,-4]*Big_triangle[-5,-6,1,2,-7];#(new2,d1,d1,  D1, d2d3, new3)     (new2, new1, d1, d2d3, new3) -> (new2, d1,  D1, new3)     (new2, new1, new3)
+    gate3_B2_T_B3=nothing;
+    Big_triangle=nothing;
+    Up_run=nothing;
+    UU=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     #env_bot_new: new_ind,new3,new1,new2
     #env_bot: new_ind,new2,new3,new1
     @tensor env_bot_gate3_B2_T_B3_Big_triangle[:]:=env_bot[-1,2,3,1]*gate3_B2_T_B3_Big_triangle[-2,-3,-4,-5,2,1,3];#(new_ind,new2,new3,new1),  (new2, d1,  D1, new3 | new2, new1, new3) -> (new_ind,  new2, d1,  D1, new3 )
+    gate3_B2_T_B3_Big_triangle=nothing;
     @tensor rightside[:]:=env_bot_new'[4,3,-1,2]*env_bot_gate3_B2_T_B3_Big_triangle[4,2,-2,-3,3];#(new_ind,new3,new1,new2), (new_ind,  new2, d1,  D1, new3 ) -> new1, d1, D1
+    env_bot_new=nothing;
+    env_bot_gate3_B2_T_B3_Big_triangle=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
 
     # norm1=@tensor rho[1,2,3,4,5,6]*B1_keep'[3,1,2]*B1_keep[4,5,6];#(new1,  d1,  D1 | new1,  d1,  D1) (D1 | new1, d1)    (new1, d1 | D1) 
     # norm2=@tensor rightside[1,2,3]*B1_keep'[3,1,2]; #(new1, d1, D1)  (D1 | new1, d1) -
@@ -180,8 +213,15 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
 
     #env_bot: new_ind,new2,new3,new1
     @tensor env_bot_gate4_gate3_B1_gate2[:]:=env_bot[-1,2,-2,1]*gate4_gate3_B1_gate2[2,1,-3,-4,-5];#(new_ind,new2,new3,new1), (new2,new1,d1,  new2, D1) ->(new_ind, new3, d1, new2, D1)
+    gate2=nothing;
+    gate3=nothing;
+    gate4=nothing;
+    gate4_gate3=nothing;
+    gate4_gate3_B1=nothing;
+    gate4_gate3_B1_gate2=nothing;
 
     @tensor gate1_T_B3[:]:=gate1[-1,-2,-5,1]*T[-6,1,2]*B3_keep[2,-3,-4];#(D1,d2,d2,D1) (R2, D1, M3), (M3, d3, new3) -> (D1,d2,d3, new3,   d2, R2)
+    gate1=nothing;
 
     @tensor leftside[:]:=env_bot_gate4_gate3_B1_gate2'[1,-1,2,-2,-3]*env_bot_gate4_gate3_B1_gate2[1,-4,2,-5,-6];#(new_ind, new3, d1, new2, D1) (new_ind, new3, d1, new2, D1) -> (, new3, , new2, D1) (, new3, , new2, D1)
     
@@ -192,6 +232,8 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     @tensor double_gate1_T_B3[:]:=gate1_T_B3'[-1,1,2,-2,-3]*gate1_T_B3[-4,1,2,-5,-6];#(D1,d2,d3, new3,   d2R2),  (D1,d2,d3, new3,   d2R2) -> (D1, new3, d2R2,       D1, new3, d2R2)
     
     @tensor rho[:]:=leftside[2,-1,1, 4,-3,3]*double_gate1_T_B3[1,2,-2, 3,4,-4];#(new3, new2, D1,| new3, new2, D1),  (D1, new3, d2R2, |    D1, new3, d2R2)-> (new2, d2R2,  new2, d2R2)
+    leftside=nothing;
+    double_gate1_T_B3=nothing;
     @tensor rho[:]:=rho[-1,1,-4,2]*Uu[1,-2,-3]*Uu'[-5,-6,2];#(new2, d2,R2,  new2, d2,R2)
 
     rho=permute(rho,(1,2,3,),(4,5,6,));
@@ -200,6 +242,8 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     eu,ev=eigh(rho);
     eu=check_positive(eu);
     rho_inv=ev*my_pinv(eu)*ev';
+    eu=nothing;
+    ev=nothing;
 
     global Up
     U21=unitary(fuse(space(Big_triangle,1)*space(Big_triangle,2)), space(Big_triangle,1)*space(Big_triangle,2));
@@ -207,11 +251,30 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     Up_run=_ipeps_fu_to_storage_like(Up,Big_triangle);
     @tensor Big_triangle[:]:=Big_triangle[1,2,3,-6]*U21[-1,1,2]*Up_run'[-3,-4,-5,3];#(new2new1,  d1,d2,d3, new3) 
     @tensor rightside[:]:=gate1_T_B3'[-1,1,2,-2,-3]*Big_triangle[-4,-5,1,2,-6];#(D1,d2,d3, new3,   d2R2),  (new2new1,  d1,d2,d3, new3) -> (D1, new3,   d2R2 | new2new1,  d1, new3)
+    gate1_T_B3=nothing;
+    Big_triangle=nothing;
 
     @tensor env_bot__[:]:=env_bot[-1,1,-3,2]*U21'[1,2,-2];#(new_ind,new2,new3,new1)->(new_ind,new2new1,new3)
     @tensor rightside2[:]:=env_bot_gate4_gate3_B1_gate2'[1,-1,-2,-3,-4]*env_bot__[1,-5,-6]; #(new_ind, new3, d1, new2, D1), (new_ind,new2new1,new3) -> (, new3, d1, new2, D1,   new2new1,new3) 
+    env_bot_gate4_gate3_B1_gate2=nothing;
+    env_bot__=nothing;
+    U21=nothing;
+    Up_run=nothing;
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        ipeps_print_tensor_memory("partial_triangle_partial_B2: rightside", rightside);
+        ipeps_print_tensor_memory("partial_triangle_partial_B2: rightside2", rightside2);
+        ipeps_print_device_memory("CUDA memory before partial_triangle_partial_B2 rightside contraction:");
+    end
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
 
     @tensor rightside[:]:=rightside[1,2,-1, 3,5,4]*rightside2[2,5,-2,1, 3,4];#(D1, new3,   d2R2 | new2new1,  d1, new3), (new3, d1, new2, D1|   new2new1,new3)  -> d2R2, new2
+    rightside2=nothing;
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        ipeps_print_tensor_memory("partial_triangle_partial_B2: contracted rightside", rightside);
+        ipeps_print_device_memory("CUDA memory after partial_triangle_partial_B2 rightside contraction:");
+    end
     @tensor rightside[:]:=rightside[1,-3]*Uu[1,-1,-2];#d2,R2, new2
     rightside=permute(rightside,(3,1,2,));#new2,d2,R2
 
@@ -340,9 +403,29 @@ function sweep_iteration(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new)
     # jldsave("test1.jld2";B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new)
     ####################################
     T1_left,T1_right,T1_new=partial_triangle_partial_B1(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    T1_left=nothing;
+    T1_right=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     T2_left,T2_right,T2_new=partial_triangle_partial_B2(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    T2_left=nothing;
+    T2_right=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     T3_left,T3_right,T3_new=partial_triangle_partial_B3(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    T3_left=nothing;
+    T3_right=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     B_left,B_right,B_new=partial_triangle_partial_T(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
+    B_left=nothing;
+    B_right=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
 
     #T1_new: (new1, d1),  (D1) 
     #T2_new: (new2, d2),  (R2) 
@@ -355,12 +438,22 @@ function sweep_iteration(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new)
     T2_new=u*sqrt(s);
     B_new=sqrt(s)*v;
     B_new=permute(B_new,(1,2,),(3,));
+    T2_B=nothing;
+    u=nothing; s=nothing; v=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
 
     @tensor B_T3[:]:=B_new[-1,-2,1]*T3_new[1,-3,-4];#(R2,D1,  d3,new3)
     u,s,v=tsvd(permute(B_T3,(1,2,),(3,4,));trunc=truncdim(dim(space(T3_new,1))));
     B_new=u*sqrt(s);
     T3_new=sqrt(s)*v;
     T3_new=permute(T3_new,(1,2,),(3,));
+    B_T3=nothing;
+    u=nothing; s=nothing; v=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
 
     B_new=permute_neighbour_ind(B_new,1,2,3);#(D1, R2, M3)
     @tensor T1_B[:]:=T1_new[-1,-2,1]*B_new[1,-3,-4]; #(new1, d1,  R2, M3)
@@ -369,6 +462,11 @@ function sweep_iteration(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new)
     B_new=sqrt(s)*v;
     B_new=permute_neighbour_ind(B_new,1,2,3);
     B_new=permute(B_new,(1,2,),(3,));
+    T1_B=nothing;
+    u=nothing; s=nothing; v=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
 
 
     return B_new,T1_new,T2_new,T3_new
@@ -379,21 +477,47 @@ end
 function sweep_optimizations(n_sweep,B1_B2_T_B3_op,env_top,env_bot, B_new,T1_new,T2_new,T3_new)
     
     ov_history=zeros(n_sweep);
+    env_top_cpu=isdefined(@__MODULE__, :ipeps_to_cpu) ? ipeps_to_cpu(env_top) : env_top;
+    env_top=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
     for ci=1:n_sweep
         B_new,T1_new,T2_new,T3_new=sweep_iteration(B1_B2_T_B3_op,env_bot, B_new,T1_new,T2_new,T3_new);
         big_T_compressed_opt=build_triangle_from_4tensors(B_new,T1_new,T2_new,T3_new);
 
-        ov12=get_overlap_env(env_top,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
-        ov11=get_overlap_env(env_top,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
-        ov22=get_overlap_env(env_top,env_bot,big_T_compressed_opt',big_T_compressed_opt);
+        env_top_run=_ipeps_fu_to_storage_like(env_top_cpu,env_bot);
+        ov12=get_overlap_env(env_top_run,env_bot,big_T_compressed_opt',B1_B2_T_B3_op);
+        ov11=get_overlap_env(env_top_run,env_bot,B1_B2_T_B3_op',B1_B2_T_B3_op);
+        ov22=get_overlap_env(env_top_run,env_bot,big_T_compressed_opt',big_T_compressed_opt);
         ov=ov12/sqrt(ov11*ov22);
         print(string(norm(ov))*" , ")
         ov_history[ci]=norm(ov);
+        env_top_run=nothing;
+        ov12=nothing;
+        ov11=nothing;
+        ov22=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
+        end
         if ((ci>4)&& (abs(ov_history[ci]/ov_history[ci-1]-1)<1e-7))|(ci==n_sweep);
             print("\n")
-            return B_new,T1_new,T2_new,T3_new,big_T_compressed_opt, norm(ov)
+            big_T_compressed_opt=nothing;
+            env_top_cpu=nothing;
+            if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+                ipeps_reclaim_device_memory!();
+            end
+            return B_new,T1_new,T2_new,T3_new,nothing, norm(ov)
+        end
+        big_T_compressed_opt=nothing;
+        if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
         end
     end
 
+    env_top_cpu=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     
 end

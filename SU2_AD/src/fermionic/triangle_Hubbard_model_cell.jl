@@ -67,8 +67,23 @@ function ob_2x2_iPESS(CTM, AA_LU_::TensorMap, AA_RU_::TensorMap, AA_LD_::TensorM
     MM_RD=build_MM_RD(Cset,Tset,AA_RD_,cx,cy,Lx,Ly);
 
     M1=MM_LU*MM_RU;
+    MM_LU=nothing;
+    MM_RU=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     M2=MM_LD*MM_RD;
+    MM_LD=nothing;
+    MM_RD=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     rho=@tensor M1[1,2,3,4,]*M2[1,2,3,4];
+    M1=nothing;
+    M2=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     return rho
 end
 
@@ -104,6 +119,15 @@ function ob_onsite_iPESS(CTM,O1,B_set,T_set, double_B_set, double_T_set,cx::Int,
     T_LU_double, _ = build_double_layer_swap_Bm(T_LU0',T_LU, true);#D R M
 
     @tensor AA_LU[:]:=B_LU_double[-1,1,-4]*T_LU_double[-2,-3,1];
+    B_LU=nothing;
+    T_LU=nothing;
+    B_LU0=nothing;
+    T_LU0=nothing;
+    B_LU_double=nothing;
+    T_LU_double=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     ##############################
     AA_LU0=get_AA_simple(double_B_set,double_T_set,pos_LU);
     AA_LD0=get_AA_simple(double_B_set,double_T_set,pos_LD);
@@ -111,6 +135,10 @@ function ob_onsite_iPESS(CTM,O1,B_set,T_set, double_B_set, double_T_set,cx::Int,
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
     ob=ob_2x2_iPESS(CTM,AA_LU, AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
+    AA_LU=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
@@ -190,6 +218,25 @@ function hopping_x_iPESS(CTM,O1,O2,string12, B_set,T_set, double_B_set, double_T
     ####################################
     @tensor AA_LU[:]:=B_LU_double[-1,1,-4]*T_LU_double[-2,-3,1];
     @tensor AA_RU[:]:=B_RU_double[-1,1,-4]*T_RU_double[-2,-3,1];
+    B_LU=nothing;
+    T_LU=nothing;
+    B_LU0=nothing;
+    T_LU0=nothing;
+    B_LU_double=nothing;
+    T_LU_double=nothing;
+    B_RU=nothing;
+    T_RU=nothing;
+    B_RU0=nothing;
+    T_RU0=nothing;
+    B_RU_double=nothing;
+    T_RU_double=nothing;
+    gate=nothing;
+    U=nothing;
+    U2=nothing;
+    O_string=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     # return AA_LU,AA_RU
       
 
@@ -199,6 +246,11 @@ function hopping_x_iPESS(CTM,O1,O2,string12, B_set,T_set, double_B_set, double_T
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
     ob=ob_2x2_iPESS(CTM,AA_LU,AA_RU,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
+    AA_LU=nothing;
+    AA_RU=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
@@ -271,6 +323,25 @@ function hopping_y_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, double_T_
     ###################################################
     @tensor AA_RU[:]:=B_RU_double[-1,1,-4]*T_RU_double[-2,-3,1];
     @tensor AA_RD[:]:=B_RD_double[-1,1,-4]*T_RD_double[-2,-3,1];
+    B_RU=nothing;
+    T_RU=nothing;
+    B_RU0=nothing;
+    T_RU0=nothing;
+    B_RU_double=nothing;
+    T_RU_double=nothing;
+    B_RD=nothing;
+    T_RD=nothing;
+    B_RD0=nothing;
+    T_RD0=nothing;
+    B_RD_double=nothing;
+    T_RD_double=nothing;
+    gate=nothing;
+    U1=nothing;
+    U2=nothing;
+    O_string=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     # return AA_RU,AA_RD
 
 
@@ -280,6 +351,11 @@ function hopping_y_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, double_T_
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
     
     ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD0,AA_RD,cx,cy,Lx,Ly);
+    AA_RU=nothing;
+    AA_RD=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob
@@ -391,6 +467,31 @@ function hopping_diagonala_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, d
     @tensor AA_LD[:]:=B_LD_double[-1,1,-4]*T_LD_double[-2,-3,1];
     @tensor AA_RU[:]:=B_RU_double[-1,1,-4]*T_RU_double[-2,-3,1];
     @tensor AA_RD[:]:=B_RD_double[-1,1,-4]*T_RD_double[-2,-3,1];
+    B_LD=nothing;
+    T_LD=nothing;
+    B_LD0=nothing;
+    T_LD0=nothing;
+    B_LD_double=nothing;
+    T_LD_double=nothing;
+    B_RU=nothing;
+    T_RU=nothing;
+    B_RU0=nothing;
+    T_RU0=nothing;
+    B_RU_double=nothing;
+    T_RU_double=nothing;
+    B_RD=nothing;
+    T_RD=nothing;
+    B_RD0=nothing;
+    T_RD0=nothing;
+    B_RD_double=nothing;
+    T_RD_double=nothing;
+    gate=nothing;
+    U1=nothing;
+    U2=nothing;
+    O_string=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     # return AA_LD,AA_RU,AA_RD
     ################################################
 
@@ -400,6 +501,12 @@ function hopping_diagonala_iPESS(CTM,O1,O2,string12,B_set,T_set, double_B_set, d
     AA_RD0=get_AA_simple(double_B_set,double_T_set,pos_RD);
 
     ob=ob_2x2_iPESS(CTM,AA_LU0,AA_RU,AA_LD,AA_RD,cx,cy,Lx,Ly);
+    AA_LD=nothing;
+    AA_RU=nothing;
+    AA_RD=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!();
+    end
     Norm=ob_2x2_iPESS(CTM,AA_LU0,AA_RU0,AA_LD0,AA_RD0,cx,cy,Lx,Ly);
     ob=ob/Norm;
     return ob        
@@ -858,6 +965,9 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
                 else
                     E_total=E_total+real(t1*2*real(exp(im*ϕ)*ex)+t1*2*real(ey)+t2*2*real(e_diagonala) -μ*e0 +U*eU);
                 end
+                if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+                    ipeps_reclaim_device_memory!();
+                end
             end
         end
 
@@ -905,6 +1015,9 @@ function evaluate_ob_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_
                     E_total=E_total+real(t1*2*real(exp(im*ϕ)*ex)-t1*2*real(ey)-t2*2*real(e_diagonala) -μ*e0 +U*eU);
                 else
                     E_total=E_total+real(t1*2*real(exp(im*ϕ)*ex)+t1*2*real(ey)+t2*2*real(e_diagonala) -μ*e0 +U*eU);
+                end
+                if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+                    ipeps_reclaim_device_memory!();
                 end
             end
         end

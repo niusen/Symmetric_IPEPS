@@ -187,7 +187,13 @@ function Fermionic_CTMRG_cell_iPESS(B_set, T_set, chi,init,CTM0, ctm_setting)
                 else
                     Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, double_B_cell, double_T_cell, chi, direction,ctm_setting, Lx,Ly);
                 end
+                @ignore_derivatives if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+                    ipeps_reclaim_device_memory!();
+                end
             # end
+        end
+        @ignore_derivatives if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!(aggressive=true);
         end
 
         print_corner=false;
@@ -531,6 +537,9 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, double_B_cell,doub
             Cset_cell,Tset_cell=Zygote.checkpointed(ctm_update_single_cx, chi, cx,cy_max,Cset_cell, Tset_cell, double_B_cell,double_T_cell, direction, ctm_setting, Lx,Ly);
         else
             Cset_cell,Tset_cell=ctm_update_single_cx(chi, cx,cy_max,Cset_cell, Tset_cell, double_B_cell,double_T_cell, direction, ctm_setting, Lx,Ly);
+        end
+        @ignore_derivatives if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+            ipeps_reclaim_device_memory!();
         end
     end
     return Cset_cell,Tset_cell

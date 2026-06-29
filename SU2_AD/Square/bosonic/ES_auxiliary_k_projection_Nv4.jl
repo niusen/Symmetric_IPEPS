@@ -32,11 +32,15 @@ println("pid=" * string(getpid()))
 ###########################
 
 init_statenm = "OptimKit_SU2_chiral_pair_D6_chi_54_-1.9594.jld2"
-T_tensor_scale = 10
+T_tensor_scale = 100
 
 A=data=load(init_statenm)["A"];
+A=A*T_tensor_scale;
 
-Nv = 4
+
+@show Nv = 4
+@show kind=0  #momentum projector for A subsystem
+
 EH_n = 30
 
 
@@ -79,6 +83,36 @@ function apply_M_vl(AA_0,AA_1,AA_2,AA_m1, vl)
             
 
     vl_out=apply_l(AA_1,vl);
+    println("M*vl")
+    flush(stdout);
+    return vl_out
+end
+
+
+function apply_M_vl_kA_projection(AA_0,AA_1,AA_2,AA_m1, vl, kind,Nv)
+    function apply_l(MM,ll)
+        # @tensor ll[:]:=MM[1,2,-1,8]*MM[3,4,-2,2]*MM[5,6,-3,4]*MM[7,8,-4,6]*ll[1,3,5,7];
+        ll0 = ll
+
+        @tensor tmp1[-1, 2, 3, 5, 7, 8] :=MM[1, 2, -1, 8] * ll0[1, 3, 5, 7]
+
+        @tensor tmp2[-1, -2, 4, 5, 7, 8] :=MM[3, 4, -2, 2] * tmp1[-1, 2, 3, 5, 7, 8]
+
+        @tensor tmp3[-1, -2, -3, 6, 7, 8] :=MM[5, 6, -3, 4] * tmp2[-1, -2, 4, 5, 7, 8]
+
+        @tensor ll_new[-1, -2, -3, -4] :=MM[7, 8, -4, 6] * tmp3[-1, -2, -3, 6, 7, 8]
+        return ll_new
+    end
+            
+    AA_set=(AA_0,AA_1,AA_2,AA_m1);
+    vl_out=apply_l(AA_0,vl);
+    for cc=2:length(AA_set)
+        vl_out=vl_out+apply_l(AA_set[cc],vl)*exp(im*kind*(cc-1)*2*pi/Nv);
+    end
+    vl_out=vl_out/Nv;
+
+    println("M*vl")
+    flush(stdout);
     return vl_out
 end
 
@@ -104,14 +138,15 @@ function apply_M_vr(AA_0,AA_1,AA_2,AA_m1, vr)
         return rr
     end
 
-    vr_out=apply_r(AA_1,vr);
+    vr_out=apply_r(AA_0,vr); #right half system should have no translation operation
+    println("M*vr")
+    flush(stdout);
     return vr_out
 end
 
 
 
-@time apply_M_vl(AA_0,AA_1,AA_2,AA_m1, vl0);
-@time apply_M_vr(AA_0,AA_1,AA_2,AA_m1, vr0);
+
 
 
 
@@ -125,18 +160,54 @@ end
 #     vr=apply_M_vr(AA_0,AA_1,AA_2,AA_m1, vr);
 # end
 
-contraction_l_fun(x)=apply_M_vl(AA_0,AA_1,AA_2,AA_m1,x);
+# contraction_l_fun(x)=apply_M_vl(AA_0,AA_1,AA_2,AA_m1,x);
+contraction_l_fun(x)=apply_M_vl_kA_projection(AA_0,AA_1,AA_2,AA_m1,x,kind,Nv);
 contraction_r_fun(x)=apply_M_vr(AA_0,AA_1,AA_2,AA_m1,x);
 
+@time contraction_l_fun(vl0);
+@time contraction_r_fun(vr0);
+
+#vals1, vecs1,info1 = eigsolve(hfun, AB, 1, :LM; tol=eigsolve_tol, krylovdim=eigsolve_krylovdim, maxiter=eigsolve_maxiter,eager=true)
 @time eul,evl=eigsolve(contraction_l_fun, vl0, 1,:LM,Arnoldi(krylovdim=20));
-@time eur,evr=eigsolve(contraction_r_fun, vr0, 1,:LM,Arnoldi(krylovdim=20));
-
 @show eul
-@show eur
-
 evl=evl[1];
+jldsave("evl_kind"*string(kind)*"_Nv"*string(Nv);evl=evl,U_L);
+
+@time eur,evr=eigsolve(contraction_r_fun, vr0, 1,:LM,Arnoldi(krylovdim=20));
+@show eur
 evr=evr[1];
+jldsave("evr_Nv"*string(Nv);evr=evr,U_R);
+
+@tensor vl_expand[:]:=evl[1,2,3,4]*U_R'[1,-1,-5]*U_R'[2,-2,-6]*U_R'[3,-3,-7]*U_R'[4,-4,-8];
+
+@tensor vr_expand[:]:=evr[1,2,3,4]*U_L'[-1,-5,1]*U_L'[-2,-6,2]*U_L'[-3,-7,3]*U_L'[-4,-8,4];
 
 
+@tensor rho[:]:=vl_expand[-1,-2,-3,-4,1,2,3,4]*vr_expand[-5,-6,-7,-8,1,2,3,4];
+rho=permute(rho,(1,2,3,4,),(5,6,7,8,));
+
+jldsave("rho_kind"*string(kind)*"_Nv"*string(Nv);rho=rho);
+
+eu,ev=eigen(rho);
+
+Sectors=ComplexF64[];
+eu_set=ComplexF64[];
+
+for (sec,dat) in blocks(eu)
+    Sectors=vcat(Sectors, ones(length(diag(dat)))*Float64(sec.j));
+    eu_set=vcat(eu_set, diag(dat));
+
+end
+
+# filenm="ES_exact_Ty1_Nv"*string(Nv)*".mat";
+#     matwrite(filenm, Dict(
+#         "eu_set" => eu_set,
+#         "Sectors" => Sectors
+#     ); compress = false)
 
 
+filenm="ES_exact_kA_"*string(kind)*"_Nv"*string(Nv)*".mat";
+    matwrite(filenm, Dict(
+        "eu_set" => eu_set,
+        "Sectors" => Sectors
+    ); compress = false)

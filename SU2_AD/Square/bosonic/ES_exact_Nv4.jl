@@ -82,39 +82,13 @@ function apply_M_vl(AA_0,AA_1,AA_2,AA_m1, vl)
     end
             
 
-    vl_out=apply_l(AA_1,vl);
-    println("M*vl")
-    flush(stdout);
-    return vl_out
-end
-
-
-function apply_M_vl_kA_projection(AA_0,AA_1,AA_2,AA_m1, vl, kind,Nv)
-    function apply_l(MM,ll)
-        # @tensor ll[:]:=MM[1,2,-1,8]*MM[3,4,-2,2]*MM[5,6,-3,4]*MM[7,8,-4,6]*ll[1,3,5,7];
-        ll0 = ll
-
-        @tensor tmp1[-1, 2, 3, 5, 7, 8] :=MM[1, 2, -1, 8] * ll0[1, 3, 5, 7]
-
-        @tensor tmp2[-1, -2, 4, 5, 7, 8] :=MM[3, 4, -2, 2] * tmp1[-1, 2, 3, 5, 7, 8]
-
-        @tensor tmp3[-1, -2, -3, 6, 7, 8] :=MM[5, 6, -3, 4] * tmp2[-1, -2, 4, 5, 7, 8]
-
-        @tensor ll_new[-1, -2, -3, -4] :=MM[7, 8, -4, 6] * tmp3[-1, -2, -3, 6, 7, 8]
-        return ll_new
-    end
-            
-    AA_set=(AA_0,AA_1,AA_2,AA_m1);
     vl_out=apply_l(AA_0,vl);
-    for cc=2:length(AA_set)
-        vl_out=vl_out+apply_l(AA_set[cc],vl)*exp(im*kind*(cc-1)*2*pi/Nv);
-    end
-    vl_out=vl_out/Nv;
-
     println("M*vl")
     flush(stdout);
     return vl_out
 end
+
+
 
 function apply_M_vr(AA_0,AA_1,AA_2,AA_m1, vr)
     function apply_r(MM,rr)
@@ -160,8 +134,7 @@ end
 #     vr=apply_M_vr(AA_0,AA_1,AA_2,AA_m1, vr);
 # end
 
-# contraction_l_fun(x)=apply_M_vl(AA_0,AA_1,AA_2,AA_m1,x);
-contraction_l_fun(x)=apply_M_vl_kA_projection(AA_0,AA_1,AA_2,AA_m1,x,kind,Nv);
+contraction_l_fun(x)=apply_M_vl(AA_0,AA_1,AA_2,AA_m1,x);
 contraction_r_fun(x)=apply_M_vr(AA_0,AA_1,AA_2,AA_m1,x);
 
 @time contraction_l_fun(vl0);
@@ -171,12 +144,12 @@ contraction_r_fun(x)=apply_M_vr(AA_0,AA_1,AA_2,AA_m1,x);
 @time eul,evl=eigsolve(contraction_l_fun, vl0, 1,:LM,Arnoldi(krylovdim=20));
 @show eul
 evl=evl[1];
-jldsave("evl_kind"*string(kind)*"_Nv"*string(Nv);evl=evl,U_L);
+
 
 @time eur,evr=eigsolve(contraction_r_fun, vr0, 1,:LM,Arnoldi(krylovdim=20));
 @show eur
 evr=evr[1];
-jldsave("evr_Nv"*string(Nv);evr=evr,U_R);
+
 
 @tensor vl_expand[:]:=evl[1,2,3,4]*U_R'[1,-1,-5]*U_R'[2,-2,-6]*U_R'[3,-3,-7]*U_R'[4,-4,-8];
 
@@ -186,7 +159,7 @@ jldsave("evr_Nv"*string(Nv);evr=evr,U_R);
 @tensor rho[:]:=vl_expand[-1,-2,-3,-4,1,2,3,4]*vr_expand[-5,-6,-7,-8,1,2,3,4];
 rho=permute(rho,(1,2,3,4,),(5,6,7,8,));
 
-jldsave("rho_kind"*string(kind)*"_Nv"*string(Nv);rho=rho);
+
 
 eu,ev=eigen(rho);
 
@@ -196,9 +169,7 @@ Sectors=ComplexF64[];
 eu_set=ComplexF64[];
 km_set=ComplexF64[];
 
-global Sectors,eu_set,km_set
 for (sec,dat) in blocks(eu)
-    global Sectors,eu_set,km_set
     Sectors=vcat(Sectors, ones(length(diag(dat)))*Float64(sec.j));
     eu_set=vcat(eu_set, diag(dat));
     km_set=vcat(km_set,diag(block(km,sec)));
@@ -212,7 +183,7 @@ end
 #     ); compress = false)
 
 
-filenm="ES_exact_kA_"*string(kind)*"_Nv"*string(Nv)*".mat";
+filenm="ES_exact_"*"_Nv"*string(Nv)*".mat";
     matwrite(filenm, Dict(
         "eu_set" => eu_set,
         "km_set" => km_set,

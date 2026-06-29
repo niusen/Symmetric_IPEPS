@@ -1171,8 +1171,22 @@ function debug_svd_blocks(t, left_inds, right_inds; label="debug_svd_blocks")
 end
 
 function env_gauge_from_tsvd(t, left_inds, right_inds; safe_gpu=false)
+    t_svd=permute(t,(left_inds,right_inds));
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    if isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[]
+        println("env_gauge_from_tsvd: after permute, left_inds = ", left_inds, ", right_inds = ", right_inds);
+        ipeps_print_tensor_memory("env_gauge_from_tsvd: t_svd", t_svd);
+        ipeps_print_device_memory("CUDA memory before env gauge safe svd:");
+        flush(stdout);
+    end
     tsvd_fun = safe_gpu ? tsvd_safe_gpu : tsvd;
-    u,s,v=tsvd_fun(t,left_inds,right_inds);
+    u,s,v=tsvd_fun(t_svd);
+    t_svd=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
     gauge=s*v;
     gauge_inv=v'*my_pinv(s);
     u=nothing; s=nothing; v=nothing;

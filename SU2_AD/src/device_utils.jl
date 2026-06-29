@@ -6,7 +6,11 @@ const IPESS_CTM_DEVICE = Ref{String}("cpu")
 const IPESS_FULL_UPDATE_DEVICE = Ref{String}("cpu")
 const IPESS_OBSERVABLE_DEVICE = Ref{String}("cpu")
 const IPESS_CONTRACT_TRIANGLE_ENV_DEVICE = Ref{String}("full_update")
+const IPESS_CONTRACT_TRIANGLE_PROJECTOR_DEVICE = Ref{String}("full_update")
 const IPESS_ENV_GAUGE_SVD_DEVICE = Ref{String}("full_update")
+const IPESS_ENV_REORDER_DEVICE = Ref{String}("full_update")
+const IPESS_SWEEP_OPTIMIZATION_DEVICE = Ref{String}("full_update")
+const IPESS_ENV_BOT_TEMP_CPU = Ref{Bool}(false)
 const IPESS_ENV_GAUGE_SVD_DEBUG_BLOCKS = Ref{Bool}(false)
 const IPESS_CONTRACT_TRIANGLE_ENV_PROJECTOR = Ref{Bool}(false)
 const IPESS_MEMORY_INFO = Ref{Bool}(false)
@@ -92,16 +96,26 @@ function ipeps_use_selected_device!()
 end
 
 function ipeps_set_step_devices!(; ctm=IPESS_DEVICE_SPEC[], full_update=IPESS_DEVICE_SPEC[],
-    observable=IPESS_DEVICE_SPEC[], contract_triangle_env="full_update", env_gauge_svd="full_update")
+    observable=IPESS_DEVICE_SPEC[], contract_triangle_env="full_update",
+    contract_triangle_projector="full_update", env_gauge_svd="full_update", env_reorder="full_update",
+    sweep_optimization="full_update", env_bot_temp_cpu=false)
     IPESS_CTM_DEVICE[] = lowercase(strip(String(ctm)))
     IPESS_FULL_UPDATE_DEVICE[] = lowercase(strip(String(full_update)))
     IPESS_OBSERVABLE_DEVICE[] = lowercase(strip(String(observable)))
     IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[] = lowercase(strip(String(contract_triangle_env)))
+    IPESS_CONTRACT_TRIANGLE_PROJECTOR_DEVICE[] = lowercase(strip(String(contract_triangle_projector)))
     IPESS_ENV_GAUGE_SVD_DEVICE[] = lowercase(strip(String(env_gauge_svd)))
+    IPESS_ENV_REORDER_DEVICE[] = lowercase(strip(String(env_reorder)))
+    IPESS_SWEEP_OPTIMIZATION_DEVICE[] = lowercase(strip(String(sweep_optimization)))
+    IPESS_ENV_BOT_TEMP_CPU[] = Bool(env_bot_temp_cpu)
     println("iPEPS step devices: CTM=", IPESS_CTM_DEVICE[], ", full_update=", IPESS_FULL_UPDATE_DEVICE[],
         ", observable=", IPESS_OBSERVABLE_DEVICE[],
         ", contract_triangle_env=", IPESS_CONTRACT_TRIANGLE_ENV_DEVICE[],
-        ", env_gauge_svd=", IPESS_ENV_GAUGE_SVD_DEVICE[])
+        ", contract_triangle_projector=", IPESS_CONTRACT_TRIANGLE_PROJECTOR_DEVICE[],
+        ", env_gauge_svd=", IPESS_ENV_GAUGE_SVD_DEVICE[],
+        ", env_reorder=", IPESS_ENV_REORDER_DEVICE[],
+        ", sweep_optimization=", IPESS_SWEEP_OPTIMIZATION_DEVICE[],
+        ", env_bot_temp_cpu=", IPESS_ENV_BOT_TEMP_CPU[])
     return nothing
 end
 
@@ -146,6 +160,77 @@ function ipeps_print_tensor_memory(label::AbstractString, t::TensorKit.AbstractT
     println(label, " actual tensor data = ", _ipeps_format_bytes(bytes),
         " (", bytes, " bytes), storage = ", TensorKit.storagetype(t))
     return bytes
+end
+
+function ipeps_device_data_bytes(x)
+    return ipeps_device_data_bytes(x, Set{UInt64}())
+end
+
+ipeps_device_data_bytes(x::Nothing, seen::Set{UInt64}) = 0
+ipeps_device_data_bytes(x::Number, seen::Set{UInt64}) = 0
+ipeps_device_data_bytes(x::AbstractString, seen::Set{UInt64}) = 0
+ipeps_device_data_bytes(x::Symbol, seen::Set{UInt64}) = 0
+
+function ipeps_device_data_bytes(t::TensorKit.AbstractTensorMap, seen::Set{UInt64})
+    TensorKit.storagetype(t) <: Array && return 0
+    data = getproperty(t, :data)
+    key = objectid(data)
+    key in seen && return 0
+    push!(seen, key)
+    return sizeof(data)
+end
+
+function ipeps_device_data_bytes(xs::Tuple, seen::Set{UInt64})
+    total = 0
+    for x in xs
+        total += ipeps_device_data_bytes(x, seen)
+    end
+    return total
+end
+
+function ipeps_device_data_bytes(xs::NamedTuple, seen::Set{UInt64})
+    return ipeps_device_data_bytes(Tuple(xs), seen)
+end
+
+function ipeps_device_data_bytes(xs::AbstractArray, seen::Set{UInt64})
+    total = 0
+    for ind in CartesianIndices(xs)
+        isassigned(xs, ind) && (total += ipeps_device_data_bytes(xs[ind], seen))
+    end
+    return total
+end
+
+function ipeps_device_data_bytes(x::Cset_struc, seen::Set{UInt64})
+    return ipeps_device_data_bytes((x.C1, x.C2, x.C3, x.C4), seen)
+end
+
+function ipeps_device_data_bytes(x::Tset_struc, seen::Set{UInt64})
+    return ipeps_device_data_bytes((x.T1, x.T2, x.T3, x.T4), seen)
+end
+
+function ipeps_device_data_bytes(x::CTM_struc, seen::Set{UInt64})
+    return ipeps_device_data_bytes((x.Cset, x.Tset), seen)
+end
+
+ipeps_device_data_bytes(x, seen::Set{UInt64}) = 0
+
+function ipeps_memory_checkpoint(label::AbstractString, vars::Pair...; aggressive::Bool=false)
+    isdefined(@__MODULE__, :IPESS_MEMORY_INFO) && IPESS_MEMORY_INFO[] || return nothing
+    println("=== iPEPS memory checkpoint: ", label, " ===")
+    ipeps_print_device_memory("CUDA memory before reclaim:")
+    total_seen = Set{UInt64}()
+    total = 0
+    for var in vars
+        var_bytes = ipeps_device_data_bytes(var.second)
+        total += ipeps_device_data_bytes(var.second, total_seen)
+        println("  ", var.first, " live device tensor data = ",
+            _ipeps_format_bytes(var_bytes), " (", var_bytes, " bytes)")
+    end
+    println("  listed live device tensor total = ",
+        _ipeps_format_bytes(total), " (", total, " bytes)")
+    ipeps_reclaim_device_memory!(aggressive=aggressive)
+    ipeps_print_device_memory("CUDA memory after reclaim:")
+    return total
 end
 
 function ipeps_print_device_memory(label::AbstractString)

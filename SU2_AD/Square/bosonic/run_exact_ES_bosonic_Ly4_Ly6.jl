@@ -8,7 +8,6 @@ using Random
 
 cd(@__DIR__)
 
-include(joinpath(@__DIR__, "read_juraj_ipeps_tensor.jl"))
 include(joinpath(@__DIR__, "..", "..", "src", "mps_algorithms", "ES_exact_iPEPS_bosonic.jl"))
 
 Random.seed!(555)
@@ -17,8 +16,19 @@ init_statenm = "Optim_RVB_coefficients_D3_chi_54_-0.9834.jld2"
 Ly_set = [4, 6, 8]
 EH_n = 200
 krylovdim = 40
+enable_juraj_json_reader = false
+
+function _maybe_include_juraj_reader(statenm::AbstractString)
+    if enable_juraj_json_reader || endswith(lowercase(statenm), ".json")
+        reader = joinpath(@__DIR__, "read_juraj_ipeps_tensor.jl")
+        @assert isfile(reader) "Juraj json reader is requested but not found: $(reader)"
+        include(reader)
+    end
+    return nothing
+end
 
 function _load_square_ipeps_for_exact_es(statenm::AbstractString; tensor_key::String="A")
+    _maybe_include_juraj_reader(statenm)
     if endswith(lowercase(statenm), ".json")
         return read_juraj_ipeps_tensormap(statenm)
     end

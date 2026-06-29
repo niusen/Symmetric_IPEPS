@@ -11,7 +11,11 @@ using Dates
 @show full_update_device=run_device;
 @show observable_device=run_device;
 @show contract_triangle_env_device="full_update"; # choose from "full_update", "cpu"
+@show contract_triangle_projector_device="cpu"; # choose from "full_update", "cpu"
 @show env_gauge_svd_device="full_update"; # choose from "full_update", "cpu"
+@show env_reorder_device="cpu"; # choose from "full_update", "cpu"
+@show sweep_optimization_device="full_update"; # choose from "full_update", "cpu"
+@show env_bot_temp_cpu=true; # temporarily move env_bot to CPU when it is not immediately needed
 @show env_gauge_svd_debug_blocks=false; # debug env-gauge SVD block by block
 @show contract_triangle_env_projector=true; # split two chi bonds by projectors
 @show memory_info=true; # print tensor/GPU memory diagnostics
@@ -85,7 +89,11 @@ ipeps_set_step_devices!(
     full_update=full_update_device,
     observable=observable_device,
     contract_triangle_env=contract_triangle_env_device,
+    contract_triangle_projector=contract_triangle_projector_device,
     env_gauge_svd=env_gauge_svd_device,
+    env_reorder=env_reorder_device,
+    sweep_optimization=sweep_optimization_device,
+    env_bot_temp_cpu=env_bot_temp_cpu,
 )
 ipeps_set_contract_triangle_env_projector!(contract_triangle_env_projector)
 ipeps_set_env_gauge_svd_debug_blocks!(env_gauge_svd_debug_blocks)
@@ -124,7 +132,7 @@ dump(algrithm_CTMRG_settings);
 global algrithm_CTMRG_settings
 
 optim_setting=Optim_settings();
-optim_setting.init_statenm="FU_iPESS_LS_D_12_chi_80_1.0314.jld2";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
+optim_setting.init_statenm="FU_iPESS_LS_D_14_chi_80.jld2";#"SU_iPESS_SU2_csl_D6_3.93877.jld2";#"nothing";
 optim_setting.init_noise=0.0;
 optim_setting.linesearch_CTM_method="from_converged_CTM"; # "restart" or "from_converged_CTM"
 dump(optim_setting);

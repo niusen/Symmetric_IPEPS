@@ -89,42 +89,90 @@ es_synchronize()
 
 
 #############
-if run_projector_benchmark
-    projectors = projector_general_SU2(space(AA_3, 4); check=true)
-    projectors = to_es_device(projectors)
-    ind1 = 100
-    ind2 = 100
-    @show length(projectors)
-    @assert 1 <= ind1 <= length(projectors)
-    @assert 1 <= ind2 <= length(projectors)
-    @show TensorKit.storagetype(AA_3)
-    @show TensorKit.storagetype(vl0)
-    @show TensorKit.storagetype(projectors[ind1])
-    @time begin
-        @tensor AA6a[:] := projectors[ind1][-8, 1] * AA_3[-1, 3, -5, 1] *
-            AA_3[-2, 4, -6, 3] * AA_3[-3, 2, -7, 4] * projectors[ind2]'[2, -4]
-        @tensor vl_[:] := vl0[1, 2, 3, -6, -7, -8] * AA6a[1, 2, 3, -2, -3, -4, -5, -1]
-        AA6a = nothing
-        @tensor AA6b[:] := projectors[ind2][-8, 1] * AA_3[-1, 3, -5, 1] *
-            AA_3[-2, 4, -6, 3] * AA_3[-3, 2, -7, 4] * projectors[ind1]'[2, -4]
-        @tensor vl_[:] := vl_[1, 2, -1, -2, -3, 3, 4, 5] * AA6b[3, 4, 5, 1, -4, -5, -6, 2]
-        AA6b = nothing
-        es_synchronize()
-        ipeps_reclaim_device_memory!()
-        nothing
-    end
-end
+# if run_projector_benchmark
+#     projectors = projector_general_SU2(space(AA_3, 4); check=true)
+#     projectors = to_es_device(projectors)
+#     ind1 = 1
+#     ind2 = 1
+#     @show length(projectors)
+#     @assert 1 <= ind1 <= length(projectors)
+#     @assert 1 <= ind2 <= length(projectors)
+#     @show TensorKit.storagetype(AA_3)
+#     @show TensorKit.storagetype(vl0)
+#     @show TensorKit.storagetype(projectors[ind1])
+#     @time begin
+#         @tensor AA6a[:] := projectors[ind1][-8, 1] * AA_3[-1, 3, -5, 1] *
+#             AA_3[-2, 4, -6, 3] * AA_3[-3, 2, -7, 4] * projectors[ind2]'[2, -4]
+#         @tensor vl_[:] := vl0[1, 2, 3, -6, -7, -8] * AA6a[1, 2, 3, -2, -3, -4, -5, -1]
+#         AA6a = nothing
+#         @tensor AA6b[:] := projectors[ind2][-8, 1] * AA_3[-1, 3, -5, 1] *
+#             AA_3[-2, 4, -6, 3] * AA_3[-3, 2, -7, 4] * projectors[ind1]'[2, -4]
+#         @tensor vl_[:] := vl_[1, 2, -1, -2, -3, 3, 4, 5] * AA6b[3, 4, 5, 1, -4, -5, -6, 2]
+#         AA6b = nothing
+#         es_synchronize()
+#         ipeps_reclaim_device_memory!()
+#         nothing
+#     end
+# end
 ##############
-# projectors=projector_general_SU2(space(AA_3,4);check=true);
-# ind1=100;
-# ind2=100;
-# U_DD_DD=unitary(fuse(space(AA_0,1)*space(AA_0,2)), space(AA_0,1)*space(AA_0,2));
-# U_DD_DD_DD=unitary(fuse(fuse(space(AA_0,1)*space(AA_0,2))*space(AA_0,2)), fuse(space(AA_0,1)*space(AA_0,2))*space(AA_0,2));
-# @time begin
-#     @tensor AA6a[:]:= projectors[ind1][-4,0]*AA_3[2,3,5,0]*AA_3[4,7,6,3]*AA_3[9,1,11,7]*projectors[ind2]'[1,-2]*U_DD_DD[8,2,4]*U_DD_DD'[5,6,10]*U_DD_DD_DD[-1,8,9]*U_DD_DD_DD'[10,11,-3];
 
-# end;
-# 1+2
+projectors = projector_general_SU2(space(AA_3, 4); check=true);
+# projectors_middle=group_SU2_projectors(projectors; max_eff_dim=sqrt(6.1), alpha=0.5, check=true);
+projectors_middle=projectors;
+projectors_larger=group_SU2_projectors(projectors; max_eff_dim=12, alpha=0.8, check=true);
+projectors_middle = to_es_device(projectors_middle);
+projectors_larger = to_es_device(projectors_larger);
+projectors = projectors_middle;
+@show length(projectors_middle)*length(projectors_larger)
+ind1 = 100
+ind2 = 1
+@show length(projectors)
+@assert 1 <= ind1 <= length(projectors)
+@assert 1 <= ind2 <= length(projectors)
+@show TensorKit.storagetype(AA_3)
+@show TensorKit.storagetype(vl0)
+@show TensorKit.storagetype(projectors[ind1])
+#CUDA.pool_status()
+ipeps_reclaim_device_memory!()
+
+function test_speed(vl_in, AA_3, projectors_middle, projectors_larger, ind1, ind2)
+    @tensor AA6a[:] := projectors_middle[ind1][-8, 1] * AA_3[-1, 3, -5, 1] *
+        AA_3[-2, 4, -6, 3] * AA_3[-3, 2, -7, 4] * projectors_larger[ind2]'[2, -4]
+    @tensor vl_tmp[:] := vl_in[1, 2, 3, -6, -7, -8] * AA6a[1, 2, 3, -2, -3, -4, -5, -1]
+    AA6a = nothing
+    GC.gc(true)
+    ipeps_reclaim_device_memory!(aggressive=true)
+    @tensor AA6b[:] := projectors_larger[ind2][-8, 1] * AA_3[-1, 3, -5, 1] *
+        AA_3[-2, 4, -6, 3] * AA_3[-3, 2, -7, 4] * projectors_middle[ind1]'[2, -4]
+    @tensor vl_out[:] := vl_tmp[1, 2, -1, -2, -3, 3, 4, 5] * AA6b[3, 4, 5, 1, -4, -5, -6, 2]
+    AA6b = nothing
+    vl_tmp = nothing
+    # projectors_middle=nothing;
+    # projectors_larger=nothing;
+    es_synchronize()
+    vl_cpu=to_es_cpu(vl_out);
+    vl_out=nothing
+    
+    return vl_cpu
+end
+
+vl_total=deepcopy(to_es_cpu(vl0));
+
+for ind1 =length(projectors_middle):-1:1
+    @show ind1
+    t=@elapsed begin
+        for ind2 =length(projectors_larger):-1:1
+            vl_comp=test_speed(vl0, AA_3, projectors_middle, projectors_larger, ind1, ind2);
+            vl_total=vl_total+vl_comp
+            vl_comp=nothing
+            GC.gc(true)
+            ipeps_reclaim_device_memory!(aggressive=true)
+        end
+        CUDA.pool_status();flush(stdout)
+    end
+    println("time = ", t)
+end
+
 ##############
 
 

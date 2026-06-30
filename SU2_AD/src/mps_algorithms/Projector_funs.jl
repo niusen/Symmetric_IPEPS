@@ -360,6 +360,162 @@ function projector_general_SU2(V1::GradedSpace{SU2Irrep, TensorKit.SortedVectorD
     return Ps
 end
 
+"""
+    SU2_space_effective_dimension(V; alpha=0.5)
+
+Estimate the computational size of an SU(2)-symmetric space after taking
+symmetry reduction into account.  For
+
+    V = SU2Space(S1=>d1, S2=>d2, ...)
+
+this returns
+
+    sum_i d_i * (2*S_i + 1)^alpha.
+
+`alpha=1` gives the full dense dimension.  `alpha=0` counts only reduced
+degeneracy dimensions.  Values such as `alpha=0.5` are useful empirical
+weights for grouping projectors: high-spin sectors are treated as more
+expensive than spin-0 sectors, but not as expensive as in a fully dense
+calculation.
+"""
+function SU2_space_effective_dimension(
+    V::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}};
+    alpha::Real=0.5,
+)
+    effective_dim = 0.0
+    for s in sectors(V)
+        S = s.j
+        effective_dim += dim(V, s) * (2 * Float64(S) + 1)^alpha
+    end
+    return effective_dim
+end
+
+"""
+    combine_SU2_projector_group(projector_group; eig_tol=1e-10, check=true)
+
+Combine a small list of fine projectors into one coarse projector.  The input
+projectors must all have the same domain `V`.  The group projector is built
+from
+
+    Q = P1' * P1 + P2' * P2 + ...
+
+which is a projector on `V`.  We diagonalize `Q`, discard the zero-eigenvalue
+subspace with a truncated `eigh`, and return the isometry `P_group` satisfying
+
+    P_group' * P_group ≈ Q.
+"""
+function combine_SU2_projector_group(
+    projector_group;
+    eig_tol::Real=1e-12,
+    check::Bool=true,
+)
+    @assert !isempty(projector_group)
+
+    @tensor Q_tensor[:] := projector_group[1]'[-1, 1] * projector_group[1][1, -2]
+    for cc in 2:length(projector_group)
+        @tensor QQ[:] := projector_group[cc]'[-1, 1] * projector_group[cc][1, -2]
+        Q_tensor = Q_tensor + QQ
+    end
+    Q = permute(Q_tensor, (1,), (2,))
+
+    eu_full, _ = eigh(Q)
+    vals = real.(diag(convert(Array, eu_full)))
+    nonzero = abs.(vals) .> eig_tol
+    rank = count(nonzero)
+    @assert rank > 0
+
+    if check
+        zero_vals = vals[.!nonzero]
+        one_vals = vals[nonzero]
+        isempty(zero_vals) || @assert maximum(abs.(zero_vals)) < eig_tol
+        @assert maximum(abs.(one_vals .- 1)) < eig_tol
+        @assert norm(Q * Q - Q) < eig_tol * max(norm(Q), 1)
+    end
+
+    eigh_trunc_fun = isdefined(@__MODULE__, :eigh_trunc) ? eigh_trunc : TensorKit.eigh_trunc
+    eu, ev = eigh_trunc_fun(Q; trunc=truncrank(rank))
+    vals_keep = real.(diag(convert(Array, eu)))
+    if check
+        @assert length(vals_keep) == rank
+        @assert maximum(abs.(vals_keep .- 1)) < eig_tol
+    end
+
+    P_group = ev'
+
+    if check
+        @tensor Q_check_tensor[:] := P_group'[-1, 1] * P_group[1, -2]
+        Q_check = permute(Q_check_tensor, (1,), (2,))
+        @assert norm(Q_check - Q) < eig_tol * max(norm(Q), 1)
+        @assert norm(P_group * P_group' - unitary(codomain(P_group), codomain(P_group))) <
+            eig_tol * max(dim(codomain(P_group)), 1)
+    end
+
+    return P_group
+end
+
+"""
+    group_SU2_projectors(projectors; max_eff_dim, alpha=0.5, eig_tol=1e-10, check=true)
+
+Group a fine projector list, typically `projector_general_SU2(V)`, into
+coarser projectors.  The input projectors are scanned in order.  A running
+group is closed when adding the next projector would make
+
+    sum(SU2_space_effective_dimension(space(P, 1); alpha=alpha))
+
+exceed `max_eff_dim`.  Each closed group is combined by
+`combine_SU2_projector_group`, i.e. via `sum(P'P)` followed by a truncated
+Hermitian eigendecomposition.  When `check=true`, the grouped projectors are
+verified to resolve the identity on the original space.
+"""
+function group_SU2_projectors(
+    projectors;
+    max_eff_dim::Real,
+    alpha::Real=0.5,
+    eig_tol::Real=1e-12,
+    check::Bool=true,
+)
+    @assert max_eff_dim > 0
+    @assert !isempty(projectors)
+
+    V = domain(projectors[1])
+    for P in projectors
+        @assert domain(P) == V
+    end
+
+    grouped_projectors = Any[]
+    projector_group = Any[]
+    group_eff_dim = 0.0
+
+    for P in projectors
+        P_eff_dim = SU2_space_effective_dimension(space(P, 1); alpha=alpha)
+        if !isempty(projector_group) && group_eff_dim + P_eff_dim > max_eff_dim
+            push!(grouped_projectors, combine_SU2_projector_group(projector_group; eig_tol=eig_tol, check=check))
+            empty!(projector_group)
+            group_eff_dim = 0.0
+        end
+
+        push!(projector_group, P)
+        group_eff_dim += P_eff_dim
+    end
+
+    if !isempty(projector_group)
+        push!(grouped_projectors, combine_SU2_projector_group(projector_group; eig_tol=eig_tol, check=check))
+    end
+
+    if check
+        @assert length(grouped_projectors) > 0
+        @tensor T[:] := grouped_projectors[1]'[-1, 1] * grouped_projectors[1][1, -2]
+        for cc in 2:length(grouped_projectors)
+            @tensor TT[:] := grouped_projectors[cc]'[-1, 1] * grouped_projectors[cc][1, -2]
+            T = T + TT
+        end
+        @assert norm(permute(T, (1,), (2,)) - unitary(V, V)) <
+            eig_tol * max(dim(V), 1)
+    end
+
+    return grouped_projectors
+end
+
 function projector_general_SU2_U1(V1)
     Prime=false;
     if string(V1)[end]=='\''

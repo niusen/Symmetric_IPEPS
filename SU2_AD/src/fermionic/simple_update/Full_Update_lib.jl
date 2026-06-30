@@ -297,7 +297,27 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
         ipeps_reclaim_device_memory!(aggressive=true);
     end
-    @tensor gate3_B2_T_B3_Big_triangle[:]:=gate3_B2_T_B3'[-1,1,-2,-3,2,-4]*Big_triangle[-5,-6,1,2,-7];#(new2,d1,d1,  D1, d2d3, new3)     (new2, new1, d1, d2d3, new3) -> (new2, d1,  D1, new3)     (new2, new1, new3)
+    gate3_B2_T_B3_perm=permute(gate3_B2_T_B3,((2,5),(1,3,4,6)));#(d1,d2d3), (new2,d1,D1,new3)
+    gate3_B2_T_B3=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    Big_triangle_perm=permute(Big_triangle,((3,4),(1,2,5)));#(d1,d2d3), (new2,new1,new3)
+    Big_triangle=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    if isdefined(@__MODULE__, :ipeps_memory_checkpoint)
+        ipeps_memory_checkpoint("partial_triangle_partial_B1 before gate3_B2_T_B3 Big_triangle compose",
+            "gate3_B2_T_B3_perm"=>gate3_B2_T_B3_perm,
+            "Big_triangle_perm"=>Big_triangle_perm,
+            "env_bot_new"=>env_bot_new,
+            "env_bot_new_cpu"=>env_bot_new_cpu,
+            "rho_inv"=>rho_inv; aggressive=true);
+    end
+    gate3_B2_T_B3_Big_triangle=gate3_B2_T_B3_perm'*Big_triangle_perm;#(new2,d1,D1,new3), (new2,new1,new3)
+    gate3_B2_T_B3_perm=nothing;
+    Big_triangle_perm=nothing;
     gate3_B2_T_B3=nothing;
     Big_triangle=nothing;
     Up_run=nothing;
@@ -369,9 +389,30 @@ function partial_triangle_partial_B1(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     elseif isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
         ipeps_reclaim_device_memory!(aggressive=true);
     end
-    @tensor rightside[:]:=env_bot_new'[4,3,-1,2]*env_bot_gate3_B2_T_B3_Big_triangle[4,2,-2,-3,3];#(new_ind,new3,new1,new2), (new_ind,  new2, d1,  D1, new3 ) -> new1, d1, D1
+    env_bot_new_perm=permute(env_bot_new,((3,),(1,4,2)));#new1, (new_ind,new2,new3)
     env_bot_new=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    env_bot_gate3_B2_T_B3_Big_triangle_perm=permute(env_bot_gate3_B2_T_B3_Big_triangle,((3,4),(1,2,5)));#(d1,D1), (new_ind,new2,new3)
     env_bot_gate3_B2_T_B3_Big_triangle=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    if isdefined(@__MODULE__, :ipeps_memory_checkpoint)
+        ipeps_memory_checkpoint("partial_triangle_partial_B1 before final rightside compose",
+            "env_bot_new_perm"=>env_bot_new_perm,
+            "env_bot_gate3_B2_T_B3_Big_triangle_perm"=>env_bot_gate3_B2_T_B3_Big_triangle_perm,
+            "rho_inv"=>rho_inv; aggressive=true);
+    end
+    rightside_tmp=env_bot_gate3_B2_T_B3_Big_triangle_perm*env_bot_new_perm';#(d1,D1), new1
+    env_bot_gate3_B2_T_B3_Big_triangle_perm=nothing;
+    env_bot_new_perm=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    rightside=permute(rightside_tmp,((3,1,2),()));#new1,d1,D1
+    rightside_tmp=nothing;
     if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
         ipeps_reclaim_device_memory!();
     end
@@ -496,7 +537,29 @@ function partial_triangle_partial_B2(Big_triangle,env_bot, T,B1_keep,B2_keep,B3_
     if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
         ipeps_reclaim_device_memory!(aggressive=true);
     end
-    @tensor rightside[:]:=gate1_T_B3'[-1,1,2,-2,-3]*Big_triangle[-4,-5,1,2,-6];#(D1,d2,d3, new3,   d2R2),  (new2new1,  d1,d2,d3, new3) -> (D1, new3,   d2R2 | new2new1,  d1, new3)
+    gate1_T_B3_perm=permute(gate1_T_B3,((2,3),(1,4,5)));#(d2,d3), (D1,new3,d2R2)
+    gate1_T_B3=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    Big_triangle_perm=permute(Big_triangle,((3,4),(1,2,5)));#(d2,d3), (new2new1,d1,new3)
+    Big_triangle=nothing;
+    if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+        ipeps_reclaim_device_memory!(aggressive=true);
+    end
+    if isdefined(@__MODULE__, :ipeps_memory_checkpoint)
+        ipeps_memory_checkpoint("partial_triangle_partial_B2 before gate1_T_B3 Big_triangle compose",
+            "gate1_T_B3_perm"=>gate1_T_B3_perm,
+            "Big_triangle_perm"=>Big_triangle_perm,
+            "env_bot"=>env_bot,
+            "env_bot_cpu"=>env_bot_cpu,
+            "env_bot_gate4_gate3_B1_gate2"=>env_bot_gate4_gate3_B1_gate2,
+            "env_bot_gate4_gate3_B1_gate2_cpu"=>env_bot_gate4_gate3_B1_gate2_cpu,
+            "U21"=>U21; aggressive=true);
+    end
+    rightside=gate1_T_B3_perm'*Big_triangle_perm;#(D1,new3,d2R2), (new2new1,d1,new3)
+    gate1_T_B3_perm=nothing;
+    Big_triangle_perm=nothing;
     rightside,rightside_cpu=_ipeps_stash_work_tensor(rightside);
     gate1_T_B3=nothing;
     Big_triangle=nothing;

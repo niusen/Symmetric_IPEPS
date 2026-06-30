@@ -315,6 +315,51 @@ function projector_physical(V)#U1 or U1xSU2
 
 end
 
+function projector_general_SU2(V1::GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}; check::Bool=true)
+    Spinlist = Any[]
+
+    for s in sectors(V1)
+        Spin = s.j
+        Dim = dim(V1, s)
+        for _ in 1:Dim
+            push!(Spinlist, Spin)
+        end
+    end
+
+    L = length(Spinlist)
+    Ps = Vector(undef, L)
+    total_dim = sum(Int(2 * S + 1) for S in Spinlist)
+    posit = 0
+
+    for cc in 1:L
+        S = Spinlist[cc]
+        spin_dim = Int(2 * S + 1)
+        M = zeros(ComplexF64, spin_dim, total_dim)
+        for dd in 1:spin_dim
+            M[dd, posit + dd] = 1
+        end
+        posit += spin_dim
+
+        if V1.dual
+            Ps[cc] = TensorMap(M, Rep[SU₂](S => 1)', V1)
+        else
+            Ps[cc] = TensorMap(M, Rep[SU₂](S => 1), V1)
+        end
+    end
+
+    if check
+        @assert length(Ps) > 0
+        @tensor T[:] := Ps[1]'[-1, 1] * Ps[1][1, -2]
+        for cc in 2:length(Ps)
+            @tensor TT[:] := Ps[cc]'[-1, 1] * Ps[cc][1, -2]
+            T = T + TT
+        end
+        @assert norm(permute(T, (1,), (2,)) - unitary(V1, V1)) < 1e-10
+    end
+
+    return Ps
+end
+
 function projector_general_SU2_U1(V1)
     Prime=false;
     if string(V1)[end]=='\''

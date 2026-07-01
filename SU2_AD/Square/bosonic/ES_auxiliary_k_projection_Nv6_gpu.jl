@@ -116,8 +116,11 @@ es_synchronize()
 ##############
 
 #Ty3
+
+spins=[0,1/2,1,3/2,2,5/2];#content of irreps in of small projectors
+max_eff_dim_set=[15,10,6,10,9,12]
 projectors_Ty3 = projector_general_SU2(space(AA_3, 4); check=true);
-projectors_Ty3_larger=group_SU2_projectors(projectors_Ty3; max_eff_dim=12, alpha=0.8, check=true);
+projectors_Ty3_larger=group_SU2_projectors(projectors_Ty3; max_eff_dim=15, alpha=0.8, check=true);
 projectors_Ty3 = to_es_device(projectors_Ty3);
 projectors_Ty3_larger = to_es_device(projectors_Ty3_larger);
 # @show length(projectors_Ty3)*length(projectors_Ty3_larger)
@@ -150,6 +153,8 @@ function  apply_l_Ty3(vl, AA_3, projectors_Ty3, projectors_Ty3_larger)
         
         return vl_cpu
     end
+    GC.gc(true)
+    ipeps_reclaim_device_memory!(aggressive=true)
     vl_gpu=to_es_device(deepcopy(vl));
     vl_total=vl*0;
     for ind1 =length(projectors_Ty3):-1:1
@@ -168,12 +173,12 @@ function  apply_l_Ty3(vl, AA_3, projectors_Ty3, projectors_Ty3_larger)
     end
     return vl_total
 end
-#apply_l_Ty3(vl0, AA_3, projectors_Ty3, projectors_Ty3_larger)
+apply_l_Ty3(vl0, AA_3, projectors_Ty3, projectors_Ty3_larger)
 ##############
 
 #Ty2
 projectors_Ty2 = projector_general_SU2(space(AA_2, 4); check=true);
-projectors_Ty2_larger=group_SU2_projectors(projectors_Ty2; max_eff_dim=12, alpha=0.8, check=true);
+projectors_Ty2_larger=group_SU2_projectors(projectors_Ty2; max_eff_dim=10, alpha=0.8, check=true);
 projectors_Ty2 = to_es_device(projectors_Ty2);
 projectors_Ty2_larger = to_es_device(projectors_Ty2_larger);
 # @show length(projectors_Ty2)*length(projectors_Ty2_larger)
@@ -206,6 +211,8 @@ function  apply_l_Ty2(vl, AA_2, projectors_Ty2, projectors_Ty2_larger)
         
         return vl_cpu
     end
+    GC.gc(true)
+    ipeps_reclaim_device_memory!(aggressive=true)
     vl_gpu=to_es_device(deepcopy(vl));
     vl_total=vl*0;
     for ind1 =length(projectors_Ty2):-1:1
@@ -224,13 +231,13 @@ function  apply_l_Ty2(vl, AA_2, projectors_Ty2, projectors_Ty2_larger)
     end
     return vl_total
 end
-
+#apply_l_Ty2(vl0, AA_2, projectors_Ty2, projectors_Ty2_larger)
 ######
 
 
 #Ty1
 projectors_Ty1 = projector_general_SU2(space(AA_1, 4); check=true);
-projectors_Ty1_larger=group_SU2_projectors(projectors_Ty1; max_eff_dim=12, alpha=0.8, check=true);
+projectors_Ty1_larger=group_SU2_projectors(projectors_Ty1; max_eff_dim=10, alpha=0.8, check=true);
 projectors_Ty1 = to_es_device(projectors_Ty1);
 projectors_Ty1_larger = to_es_device(projectors_Ty1_larger);
 # @show length(projectors_Ty1)*length(projectors_Ty1_larger)
@@ -263,6 +270,8 @@ function  apply_l_Ty1(vl, AA_1, projectors_Ty1, projectors_Ty1_larger)
         
         return vl_cpu
     end
+    GC.gc(true)
+    ipeps_reclaim_device_memory!(aggressive=true)
     vl_gpu=to_es_device(deepcopy(vl));
     vl_total=vl*0;
     for ind1 =length(projectors_Ty1):-1:1
@@ -281,8 +290,68 @@ function  apply_l_Ty1(vl, AA_1, projectors_Ty1, projectors_Ty1_larger)
     end
     return vl_total
 end
+#apply_l_Ty1(vl0, AA_1, projectors_Ty1, projectors_Ty1_larger)
 #######
 
+
+
+#Ty0
+projectors_Ty0 = projector_general_SU2(space(AA_0, 4); check=true);
+projectors_Ty0_larger=group_SU2_projectors(projectors_Ty0; max_eff_dim=10, alpha=0.8, check=true);
+projectors_Ty0 = to_es_device(projectors_Ty0);
+projectors_Ty0_larger = to_es_device(projectors_Ty0_larger);
+# @show length(projectors_Ty0)*length(projectors_Ty0_larger)
+@show length(projectors_Ty0)
+@show TensorKit.storagetype(AA_0)
+@show TensorKit.storagetype(vl0)
+#CUDA.pool_status()
+ipeps_reclaim_device_memory!()
+
+
+
+
+function  apply_l_Ty0(vl, AA_0, projectors_Ty0, projectors_Ty0_larger)
+    function apply_comp(vl_in, AA_0, projectors_Ty0, projectors_Ty0_larger, ind1, ind2)
+        @tensor AA6a[:] := projectors_Ty0[ind1][-8, 1] * AA_0[-1, 3, -5, 1] *
+            AA_0[-2, 4, -6, 3] * AA_0[-3, 2, -7, 4] * projectors_Ty0_larger[ind2]'[2, -4]
+        @tensor vl_tmp[:] := vl_in[1, 2, 3, -6, -7, -8] * AA6a[1, 2, 3, -2, -3, -4, -5, -1]
+        AA6a = nothing
+        GC.gc(true)
+        ipeps_reclaim_device_memory!(aggressive=true)
+        @tensor AA6b[:] := projectors_Ty0_larger[ind2][-8, 1] * AA_0[-1, 3, -5, 1] *
+            AA_0[-2, 4, -6, 3] * AA_0[-3, 2, -7, 4] * projectors_Ty0[ind1]'[2, -4]
+        @tensor vl_out[:] := vl_tmp[1, 2, -1, -2, -3, 3, 4, 5] * AA6b[3, 4, 5, 1, -4, -5, -6, 2]
+        AA6b = nothing
+        vl_tmp = nothing
+
+        es_synchronize()
+        vl_cpu=to_es_cpu(vl_out);
+        vl_out=nothing
+        
+        return vl_cpu
+    end
+    GC.gc(true)
+    ipeps_reclaim_device_memory!(aggressive=true)
+    vl_gpu=to_es_device(deepcopy(vl));
+    vl_total=vl*0;
+    for ind1 =length(projectors_Ty0):-1:1
+        @show ind1
+        t=@elapsed begin
+            for ind2 =length(projectors_Ty0_larger):-1:1
+                vl_comp=apply_comp(vl_gpu, AA_0, projectors_Ty0, projectors_Ty0_larger, ind1, ind2);
+                vl_total=vl_total+vl_comp
+                vl_comp=nothing
+                GC.gc(true)
+                ipeps_reclaim_device_memory!(aggressive=true)
+            end
+            CUDA.pool_status();flush(stdout)
+        end
+        println("time = ", t)
+    end
+    return vl_total
+end
+#apply_l_Ty0(vl0, AA_0, projectors_Ty0, projectors_Ty0_larger)
+#######
 
 function apply_M_vl(AA_0,AA_1,AA_2,AA_3,AA_m2,AA_m1, vl)
     function apply_l(MM,ll)

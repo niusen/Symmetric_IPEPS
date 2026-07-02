@@ -393,8 +393,8 @@ end
 contraction_l_fun(x)=apply_M_vl(projectors_Ty0, projectors_Ty0_larger, AA_0, x, kind, Nv, spins);
 contraction_r_fun(x)=apply_M_vr(projectors_Ty0, projectors_Ty0_larger, AA_0, x, kind, Nv, spins);
 
-# @time contraction_l_fun(vl0);
-# @time contraction_r_fun(vr0);
+@time contraction_l_fun(vl0);
+@time contraction_r_fun(vr0);
 
 #vals1, vecs1,info1 = eigsolve(hfun, AB, 1, :LM; tol=eigsolve_tol, krylovdim=eigsolve_krylovdim, maxiter=eigsolve_maxiter,eager=true)
 @time eul,evl=eigsolve(contraction_l_fun, vl0, 1,:LM; tol=1e-5, krylovdim=10,eager=true);

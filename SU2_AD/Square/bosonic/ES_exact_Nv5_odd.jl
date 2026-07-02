@@ -317,15 +317,8 @@ ipeps_reclaim_device_memory!()
 projectors_set=(projectors_Ty0,projectors_Ty1,projectors_Ty2,projectors_Tym2,projectors_Tym1);
 AA_set=(AA_0,AA_1,AA_2,AA_m2,AA_m1);
 
-function apply_M_vl_kA_projection(AA_set, projectors_set, vl, kind,Nv) 
-    println("apply Ty0");     
-    vl_out=apply_l_Tyn(vl, AA_set[1], projectors_set[1]);
-    for cc=2:length(AA_set)
-        println("apply Ty"*string(cc-1)); 
-        vl_out=vl_out+apply_l_Tyn(vl, AA_set[cc], projectors_set[cc])*exp(im*kind*(cc-1)*2*pi/Nv);
-    end
-    vl_out=vl_out/Nv;
-
+function apply_M_vl(AA_0, projectors_Ty0, vl) 
+    vl_out=apply_l_Tyn(vl, AA_0, projectors_Ty0);
     es_synchronize()
     println("finished one Mvl")
     return vl_out
@@ -355,7 +348,7 @@ end
 # end
 
 # contraction_l_fun(x)=apply_M_vl(AA_0,AA_1,AA_2,AA_m1,x);
-contraction_l_fun(x)=apply_M_vl_kA_projection(AA_set, projectors_set, x, kind,Nv);
+contraction_l_fun(x)=apply_M_vl(AA_0, projectors_Ty0, x);
 contraction_r_fun(x)=apply_M_vr(AA_0, projectors_Ty0, x);
 
 # @time contraction_l_fun(vl0);
@@ -415,7 +408,7 @@ end
 #     ); compress = false)
 
 
-filenm="ES_exact_kA_"*string(kind)*"_Nv"*string(Nv)*".mat";
+filenm="ES_exact_Nv"*string(Nv)*".mat";
     matwrite(filenm, Dict(
         "eu_set" => eu_set,
         "km_set" => km_set,

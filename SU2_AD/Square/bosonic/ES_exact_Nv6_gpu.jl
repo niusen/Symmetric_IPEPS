@@ -239,6 +239,7 @@ println("apply Ty0");
 # apply_l_Tyn(vl0, AA_0, projectors_Ty0, projectors_Ty0_larger, spins)
 
 
+
 #########
 #Tym2
 projectors_Tym2 = projector_general_SU2(space(AA_m2, 4); check=true);
@@ -274,7 +275,6 @@ println("apply Tym1");
 # apply_l_Tyn(vl0, AA_m1, projectors_Tym1, projectors_Tym1_larger, spins)
 #######
 
-
 projectors_set=(projectors_Ty0,projectors_Ty1,projectors_Ty2,projectors_Ty3,projectors_Tym2,projectors_Tym1);
 projectors_larger_set=(projectors_Ty0_larger,projectors_Ty1_larger,projectors_Ty2_larger,projectors_Ty3_larger,projectors_Tym2_larger,projectors_Tym1_larger);
 AA_set=(AA_0,AA_1,AA_2,AA_3,AA_m2,AA_m1);
@@ -282,15 +282,10 @@ AA_set=(AA_0,AA_1,AA_2,AA_3,AA_m2,AA_m1);
 ########
 
 
-function apply_M_vl_kA_projection(projectors_set, projectors_larger_set, AA_set, vl, kind, Nv, spins)
+function apply_M_vl(projectors_Ty0, projectors_Ty0_larger, AA_0, vl, kind, Nv, spins)
 
     println("apply Ty0");    
-    vl_out=apply_l_Tyn(vl, AA_set[1], projectors_set[1], projectors_larger_set[1], spins);
-    for cc=2:length(AA_set)
-        println("apply Ty"*string(cc-1)); 
-        vl_out=vl_out+apply_l_Tyn(vl, AA_set[cc], projectors_set[cc], projectors_larger_set[cc], spins)*exp(im*kind*(cc-1)*2*pi/Nv);
-    end
-    vl_out=vl_out/Nv;
+    vl_out=apply_l_Tyn(vl, AA_0, projectors_Ty0, projectors_Ty0_larger, spins);
     println("finished one Mvl")
     es_synchronize()
     return vl_out
@@ -305,20 +300,18 @@ function apply_M_vr(projectors_Ty0, projectors_Ty0_larger, AA_0, vr, kind, Nv, s
     return vr_out
 end
 
-
-
 # contraction_l_fun(x)=apply_M_vl(AA_0,AA_1,AA_2,AA_m1,x);
-contraction_l_fun(x)=apply_M_vl_kA_projection(projectors_set, projectors_larger_set, AA_set, x, kind, Nv, spins);
+contraction_l_fun(x)=apply_M_vl(projectors_Ty0, projectors_Ty0_larger, AA_0, x, kind, Nv, spins);
 contraction_r_fun(x)=apply_M_vr(projectors_Ty0, projectors_Ty0_larger, AA_0, x, kind, Nv, spins);
 
-@time contraction_l_fun(vl0);
-@time contraction_r_fun(vr0);
+# @time contraction_l_fun(vl0);
+# @time contraction_r_fun(vr0);
 
 #vals1, vecs1,info1 = eigsolve(hfun, AB, 1, :LM; tol=eigsolve_tol, krylovdim=eigsolve_krylovdim, maxiter=eigsolve_maxiter,eager=true)
 @time eul,evl=eigsolve(contraction_l_fun, vl0, 1,:LM; tol=1e-5, krylovdim=10,eager=true);
 es_synchronize()
 @show eul
-jldsave("evl_kind"*string(kind)*"_Nv"*string(Nv);evl=to_es_cpu(evl),U_L=to_es_cpu(U_L));
+jldsave("evl_Nv"*string(Nv);evl=to_es_cpu(evl),U_L=to_es_cpu(U_L));
 evl=evl[1];
 
 
@@ -341,7 +334,7 @@ es_synchronize()
 rho = to_es_cpu(rho)
 rho=permute(rho,(1,2,3,4,5,6,),(7,8,9,10,11,12,));
 
-jldsave("rho_kind"*string(kind)*"_Nv"*string(Nv);rho=rho);
+jldsave("rho_Nv"*string(Nv);rho=rho);
 
 eu,ev=eigen(rho);
 
@@ -367,7 +360,7 @@ end
 #     ); compress = false)
 
 
-filenm="ES_exact_kA_"*string(kind)*"_Nv"*string(Nv)*".mat";
+filenm="ES_exact_Nv"*string(Nv)*".mat";
     matwrite(filenm, Dict(
         "eu_set" => eu_set,
         "km_set" => km_set,

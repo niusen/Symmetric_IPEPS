@@ -162,7 +162,96 @@ function  apply_l_Tyn(vl, AA_n, projectors_Tyn, projectors_Tyn_larger, spins)
     end
     return vl_total
 end
+###
+function apply_r_comp(vr_in, AA__, projectors, projectors_larger, ind1, ind2)
+    # First three tensors:
+    # small projector -> 3 sites -> larger projector.
+    # AA6a legs are:
+    #   (-1,-2,-3) : output physical/right-boundary legs of first 3 sites
+    #   -4         : larger-projector open leg
+    #   (-5,-6,-7) : legs contracted with vr_in
+    #   -8         : small-projector open leg
+    @tensor AA6a[-1, -2, -3, -4, -5, -6, -7, -8] :=
+        projectors[ind1][-8, 1] *
+        AA__[-1, 4, -5, 1] *
+        AA__[-2, 6, -6, 4] *
+        AA__[-3, 2, -7, 6] *
+        projectors_larger[ind2]'[2, -4]
 
+    @tensor vr_tmp[-1, -2, -3, -4, -5, -6, -7, -8] :=
+        AA6a[-3, -4, -5, -2, 1, 2, 3, -1] *
+        vr_in[1, 2, 3, -6, -7, -8]
+
+    AA6a = nothing
+    GC.gc(true)
+    ipeps_reclaim_device_memory!(aggressive=true)
+
+    # Last three tensors:
+    # larger projector -> 3 sites -> small projector.
+    # Same leg convention as AA6a.
+    @tensor AA6b[-1, -2, -3, -4, -5, -6, -7, -8] :=
+        projectors_larger[ind2][-8, 1] *
+        AA__[-1, 4, -5, 1] *
+        AA__[-2, 6, -6, 4] *
+        AA__[-3, 2, -7, 6] *
+        projectors[ind1]'[2, -4]
+
+    @tensor vr_out[-1, -2, -3, -4, -5, -6] :=
+        vr_tmp[1,2, -1, -2, -3, 3, 4, 5] *
+        AA6b[-4, -5, -6, 1, 3, 4, 5, 2]
+
+    AA6b = nothing
+    vr_tmp = nothing
+
+    es_synchronize()
+    vr_cpu = to_es_cpu(vr_out)
+    vr_out = nothing
+
+    return vr_cpu
+end
+
+function apply_r_Tyn(vr, AA_n, projectors_Tyn, projectors_Tyn_larger, spins)
+    GC.gc(true)
+    ipeps_reclaim_device_memory!(aggressive=true)
+
+    vr_gpu = to_es_device(deepcopy(vr))
+    vr_total = vr * 0
+
+    for ind1 = length(projectors_Tyn):-1:1
+        @show ind1
+
+        V_comp = space(projectors_Tyn[ind1], 1)
+        @assert length(V_comp.dims.keys) == 1
+        J_ = V_comp.dims.keys[1].j
+
+        projector_group_index = findfirst(x -> x == J_, spins)
+        @assert projector_group_index !== nothing
+        projectors_Tyn_larger_tem = projectors_Tyn_larger[projector_group_index]
+
+        t = @elapsed begin
+            for ind2 = length(projectors_Tyn_larger_tem):-1:1
+                vr_comp = apply_r_comp(
+                    vr_gpu,
+                    AA_n,
+                    projectors_Tyn,
+                    projectors_Tyn_larger_tem,
+                    ind1,
+                    ind2,
+                )
+                vr_total = vr_total + vr_comp
+                vr_comp = nothing
+                GC.gc(true)
+                ipeps_reclaim_device_memory!(aggressive=true)
+            end
+            CUDA.pool_status()
+            flush(stdout)
+        end
+
+        println("time = ", t)
+    end
+
+    return vr_total
+end
 ##################
 
 

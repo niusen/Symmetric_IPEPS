@@ -527,16 +527,19 @@ function ob_dn_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
 
     B_LD=B_set[pos_LD[1]][pos_LD[2]];#(LU,M)
     T_LD=T_set[pos_LD[1]][pos_LD[2]];#(M,dRD)
+    S1=ipeps_to_storage_like(S1,T_LD);
+    S2=ipeps_to_storage_like(S2,T_LD);
+    S3=ipeps_to_storage_like(S3,T_LD);
     B_LD0=deepcopy(B_LD);
     T_LD0=deepcopy(T_LD);
 
 
     @tensor T_LD[:]:= T_LD[-1,1,-3,-4]*S1[-2,1,-5];#M,d,R,D,virtual
-    U10=@ignore_derivatives unitary(fuse(space(T_LD,1)⊗space(T_LD,5)), space(T_LD,1)⊗space(T_LD,5)); 
+    U10=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_LD,1)*space(T_LD,5)), space(T_LD,1)*space(T_LD,5))),T_LD);
     @tensor T_LD[:]:=T_LD[1,-2,-3,-4,2]*U10[-1,1,2];#M',d,R,D
 
-    String1=unitary(space(S1,3),space(S1,3));
-    U1=@ignore_derivatives unitary(fuse(space(B_LD,2)⊗space(String1,1)), space(B_LD,2)⊗space(String1,1)); 
+    String1=ipeps_to_storage_like(unitary(space(S1,3),space(S1,3)),B_LD);
+    U1=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(B_LD,2)*space(String1,1)), space(B_LD,2)*space(String1,1))),B_LD);
     @tensor B_LD[:]:=B_LD[-1,1,3]*String1[2,4]*U10'[3,4,-3]*U1[-2,1,2];#L,U,M
 
     B_LD=permute(B_LD,(1,2,),(3,));
@@ -552,11 +555,11 @@ function ob_dn_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     T_RU0=deepcopy(T_RU);
 
     @tensor T_RU[:]:= T_RU[-1,1,-3,-4]*S3[-5,-2,1];#M,d,R,D,virtual
-    U20=@ignore_derivatives unitary(fuse(space(T_RU,1)⊗space(T_RU,5)), space(T_RU,1)⊗space(T_RU,5)); 
+    U20=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_RU,1)*space(T_RU,5)), space(T_RU,1)*space(T_RU,5))),T_RU);
     @tensor T_RU[:]:=T_RU[1,-2,-3,-4,2]*U20[-1,1,2];
 
-    String2=unitary(space(S3,1),space(S3,1));
-    U2=@ignore_derivatives unitary(fuse(space(B_RU,1)⊗space(String2,1)), space(B_RU,1)⊗space(String2,1)); 
+    String2=ipeps_to_storage_like(unitary(space(S3,1),space(S3,1)),B_RU);
+    U2=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(B_RU,1)*space(String2,1)), space(B_RU,1)*space(String2,1))),B_RU);
     @tensor B_RU[:]:=B_RU[1,-2,3]*String2[2,4]*U2[-1,1,2]*U20'[3,4,-3];
 
     B_RU=permute(B_RU,(1,2,),(3,));
@@ -608,11 +611,14 @@ function ob_up_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
 
     B_LD=B_set[pos_LD[1]][pos_LD[2]];#(LU,M)
     T_LD=T_set[pos_LD[1]][pos_LD[2]];#(M,dRD)
+    S1=ipeps_to_storage_like(S1,T_LD);
+    S2=ipeps_to_storage_like(S2,T_LD);
+    S3=ipeps_to_storage_like(S3,T_LD);
     B_LD0=deepcopy(B_LD);
     T_LD0=deepcopy(T_LD);
 
     @tensor T_LD[:]:= T_LD[-1,1,-2,-3]*S1[-4,1,-5];#M,R,D,d,virtual
-    U1=@ignore_derivatives unitary(fuse(space(T_LD,2)⊗space(T_LD,5)), space(T_LD,2)⊗space(T_LD,5)); 
+    U1=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_LD,2)*space(T_LD,5)), space(T_LD,2)*space(T_LD,5))),T_LD);
     @tensor T_LD[:]:=T_LD[-1,1,-3,-4,2]*U1[-2,1,2];#M,R',D,d
     T_LD=permute(T_LD,(1,4,2,3,));#M,d,R',D
 
@@ -630,7 +636,7 @@ function ob_up_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     T_RU0=deepcopy(T_RU);
 
     @tensor T_RU[:]:= T_RU[-1,1,-2,-3]*S3[-5,-4,1];#M,R,D,d,virtual
-    U2=@ignore_derivatives unitary(fuse(space(T_RU,3)⊗space(T_RU,5)), space(T_RU,3)⊗space(T_RU,5)); 
+    U2=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_RU,3)*space(T_RU,5)), space(T_RU,3)*space(T_RU,5))),T_RU);
     @tensor T_RU[:]:=T_RU[-1,-2,1,-4,2]*U2[-3,1,2];#M,R,D',d
     T_RU=permute(T_RU,(1,4,2,3,));#M,d,R,D
 
@@ -646,9 +652,9 @@ function ob_up_triangle_iPESS(CTM,S1,S2,S3, B_set,T_set, double_B_set, double_T_
     B_RD0=deepcopy(B_RD);
     T_RD0=deepcopy(T_RD);
 
-    U_S2=@ignore_derivatives unitary(fuse(space(S2,2)*space(S2,3)), space(S2,2)*space(S2,3));
+    U_S2=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(S2,2)*space(S2,3)), space(S2,2)*space(S2,3))),T_RD);
     @tensor S2_[:]:=S2[-1,1,2,-3]*U_S2[-2,1,2];
-    U3=unitary(fuse(space(B_RD,3)*space(S2_,2)),space(B_RD,3)*space(S2_,2));
+    U3=ipeps_to_storage_like(unitary(fuse(space(B_RD,3)*space(S2_,2)),space(B_RD,3)*space(S2_,2)),B_RD);
     @tensor T_RD[:]:=T_RD[3,1,-3,-4]*U_S2'[-2,1,2]*U3'[3,2,-1];
     @tensor B_RD[:]:=B_RD[1,3,5]*S2_[2,6,4]*U1'[1,2,-1]*U2'[3,4,-2]*U3[-3,5,6];#L,U,M
 
@@ -692,11 +698,13 @@ function hopping_x_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
 
     B_LU=B_set[pos_LU[1]][pos_LU[2]];#(LU,M)
     T_LU=T_set[pos_LU[1]][pos_LU[2]];#(M,dRD)
+    O1=ipeps_to_storage_like(O1,T_LU);
+    O2=ipeps_to_storage_like(O2,T_LU);
     B_LU0=deepcopy(B_LU);
     T_LU0=deepcopy(T_LU);
 
     @tensor T_LU[:]:=T_LU[-1,1,-3,-4]*O1[-5,-2,1];#M,d,R,D,virtual
-    U=@ignore_derivatives unitary(fuse(space(T_LU,3)⊗space(T_LU,5)), space(T_LU,3)⊗space(T_LU,5)); 
+    U=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_LU,3)*space(T_LU,5)), space(T_LU,3)*space(T_LU,5))),T_LU);
     @tensor T_LU[:]:=T_LU[-1,-2,1,-4,2]*U[-3,1,2];#M,d,R',D
 
     B_LU=permute(B_LU,(1,2,),(3,));
@@ -713,10 +721,10 @@ function hopping_x_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
 
     @tensor T_RU[:]:= T_RU[-1,1,-3,-4]*O2[-5,-2,1];#M,d,R,D,virtual'
     
-    U2=@ignore_derivatives unitary(fuse(space(T_RU,1)⊗space(T_RU,5)), space(T_RU,1)⊗space(T_RU,5));
+    U2=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_RU,1)*space(T_RU,5)), space(T_RU,1)*space(T_RU,5))),T_RU);
     @tensor T_RU[:]:=T_RU[1,-2,-3,-4,2]*U2[-1,1,2];##M',d,R,D
 
-    O_string=@ignore_derivatives unitary(space(O1,1)',space(O1,1)');
+    O_string=ipeps_to_storage_like(@ignore_derivatives(unitary(space(O1,1)',space(O1,1)')),B_RU);
     @tensor B_RU[:]:=B_RU[-1,-2,-3]*O_string[-4,-5];#(L,U,M), (virtual,virtual')=>(L,U,M, virtual,virtual')
     @tensor B_RU[:]:=B_RU[1,-2,3,2,4]*U'[1,2,-1]*U2'[3,4,-3];#L,U,M
 
@@ -755,11 +763,13 @@ function hopping_y_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
     ####
     B_RU=B_set[pos_RU[1]][pos_RU[2]];#(LU,M)
     T_RU=T_set[pos_RU[1]][pos_RU[2]];#(M,dRD)
+    O1=ipeps_to_storage_like(O1,T_RU);
+    O2=ipeps_to_storage_like(O2,T_RU);
     B_RU0=deepcopy(B_RU);
     T_RU0=deepcopy(T_RU);
 
     @tensor T_RU[:]:= T_RU[-1,1,-3,-4]*O1[-5,-2,1];#M,d,R,D,virtual
-    U1=@ignore_derivatives unitary(fuse(space(T_RU,4)⊗space(T_RU,5)), space(T_RU,4)⊗space(T_RU,5)); 
+    U1=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_RU,4)*space(T_RU,5)), space(T_RU,4)*space(T_RU,5))),T_RU);
     @tensor T_RU[:]:=T_RU[-1,-2,-3,1,2]*U1[-4,1,2];#M,d,R,D'
 
     B_RU=permute(B_RU,(1,2,),(3,));
@@ -776,10 +786,10 @@ function hopping_y_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, double_T_
 
     
     @tensor T_RD[:]:= T_RD[-1,1,-3,-4]*O2[-5,-2,1];#M,d,R,D,virtual
-    U2=@ignore_derivatives unitary(fuse(space(T_RD,1)⊗space(T_RD,5)), space(T_RD,1)⊗space(T_RD,5));
+    U2=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_RD,1)*space(T_RD,5)), space(T_RD,1)*space(T_RD,5))),T_RD);
     @tensor T_RD[:]:=T_RD[1,-2,-3,-4,2]*U2[-1,1,2];#M',d,R,D
 
-    O_string=@ignore_derivatives unitary(space(O1,1)',space(O1,1)');
+    O_string=ipeps_to_storage_like(@ignore_derivatives(unitary(space(O1,1)',space(O1,1)')),B_RD);
     @tensor B_RD[:]:= B_RD[-1,-2,-3]*O_string[-4,-5];#(L,U,M), (virtual',virtual)=>(L,U,M, virtual',virtual)
     @tensor B_RD[:]:=B_RD[-1,1,3,2,4]*U1'[1,2,-2]*U2'[3,4,-3];#L,U,M
 
@@ -819,11 +829,13 @@ function hopping_diagonala_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, d
     ######
     B_LD=B_set[pos_LD[1]][pos_LD[2]];#(LU,M)
     T_LD=T_set[pos_LD[1]][pos_LD[2]];#(M,dRD)
+    O1=ipeps_to_storage_like(O1,T_LD);
+    O2=ipeps_to_storage_like(O2,T_LD);
     B_LD0=deepcopy(B_LD);
     T_LD0=deepcopy(T_LD);
 
     @tensor T_LD[:]:= T_LD[-1,1,-2,-3]*O1[-5,-4,1];#M,R,D,d,virtual
-    U1=@ignore_derivatives unitary(fuse(space(T_LD,2)⊗space(T_LD,5)), space(T_LD,2)⊗space(T_LD,5)); 
+    U1=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_LD,2)*space(T_LD,5)), space(T_LD,2)*space(T_LD,5))),T_LD);
     @tensor T_LD[:]:=T_LD[-1,1,-3,-4,2]*U1[-2,1,2];#M,R',D,d
     T_LD=permute(T_LD,(1,4,2,3,));#M,d,R',D
 
@@ -842,7 +854,7 @@ function hopping_diagonala_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, d
     T_RU0=deepcopy(T_RU);
 
     @tensor T_RU[:]:= T_RU[-1,1,-2,-3]*O2[-5,-4,1];#M,R,D,d,virtual
-    U2=@ignore_derivatives unitary(fuse(space(T_RU,3)⊗space(T_RU,5)), space(T_RU,3)⊗space(T_RU,5)); 
+    U2=ipeps_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_RU,3)*space(T_RU,5)), space(T_RU,3)*space(T_RU,5))),T_RU);
     @tensor T_RU[:]:=T_RU[-1,-2,1,-4,2]*U2[-3,1,2];#M,R,D',d
     T_RU=permute(T_RU,(1,4,2,3,));#M,d,R,D
 
@@ -859,7 +871,7 @@ function hopping_diagonala_iPESS_no_sign(CTM,O1,O2, B_set,T_set, double_B_set, d
     B_RD0=deepcopy(B_RD);
     T_RD0=deepcopy(T_RD);
 
-    O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+    O_string=ipeps_to_storage_like(@ignore_derivatives(unitary(space(O1,1),space(O1,1))),B_RD);
     @tensor B_RD[:]:=B_RD[1,3,-3]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-2];#L,U,M
 
 
@@ -1100,13 +1112,13 @@ function evaluate_spin_ob_cell_iPESS(B_set,T_set, double_B_set, double_T_set, CT
             for cy=1:Ly
 
                 #expectation value for chirality operator
-                up_triangle=ob_up_triangle_iPESS(CTM_cell,chirality_S1,chirality_S2,chirality_S3, chirality_string12, chirality_string23, B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);#LD,RD,RU
-                dn_triangle=-ob_dn_triangle_iPESS(CTM_cell,chirality_S1,chirality_S2,chirality_S3, chirality_string12, chirality_string23,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);#LD,LU,RU
+                up_triangle=ob_up_triangle_iPESS(CTM_cell,chirality_S1,chirality_S2,chirality_S3,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);#LD,RD,RU
+                dn_triangle=-ob_dn_triangle_iPESS(CTM_cell,chirality_S1,chirality_S2,chirality_S3,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);#LD,LU,RU
 
                 #expectation value for Heisenberg operator
-                SS_x=hopping_x_iPESS_no_sign(CTM_cell,Sa,Sb,SS_string,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
-                SS_y=hopping_y_iPESS_no_sign(CTM_cell,Sa,Sb,SS_string,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
-                SS_diagonal=hopping_diagonala_iPESS_no_sign(CTM_cell,Sa,Sb,SS_string,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                SS_x=hopping_x_iPESS_no_sign(CTM_cell,Sa,Sb,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                SS_y=hopping_y_iPESS_no_sign(CTM_cell,Sa,Sb,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
+                SS_diagonal=hopping_diagonala_iPESS_no_sign(CTM_cell,Sa,Sb,B_set,T_set, double_B_set, double_T_set,cx,cy,Lx,Ly);
 
                 @ignore_derivatives triangle_up_set[cx,cy]=up_triangle;
                 @ignore_derivatives triangle_dn_set[cx,cy]=dn_triangle;
@@ -1118,7 +1130,44 @@ function evaluate_spin_ob_cell_iPESS(B_set,T_set, double_B_set, double_T_set, CT
     end
     return triangle_up_set,triangle_dn_set,SS_x_set,SS_y_set,SS_diagonal_set
 end
-    
+
+function evaluate_ob_pairing_cell_iPESS(parameters, B_set,T_set, double_B_set, double_T_set, CTM_cell, ctm_setting, energy_setting)
+    global Lx,Ly
+
+    if isa(space(B_set[1][1],1),GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+        if energy_setting.model in  ("Triangle_Hofstadter_Hubbard", "spinful_triangle_lattice", "standard_triangle_Hubbard","standard_triangle_Hubbard_spiral","standard_triangle_Hubbard_Bfield")
+            operator_terms=twosite_pairing_spinful_Z2;
+        end
+    elseif isa(space(B_set[1][1],1),GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}})
+        operator_terms=twosite_pairing_spinful_SU2;
+    end
+
+    if energy_setting.model=="spinful_triangle_lattice"
+        pairing_singlet_site1, pairing_singlet_site2 = @ignore_derivatives operator_terms();
+
+        pairing_x_set=zeros(Lx,Ly)*im;
+        pairing_y_set=zeros(Lx,Ly)*im;
+        pairing_diagonala_set=zeros(Lx,Ly)*im;
+
+        for cx =1:Lx
+            for cy=1:Ly
+                pairing_x=hopping_x_iPESS(CTM_cell,pairing_singlet_site1,pairing_singlet_site2,[],B_set,T_set,double_B_set,double_T_set,cx,cy,Lx,Ly);
+                pairing_y=hopping_y_iPESS(CTM_cell,pairing_singlet_site1,pairing_singlet_site2,[],B_set,T_set,double_B_set,double_T_set,cx,cy,Lx,Ly);
+                pairing_diagonala=hopping_diagonala_iPESS(CTM_cell,pairing_singlet_site1,pairing_singlet_site2,[],B_set,T_set,double_B_set,double_T_set,cx,cy,Lx,Ly);
+
+                @ignore_derivatives pairing_x_set[cx,cy]=pairing_x;
+                @ignore_derivatives pairing_y_set[cx,cy]=pairing_y;
+                @ignore_derivatives pairing_diagonala_set[cx,cy]=pairing_diagonala;
+
+                if isdefined(@__MODULE__, :ipeps_reclaim_device_memory!)
+                    ipeps_reclaim_device_memory!();
+                end
+            end
+        end
+        return pairing_x_set, pairing_y_set, pairing_diagonala_set
+    end
+end
+
 
 
 

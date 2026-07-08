@@ -1,3 +1,10 @@
+if !isdefined(@__MODULE__, :_ipeps_ob_to_storage_like)
+    function _ipeps_ob_to_storage_like(x, ref)
+        isdefined(@__MODULE__, :ipeps_to_storage_like) && return ipeps_to_storage_like(x, ref)
+        return x
+    end
+end
+
 function Rank(T::TensorMap)
     return length(domain(T))+length(codomain(T))
 end
@@ -887,19 +894,25 @@ function hopping_x(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
 
         
     gate=@ignore_derivatives parity_gate(A_LU,1); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LU);
     @tensor A_LU[:]:=A_LU[1,-2,-3,-4,-5,-6]*gate[-1,1];
     gate=@ignore_derivatives parity_gate(A_LU,2); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LU);
     @tensor A_LU[:]:=A_LU[-1,1,-3,-4,-5,-6]*gate[-2,1];
     gate=@ignore_derivatives parity_gate(A_LU,4); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LU);
     @tensor A_LU[:]:=A_LU[-1,-2,-3,1,-5,-6]*gate[-4,1];
 
     gate=@ignore_derivatives parity_gate(A_RU,1); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,-6]*gate[-1,1];
     gate=@ignore_derivatives parity_gate(A_RU,4); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[-1,-2,-3,1,-5,-6]*gate[-4,1];
 
 
-    U=@ignore_derivatives unitary(fuse(space(A_LU,3)⊗space(A_LU,6)), space(A_LU,3)⊗space(A_LU,6)); 
+    U=@ignore_derivatives unitary(fuse(space(A_LU,3)*space(A_LU,6)), space(A_LU,3)*space(A_LU,6)); 
+    U=_ipeps_ob_to_storage_like(U,A_LU);
     @tensor A_LU[:]:=A_LU[-1,-2,1,-4,-5,2]*U[-3,1,2];
     @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,2]*U'[1,2,-1];
 
@@ -935,7 +948,8 @@ function hopping_x_no_sign(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-6,-5,1]
    
 
-    U=@ignore_derivatives unitary(fuse(space(A_LU,3)⊗space(A_LU,6)), space(A_LU,3)⊗space(A_LU,6)); 
+    U=@ignore_derivatives unitary(fuse(space(A_LU,3)*space(A_LU,6)), space(A_LU,3)*space(A_LU,6)); 
+    U=_ipeps_ob_to_storage_like(U,A_LU);
     @tensor A_LU[:]:=A_LU[-1,-2,1,-4,-5,2]*U[-3,1,2];
     @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,2]*U'[1,2,-1];
 
@@ -971,14 +985,18 @@ function hopping_y(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
 
     
     gate=@ignore_derivatives parity_gate(A_RU,1); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,-6]*gate[-1,1];
     gate=@ignore_derivatives parity_gate(A_RU,2); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,-6]*gate[-2,1];
     gate=@ignore_derivatives parity_gate(A_RU,4); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[-1,-2,-3,1,-5,-6]*gate[-4,1];
 
 
-    U1=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_RU,2)*space(A_RU,6)), space(A_RU,2)*space(A_RU,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_RU);
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U1[-2,1,2];
     @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,2]*U1'[1,2,-4];
 
@@ -1012,7 +1030,8 @@ function hopping_y_no_sign(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     @tensor A_RD[:]:= A_cell[pos_RD[1]][pos_RD[2]][-1,-2,-3,-4,1]*O2[-6,-5,1]
 
 
-    U1=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_RU,2)*space(A_RU,6)), space(A_RU,2)*space(A_RU,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_RU);
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U1[-2,1,2];
     @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,2]*U1'[1,2,-4];
 
@@ -1069,23 +1088,32 @@ function hopping_diagonalb(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     @tensor A_LU[:]:= A_cell[pos_LU[1]][pos_LU[2]][-1,-2,-3,-4,1]*O1[-6,-5,1]
     @tensor A_RD[:]:= A_cell[pos_RD[1]][pos_RD[2]][-1,-2,-3,-4,1]*O2[-6,-5,1]
     O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+    O_string=_ipeps_ob_to_storage_like(O_string,A_LD);
+    O_string=_ipeps_ob_to_storage_like(O_string,A_LD);
+    O_string=_ipeps_ob_to_storage_like(O_string,A_LU);
     
 
 
     gate=@ignore_derivatives parity_gate(A_LU,1); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LU);
     @tensor A_LU[:]:=A_LU[1,-2,-3,-4,-5,-6]*gate[-1,1];
     gate=@ignore_derivatives parity_gate(A_LU,2); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LU);
     @tensor A_LU[:]:=A_LU[-1,1,-3,-4,-5,-6]*gate[-2,1];
     gate=@ignore_derivatives parity_gate(A_LU,4); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LU);
     @tensor A_LU[:]:=A_LU[-1,-2,-3,1,-5,-6]*gate[-4,1];
 
     gate=@ignore_derivatives parity_gate(A_RD,4); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RD);
     @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,-6]*gate[-4,1];
 
 
         
-    U1=@ignore_derivatives unitary(fuse(space(A_LU,3)⊗space(A_LU,6)), space(A_LU,3)⊗space(A_LU,6)); 
-    U2=@ignore_derivatives unitary(fuse(space(A_RD,4)⊗space(A_RD,6)), space(A_RD,4)⊗space(A_RD,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_LU,3)*space(A_LU,6)), space(A_LU,3)*space(A_LU,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RD,4)*space(A_RD,6)), space(A_RD,4)*space(A_RD,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_LU);
+    U2=_ipeps_ob_to_storage_like(U2,A_RD);
     @tensor A_LU[:]:=A_LU[-1,-2,1,-4,-5,2]*U1[-3,1,2];
     @tensor A_RU[:]:=A_cell[pos_RU[1]][pos_RU[2]][1,3,-3,-4,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-2];
     @tensor A_RD[:]:=A_RD[-1,-2,-3,1,-5,2]*U2[-4,1,2];
@@ -1124,30 +1152,41 @@ function hopping_diagonala(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     # @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*O1[-5,1]
     # @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-5,1]
     O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+    O_string=_ipeps_ob_to_storage_like(O_string,A_LD);
 
 
     gate=@ignore_derivatives parity_gate(A_LD,1); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LD);
     @tensor A_LD[:]:=A_LD[1,-2,-3,-4,-5,-6]*gate[-1,1];
     gate=@ignore_derivatives parity_gate(A_LD,2); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LD);
     @tensor A_LD[:]:=A_LD[-1,1,-3,-4,-5,-6]*gate[-2,1];
     gate=@ignore_derivatives parity_gate(A_LD,4); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LD);
     @tensor A_LD[:]:=A_LD[-1,-2,-3,1,-5,-6]*gate[-4,1];
 
     gate=@ignore_derivatives parity_gate(A_cell[pos_RD[1]][pos_RD[2]],2); 
+    gate=_ipeps_ob_to_storage_like(gate,A_cell[pos_RD[1]][pos_RD[2]]);
     @tensor A_RD[:]:=A_cell[pos_RD[1]][pos_RD[2]][-1,1,-3,-4,-5]*gate[-2,1];
     gate=@ignore_derivatives parity_gate(A_RD,3); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RD);
     @tensor A_RD[:]:=A_RD[-1,-2,1,-4,-5]*gate[-3,1];
     gate=@ignore_derivatives parity_gate(A_RD,5); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RD);
     @tensor A_RD[:]:=A_RD[-1,-2,-3,-4,1]*gate[-5,1];
 
     gate=@ignore_derivatives parity_gate(A_RU,3); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[-1,-2,1,-4,-5,-6]*gate[-3,1];
     gate=@ignore_derivatives parity_gate(A_RU,5); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[-1,-2,-3,-4,1,-6]*gate[-5,1];
 
 
-    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
-    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)*space(A_LD,6)), space(A_LD,3)*space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)*space(A_RU,6)), space(A_RU,2)*space(A_RU,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_LD);
+    U2=_ipeps_ob_to_storage_like(U2,A_RU);
     @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
     @tensor A_RD[:]:=A_RD[1,-2,-3,3,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-4];
@@ -1185,11 +1224,14 @@ function hopping_diagonala_no_sign(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     # @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*O1[-5,1]
     # @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-5,1]
     O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+    O_string=_ipeps_ob_to_storage_like(O_string,A_LD);
 
     A_RD=A_cell[pos_RD[1]][pos_RD[2]];
 
-    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
-    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)*space(A_LD,6)), space(A_LD,3)*space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)*space(A_RU,6)), space(A_RU,2)*space(A_RU,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_LD);
+    U2=_ipeps_ob_to_storage_like(U2,A_RU);
     @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
     @tensor A_RD[:]:=A_RD[1,-2,-3,3,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-4];
@@ -1225,36 +1267,49 @@ function hopping_diagonala_split(CTM,O1,O2,A_cell,AA_cell,cx,cy,ctm_setting)
     # @tensor A_LD[:]:= A_cell[pos_LD[1]][pos_LD[2]][-1,-2,-3,-4,1]*O1[-5,1]
     # @tensor A_RU[:]:= A_cell[pos_RU[1]][pos_RU[2]][-1,-2,-3,-4,1]*O2[-5,1]
     O_string=@ignore_derivatives unitary(space(O1,1),space(O1,1));
+    O_string=_ipeps_ob_to_storage_like(O_string,A_LD);
 
 
     gate=@ignore_derivatives parity_gate(A_LD,1); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LD);
     @tensor A_LD[:]:=A_LD[1,-2,-3,-4,-5,-6]*gate[-1,1];
     gate=@ignore_derivatives parity_gate(A_LD,2); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LD);
     @tensor A_LD[:]:=A_LD[-1,1,-3,-4,-5,-6]*gate[-2,1];
     gate=@ignore_derivatives parity_gate(A_LD,4); 
+    gate=_ipeps_ob_to_storage_like(gate,A_LD);
     @tensor A_LD[:]:=A_LD[-1,-2,-3,1,-5,-6]*gate[-4,1];
 
     gate=@ignore_derivatives parity_gate(A_cell[pos_RD[1]][pos_RD[2]],2); 
+    gate=_ipeps_ob_to_storage_like(gate,A_cell[pos_RD[1]][pos_RD[2]]);
     @tensor A_RD[:]:=A_cell[pos_RD[1]][pos_RD[2]][-1,1,-3,-4,-5]*gate[-2,1];
     gate=@ignore_derivatives parity_gate(A_RD,3); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RD);
     @tensor A_RD[:]:=A_RD[-1,-2,1,-4,-5]*gate[-3,1];
     gate=@ignore_derivatives parity_gate(A_RD,5); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RD);
     @tensor A_RD[:]:=A_RD[-1,-2,-3,-4,1]*gate[-5,1];
 
     gate=@ignore_derivatives parity_gate(A_RU,3); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[-1,-2,1,-4,-5,-6]*gate[-3,1];
     gate=@ignore_derivatives parity_gate(A_RU,5); 
+    gate=_ipeps_ob_to_storage_like(gate,A_RU);
     @tensor A_RU[:]:=A_RU[-1,-2,-3,-4,1,-6]*gate[-5,1];
 
 
-    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
-    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)*space(A_LD,6)), space(A_LD,3)*space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)*space(A_RU,6)), space(A_RU,2)*space(A_RU,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_LD);
+    U2=_ipeps_ob_to_storage_like(U2,A_RU);
     @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
     @tensor A_RD[:]:=A_RD[1,-2,-3,3,-5]*O_string[4,2]*U1'[1,2,-1]*U2'[3,4,-4];
 
     p1a,p1b=@ignore_derivatives projector_parity(space(A_RD,1));
     p4a,p4b=@ignore_derivatives projector_parity(space(A_RD,4));
+    p1a,p1b=_ipeps_ob_to_storage_like((p1a,p1b),A_RD);
+    p4a,p4b=_ipeps_ob_to_storage_like((p4a,p4b),A_RD);
     Pset1=(p1a,p1b,);
     Pset4=(p4a,p4b,);
 
@@ -1506,6 +1561,8 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
     elseif energy_setting.model=="spinful_triangle_lattice"
         if (Lx==2) & (Ly==1) #2x1 cell
             Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+            Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =
+                _ipeps_ob_to_storage_like((Ident_set, N_occu_set, n_double_set, Cdag_set, C_set), A_cell[1][1]);
             t1=parameters["t1"];
             t2=parameters["t2"];
             ϕ=parameters["ϕ"];
@@ -1555,6 +1612,8 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             return E_total,  ex_set, ey_set, e_diagonala_set, e0_set, eU_set
         elseif (Lx==2) & (Ly==2) 
             Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+            Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =
+                _ipeps_ob_to_storage_like((Ident_set, N_occu_set, n_double_set, Cdag_set, C_set), A_cell[1][1]);
             t1=parameters["t1"];
             t2=parameters["t2"];
             ϕ=parameters["ϕ"];
@@ -1629,6 +1688,8 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
             @assert mod(Lx,2)==0
             #for 120 degree magnetic order in the Hofstadter M2 model. Unit-cell for 120 degree order should be at least 3x3.  
             Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =@ignore_derivatives Hamiltonian_terms();
+            Ident_set, N_occu_set, n_double_set, Cdag_set, C_set =
+                _ipeps_ob_to_storage_like((Ident_set, N_occu_set, n_double_set, Cdag_set, C_set), A_cell[1][1]);
             t1=parameters["t1"];
             t2=parameters["t2"];
             ϕ=parameters["ϕ"];
@@ -2063,8 +2124,10 @@ function ob_up_triangle(CTM,S1,S2,S3,A_cell,AA_cell,cx,cy,ctm_setting)
 
     A_RD=A_cell[pos_RD[1]][pos_RD[2]];
 
-    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)⊗space(A_LD,6)), space(A_LD,3)⊗space(A_LD,6)); 
-    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)⊗space(A_RU,6)), space(A_RU,2)⊗space(A_RU,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,3)*space(A_LD,6)), space(A_LD,3)*space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,2)*space(A_RU,6)), space(A_RU,2)*space(A_RU,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_LD);
+    U2=_ipeps_ob_to_storage_like(U2,A_RU);
     @tensor A_LD[:]:=A_LD[-1,-2,1,-4,-5,2]*U1[-3,1,2];
     @tensor A_RU[:]:=A_RU[-1,1,-3,-4,-5,2]*U2[-2,1,2];
     @tensor A_RD[:]:=A_RD[1,-2,-3,4,3]*S2[2,-5,3,5]*U1'[1,2,-1]*U2'[4,5,-4];
@@ -2098,8 +2161,12 @@ function ob_dn_triangle(CTM,S1,S2,S3,A_cell,AA_cell,cx,cy,ctm_setting)
 
     A_LU=A_cell[pos_LU[1]][pos_LU[2]];
 
-    U1=@ignore_derivatives unitary(fuse(space(A_LD,4)⊗space(A_LD,6)), space(A_LD,4)⊗space(A_LD,6)); 
-    U2=@ignore_derivatives unitary(fuse(space(A_RU,1)⊗space(A_RU,6)), space(A_RU,1)⊗space(A_RU,6)); 
+    U1=@ignore_derivatives unitary(fuse(space(A_LD,4)*space(A_LD,6)), space(A_LD,4)*space(A_LD,6)); 
+    U2=@ignore_derivatives unitary(fuse(space(A_RU,1)*space(A_RU,6)), space(A_RU,1)*space(A_RU,6)); 
+    U1=_ipeps_ob_to_storage_like(U1,A_LD);
+    U2=_ipeps_ob_to_storage_like(U2,A_RU);
+    U1=_ipeps_ob_to_storage_like(U1,A_LD);
+    U2=_ipeps_ob_to_storage_like(U2,A_RU);
     @tensor A_LD[:]:=A_LD[-1,-2,-3,1,-5,2]*U1[-4,1,2];
     @tensor A_RU[:]:=A_RU[1,-2,-3,-4,-5,2]*U2[-1,1,2];
     @tensor A_LU[:]:=A_LU[-1,1,4,-4,3]*S2[2,-5,3,5]*U1'[1,2,-2]*U2'[4,5,-3];
@@ -2137,7 +2204,9 @@ function evaluate_spin_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm
         Hamiltonian_terms=Operators_spinful_SU2;
     end
 
-    (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3 =@ignore_derivatives  Hamiltonian_terms();
+    spin_operator_sets=@ignore_derivatives Hamiltonian_terms();
+    spin_operator_sets=_ipeps_ob_to_storage_like(spin_operator_sets,A_cell[1][1]);
+    (Ident,Ident,), (N_occu,N_occu,), (n_hole,n_hole), (n_double,n_double,), (Cdag,Cdag,), (C,C,), (CdagupCdagdn,CdagupCdagdn), (Pairinga,Pairinga), (Pairingb,Pairingb), (Sa,Sa), (Sb,Sb), chirality_S1,chirality_S2,chirality_S3 = spin_operator_sets;
 
     if energy_setting.model=="spinful_triangle_lattice"
 
@@ -2476,6 +2545,8 @@ function evaluate_ob_pairing_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, 
     if energy_setting.model=="spinful_triangle_lattice"
 
         pairing_singlet_site1, pairing_singlet_site2 =@ignore_derivatives operator_terms();
+        pairing_singlet_site1, pairing_singlet_site2 =
+            _ipeps_ob_to_storage_like((pairing_singlet_site1, pairing_singlet_site2), A_cell[1][1]);
 
         pairing_x_set=zeros(Lx,Ly)*im;
         pairing_y_set=zeros(Lx,Ly)*im;

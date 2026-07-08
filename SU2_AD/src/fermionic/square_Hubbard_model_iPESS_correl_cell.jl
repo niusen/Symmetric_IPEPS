@@ -1,5 +1,10 @@
 
-
+if !isdefined(@__MODULE__, :_ipeps_iPESS_correl_to_storage_like)
+    function _ipeps_iPESS_correl_to_storage_like(x, ref)
+        isdefined(@__MODULE__, :ipeps_to_storage_like) && return ipeps_to_storage_like(x, ref)
+        return x
+    end
+end
 
 
 
@@ -111,6 +116,7 @@ function solve_correl_length_simple(n_values,Vspace,CTM_cell,direction,Lx,Ly,par
                 end
 
                 vl_init = permute(TensorMap(randn, Vp⊗space(Tset[1][mod1(cy,Ly)].T1,1)', space(Tset[1][mod1(cy+1,Ly)].T3,3)), (1,2,3,),());
+                vl_init = _ipeps_iPESS_correl_to_storage_like(vl_init,Tset[1][mod1(cy,Ly)].T1);
                 if norm(vl_init)>0
                     eu,_=eigsolve(correl_TransOp_fx, vl_init, n_values,:LM,Arnoldi());
                     eu_set[cq]=eu;
@@ -130,8 +136,10 @@ function build_AA_spin(S1L,S1R,B_set,T_set,ca,cb)
 
     B0=B_set[ca,cb];#(LU,M)
     T0=T_set[ca,cb];#(M,dRD)
+    S1L=_ipeps_iPESS_correl_to_storage_like(S1L,T0);
+    S1R=_ipeps_iPESS_correl_to_storage_like(S1R,T0);
     @tensor T_new[:]:= T0[-1,1,-3,-4]*S1L[-5,-2,1];#M,d,R,D,virtual
-    U1=@ignore_derivatives unitary(fuse(space(T_new,3)⊗space(T_new,5)), space(T_new,3)⊗space(T_new,5)); 
+    U1=_ipeps_iPESS_correl_to_storage_like(@ignore_derivatives(unitary(fuse(space(T_new,3)*space(T_new,5)), space(T_new,3)*space(T_new,5))),T_new);
     @tensor T_new[:]:=T_new[-1,-2,1,-4,2]*U1[-3,1,2];#M,d,R',D
     T_new=permute(T_new,(1,),(2,3,4,));
     B_double_spin_L, _ = build_double_layer_swap_Tm(B0',B0, false);#L M U
@@ -140,10 +148,10 @@ function build_AA_spin(S1L,S1R,B_set,T_set,ca,cb)
 
     B0=B_set[mod1(ca+1,Lx),cb];#(LU,M)
     T0=T_set[mod1(ca+1,Lx),cb];#(M,dRD)
-    Id=unitary(space(S1R,1),space(S1R,1));
-    U12=@ignore_derivatives unitary(fuse(space(B0,3)⊗space(Id,2)), space(B0,3)⊗space(Id,2)); #M
+    Id=_ipeps_iPESS_correl_to_storage_like(unitary(space(S1R,1),space(S1R,1)),B0);
+    U12=_ipeps_iPESS_correl_to_storage_like(@ignore_derivatives(unitary(fuse(space(B0,3)*space(Id,2)), space(B0,3)*space(Id,2))),B0); #M
     @tensor B_new[:]:=B0[1,-2,3]*Id[2,4]*U1'[1,2,-1]*U12[-3,3,4];#L,U,M
-    U2=@ignore_derivatives unitary(fuse(space(T0,3)⊗space(Id,2)), space(T0,3)⊗space(Id,2)); #R
+    U2=_ipeps_iPESS_correl_to_storage_like(@ignore_derivatives(unitary(fuse(space(T0,3)*space(Id,2)), space(T0,3)*space(Id,2))),T0); #R
     @tensor T_new[:]:=T0[1,-2,3,-4]*Id[2,4]*U12'[1,2,-1]*U2[-3,3,4];#M,d,R,D
     B_new=permute(B_new,(1,2,),(3,));
     T_new=permute(T_new,(1,),(2,3,4,));
@@ -153,7 +161,7 @@ function build_AA_spin(S1L,S1R,B_set,T_set,ca,cb)
 
     B0=B_set[mod1(ca+2,Lx),cb];#(LU,M)
     T0=T_set[mod1(ca+2,Lx),cb];#(M,dRD)
-    U23=@ignore_derivatives unitary(fuse(space(B0,3)⊗space(Id,2)), space(B0,3)⊗space(Id,2)); #M
+    U23=_ipeps_iPESS_correl_to_storage_like(@ignore_derivatives(unitary(fuse(space(B0,3)*space(Id,2)), space(B0,3)*space(Id,2))),B0); #M
     @tensor B_new[:]:=B0[1,-2,3]*Id[2,4]*U2'[1,2,-1]*U23[-3,3,4];#L,U,M
     @tensor T_new[:]:= T0[-1,1,-3,-4]*S1R[-5,-2,1];#M,d,R,D,virtual
     @tensor T_new[:]:=T_new[1,-2,-3,-4,2]*U23'[1,2,-1];#M',d,R,D
@@ -172,11 +180,13 @@ function build_AA_hop(Cdag,C,B_set,T_set,ca,cb)
 
     B0=B_set[ca,cb];#(LU,M)
     T0=T_set[ca,cb];#(M,dRD)
+    Cdag=_ipeps_iPESS_correl_to_storage_like(Cdag,T0);
+    C=_ipeps_iPESS_correl_to_storage_like(C,T0);
     @tensor T_new[:]:= T0[-1,1,-3,-4]*Cdag[-5,-2,1];#M,d,R,D,virtual
-    U1=unitary(fuse(space(T_new,3)⊗space(T_new,5)), space(T_new,3)⊗space(T_new,5)); #
-    gate=parity_gate(B0,1); @tensor B_new[:]:=B0[1,-2,-3]*gate[-1,1];#L,U,M
-    gate=parity_gate(T_new,4); @tensor T_new[:]:=T_new[-1,-2,-3,1,-5]*gate[-4,1];#M,d,R,D,virtual
-    gate=parity_gate(B_new,2); @tensor B_new[:]:=B_new[-1,1,-3]*gate[-2,1];
+    U1=_ipeps_iPESS_correl_to_storage_like(unitary(fuse(space(T_new,3)*space(T_new,5)), space(T_new,3)*space(T_new,5)),T_new); #
+    gate=_ipeps_iPESS_correl_to_storage_like(parity_gate(B0,1),B0); @tensor B_new[:]:=B0[1,-2,-3]*gate[-1,1];#L,U,M
+    gate=_ipeps_iPESS_correl_to_storage_like(parity_gate(T_new,4),T_new); @tensor T_new[:]:=T_new[-1,-2,-3,1,-5]*gate[-4,1];#M,d,R,D,virtual
+    gate=_ipeps_iPESS_correl_to_storage_like(parity_gate(B_new,2),B_new); @tensor B_new[:]:=B_new[-1,1,-3]*gate[-2,1];
     @tensor T_new[:]:=T_new[-1,-2,1,-4,2]*U1[-3,1,2];#M,d,R',D
     B_new=permute(B_new,(1,2,),(3,));
     T_new=permute(T_new,(1,),(2,3,4,));
@@ -187,11 +197,11 @@ function build_AA_hop(Cdag,C,B_set,T_set,ca,cb)
 
     B0=B_set[mod1(ca+1,Lx),cb];#(LU,M)
     T0=T_set[mod1(ca+1,Lx),cb];#(M,dRD)
-    O_string=unitary(space(Cdag,1),space(Cdag,1));
-    gate=parity_gate(T0,4); @tensor T_new[:]:=T0[-1,-2,-3,1]*gate[-4,1];#D
-    U12=unitary(fuse(space(B0,3)⊗space(O_string,2)'), space(B0,3)⊗space(O_string,2)'); 
+    O_string=_ipeps_iPESS_correl_to_storage_like(unitary(space(Cdag,1),space(Cdag,1)),B0);
+    gate=_ipeps_iPESS_correl_to_storage_like(parity_gate(T0,4),T0); @tensor T_new[:]:=T0[-1,-2,-3,1]*gate[-4,1];#D
+    U12=_ipeps_iPESS_correl_to_storage_like(unitary(fuse(space(B0,3)*space(O_string,2)'), space(B0,3)*space(O_string,2)'),B0);
     @tensor B_new[:]:=B0[1,-2,3]*O_string[4,2]*U1'[1,2,-1]*U12[-3,3,4];#L,U,M
-    U2=unitary(fuse(space(T_new,3)⊗space(O_string,2)'), space(T_new,3)⊗space(O_string,2)'); 
+    U2=_ipeps_iPESS_correl_to_storage_like(unitary(fuse(space(T_new,3)*space(O_string,2)'), space(T_new,3)*space(O_string,2)'),T_new);
     @tensor T_new[:]:=T_new[1,-2,3,-4]*O_string[4,2]*U12'[1,2,-1]*U2[-3,3,4];#M,d,R,D
     B_new=permute(B_new,(1,2,),(3,));
     T_new=permute(T_new,(1,),(2,3,4,));
@@ -203,9 +213,9 @@ function build_AA_hop(Cdag,C,B_set,T_set,ca,cb)
     B0=B_set[mod1(ca+2,Lx),cb];#(LU,M)
     T0=T_set[mod1(ca+2,Lx),cb];#(M,dRD)
     @tensor T_new[:]:= T0[-1,1,-3,-4]*C[-5,-2,1];#M,d,R,D,virtual
-    gate=parity_gate(B0,1); @tensor B_new[:]:=B0[1,-2,-3]*gate[-1,1];#L
-    gate=parity_gate(B_new,2); @tensor B_new[:]:=B_new[-1,1,-3]*gate[-2,1];#U
-    U23=unitary(fuse(space(B_new,3)⊗space(O_string,2)'), space(B_new,3)⊗space(O_string,2)'); 
+    gate=_ipeps_iPESS_correl_to_storage_like(parity_gate(B0,1),B0); @tensor B_new[:]:=B0[1,-2,-3]*gate[-1,1];#L
+    gate=_ipeps_iPESS_correl_to_storage_like(parity_gate(B_new,2),B_new); @tensor B_new[:]:=B_new[-1,1,-3]*gate[-2,1];#U
+    U23=_ipeps_iPESS_correl_to_storage_like(unitary(fuse(space(B_new,3)*space(O_string,2)'), space(B_new,3)*space(O_string,2)'),B_new);
     @tensor B_new[:]:=B_new[1,-2,3]*O_string[4,2]*U2'[1,2,-1]*U23[-3,3,4];#L,U,M
     @tensor T_new[:]:=T_new[1,-2,-3,-4,2]*U23'[1,2,-1];#M,d,R,D
     B_new=permute(B_new,(1,2,),(3,));

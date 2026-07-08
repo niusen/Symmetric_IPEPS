@@ -18,7 +18,7 @@ using Dates
 @show env_bot_temp_cpu=true; # temporarily move env_bot to CPU when it is not immediately needed
 @show env_gauge_svd_debug_blocks=false; # debug env-gauge SVD block by block
 @show contract_triangle_env_projector=true; # split two chi bonds by projectors
-@show memory_info=true; # print tensor/GPU memory diagnostics
+@show memory_info=false; # print tensor/GPU memory diagnostics
 if any(dev -> lowercase(strip(dev)) != "cpu", (run_device, ctm_device, full_update_device, observable_device))
     using CUDA, cuTENSOR, Adapt
 end

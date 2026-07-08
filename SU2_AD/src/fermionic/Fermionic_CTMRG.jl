@@ -7,21 +7,32 @@ function build_double_layer_swap(Ap,A)
     # println(space(A))
 
     gate=@ignore_derivatives swap_gate(Ap,1,4); 
+    isdefined(@__MODULE__, :ipeps_to_storage_like) && (gate=ipeps_to_storage_like(gate,Ap));
     @tensor Ap[:]:=Ap[1,-2,-3,2,-5]*gate[-1,-4,1,2];  
     gate=@ignore_derivatives swap_gate(Ap,2,3); 
+    isdefined(@__MODULE__, :ipeps_to_storage_like) && (gate=ipeps_to_storage_like(gate,Ap));
     @tensor Ap[:]:=Ap[-1,1,2,-4,-5]*gate[-2,-3,1,2];  
     gate=@ignore_derivatives parity_gate(Ap,4); 
+    isdefined(@__MODULE__, :ipeps_to_storage_like) && (gate=ipeps_to_storage_like(gate,Ap));
     @tensor Ap[:]:=Ap[-1,-2,-3,1,-5]*gate[-4,1];
     gate=@ignore_derivatives parity_gate(Ap,2); 
+    isdefined(@__MODULE__, :ipeps_to_storage_like) && (gate=ipeps_to_storage_like(gate,Ap));
     @tensor Ap[:]:=Ap[-1,1,-3,-4,-5]*gate[-2,1];
     
     Ap=permute(Ap,(1,2,),(3,4,5))
     A=permute(A,(1,2,),(3,4,5));    
 
-    U_L=@ignore_derivatives unitary(fuse(space(Ap, 1) ⊗ space(A, 1)), space(Ap, 1) ⊗ space(A, 1));
-    U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) ⊗ space(A, 2)), space(Ap, 2) ⊗ space(A, 2));
-    U_R=@ignore_derivatives unitary(space(Ap, 3)' ⊗ space(A, 3)', fuse(space(Ap, 3)' ⊗ space(A, 3)'));
-    U_U=@ignore_derivatives unitary(space(Ap, 4)' ⊗ space(A, 4)', fuse(space(Ap, 4)' ⊗ space(A, 4)'));
+    U_L=@ignore_derivatives unitary(fuse(space(Ap, 1) * space(A, 1)), space(Ap, 1) * space(A, 1));
+    U_D=@ignore_derivatives unitary(fuse(space(Ap, 2) * space(A, 2)), space(Ap, 2) * space(A, 2));
+    U_R=@ignore_derivatives unitary(space(Ap, 3)' * space(A, 3)', fuse(space(Ap, 3)' * space(A, 3)'));
+    U_U=@ignore_derivatives unitary(space(Ap, 4)' * space(A, 4)', fuse(space(Ap, 4)' * space(A, 4)'));
+
+    if isdefined(@__MODULE__, :ipeps_to_storage_like)
+        U_L=ipeps_to_storage_like(U_L,A);
+        U_D=ipeps_to_storage_like(U_D,A);
+        U_R=ipeps_to_storage_like(U_R,A);
+        U_U=ipeps_to_storage_like(U_U,A);
+    end
 
     # uMp,sMp,vMp=tsvd(Ap);
     # uMp=uMp*sMp;
@@ -29,9 +40,11 @@ function build_double_layer_swap(Ap,A)
     # uM=uM*sM;
 
     U_tem=@ignore_derivatives unitary(fuse(space(A,1)*space(A,2)), space(A,1)*space(A,2))*(1+0*im);
+    isdefined(@__MODULE__, :ipeps_to_storage_like) && (U_tem=ipeps_to_storage_like(U_tem,A));
     vM=U_tem*A;
     uM=U_tem';
     U_temp=@ignore_derivatives unitary(fuse(space(Ap,1)*space(Ap,2)), space(Ap,1)*space(Ap,2))*(1+0*im);
+    isdefined(@__MODULE__, :ipeps_to_storage_like) && (U_temp=ipeps_to_storage_like(U_temp,Ap));
     vMp=U_temp*Ap;
     uMp=U_temp';
 
@@ -39,8 +52,9 @@ function build_double_layer_swap(Ap,A)
     uM=permute(uM,(1,2,3,),())
     Vp=@ignore_derivatives space(uMp,3);
     V=@ignore_derivatives space(vM,1);
-    U=@ignore_derivatives unitary(fuse(Vp' ⊗ V), Vp' ⊗ V);
+    U=@ignore_derivatives unitary(fuse(Vp' * V), Vp' * V);
 
+    isdefined(@__MODULE__, :ipeps_to_storage_like) && (U=ipeps_to_storage_like(U,vM));
     @tensor double_LD[:]:=uMp[-1,-2,1]*U'[1,-3,-4];
     @tensor double_LD[:]:=double_LD[-1,-3,1,-5]*uM[-2,-4,1];
 
@@ -72,6 +86,11 @@ function build_double_layer_swap(Ap,A)
     P_odd_Lp,_=@ignore_derivatives projector_parity(space(U_L',1));
     P_odd_Up,_=@ignore_derivatives projector_parity(space(U_U',2));
     P_odd_U,_=@ignore_derivatives projector_parity(space(U_U',3));
+    if isdefined(@__MODULE__, :ipeps_to_storage_like)
+        P_odd_Lp=ipeps_to_storage_like(P_odd_Lp,U_L);
+        P_odd_Up=ipeps_to_storage_like(P_odd_Up,U_U);
+        P_odd_U=ipeps_to_storage_like(P_odd_U,U_U);
+    end
 
     @tensor isom_Lp[:]:=U_L[-1,4,3]*P_odd_Lp'[4,1]*P_odd_Lp[1,2]*U_L'[2,3,-2];
     @tensor isom_U[:]:=U_U[3,4,-1]*P_odd_U'[4,1]*P_odd_U[1,2]*U_U'[-2,3,2];
@@ -92,6 +111,11 @@ function build_double_layer_swap(Ap,A)
     P_odd_Dp,_=@ignore_derivatives projector_parity(space(U_D',1));
     P_odd_D,_=@ignore_derivatives projector_parity(space(U_D',2));
     P_odd_R,_=@ignore_derivatives projector_parity(space(U_R',3));
+    if isdefined(@__MODULE__, :ipeps_to_storage_like)
+        P_odd_Dp=ipeps_to_storage_like(P_odd_Dp,U_D);
+        P_odd_D=ipeps_to_storage_like(P_odd_D,U_D);
+        P_odd_R=ipeps_to_storage_like(P_odd_R,U_R);
+    end
     @tensor isom_Dp[:]:=U_D[-1,4,3]*P_odd_Dp'[4,1]*P_odd_Dp[1,2]*U_D'[2,3,-2];
     @tensor isom_R[:]:=U_R[3,4,-1]*P_odd_R'[4,1]*P_odd_R[1,2]*U_R'[-2,3,2];
     @tensor isom_Dp_D[:]:=U_D[-1,3,4]*P_odd_Dp'[3,1]*P_odd_Dp[1,5]*P_odd_D'[4,2]*P_odd_D[2,6]*U_D'[5,6,-2];

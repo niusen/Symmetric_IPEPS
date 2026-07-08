@@ -1,3 +1,10 @@
+if !isdefined(@__MODULE__, :_ipeps_ob_to_storage_like)
+    function _ipeps_ob_to_storage_like(x, ref)
+        isdefined(@__MODULE__, :ipeps_to_storage_like) && return ipeps_to_storage_like(x, ref)
+        return x
+    end
+end
+
 function build_double_layer_extra_leg(A,operator)
     #su2 operator has three legs, such as svd decomposition of Heisenberg interaction 
     #first two indices of operator are physical indices
@@ -213,7 +220,9 @@ end
 
 function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
     global Lx,Ly
-    Ident_set, N_occu_set, n_hole_set, n_double_set, Cdag_set, C_set, CdagupCdagdn_set, Pairinga_set, Pairingb_set, Sa_set, Sb_set=Operators_spinful_SU2();
+    operator_sets=Operators_spinful_SU2();
+    operator_sets=_ipeps_ob_to_storage_like(operator_sets,A_cell[1][1]);
+    Ident_set, N_occu_set, n_hole_set, n_double_set, Cdag_set, C_set, CdagupCdagdn_set, Pairinga_set, Pairingb_set, Sa_set, Sb_set=operator_sets;
 
     densityL=N_occu_set[1];
     densityR=N_occu_set[1];
@@ -250,14 +259,17 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
                 ###############################
                 #spin-spin correlation
                 @tensor A_new[:]:= A_cell[ca][cb][-1,-2,-3,-4,1]*S1L[-6,-5,1]
-                U1=@ignore_derivatives unitary(fuse(space(A_new,3)⊗space(A_new,6)), space(A_new,3)⊗space(A_new,6)); 
+                U1=@ignore_derivatives unitary(fuse(space(A_new,3)*space(A_new,6)), space(A_new,3)*space(A_new,6)); 
+                U1=_ipeps_ob_to_storage_like(U1,A_new);
                 @tensor A_new[:]:=A_new[-1,-2,1,-4,-5,2]*U1[-3,1,2];
                 AA,_,_,_,_=build_double_layer_swap(A_cell[ca][cb]',A_new);
                 AA_spin_L_set=fill_tuple(AA_spin_L_set, AA, ca,cb);
 
                 A_=A_cell[mod1(ca+1,Lx)][cb];
                 Id=unitary(space(S1R,1),space(S1R,1));
-                U2=@ignore_derivatives unitary(fuse(space(A_,3)⊗space(Id,2)), space(A_,3)⊗space(Id,2)); 
+                Id=_ipeps_ob_to_storage_like(Id,A_);
+                U2=@ignore_derivatives unitary(fuse(space(A_,3)*space(Id,2)), space(A_,3)*space(Id,2)); 
+                U2=_ipeps_ob_to_storage_like(U2,A_);
                 @tensor A_new[:]:=A_[1,-2,3,-4,-5]*Id[2,4]*U1'[1,2,-1]*U2[-3,3,4];
                 AA,_,_,_,_=build_double_layer_swap(A_cell[mod1(ca+1,Lx)][cb]',A_new);
                 AA_spin_mid_set=fill_tuple(AA_spin_mid_set, AA, mod1(ca+1,Lx),cb);
@@ -300,25 +312,28 @@ function cal_correl(CTM_cell,A_cell,AA_cell,D,chi,parameters,direction,distance)
                 
 
                 @tensor A1[:]:= A1[-1,-2,-3,-4,1]*Cdag[-6,-5,1]
-                U1=unitary(fuse(space(A1,3)⊗space(A1,6)), space(A1,3)⊗space(A1,6)); 
-                gate=parity_gate(A1,1); @tensor A1[:]:=A1[1,-2,-3,-4,-5,-6]*gate[-1,1];
-                gate=parity_gate(A1,2); @tensor A1[:]:=A1[-1,1,-3,-4,-5,-6]*gate[-2,1];
+                U1=unitary(fuse(space(A1,3)*space(A1,6)), space(A1,3)*space(A1,6)); 
+                U1=_ipeps_ob_to_storage_like(U1,A1);
+                gate=parity_gate(A1,1); gate=_ipeps_ob_to_storage_like(gate,A1); @tensor A1[:]:=A1[1,-2,-3,-4,-5,-6]*gate[-1,1];
+                gate=parity_gate(A1,2); gate=_ipeps_ob_to_storage_like(gate,A1); @tensor A1[:]:=A1[-1,1,-3,-4,-5,-6]*gate[-2,1];
                 #gate=parity_gate(A1,3); @tensor A1[:]:=A1[-1,-2,1,-4,-5,-6]*gate[-3,1];
-                gate=parity_gate(A1,4); @tensor A1[:]:=A1[-1,-2,-3,1,-5,-6]*gate[-4,1];
+                gate=parity_gate(A1,4); gate=_ipeps_ob_to_storage_like(gate,A1); @tensor A1[:]:=A1[-1,-2,-3,1,-5,-6]*gate[-4,1];
                 @tensor A1_new[:]:=A1[-1,-2,1,-4,-5,2]*U1[-3,1,2];
                 A1_double,_,_,_,_=build_double_layer_swap(A_cell[ca][cb]',A1_new)
                 AA_CdagC_L_set=fill_tuple(AA_CdagC_L_set, A1_double, ca,cb);
                 
                 O_string=unitary(space(Cdag,1),space(Cdag,1));
-                gate=parity_gate(A_mid,2); @tensor A_mid[:]:=A_mid[-1,1,-3,-4,-5]*gate[-2,1];
-                U2=unitary(fuse(space(A_mid,3)⊗space(A1,6)), space(A_mid,3)⊗space(A1,6)); 
+                O_string=_ipeps_ob_to_storage_like(O_string,A_mid);
+                gate=parity_gate(A_mid,2); gate=_ipeps_ob_to_storage_like(gate,A_mid); @tensor A_mid[:]:=A_mid[-1,1,-3,-4,-5]*gate[-2,1];
+                U2=unitary(fuse(space(A_mid,3)*space(A1,6)), space(A_mid,3)*space(A1,6)); 
+                U2=_ipeps_ob_to_storage_like(U2,A_mid);
                 @tensor A_mid_new[:]:=A_mid[1,-2,3,-4,-5]*O_string[4,2]*U1'[1,2,-1]*U2[-3,3,4];
                 A_mid_double,_,_,_,_=build_double_layer_swap(A_cell[mod1(ca+1,Lx)][cb]',A_mid_new)
                 AA_CdagC_mid_set=fill_tuple(AA_CdagC_mid_set, A_mid_double, mod1(ca+1,Lx),cb);
     
                 @tensor A2[:]:= A2[-1,-2,-3,-4,1]*C[-6,-5,1]
-                gate=parity_gate(A2,1); @tensor A2[:]:=A2[1,-2,-3,-4,-5,-6]*gate[-1,1];
-                gate=parity_gate(A2,4); @tensor A2[:]:=A2[-1,-2,-3,1,-5,-6]*gate[-4,1];
+                gate=parity_gate(A2,1); gate=_ipeps_ob_to_storage_like(gate,A2); @tensor A2[:]:=A2[1,-2,-3,-4,-5,-6]*gate[-1,1];
+                gate=parity_gate(A2,4); gate=_ipeps_ob_to_storage_like(gate,A2); @tensor A2[:]:=A2[-1,-2,-3,1,-5,-6]*gate[-4,1];
                 @tensor A2_new[:]:=A2[1,-2,-3,-4,-5,2]*U2'[1,2,-1];
                 A2_double,_,_,_,_=build_double_layer_swap(A_cell[mod1(ca+2,Lx)][cb]',A2_new)
                 AA_CdagC_R_set=fill_tuple(AA_CdagC_R_set, A2_double, mod1(ca+2,Lx),cb);

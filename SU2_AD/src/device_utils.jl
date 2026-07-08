@@ -282,9 +282,29 @@ function _ipeps_to_scalartype_like(t::TensorKit.AbstractTensorMap, ref::TensorKi
     return y
 end
 
-function ipeps_to_storage_like(x, ref::TensorKit.AbstractTensorMap)
-    y = x isa TensorKit.AbstractTensorMap ? _ipeps_to_scalartype_like(x, ref) : x
+function ipeps_to_storage_like(x::TensorKit.AbstractTensorMap, ref::TensorKit.AbstractTensorMap)
+    y = _ipeps_to_scalartype_like(x, ref)
     return ipeps_to_storage(_ipeps_storage_family(TensorKit.storagetype(ref)), y)
+end
+
+function ipeps_to_storage_like(x::Tuple, ref::TensorKit.AbstractTensorMap)
+    return map(y -> ipeps_to_storage_like(y, ref), x)
+end
+
+function ipeps_to_storage_like(x::NamedTuple{names}, ref::TensorKit.AbstractTensorMap) where {names}
+    return NamedTuple{names}(map(y -> ipeps_to_storage_like(y, ref), Tuple(x)))
+end
+
+function ipeps_to_storage_like(xs::AbstractArray, ref::TensorKit.AbstractTensorMap)
+    ys = Array{Any}(undef, size(xs))
+    for ind in CartesianIndices(xs)
+        isassigned(xs, ind) && (ys[ind] = ipeps_to_storage_like(xs[ind], ref))
+    end
+    return ys
+end
+
+function ipeps_to_storage_like(x, ref::TensorKit.AbstractTensorMap)
+    return ipeps_to_storage(_ipeps_storage_family(TensorKit.storagetype(ref)), x)
 end
 
 ipeps_to_storage(storage, x::Number) = x

@@ -25,3 +25,10 @@ function es_synchronize()
     USE_GPU_ES && CUDA.synchronize()
     return nothing
 end
+
+function es_pool_status()
+    if USE_GPU_ES && isdefined(@__MODULE__, :CUDA)
+        getfield(@__MODULE__, :CUDA).pool_status()
+    end
+    return nothing
+end

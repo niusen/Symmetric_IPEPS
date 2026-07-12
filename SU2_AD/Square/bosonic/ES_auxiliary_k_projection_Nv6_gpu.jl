@@ -10,7 +10,7 @@ cd(@__DIR__)
 
 @show run_device = "cuda:1"  # choose from "cpu", "cuda:0", "cuda:1"
 
-const ROOT_DIR = normpath(joinpath(@__DIR__, ".."))
+const ROOT_DIR = normpath(joinpath(@__DIR__, "..", ".."))
 
 include(joinpath(ROOT_DIR, "src", "bosonic", "iPEPS_ansatz.jl"))
 include(joinpath(ROOT_DIR, "src", "bosonic", "AD_lib.jl"))
@@ -25,6 +25,7 @@ include("ES_auxiliary_Ty_shift_builders.jl");
 include(joinpath(ROOT_DIR, "src", "mps_algorithms", "ES_algorithms.jl"))
 include(joinpath(ROOT_DIR, "src", "mps_algorithms", "ES_algorithms_explicit.jl"))
 include(joinpath(ROOT_DIR, "src", "mps_algorithms", "Projector_funs.jl"))
+include("krylovkit_checkpointed_arnoldi.jl")
 
 Random.seed!(555)
 
@@ -146,7 +147,7 @@ function  apply_l_Tyn(vl, AA_n, projectors_Tyn, projectors_Tyn_larger, spins)
         @show ind1
         V_comp=space(projectors_Tyn[ind1],1);
         @assert length(V_comp.dims.keys)==1;
-        J_=V_comp.dims.keys[1].j;
+        @show J_=V_comp.dims.keys[1].j;
         projectors_Tyn_larger_tem=projectors_Tyn_larger[findfirst(x->x==J_,spins)];
         t=@elapsed begin
             for ind2 =length(projectors_Tyn_larger_tem):-1:1
@@ -156,7 +157,7 @@ function  apply_l_Tyn(vl, AA_n, projectors_Tyn, projectors_Tyn_larger, spins)
                 GC.gc(true)
                 ipeps_reclaim_device_memory!(aggressive=true)
             end
-            CUDA.pool_status();flush(stdout)
+            es_pool_status();flush(stdout)
         end
         println("time = ", t)
     end
@@ -244,7 +245,7 @@ function apply_r_Tyn(vr, AA_n, projectors_Tyn, projectors_Tyn_larger, spins)
                 GC.gc(true)
                 ipeps_reclaim_device_memory!(aggressive=true)
             end
-            CUDA.pool_status()
+            es_pool_status()
             flush(stdout)
         end
 
@@ -257,7 +258,7 @@ end
 
 
 spins=[0,1/2,1,3/2,2,5/2];#content of irreps in of small projectors
-max_eff_dim_set=[15,10,6,10,9,12]
+max_eff_dim_set=[12,6,6,6,9,12]
 
 #########
 #Ty3
@@ -272,7 +273,7 @@ projectors_Ty3 = to_es_device(projectors_Ty3);
 #CUDA.pool_status()
 ipeps_reclaim_device_memory!()
 
-println("apply Ty3");
+println("prepare Ty3");
 # apply_l_Tyn(vl0, AA_3, projectors_Ty3, projectors_Ty3_larger, spins)
 ##############
 
@@ -288,7 +289,7 @@ projectors_Ty2 = to_es_device(projectors_Ty2);
 #CUDA.pool_status()
 ipeps_reclaim_device_memory!()
 
-println("apply Ty2");
+println("prepare Ty2");
 # apply_l_Tyn(vl0, AA_2, projectors_Ty2, projectors_Ty2_larger, spins)
 ######
 
@@ -305,7 +306,7 @@ projectors_Ty1 = to_es_device(projectors_Ty1);
 #CUDA.pool_status()
 ipeps_reclaim_device_memory!()
 
-println("apply Ty1");
+println("prepare Ty1");
 # apply_l_Tyn(vl0, AA_1, projectors_Ty1, projectors_Ty1_larger, spins)
 
 
@@ -325,7 +326,7 @@ projectors_Ty0 = to_es_device(projectors_Ty0);
 #CUDA.pool_status()
 ipeps_reclaim_device_memory!()
 
-println("apply Ty0");
+println("prepare Ty0");
 # apply_l_Tyn(vl0, AA_0, projectors_Ty0, projectors_Ty0_larger, spins)
 
 
@@ -342,7 +343,7 @@ projectors_Tym2 = to_es_device(projectors_Tym2);
 #CUDA.pool_status()
 ipeps_reclaim_device_memory!()
 
-println("apply Tym2");
+println("prepare Tym2");
 # apply_l_Tyn(vl0, AA_m2, projectors_Tym2, projectors_Tym2_larger, spins)
 
 
@@ -360,7 +361,7 @@ projectors_Tym1 = to_es_device(projectors_Tym1);
 #CUDA.pool_status()
 ipeps_reclaim_device_memory!()
 
-println("apply Tym1");
+println("prepare Tym1");
 # apply_l_Tyn(vl0, AA_m1, projectors_Tym1, projectors_Tym1_larger, spins)
 #######
 
@@ -401,18 +402,32 @@ end
 contraction_l_fun(x)=apply_M_vl_kA_projection(projectors_set, projectors_larger_set, AA_set, x, kind, Nv, spins);
 contraction_r_fun(x)=apply_M_vr(projectors_Ty0, projectors_Ty0_larger, AA_0, x, kind, Nv, spins);
 
-@time contraction_l_fun(vl0);
-@time contraction_r_fun(vr0);
+# @time contraction_l_fun(vl0);
+# @time contraction_r_fun(vr0);
 
 #vals1, vecs1,info1 = eigsolve(hfun, AB, 1, :LM; tol=eigsolve_tol, krylovdim=eigsolve_krylovdim, maxiter=eigsolve_maxiter,eager=true)
-@time eul,evl=eigsolve(contraction_l_fun, vl0, 1,:LM; tol=1e-5, krylovdim=10,eager=true);
+@time eul,evl,info_l=checkpointed_arnoldi_eigsolve(
+    contraction_l_fun, vl0, 1, :LM;
+    tol=1e-4,
+    krylovdim=20,
+    eager=true,
+    checkpoint_file="checkpoint_evl_kind"*string(kind)*"_Nv"*string(Nv),
+    resume=true,
+);
 es_synchronize()
 @show eul
 jldsave("evl_kind"*string(kind)*"_Nv"*string(Nv);evl=to_es_cpu(evl),U_L=to_es_cpu(U_L));
 evl=evl[1];
 
 
-@time eur,evr=eigsolve(contraction_r_fun, vr0, 1,:LM; tol=1e-5, krylovdim=10,eager=true);
+@time eur,evr,info_r=checkpointed_arnoldi_eigsolve(
+    contraction_r_fun, vr0, 1, :LM;
+    tol=1e-4,
+    krylovdim=20,
+    eager=true,
+    checkpoint_file="checkpoint_evr_kind"*string(kind)*"_Nv"*string(Nv),
+    resume=true,
+);
 es_synchronize()
 @show eur
 jldsave("evr_Nv"*string(Nv);evr=to_es_cpu(evr),U_R=to_es_cpu(U_R));

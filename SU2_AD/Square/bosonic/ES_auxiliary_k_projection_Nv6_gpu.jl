@@ -258,7 +258,7 @@ end
 
 
 spins=[0,1/2,1,3/2,2,5/2];#content of irreps in of small projectors
-max_eff_dim_set=[12,6,6,6,9,12]
+max_eff_dim_set=[12,6,5,6,9,12]
 
 #########
 #Ty3

@@ -7,57 +7,69 @@ if !isdefined(@__MODULE__, :chiral_pair_fuse_unitary)
 end
 
 """
-    chiral_pair_Ty1_mpo()
+    chiral_pair_Ty1_mpo(; copy=:A)
 
 Return the local physical MPO tensor for translating one copy of the chiral-pair
-physical leg by one site along y.
+physical leg by one site along y.  `copy=:A` translates the first/chiral copy,
+while `copy=:B` translates the second/antichiral copy.
 
 Leg convention:
 
     W[p_bra, p_ket, m_in, m_out]
 
-where `p = fuse(a, b)` is the fused d=4 physical leg, `a` is the copy being
-translated, `b` is the onsite copy, `m_in = a_{j-1}`, and `m_out = a_j`.
+where `p = fuse(a, b)` is the fused d=4 physical leg.  For `copy=:A`,
+`m_in = a_{j-1}` and `m_out = a_j`; for `copy=:B`, `m_in = b_{j-1}` and
+`m_out = b_j`.
 
 The tensor implements
 
-    delta(a_bra, m_in) * delta(b_bra, b_ket) * delta(m_out, a_ket)
+    copy=:A: delta(a_bra, m_in) * delta(b_bra, b_ket) * delta(m_out, a_ket)
+    copy=:B: delta(a_bra, a_ket) * delta(b_bra, m_in) * delta(m_out, b_ket)
 
 in the unfused copy basis, with `chiral_pair_fuse_unitary()` converting between
 fused and copy bases.
 """
-function chiral_pair_Ty1_mpo()
+function chiral_pair_Ty1_mpo(; copy::Symbol=:A)
+    @assert copy in (:A, :B, :chiral, :antichiral) "copy must be :A/:chiral or :B/:antichiral."
     U_pair = @ignore_derivatives chiral_pair_fuse_unitary()
     Va = @ignore_derivatives space(U_pair, 2)
     Vb = @ignore_derivatives space(U_pair, 3)
     @assert Va == Vb "The two chiral-pair copy spaces should be identical."
 
-    Id_a = unitary(Va, Va) * (1 + 0im)
-
-    @tensor W[-1, -2, -3, -4] :=
-        U_pair'[1, 2, -1] *
-        Id_a[1, -3] *
-        Id_a[-4, 3] *
-        U_pair[-2, 3, 2]
+    if copy in (:A, :chiral)
+        Id_a = unitary(Va, Va) * (1 + 0im)
+        @tensor W[-1, -2, -3, -4] :=
+            U_pair'[1, 2, -1] *
+            Id_a[1, -3] *
+            Id_a[-4, 3] *
+            U_pair[-2, 3, 2]
+    else
+        Id_b = unitary(Vb, Vb) * (1 + 0im)
+        @tensor W[-1, -2, -3, -4] :=
+            U_pair'[1, 2, -1] *
+            Id_b[2, -3] *
+            Id_b[-4, 4] *
+            U_pair[-2, 1, 4]
+    end
 
     return W
 end
 
 """
-    chiral_pair_Tym1_mpo()
+    chiral_pair_Tym1_mpo(; copy=:A)
 
-Return the local physical MPO tensor for translating the A copy by one site in
+Return the local physical MPO tensor for translating one copy by one site in
 the opposite y direction.
 
 Leg convention:
 
     W[p_bra, p_ket, m_in, m_out]
 
-Here `m_in = A_{j+1}` and `m_out = A_j`.  The B copy is still contracted
-onsite directly between bra and ket.
+For `copy=:A`, `m_in = A_{j+1}` and `m_out = A_j`; for `copy=:B`, `m_in =
+B_{j+1}` and `m_out = B_j`.  The other copy is still contracted onsite.
 """
-function chiral_pair_Tym1_mpo()
-    Wp = chiral_pair_Ty1_mpo()
+function chiral_pair_Tym1_mpo(; copy::Symbol=:A)
+    Wp = chiral_pair_Ty1_mpo(copy=copy)
     return permute(Wp, (1, 2, 4, 3))
 end
 
@@ -86,7 +98,7 @@ function compose_chiral_pair_shift_mpo(Wa, Wb)
 end
 
 """
-    chiral_pair_Tym2_mpo()
+    chiral_pair_Tym2_mpo(; copy=:A)
 
 Return the local physical MPO tensor for translating the A copy by two sites in
 the negative y direction.  It is built as `Tym1 * Tym1`, with the two incoming
@@ -99,8 +111,8 @@ Leg convention:
 
 where `m_in` and `m_out` are fused two-copy auxiliary spaces.
 """
-function chiral_pair_Tym2_mpo()
-    Wm1 = chiral_pair_Tym1_mpo()
+function chiral_pair_Tym2_mpo(; copy::Symbol=:A)
+    Wm1 = chiral_pair_Tym1_mpo(copy=copy)
     return compose_chiral_pair_shift_mpo(Wm1, Wm1)
 end
 

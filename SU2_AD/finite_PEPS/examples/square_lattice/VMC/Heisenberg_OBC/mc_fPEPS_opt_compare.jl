@@ -343,7 +343,9 @@ function grad_analysis(Eterms_set, grads_set, E_grads_set)
     E_mean=mean(E_set);
     grad_mean=mean(grads_set);
     E_grad_mean=mean(E_grads_set);
-    Grad=E_grad_mean-E_mean*grad_mean;
+    # Match <conj(E_local) O> with <conj(E_local)><O> before converting the
+    # complex covariance to the real/imaginary finite-difference convention.
+    Grad=E_grad_mean-conj(E_mean)*grad_mean;
     Grad=to_Matrix_TensorMap(Grad);
 
    
@@ -386,13 +388,14 @@ function compare_stochastic_opt(x0::Matrix{TensorMap}, ls)
         end
 
         Eterms_set, grads_set, E_grads_set=read_data(ntask);
-        E_mean, Eterms_set, grad_mean, E_grad_mean, gvec=grad_analysis(Eterms_set, grads_set, E_grads_set);
+        E_mean, Eterms_set, grad_mean, E_grad_mean, grad_raw=grad_analysis(Eterms_set, grads_set, E_grads_set);
+        gvec=vmc_energy_gradient(grad_raw);
         gnorm = norm(gvec);
         @show E_mean;flush(stdout);
         println("norm of grad:"*string(norm(gvec)))
 
-        gvec=get_grad_conjugate(gvec);
-
+        # `x` was normalized once above.  `exact_grad` freezes this state and
+        # never normalizes any of its +/- finite-difference perturbations.
         E_exact,grad_FD=exact_grad(x);
         @show E_exact;flush(stdout);
         ov_set=compare_grad(grad_FD,gvec);
@@ -488,4 +491,4 @@ ls.fix_delta=false;
 
 
 
-compare_stochastic_opt(psi, ls) 
+compare_stochastic_opt(psi, ls)

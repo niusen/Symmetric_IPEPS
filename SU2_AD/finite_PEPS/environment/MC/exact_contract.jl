@@ -76,139 +76,55 @@ function compute_E(psi)
 end
 
 
-function exact_grad(psi);
-    E0=compute_E(psi)
+function _shifted_energy(psi, cx, cy, inds, shift)
+    psi_shifted=deepcopy(psi);
+    T=psi_shifted[cx,cy];
+    T[inds...]=T[inds...]+shift;
+    psi_shifted[cx,cy]=T;
+    # The variational energy is real; discard contraction roundoff in its
+    # imaginary part before taking a real-coordinate finite difference.
+    return real(compute_E(psi_shifted))
+end
 
+
+"""
+    exact_grad(psi; dt=1e-5)
+
+Central finite-difference gradient of `<psi|H|psi>/<psi|psi>` at exactly the
+supplied tensor coordinates.  `psi` is treated as a frozen reference point:
+this routine never calls `normalize_PEPS!` for either the reference state or
+any perturbed state.
+
+For complex tensors, the returned TensorMap stores
+`dE/dRe(A) + im*dE/dIm(A)`, matching `vmc_energy_gradient`.
+"""
+function exact_grad(psi; dt=1e-5)
+    dt>0 || throw(ArgumentError("dt must be positive"));
+    E0=real(compute_E(psi));
     grad_FD=deepcopy(psi);
-    dt=0.00001;
+
     for cx=1:Lx
         for cy=1:Ly
-            grad_FD[cx,cy]=grad_FD[cx,cy]*0;
-            T=grad_FD[cx,cy]
-            if Rank(T)==3
-                D1=TensorKit.dim(space(T,1));
-                D2=TensorKit.dim(space(T,2));
-                D3=TensorKit.dim(space(T,3));
-                for d1=1:D1
-                    for d2=1:D1
-                        for d3=1:D3
-                            if global_eltype==ComplexF64
-                                psi_=deepcopy(psi);
-                                tt=psi_[cx,cy];
-                                tt[d1,d2,d3]=tt[d1,d2,d3]+dt;
-                                psi_[cx,cy]=tt;
-                                Enew=compute_E(psi_);
-                                Re=(Enew-E0)/dt;
+            T=psi[cx,cy];
+            grad_FD[cx,cy]=T*0;
+            dims=ntuple(dd -> TensorKit.dim(space(T,dd)), Rank(T));
+            is_complex=eltype(T) <: Complex;
 
-                                psi_=deepcopy(psi);
-                                tt=psi_[cx,cy];
-                                tt[d1,d2,d3]=tt[d1,d2,d3]+dt*im;
-                                psi_[cx,cy]=tt;
-                                Enew=compute_E(psi_);
-                                Im=(Enew-E0)/dt;
+            for cart_ind in CartesianIndices(dims)
+                inds=Tuple(cart_ind);
+                E_plus=_shifted_energy(psi,cx,cy,inds,dt);
+                E_minus=_shifted_energy(psi,cx,cy,inds,-dt);
+                grad_real=(E_plus-E_minus)/(2*dt);
 
-                                grad_FD[cx,cy][d1,d2,d3]=Re+im*Im;
-                            elseif global_eltype==Float64
-                                psi_=deepcopy(psi);
-                                tt=psi_[cx,cy];
-                                tt[d1,d2,d3]=tt[d1,d2,d3]+dt;
-                                psi_[cx,cy]=tt;
-                                Enew=compute_E(psi_);
-                                Re=(Enew-E0)/dt;
-    
-            
-    
-                                grad_FD[cx,cy][d1,d2,d3]=Re;
-                            end
-                        end
-                    end
-                end
-                
-            elseif Rank(T)==4
-                D1=TensorKit.dim(space(T,1));
-                D2=TensorKit.dim(space(T,2));
-                D3=TensorKit.dim(space(T,3));
-                D4=TensorKit.dim(space(T,4));
-                for d1=1:D1
-                    for d2=1:D1
-                        for d3=1:D3
-                            for d4=1:D4
-                                if global_eltype==ComplexF64
-                                    psi_=deepcopy(psi);
-                                    tt=psi_[cx,cy];
-                                    tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+dt;
-                                    psi_[cx,cy]=tt;
-                                    Enew=compute_E(psi_);
-                                    Re=(Enew-E0)/dt;
-
-                                    psi_=deepcopy(psi);
-                                    tt=psi_[cx,cy];
-                                    tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+im*dt;
-                                    psi_[cx,cy]=tt;
-                                    Enew=compute_E(psi_);
-                                    Im=(Enew-E0)/dt;
-
-                                    grad_FD[cx,cy][d1,d2,d3,d4]=Re+im*Im;
-                                elseif global_eltype==Float64
-                                    psi_=deepcopy(psi);
-                                    tt=psi_[cx,cy];
-                                    tt[d1,d2,d3,d4]=tt[d1,d2,d3,d4]+dt;
-                                    psi_[cx,cy]=tt;
-                                    Enew=compute_E(psi_);
-                                    Re=(Enew-E0)/dt;
-
-
-                                    grad_FD[cx,cy][d1,d2,d3,d4]=Re;
-                                end
-                            end
-                        end
-                    end
-                end
-            elseif Rank(T)==5
-                D1=TensorKit.dim(space(T,1));
-                D2=TensorKit.dim(space(T,2));
-                D3=TensorKit.dim(space(T,3));
-                D4=TensorKit.dim(space(T,4));
-                D5=TensorKit.dim(space(T,5));
-                for d1=1:D1
-                    for d2=1:D1
-                        for d3=1:D3
-                            for d4=1:D4
-                                for d5=1:D5
-                                    if global_eltype==ComplexF64
-                                        psi_=deepcopy(psi);
-                                        tt=psi_[cx,cy];
-                                        tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+dt;
-                                        psi_[cx,cy]=tt;
-                                        Enew=compute_E(psi_);
-                                        Re=(Enew-E0)/dt;
-
-                                        psi_=deepcopy(psi);
-                                        tt=psi_[cx,cy];
-                                        tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+im*dt;
-                                        psi_[cx,cy]=tt;
-                                        Enew=compute_E(psi_);
-                                        Im=(Enew-E0)/dt;
-
-                                        grad_FD[cx,cy][d1,d2,d3,d4,d5]=Re+im*Im;
-                                    elseif global_eltype==Float64
-                                        psi_=deepcopy(psi);
-                                        tt=psi_[cx,cy];
-                                        tt[d1,d2,d3,d4,d5]=tt[d1,d2,d3,d4,d5]+dt;
-                                        psi_[cx,cy]=tt;
-                                        Enew=compute_E(psi_);
-                                        Re=(Enew-E0)/dt;
-    
-    
-                                        grad_FD[cx,cy][d1,d2,d3,d4,d5]=Re;
-                                    end
-                                end
-                            end
-                        end
-                    end
+                if is_complex
+                    E_plus_im=_shifted_energy(psi,cx,cy,inds,im*dt);
+                    E_minus_im=_shifted_energy(psi,cx,cy,inds,-im*dt);
+                    grad_imag=(E_plus_im-E_minus_im)/(2*dt);
+                    grad_FD[cx,cy][inds...]=grad_real+im*grad_imag;
+                else
+                    grad_FD[cx,cy][inds...]=grad_real;
                 end
             end
-
         end
     end
     return E0,grad_FD

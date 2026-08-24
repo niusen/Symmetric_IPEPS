@@ -343,7 +343,9 @@ function grad_analysis(Eterms_set, grads_set, E_grads_set)
     E_mean=mean(E_set);
     grad_mean=mean(grads_set);
     E_grad_mean=mean(E_grads_set);
-    Grad=E_grad_mean-E_mean*grad_mean;
+    # E_grad_mean stores <conj(E_local) O>, hence the connected covariance
+    # uses conj(E_mean).  For real tensors this is unchanged.
+    Grad=E_grad_mean-conj(E_mean)*grad_mean;
     Grad=to_Matrix_TensorMap(Grad);
 
    
@@ -378,4 +380,4 @@ ls.fix_delta=true;
 
 
 
-stochastic_opt(psi, ls) 
+stochastic_opt(psi, ls)

@@ -50,12 +50,12 @@ function stochastic_opt(x0::Matrix{TensorMap}, ls)
         end
 
         Eterms_set, grads_set, E_grads_set=read_data(ntask);
-        E_mean, Eterms_set, grad_mean, E_grad_mean, gvec=grad_analysis(Eterms_set, grads_set, E_grads_set);
+        E_mean, Eterms_set, grad_mean, E_grad_mean, grad_raw=grad_analysis(Eterms_set, grads_set, E_grads_set);
+        gvec=vmc_energy_gradient(grad_raw);
         gnorm = norm(gvec);
         @show E_mean;flush(stdout);
         println("norm of grad:"*string(norm(gvec)))
 
-        gvec=get_grad_conjugate(gvec);
         if ls.fix_delta
             push!(E_set,real(E_mean));
             if real(E_mean)<E_min
@@ -135,6 +135,40 @@ function get_grad_conjugate(grad::Matrix{TensorMap})
         end
         grad[cc]=T;
 
+    end
+    return grad
+end
+
+
+"""
+    vmc_energy_gradient(grad_raw)
+
+Convert the raw VMC covariance
+
+    <conj(E_local) O> - conj(<E>) <O>
+
+to the Euclidean energy gradient used by a real/imaginary central finite
+difference.  For real tensors this is `2 * grad_raw`.  For complex tensors the
+gradient is encoded as `dE/dRe(A) + im*dE/dIm(A)` and is therefore
+`2 * conj(grad_raw)`.
+
+The input is not modified.  Keeping this conversion outside `grad_analysis`
+makes it explicit that the latter returns a covariance, not yet a parameter
+gradient.
+"""
+function vmc_energy_gradient(grad_raw::Matrix{TensorMap})
+    isempty(grad_raw) && return deepcopy(grad_raw)
+
+    scalar_type=eltype(first(grad_raw));
+    grad=deepcopy(grad_raw);
+    if scalar_type <: Complex
+        grad=get_grad_conjugate(grad);
+    elseif !(scalar_type <: Real)
+        error("unsupported VMC gradient scalar type: "*string(scalar_type))
+    end
+
+    for cc in eachindex(grad)
+        grad[cc]=2*grad[cc];
     end
     return grad
 end

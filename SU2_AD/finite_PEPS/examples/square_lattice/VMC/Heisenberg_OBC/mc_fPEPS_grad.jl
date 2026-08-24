@@ -341,7 +341,10 @@ function grad_analysis(Eterms_set, grads_set, E_grads_set)
     E_mean=mean(E_set);
     grad_mean=mean(grads_set);
     E_grad_mean=mean(E_grads_set);
-    Grad=E_grad_mean-E_mean*grad_mean;
+    # E_grad_mean stores <conj(E_local) O>, so its connected covariance must
+    # subtract <conj(E_local)><O>.  The conjugation matters for finite complex
+    # Monte Carlo samples even though the exact energy is real.
+    Grad=E_grad_mean-conj(E_mean)*grad_mean;
     Grad=to_Matrix_TensorMap(Grad);
 
    
@@ -391,11 +394,12 @@ config_max=normalize_PEPS!(psi,Vp,contract_whole_disk);#normalize psi such that 
 
 
     
-E_mean, Eterms_set, grad_mean, E_grad_mean, Grad=evaluate_energy(psi,config_max);
+E_mean, Eterms_set, grad_mean, E_grad_mean, Grad_raw=evaluate_energy(psi,config_max);
+Grad=vmc_energy_gradient(Grad_raw);
 
 #save grad 
 filenm="grad_"*string(Lx)*"x"*string(Ly)*"_D"*string(D)*"_chi"*string(chi)*".jld2"
-jldsave(filenm; Eterms_set, E_mean, grad_mean, E_grad_mean, Grad);
+jldsave(filenm; Eterms_set, E_mean, grad_mean, E_grad_mean, Grad_raw, Grad, psi);
 
 
 

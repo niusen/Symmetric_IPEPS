@@ -255,3 +255,13 @@ function distribute_workers(N_terms,ntask)
         return group_ind
     end
 end
+
+
+function TensorKit.permute(
+    t::TensorKit.AbstractTensorMap,
+    codomain_inds::Tuple{Vararg{Int}},
+    domain_inds::Tuple{Vararg{Int}};
+    kwargs...,
+)
+    return TensorKit.permute(t, (codomain_inds, domain_inds); kwargs...)
+end

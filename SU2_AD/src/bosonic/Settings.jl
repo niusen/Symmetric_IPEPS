@@ -1,4 +1,5 @@
 using LinearAlgebra: diag, diagind, diagm, norm
+using Random: randn
 
 function Rank(T::TensorMap)
     return length(domain(T))+length(codomain(T))
@@ -264,4 +265,70 @@ function TensorKit.permute(
     kwargs...,
 )
     return TensorKit.permute(t, (codomain_inds, domain_inds); kwargs...)
+end
+
+# TensorKit >= 0.17 renamed the factorization/truncation entry points.  The
+# niusen/TensorKit fork adds `truncmultiplet`, which is the replacement for the
+# repository's historical `truncdim(...; multiplet_tol=...)` call.  Keep the
+# old call sites intact while using the new implementation underneath.
+if !isdefined(@__MODULE__, :truncdim) && isdefined(TensorKit, :truncrank)
+    function truncdim(
+        howmany::Integer;
+        multiplet_tol=nothing,
+        by=abs,
+        rev::Bool=true,
+    )
+        if isnothing(multiplet_tol) || iszero(multiplet_tol)
+            return TensorKit.truncrank(howmany; by=by, rev=rev)
+        end
+        isdefined(TensorKit, :truncmultiplet) || error(
+            "truncdim(...; multiplet_tol=...) requires the niusen/TensorKit.jl " *
+            "fork, which provides TensorKit.truncmultiplet.",
+        )
+        return TensorKit.truncmultiplet(
+            howmany; by=by, rev=rev, multiplet_tol=multiplet_tol,
+        )
+    end
+end
+
+if !isdefined(@__MODULE__, :tsvd) && isdefined(TensorKit, :svd_compact)
+    function tsvd(t::TensorKit.AbstractTensorMap; trunc=nothing, kwargs...)
+        if isnothing(trunc)
+            return TensorKit.svd_compact(t; kwargs...)
+        end
+        U, S, V, _ = TensorKit.svd_trunc(t; trunc=trunc, kwargs...)
+        return U, S, V
+    end
+
+    function tsvd(
+        t::TensorKit.AbstractTensorMap,
+        codomain_inds::Tuple{Vararg{Int}},
+        domain_inds::Tuple{Vararg{Int}};
+        kwargs...,
+    )
+        return tsvd(permute(t, codomain_inds, domain_inds); kwargs...)
+    end
+end
+
+
+if !isdefined(@__MODULE__, :eigh) && isdefined(TensorKit, :eigh_full)
+    eigh(t::TensorKit.AbstractTensorMap; kwargs...) = TensorKit.eigh_full(t; kwargs...)
+end
+
+# TensorKit versions after the legacy `TensorMap(randn, codomain, domain)`
+# constructor require the independent block data explicitly.  Keep the old
+# repository call sites working without replacing the method on TensorKit
+# versions that still provide it.
+if !hasmethod(
+    TensorKit.TensorMap,
+    Tuple{typeof(randn), TensorKit.TensorSpace, TensorKit.TensorSpace},
+)
+    function TensorKit.TensorMap(
+        ::typeof(randn),
+        codomain_space::TensorKit.TensorSpace,
+        domain_space::TensorKit.TensorSpace,
+    )
+        tensor_space = codomain_space ← domain_space
+        return TensorKit.TensorMap(randn(Float64, dim(tensor_space)), tensor_space)
+    end
 end

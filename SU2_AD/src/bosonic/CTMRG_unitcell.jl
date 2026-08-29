@@ -451,7 +451,7 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
                 chi_extra=4;
             elseif isa(space(M,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}) #SU(2) symmetry
                 chi_extra=20;
-            elseif isa(space(M,1), GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}) #SU(4) symmetry
+            elseif @isdefined(SU4Irrep) && isa(space(M,1), GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}) #SU(4) symmetry
                 chi_extra=20;
             elseif isa(space(M,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}) #U1 x SU(2)
                 chi_extra=20;
@@ -459,6 +459,8 @@ function CTM_ite_cell_continuous_update(Cset_cell, Tset_cell, AA_cell, chi, dire
                 chi_extra=20;
             elseif isa(space(M,1), ComplexSpace)
                 chi_extra=1;
+            else
+                chi_extra=10;
             end
             
             # uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better

@@ -66,10 +66,12 @@ function initial_iPEPS(Lx,Ly,Vp,Vv)
     for ca=1:Lx
         for cb=1:Ly
             vr=space(T_set[ca,cb],1);
-            lambdax_set[ca,cb]=DiagonalTensorMap(ones(dim(vr)),vr);
+            multiplet_dimension=sum(dim(vr, sector) for sector in sectors(vr));
+            lambdax_set[ca,cb]=DiagonalTensorMap(ones(multiplet_dimension),vr);
 
             vd=space(T_set[ca,cb],2);
-            lambday_set[ca,cb]=DiagonalTensorMap(ones(dim(vd')),vd');
+            multiplet_dimension=sum(dim(vd', sector) for sector in sectors(vd'));
+            lambday_set[ca,cb]=DiagonalTensorMap(ones(multiplet_dimension),vd');
         end
     end
     return T_set,lambdax_set,lambday_set
@@ -126,7 +128,12 @@ function simple_update_Heisenberg(T_set,lambdax_set,lambday_set,tau,dt,Dmax)
 end
 
 
-function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
+function tebd_xbond(
+    ct,Tset,lambdaxset,lambdayset,gate,px,py,Dmax;
+    multiplet_tol=nothing,
+    Dstar=nothing,
+    print_space::Bool=true,
+);
     Lx,Ly=size(Tset);
     pos1=[mod1(Int(px-0.5),Lx),py];
     pos2=[mod1(Int(px+0.5),Lx),py];
@@ -153,7 +160,16 @@ function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     T2_keep=u*s;
 
     @tensor Tbond[:]:=T1_keep[-1,1,2]*T2_keep[1,3,-3]*gate[-2,-4,2,3];#newbond1,R1,d1  L2,d2,newbond2 -> newbond1,d1  ,newbond2,d2
-    u,s,v=tsvd(permute(Tbond,(1,2,),(3,4,)); trunc=truncdim(Dmax));#newbond1,d1  ,newbond2,d2 -> newbond1,d1,R1,    L2,newbond2,d2
+    Tbond_matrix = permute(Tbond,(1,2,),(3,4,))
+    if isnothing(Dstar)
+        truncation = isnothing(multiplet_tol) ?
+            truncdim(Dmax) : truncdim(Dmax; multiplet_tol=multiplet_tol)
+        u,s,v=tsvd(Tbond_matrix; trunc=truncation)
+    else
+        u,s,v=square_su_tsvd_multiplets(
+            Tbond_matrix, Dstar, Dmax, something(multiplet_tol, 0.0),
+        )
+    end
     T1_keep=u*sqrt(s);
     T2_keep=sqrt(s)*v;
 
@@ -175,13 +191,18 @@ function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     lambdaxset[pos2[1],pos2[2]]=sqrt(s);
     Tset[pos1[1],pos1[2]]=T1;
     Tset[pos2[1],pos2[2]]=T2;
-    if mod(ct,20)==0
+    if print_space && mod(ct,20)==0
         println(space(s))
     end
     return Tset,lambdaxset,lambdayset
 end
 
-function tebd_ybond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
+function tebd_ybond(
+    ct,Tset,lambdaxset,lambdayset,gate,px,py,Dmax;
+    multiplet_tol=nothing,
+    Dstar=nothing,
+    print_space::Bool=true,
+);
     Lx,Ly=size(Tset);
     pos1=[px,mod1(Int(py+0.5),Ly)];
     pos2=[px,mod1(Int(py-0.5),Ly)];
@@ -208,7 +229,16 @@ function tebd_ybond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     T2_left=v;
 
     @tensor Tbond[:]:=T1_keep[-1,1,2]*T2_keep[1,3,-3]*gate[-2,-4,2,3];#newbond1,D1,d1  U2,d2,newbond2 -> newbond1,d1  newbond2,d2
-    u,s,v=tsvd(permute(Tbond,(1,2,),(3,4,)); trunc=truncdim(Dmax));#newbond1,d1  ,newbond2,d2 -> newbond1,d1,D1,    U2,newbond2,d2
+    Tbond_matrix = permute(Tbond,(1,2,),(3,4,))
+    if isnothing(Dstar)
+        truncation = isnothing(multiplet_tol) ?
+            truncdim(Dmax) : truncdim(Dmax; multiplet_tol=multiplet_tol)
+        u,s,v=tsvd(Tbond_matrix; trunc=truncation)
+    else
+        u,s,v=square_su_tsvd_multiplets(
+            Tbond_matrix, Dstar, Dmax, something(multiplet_tol, 0.0),
+        )
+    end
     T1_keep=u*sqrt(s);
     T2_keep=sqrt(s)*v;
 
@@ -230,7 +260,7 @@ function tebd_ybond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     lambdayset[pos1[1],pos1[2]]=sqrt(s);
     Tset[pos1[1],pos1[2]]=T1;
     Tset[pos2[1],pos2[2]]=T2;
-    if mod(ct,20)==0
+    if print_space && mod(ct,20)==0
         println(space(s))
     end
     return Tset,lambdaxset,lambdayset

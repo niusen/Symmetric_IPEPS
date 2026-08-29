@@ -1123,4 +1123,6 @@ function verify_truncate_svd()
         # @show norm(uM1*sM1*vM1-uM2*sM2*vM2)/norm(M)
     end
 end
-verify_truncate_svd()
+if parse(Bool, get(ENV, "CTMRG_VERIFY_TRUNCATE_SVD", "false"))
+    verify_truncate_svd()
+end

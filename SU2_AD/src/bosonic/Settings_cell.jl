@@ -1,34 +1,7 @@
 function initial_tuple_cell(Lx,Ly)
-    if (Lx==1)&(Ly==1)
-        M=((1,),);
-    elseif (Lx==2)&(Ly==1)
-        M=((1,), (1,));
-    elseif (Lx==1)&(Ly==2)
-        M=((1,1,),);
-    elseif (Lx==2)&(Ly==2)
-        M=((1, 1), (1, 1));
-    elseif (Lx==3)&(Ly==2)
-        M=((1, 1), (1, 1), (1, 1));
-    elseif (Lx==3)&(Ly==3)
-        M=((1, 1, 1), (1, 1, 1), (1, 1, 1));
-    elseif (Lx==2)&(Ly==3)
-        M=((1, 1, 1), (1, 1, 1));
-    elseif (Lx==2)&(Ly==4)
-        M=((1, 1, 1, 1), (1, 1, 1, 1));
-    elseif (Lx==2)&(Ly==8)
-        M=((1, 1, 1, 1, 1, 1, 1, 1), (1, 1, 1, 1, 1, 1, 1, 1));
-    elseif (Lx==4)&(Ly==2)
-        M=((1, 1,), (1, 1,), (1, 1,), (1, 1,));
-    elseif (Lx==8)&(Ly==2)
-        M=((1, 1,), (1, 1,), (1, 1,), (1, 1,), (1, 1,), (1, 1,), (1, 1,), (1, 1,));
-    elseif (Lx==4)&(Ly==4)
-        M=((1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1));
-    elseif (Lx==6)&(Ly==3)
-        M=((1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1));
-    elseif (Lx==6)&(Ly==6)
-        M=((1, 1, 1, 1, 1, 1), (1, 1, 1, 1, 1, 1), (1, 1, 1, 1, 1, 1), (1, 1, 1, 1, 1, 1), (1, 1, 1, 1, 1, 1), (1, 1, 1, 1, 1, 1));
-    end
-    return M
+    Lx > 0 || throw(ArgumentError("Lx must be positive"))
+    Ly > 0 || throw(ArgumentError("Ly must be positive"))
+    return ntuple(_ -> ntuple(_ -> 1, Ly), Lx)
 end
 
 function fill_tuple(M0,a, cx,cy) #avoid mutating matrix, which is necessary for AD

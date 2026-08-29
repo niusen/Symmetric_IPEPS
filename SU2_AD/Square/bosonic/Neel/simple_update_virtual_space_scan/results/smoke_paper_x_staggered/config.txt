@@ -1,0 +1,9 @@
+run_id=smoke_paper_x_staggered
+inits=paper_x_staggered
+seeds=666
+schedules=anneal_short
+chi=8
+ctm_tolerance=0.001
+ctm_maxiter=5
+paper_energy=-0.6686
+qmc_energy=-0.6694

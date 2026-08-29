@@ -1,0 +1,9 @@
+run_id=paper_x_staggered_long_seed666
+inits=paper_x_staggered
+seeds=666
+schedules=legacy_long
+chi=8
+ctm_tolerance=0.0001
+ctm_maxiter=10
+paper_energy=-0.6686
+qmc_energy=-0.6694

@@ -1,0 +1,5 @@
+source_state=D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\Square\bosonic\Neel\simple_update_virtual_space_scan\results\screen_7inits_seed666_legacy_long\paper_y_staggered_seed_666_legacy_long\final.jld2
+schedule=fine_long
+Dstar=4
+Dmax=12
+multiplet_tolerance=1e-5

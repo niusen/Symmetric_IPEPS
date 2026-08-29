@@ -1,0 +1,4 @@
+results/**/*.jld2
+results/**/*.log
+results/**/*.tmp
+

@@ -1,0 +1,10 @@
+run_id=paper_y_staggered_multiseed_legacy_long
+inits=paper_y_staggered
+seeds=42,1234,2021
+schedules=legacy_long
+chi=16
+ctm_tolerance=1.0e-5
+ctm_maxiter=80
+measure_ctm=false
+paper_energy=-0.6686
+qmc_energy=-0.6694

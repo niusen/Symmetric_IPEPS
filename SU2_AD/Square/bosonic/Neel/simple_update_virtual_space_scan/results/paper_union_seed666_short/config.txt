@@ -1,0 +1,10 @@
+run_id=paper_union_seed666_short
+inits=paper_union
+seeds=666
+schedules=anneal_short
+chi=16
+ctm_tolerance=1.0e-5
+ctm_maxiter=80
+measure_ctm=false
+paper_energy=-0.6686
+qmc_energy=-0.6694

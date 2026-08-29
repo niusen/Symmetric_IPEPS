@@ -1,0 +1,10 @@
+run_id=screen_7inits_seed666_legacy_long
+inits=mixed_min,mixed_balanced,mixed_broad,paper_x_columnar,paper_x_staggered,paper_y_columnar,paper_y_staggered
+seeds=666
+schedules=legacy_long
+chi=16
+ctm_tolerance=1.0e-5
+ctm_maxiter=80
+measure_ctm=false
+paper_energy=-0.6686
+qmc_energy=-0.6694

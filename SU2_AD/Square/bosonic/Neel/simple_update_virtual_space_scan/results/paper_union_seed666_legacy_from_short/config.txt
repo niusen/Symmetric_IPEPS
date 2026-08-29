@@ -1,0 +1,5 @@
+source_state=D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\Square\bosonic\Neel\simple_update_virtual_space_scan\results\paper_union_seed666_short\paper_union_seed_666_anneal_short\final.jld2
+schedule=legacy_long
+Dstar=4
+Dmax=12
+multiplet_tolerance=1e-5

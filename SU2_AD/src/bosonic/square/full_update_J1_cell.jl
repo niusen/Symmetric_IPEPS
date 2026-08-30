@@ -481,6 +481,17 @@ function square_J1_full_update_cell_bond(
         singular_space=space(singular_values, 1),
         bond_space_changed=old_bond_space != new_bond_space,
     ))
+    if settings.verbose
+        println(
+            "FU cell $(bond.direction) bond $(Tuple(bond.site1)) → " *
+            "$(Tuple(bond.site2)) virtual space:\n" *
+            "  old bond:           $(report.old_bond_space)\n" *
+            "  direct truncation:  $(report.singular_space)\n" *
+            "  full-update bond:    $(report.new_bond_space)\n" *
+            "  space changed:       $(report.bond_space_changed)",
+        )
+        flush(stdout)
+    end
     return A1_current, A2_current, report
 end
 

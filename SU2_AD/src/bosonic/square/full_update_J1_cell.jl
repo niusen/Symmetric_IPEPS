@@ -2,9 +2,10 @@
 Full Update for a bosonic square-lattice nearest-neighbour J1 model on an
 arbitrary periodic `Lx × Ly` iPEPS unit cell.
 
-This file reuses the one-site local fidelity machinery from
-`full_update_J1.jl` and the periodic-cell/CTM organization used by the
-triangular-lattice fermionic Full Update.  Include, in order,
+Each updated bond is reduced by two local SVDs to a pair of rank-3 tensors;
+the gate, multiplet-aware truncation, and alternating environment optimization
+act only on that reduced two-site object.  The periodic-cell/CTM organization
+follows the triangular-lattice Full Update.  Include, in order,
 `Settings_cell.jl`, `CTMRG_unitcell.jl`, and `full_update_J1.jl` before this
 file.
 """
@@ -38,7 +39,23 @@ function _square_fu_validate_cell(A_set::AbstractMatrix)
     for position in CartesianIndices(A_set)
         A = A_set[position]
         A isa TensorMap || throw(ArgumentError("cell entry $position is not a TensorMap"))
-        _square_fu_check_tensor_pair(A_reference, A)
+        numind(A) == 5 || throw(ArgumentError(
+            "cell entry $position must have five legs (L,D,R,U,physical)",
+        ))
+        space(A, 5) == space(A_reference, 5) || throw(SpaceMismatch(
+            "physical space at $position differs from site (1,1)",
+        ))
+    end
+    for cx in 1:cell_Lx, cy in 1:cell_Ly
+        A = A_set[cx, cy]
+        A_right = A_set[mod1(cx + 1, cell_Lx), cy]
+        A_below = A_set[cx, mod1(cy + 1, cell_Ly)]
+        space(A, 3)' == space(A_right, 1) || throw(SpaceMismatch(
+            "horizontal bond spaces do not match between ($cx,$cy) and its right neighbour",
+        ))
+        space(A, 2)' == space(A_below, 4) || throw(SpaceMismatch(
+            "vertical bond spaces do not match between ($cx,$cy) and its lower neighbour",
+        ))
     end
     return cell_Lx, cell_Ly
 end
@@ -172,12 +189,12 @@ function _square_fu_two_site_density_cell(
     cell_Lx::Int,
     cell_Ly::Int,
 )
-    AA_1, U_physical_1 = build_square_cross_double_layer_open(A_bra_1, A_ket_1)
-    AA_2, U_physical_2 = build_square_cross_double_layer_open(A_bra_2, A_ket_2)
     x1, y1 = Tuple(bond.site1)
     anchor_x, anchor_y = x1 - 1, y1 - 1
 
     if bond.direction === :x
+        AA_1, U_physical_1 = build_square_cross_double_layer_open(A_bra_1, A_ket_1)
+        AA_2, U_physical_2 = build_square_cross_double_layer_open(A_bra_2, A_ket_2)
         rho_fused = _square_fu_ob_2sites_x_cell(
             anchor_x,
             anchor_y,
@@ -187,7 +204,15 @@ function _square_fu_two_site_density_cell(
             cell_Lx,
             cell_Ly,
         )
+        @tensor rho[:] := rho_fused[1, 2] *
+            U_physical_1[-1, -3, 1] *
+            U_physical_2[-2, -4, 2]
+        return rho
     elseif bond.direction === :y
+        # Site 1 is above site 2 in the cell convention.  The cluster contracts
+        # site1.D to site2.U and preserves physical order (site1, site2).
+        AA_1, U_physical_1 = build_square_cross_double_layer_open(A_bra_1, A_ket_1)
+        AA_2, U_physical_2 = build_square_cross_double_layer_open(A_bra_2, A_ket_2)
         rho_fused = _square_fu_ob_2sites_y_cell(
             anchor_x,
             anchor_y,
@@ -197,72 +222,110 @@ function _square_fu_two_site_density_cell(
             cell_Lx,
             cell_Ly,
         )
+        @tensor rho[:] := rho_fused[1, 2] *
+            U_physical_1[-1, -3, 1] *
+            U_physical_2[-2, -4, 2]
+        return rho
     else
         throw(ArgumentError("bond direction must be :x or :y"))
     end
-
-    @tensor rho[:] := rho_fused[1, 2] *
-        U_physical_1[-1, -3, 1] *
-        U_physical_2[-2, -4, 2]
-    return rho
 end
 
-function _square_fu_cell_target_norm(A1_old, A2_old, environment, gate, bond, cell_Lx, cell_Ly)
-    rho_old = _square_fu_two_site_density_cell(
-        environment.CTM,
-        A1_old,
-        A1_old,
-        A2_old,
-        A2_old,
-        bond,
-        cell_Lx,
-        cell_Ly,
-    )
-    gate_norm = gate' * gate
-    return real(@tensor rho_old[1, 2, 3, 4] * gate_norm[1, 2, 3, 4])
+"""Split two square-iPEPS tensors down to the two rank-3 tensors touching a bond."""
+function _square_fu_split_reduced(A1, A2, direction::Symbol)
+    if direction === :x
+        residual1, singular1, right1 = tsvd(permute(A1, (1, 2, 4), (3, 5)))
+        left2, singular2, residual2 = tsvd(permute(A2, (1, 5), (2, 3, 4)))
+    elseif direction === :y
+        # A1 is above A2.  Split off A1.D and A2.U, matching the 1×2 CTM
+        # cluster contraction and the square-lattice coordinate convention.
+        residual1, singular1, right1 = tsvd(permute(A1, (1, 3, 4), (2, 5)))
+        left2, singular2, residual2 = tsvd(permute(A2, (4, 5), (1, 2, 3)))
+    else
+        throw(ArgumentError("bond direction must be :x or :y"))
+    end
+    keep1 = singular1 * right1
+    keep2 = left2 * singular2
+    return residual1, keep1, keep2, residual2
 end
 
-function square_J1_cell_fidelity(
-    A1_new,
-    A2_new,
-    A1_old,
-    A2_old,
-    environment,
+"""Reassemble a pair of rank-5 tensors from fixed rank-4 and variable rank-3 parts."""
+function _square_fu_reassemble_reduced(residual1, keep1, keep2, residual2, direction::Symbol)
+    if direction === :x
+        @tensor A1[:] := residual1[-1, -2, -4, 1] * keep1[1, -3, -5]
+        @tensor A2[:] := keep2[-1, -5, 1] * residual2[1, -2, -3, -4]
+    elseif direction === :y
+        @tensor A1[:] := residual1[-1, -3, -4, 1] * keep1[1, -2, -5]
+        @tensor A2[:] := keep2[-4, -5, 1] * residual2[1, -1, -2, -3]
+    else
+        throw(ArgumentError("bond direction must be :x or :y"))
+    end
+    return A1, A2
+end
+
+"""Apply the two-site gate only to the reduced bond tensor."""
+function _square_fu_gated_bond(keep1, keep2, gate)
+    @tensor gated[:] := keep1[-1, 1, 2] * keep2[1, 3, -3] * gate[-2, -4, 2, 3]
+    return permute(gated, (1, 2), (3, 4))
+end
+
+function _square_fu_factor_bond(bond_tensor; truncation=nothing)
+    u, s, v = isnothing(truncation) ? tsvd(bond_tensor) :
+        tsvd(bond_tensor; trunc=truncation)
+    # Canonical reduced layouts match the tensors returned by
+    # `_square_fu_split_reduced`: keep1=(environment,bond,physical) and
+    # keep2=(bond,physical,environment).
+    keep1 = permute(u * sqrt(s), (1,), (3, 2))
+    keep2 = permute(sqrt(s) * v, (1, 3), (2,))
+    return keep1, keep2, s
+end
+
+_square_fu_rho_trace(rho) = @tensor rho[1, 2, 1, 2]
+
+function _square_fu_reduced_fidelity(
+    keep1,
+    keep2,
+    residual1,
+    residual2,
+    old_A1,
+    old_A2,
     gate,
-    bond::SquareJ1CellBond,
-    cell_Lx::Int,
-    cell_Ly::Int;
-    target_norm=nothing,
-    metric_floor::Real=0.0,
+    environment,
+    bond,
+    cell_Lx,
+    cell_Ly;
+    target_norm,
+    metric_floor,
 )
-    rho_new = _square_fu_two_site_density_cell(
+    candidate1, candidate2 = _square_fu_reassemble_reduced(
+        residual1, keep1, keep2, residual2, bond.direction,
+    )
+    rho_candidate = _square_fu_two_site_density_cell(
         environment.CTM,
-        A1_new,
-        A1_new,
-        A2_new,
-        A2_new,
+        candidate1,
+        candidate1,
+        candidate2,
+        candidate2,
         bond,
         cell_Lx,
         cell_Ly,
     )
-    norm_new = real(@tensor rho_new[1, 2, 1, 2])
+    norm_candidate = real(_square_fu_rho_trace(rho_candidate))
     rho_overlap = _square_fu_two_site_density_cell(
         environment.CTM,
-        A1_new,
-        A1_old,
-        A2_new,
-        A2_old,
+        candidate1,
+        old_A1,
+        candidate2,
+        old_A2,
         bond,
         cell_Lx,
         cell_Ly,
     )
     overlap = @tensor rho_overlap[1, 2, 3, 4] * gate[1, 2, 3, 4]
-    norm_target = isnothing(target_norm) ?
-        _square_fu_cell_target_norm(A1_old, A2_old, environment, gate, bond, cell_Lx, cell_Ly) :
-        target_norm
-    denominator = abs(norm_new * norm_target)
-    denominator > metric_floor ||
-        throw(ArgumentError("the cell CTM fidelity denominator is non-positive or too small: $denominator"))
+    denominator = abs(norm_candidate * target_norm)
+    denominator > metric_floor || throw(ArgumentError(
+        "the reduced two-site CTM fidelity denominator is too small: $denominator",
+    ))
     return real(abs2(overlap) / denominator)
 end
 
@@ -316,18 +379,48 @@ function square_J1_full_update_cell_bond(
     cell_Lx, cell_Ly = size(A_set)
     A1_old = A_set[bond.site1]
     A2_old = A_set[bond.site2]
-    target_norm = _square_fu_cell_target_norm(
-        A1_old, A2_old, environment, gate, bond, cell_Lx, cell_Ly,
-    )
-    target_norm > 0 || throw(ArgumentError("the cell CTM target norm is non-positive: $target_norm"))
+    bond.site1 != bond.site2 || throw(ArgumentError(
+        "bond-expanding Full Update requires two distinct tensor entries",
+    ))
+    settings.Dmax > 0 || throw(ArgumentError("Dmax must be positive"))
+    settings.multiplet_tol >= 0 || throw(ArgumentError("multiplet_tol must be non-negative"))
 
-    objective(A1, A2) = 1 - square_J1_cell_fidelity(
-        A1,
-        A2,
+    residual1, old_keep1, old_keep2, residual2 =
+        _square_fu_split_reduced(A1_old, A2_old, bond.direction)
+    gated_bond = _square_fu_gated_bond(old_keep1, old_keep2, gate)
+
+    # The fork-specific multiplet-aware truncation chooses a new SU(2) bond
+    # space before the CTM-environment variational sweeps begin.  The exact target is
+    # kept as `gate * |old>`; it is never factorized or truncated.
+    truncation = truncdim(settings.Dmax; multiplet_tol=settings.multiplet_tol)
+    keep1_current, keep2_current, singular_values =
+        _square_fu_factor_bond(gated_bond; truncation=truncation)
+
+    rho_old = _square_fu_two_site_density_cell(
+        environment.CTM,
+        A1_old,
         A1_old,
         A2_old,
-        environment,
+        A2_old,
+        bond,
+        cell_Lx,
+        cell_Ly,
+    )
+    gate_norm = gate' * gate
+    target_norm = real(@tensor rho_old[1, 2, 3, 4] * gate_norm[1, 2, 3, 4])
+    target_norm > settings.metric_floor || throw(ArgumentError(
+        "the reduced two-site CTM target norm is non-positive: $target_norm",
+    ))
+
+    objective(keep1, keep2) = 1 - _square_fu_reduced_fidelity(
+        keep1,
+        keep2,
+        residual1,
+        residual2,
+        A1_old,
+        A2_old,
         gate,
+        environment,
         bond,
         cell_Lx,
         cell_Ly;
@@ -335,11 +428,7 @@ function square_J1_full_update_cell_bond(
         metric_floor=settings.metric_floor,
     )
 
-    same_tensor = bond.site1 == bond.site2
-    A1_current = _square_fu_normalize(A1_old)
-    A2_current = same_tensor ? A1_current : _square_fu_normalize(A2_old)
-    shared_objective(A) = objective(A, A)
-    loss_current = same_tensor ? shared_objective(A1_current) : objective(A1_current, A2_current)
+    loss_current = objective(keep1_current, keep2_current)
     loss_initial = loss_current
     loss_history = Float64[loss_current]
     gradient_norm = Inf
@@ -356,23 +445,16 @@ function square_J1_full_update_cell_bond(
     for iteration in 1:settings.maxiter
         last_iteration = iteration
         loss_before_sweep = loss_current
-        if same_tensor
-            A1_current, loss_current, gradient_norm, accepted =
-                _square_fu_cell_take_step(shared_objective, A1_current, settings)
-            A2_current = A1_current
-            accepted_steps += Int(accepted)
-        else
-            objective_1(A1) = objective(A1, A2_current)
-            A1_current, _, gradient_norm_1, accepted_1 =
-                _square_fu_cell_take_step(objective_1, A1_current, settings)
+        objective_1(keep1) = objective(keep1, keep2_current)
+        keep1_current, _, gradient_norm_1, accepted_1 =
+            _square_fu_cell_take_step(objective_1, keep1_current, settings)
 
-            objective_2(A2) = objective(A1_current, A2)
-            A2_current, loss_current, gradient_norm_2, accepted_2 =
-                _square_fu_cell_take_step(objective_2, A2_current, settings)
-            gradient_norm = sqrt(gradient_norm_1^2 + gradient_norm_2^2)
-            accepted = accepted_1 || accepted_2
-            accepted_steps += Int(accepted_1) + Int(accepted_2)
-        end
+        objective_2(keep2) = objective(keep1_current, keep2)
+        keep2_current, loss_current, gradient_norm_2, accepted_2 =
+            _square_fu_cell_take_step(objective_2, keep2_current, settings)
+        gradient_norm = sqrt(gradient_norm_1^2 + gradient_norm_2^2)
+        accepted = accepted_1 || accepted_2
+        accepted_steps += Int(accepted_1) + Int(accepted_2)
         push!(loss_history, loss_current)
         settings.verbose && println(
             "FU cell $(bond.direction) $(Tuple(bond.site1)) alternating sweep $iteration: " *
@@ -383,10 +465,22 @@ function square_J1_full_update_cell_bond(
         loss_before_sweep - loss_current <= settings.loss_tolerance && break
     end
 
-    report = _square_fu_cell_report(
+    A1_current, A2_current = _square_fu_reassemble_reduced(
+        residual1, keep1_current, keep2_current, residual2, bond.direction,
+    )
+    A1_current = _square_fu_normalize(A1_current)
+    A2_current = _square_fu_normalize(A2_current)
+    old_bond_space = bond.direction === :x ? space(A1_old, 3) : space(A1_old, 2)
+    new_bond_space = bond.direction === :x ? space(A1_current, 3) : space(A1_current, 2)
+    report = merge(_square_fu_cell_report(
         bond, loss_initial, loss_current, last_iteration, accepted_steps,
         gradient_norm, target_norm, loss_history,
-    )
+    ), (
+        old_bond_space=old_bond_space,
+        new_bond_space=new_bond_space,
+        singular_space=space(singular_values, 1),
+        bond_space_changed=old_bond_space != new_bond_space,
+    ))
     return A1_current, A2_current, report
 end
 
@@ -456,8 +550,14 @@ function square_J1_full_update_cell_sweep(
             A_current[bond.site2] = A2_new
             push!(reports, merge(report, (group=group_index,)))
             if settings.refresh_environment
+                # A CTM built for the old fused virtual spaces cannot be used
+                # as an initial environment after the local SVD selects a
+                # different multiplet structure.  This follows the original
+                # triangular FU, which reconstructs CTM after a bond-space
+                # change; reuse is safe only when the spaces are unchanged.
+                initial_CTM = report.bond_space_changed ? nothing : environment.CTM
                 environment = _square_fu_environment_cell(
-                    A_current, chi, ctm_setting; initial_CTM=environment.CTM,
+                    A_current, chi, ctm_setting; initial_CTM=initial_CTM,
                 )
             end
         end

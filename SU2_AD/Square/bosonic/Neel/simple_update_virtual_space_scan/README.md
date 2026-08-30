@@ -48,3 +48,30 @@ julia analyze_saved_series.jl results/<case>
 ```
 
 The completed scan and selected state are documented in `RESULTS.md`.
+
+## Continue with square-lattice Full Update
+
+`Full_update_J1_SU2_cell.jl` now accepts the Simple Update `final.jld2`
+directly through its `T_set` key.  The lambda tensors are not absorbed: the
+saved `T_set` is already the physical iPEPS state.  From
+`Square/bosonic/Neel` run, for example,
+
+```bash
+FU_INIT=simple_update_virtual_space_scan/results/paper_y_staggered_seed666_fine_long/final.jld2 \
+FU_LX=2 FU_LY=2 FU_DMAX=12 FU_MULTIPLET_TOL=1e-5 \
+FU_CHI=32 FU_TAU=0.01 FU_DT=0.01 \
+julia Full_update_J1_SU2_cell.jl
+```
+
+For every x or y bond the two rank-5 tensors are first split into fixed
+rank-4 outer tensors and two rank-3 bond tensors.  The gate and
+`truncdim(Dmax; multiplet_tol=...)` act only on the reduced bond tensor; the
+2×1 or 1×2 CTM cluster then optimizes the two rank-3 tensors alternately.
+If the truncation changes a multiplet space, CTM is rebuilt rather than
+reusing an environment with incompatible fused legs.
+
+The lightweight structural checks are `probe_fu_reduced.jl` (SVD
+reconstruction, gate/truncation, and cross-layer spaces) and
+`probe_fu_ctm.jl` (one x/y bond in a small-D CTM environment).  Set
+`FU_PROBE_D12=true` when running the first probe to check the saved D=12
+state; its default is the faster total-D=3 test.

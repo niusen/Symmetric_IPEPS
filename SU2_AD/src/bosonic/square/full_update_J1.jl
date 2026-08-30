@@ -6,6 +6,8 @@ the reverse-mode tape contains only a two-site contraction, not the CTMRG
 iterations themselves.
 """
 Base.@kwdef struct SquareJ1FullUpdateSettings
+    Dmax::Int = 12
+    multiplet_tol::Float64 = 1.0e-5
     maxiter::Int = 20
     gradient_tolerance::Float64 = 1.0e-8
     loss_tolerance::Float64 = 1.0e-12
@@ -38,24 +40,26 @@ cross-state generalization of `build_double_layer_open` in `square_model.jl`.
 Both tensors use the repository convention `(L,D,R,U,physical)`.
 """
 function build_square_cross_double_layer_open(A_bra::TensorMap, A_ket::TensorMap)
-    _square_fu_check_tensor_pair(A_bra, A_ket)
+    numind(A_bra) == 5 || throw(ArgumentError("square iPEPS bra tensor must have five legs"))
+    numind(A_ket) == 5 || throw(ArgumentError("square iPEPS ket tensor must have five legs"))
+    space(A_bra, 5) == space(A_ket, 5) ||
+        throw(SpaceMismatch("bra and ket physical spaces differ"))
 
-    A_space = permute(A_ket, (1, 2), (3, 4, 5))
     U_L = @ignore_derivatives unitary(
-        fuse(space(A_space, 1)' ⊗ space(A_space, 1)),
-        space(A_space, 1)' ⊗ space(A_space, 1),
+        fuse(space(A_bra, 1)' ⊗ space(A_ket, 1)),
+        space(A_bra, 1)' ⊗ space(A_ket, 1),
     ) * (1 + 0im)
     U_D = @ignore_derivatives unitary(
-        fuse(space(A_space, 2)' ⊗ space(A_space, 2)),
-        space(A_space, 2)' ⊗ space(A_space, 2),
+        fuse(space(A_bra, 2)' ⊗ space(A_ket, 2)),
+        space(A_bra, 2)' ⊗ space(A_ket, 2),
     ) * (1 + 0im)
     U_R = @ignore_derivatives unitary(
-        space(A_space, 3) ⊗ space(A_space, 3)',
-        fuse(space(A_space, 3)' ⊗ space(A_space, 3)),
+        space(A_bra, 3) ⊗ space(A_ket, 3)',
+        fuse(space(A_bra, 3)' ⊗ space(A_ket, 3)),
     ) * (1 + 0im)
     U_U = @ignore_derivatives unitary(
-        space(A_space, 4) ⊗ space(A_space, 4)',
-        fuse(space(A_space, 4)' ⊗ space(A_space, 4)),
+        space(A_bra, 4) ⊗ space(A_ket, 4)',
+        fuse(space(A_bra, 4)' ⊗ space(A_ket, 4)),
     ) * (1 + 0im)
 
     # Split bra and ket at the same virtual cut.  The unitaries depend only on

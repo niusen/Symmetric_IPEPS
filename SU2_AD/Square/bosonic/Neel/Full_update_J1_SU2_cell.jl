@@ -85,6 +85,8 @@ function load_full_update_cell(filename::String, requested_Lx::Int, requested_Ly
     data = load(filename)
     value = if haskey(data, "A_set")
         data["A_set"]
+    elseif haskey(data, "T_set")
+        data["T_set"]
     elseif haskey(data, "A_cell")
         data["A_cell"]
     elseif haskey(data, "x")
@@ -92,7 +94,7 @@ function load_full_update_cell(filename::String, requested_Lx::Int, requested_Ly
     elseif haskey(data, "A")
         fill(data["A"], requested_Lx, requested_Ly)
     else
-        error("FU_INIT must contain A_set, A_cell, x, or A")
+        error("FU_INIT must contain A_set, T_set, A_cell, x, or A")
     end
     A_set = _full_update_cell_from_loaded(value)
     size(A_set) == (requested_Lx, requested_Ly) || error(
@@ -145,7 +147,7 @@ ctm_setting.construct_double_layer = true
 
 global Lx = cell_Lx
 global Ly = cell_Ly
-global multiplet_tol = 1e-5
+global multiplet_tol = parse(Float64, get(ENV, "FU_MULTIPLET_TOL", "1e-5"))
 global projector_trun_tol = ctm_setting.CTM_trun_tol
 global backward_settings = Backward_settings()
 global algrithm_CTMRG_settings = Algrithm_CTMRG_settings()
@@ -154,6 +156,8 @@ algrithm_CTMRG_settings.CTM_cell_ite_method = get(
 )
 
 fu_settings = SquareJ1FullUpdateSettings(
+    Dmax=parse(Int, get(ENV, "FU_DMAX", string(D))),
+    multiplet_tol=parse(Float64, get(ENV, "FU_MULTIPLET_TOL", "1e-5")),
     maxiter=parse(Int, get(ENV, "FU_LOCAL_MAXITER", "20")),
     gradient_tolerance=parse(Float64, get(ENV, "FU_GRAD_TOL", "1e-8")),
     loss_tolerance=parse(Float64, get(ENV, "FU_LOSS_TOL", "1e-12")),
@@ -182,6 +186,8 @@ function save_and_measure_cell(A_set_now, environment, step, reports)
         Lx=cell_Lx,
         Ly=cell_Ly,
         D=D,
+        Dmax=fu_settings.Dmax,
+        multiplet_tol=fu_settings.multiplet_tol,
         chi=chi,
         J1=J1,
         tau=tau,
@@ -195,7 +201,11 @@ function save_and_measure_cell(A_set_now, environment, step, reports)
 end
 
 println("Starting bosonic square-lattice J1 cell Full Update")
-println("cell=$(cell_Lx)×$(cell_Ly), D=$D, Vv=$Vv, chi=$chi, tau=$tau, dt=$dt, J1=$J1")
+println(
+    "cell=$(cell_Lx)×$(cell_Ly), D=$D, Dmax=$(fu_settings.Dmax), " *
+    "multiplet_tol=$(fu_settings.multiplet_tol), Vv=$Vv, chi=$chi, " *
+    "tau=$tau, dt=$dt, J1=$J1, init=$init_filename",
+)
 A_set, environment, history = square_J1_full_update_cell(
     A_set,
     chi,
@@ -215,6 +225,8 @@ jldsave(
     Lx=cell_Lx,
     Ly=cell_Ly,
     D=D,
+    Dmax=fu_settings.Dmax,
+    multiplet_tol=fu_settings.multiplet_tol,
     chi=chi,
     J1=J1,
     tau=tau,

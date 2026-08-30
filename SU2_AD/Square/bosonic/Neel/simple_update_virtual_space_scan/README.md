@@ -67,8 +67,10 @@ For every x or y bond the two rank-5 tensors are first split into fixed
 rank-4 outer tensors and two rank-3 bond tensors.  The gate and
 `truncdim(Dmax; multiplet_tol=...)` act only on the reduced bond tensor; the
 2×1 or 1×2 CTM cluster then optimizes the two rank-3 tensors alternately.
-If the truncation changes a multiplet space, CTM is rebuilt rather than
-reusing an environment with incompatible fused legs.
+As in the old triangular-lattice Full Update, CTM is reconstructed from
+scratch after every local bond update; the previous CTM is not reused even
+when the multiplet spaces remain unchanged.  The cell FU therefore requires
+`FU_REFRESH_CTM=true` (the default) and rejects `false`.
 
 The lightweight structural checks are `probe_fu_reduced.jl` (SVD
 reconstruction, gate/truncation, and cross-layer spaces) and

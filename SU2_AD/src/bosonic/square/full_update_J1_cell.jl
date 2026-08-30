@@ -534,6 +534,10 @@ function square_J1_full_update_cell_sweep(
     initial_environment=nothing,
 )
     cell_Lx, cell_Ly = _square_fu_validate_cell(A_set)
+    settings.refresh_environment || throw(ArgumentError(
+        "square cell Full Update requires refresh_environment=true: " *
+        "CTMRG is reconstructed from scratch after every bond, as in the old triangular FU",
+    ))
     groups = isnothing(bond_groups) ? square_J1_bond_groups(cell_Lx, cell_Ly) : bond_groups
     A_current = copy(A_set)
     environment = isnothing(initial_environment) ?
@@ -549,23 +553,14 @@ function square_J1_full_update_cell_sweep(
             A_current[bond.site1] = A1_new
             A_current[bond.site2] = A2_new
             push!(reports, merge(report, (group=group_index,)))
-            if settings.refresh_environment
-                # A CTM built for the old fused virtual spaces cannot be used
-                # as an initial environment after the local SVD selects a
-                # different multiplet structure.  This follows the original
-                # triangular FU, which reconstructs CTM after a bond-space
-                # change; reuse is safe only when the spaces are unchanged.
-                initial_CTM = report.bond_space_changed ? nothing : environment.CTM
-                environment = _square_fu_environment_cell(
-                    A_current, chi, ctm_setting; initial_CTM=initial_CTM,
-                )
-            end
+            # Follow the original triangular-lattice FU literally: after
+            # every local update, reconstruct the CTM from scratch.  Do not
+            # reuse the old CTM even when the virtual spaces happen to be
+            # unchanged, since the local tensors themselves have changed.
+            environment = _square_fu_environment_cell(
+                A_current, chi, ctm_setting; initial_CTM=nothing,
+            )
         end
-    end
-    if !settings.refresh_environment
-        environment = _square_fu_environment_cell(
-            A_current, chi, ctm_setting; initial_CTM=environment.CTM,
-        )
     end
     return A_current, environment, reports
 end

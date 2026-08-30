@@ -30,6 +30,11 @@ Environment variables control seeds, schedules and CTM accuracy; see the top
 of `screen.jl`.  Every case is saved below `results/<run-id>/<case>/`, and a
 CSV summary is written to the run directory.
 
+By default only `initial.jld2` and `final.jld2` are saved.  Intermediate
+stage states are unnecessary for reproduction and can be large because they
+contain the per-sweep history.  Set `SCAN_SAVE_STAGES=true` only when an
+intermediate restart point is explicitly needed.
+
 Resume a saved state with a finer schedule:
 
 ```bash

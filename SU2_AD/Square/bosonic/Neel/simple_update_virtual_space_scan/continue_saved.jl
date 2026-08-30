@@ -43,6 +43,7 @@ open(joinpath(output_dir, "config.txt"), "w") do io
     println(io, "Dstar=$(get(ENV, "SCAN_DSTAR", "4"))")
     println(io, "Dmax=$(get(ENV, "SCAN_DMAX", "12"))")
     println(io, "multiplet_tolerance=$(get(ENV, "SCAN_MULTIPLET_TOL", "1e-5"))")
+    println(io, "save_stages=$(get(ENV, "SCAN_SAVE_STAGES", "false"))")
 end
 
 initial_report = square_J1_bond_space_report(lambda_x, lambda_y)

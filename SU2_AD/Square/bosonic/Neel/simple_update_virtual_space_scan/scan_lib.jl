@@ -307,14 +307,16 @@ function scan_run_schedule!(
             bond_spaces=report,
         )
         push!(stage_records, record)
-        jldsave(
-            joinpath(case_dir, "stage_$(stage)_dt_$(dt).jld2");
-            T_set,
-            lambda_x,
-            lambda_y,
-            history,
-            record,
-        )
+        if parse(Bool, get(ENV, "SCAN_SAVE_STAGES", "false"))
+            jldsave(
+                joinpath(case_dir, "stage_$(stage)_dt_$(dt).jld2");
+                T_set,
+                lambda_x,
+                lambda_y,
+                history,
+                record,
+            )
+        end
         println(
             "  stage=$stage dt=$dt tau=$tau error=$(record.final_error) " *
             "elapsed=$(round(elapsed; digits=2))s",

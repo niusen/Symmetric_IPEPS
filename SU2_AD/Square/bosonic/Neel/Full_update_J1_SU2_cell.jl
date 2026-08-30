@@ -21,6 +21,7 @@ include("../../../src/bosonic/square/square_model.jl")
 include("../../../src/bosonic/square/simple_update_lib.jl")
 include("../../../src/bosonic/square/full_update_J1.jl")
 include("../../../src/bosonic/square/full_update_J1_cell.jl")
+include("square_J1_initial_states.jl")
 
 Random.seed!(parse(Int, get(ENV, "FU_SEED", "666")))
 
@@ -112,11 +113,27 @@ tau = parse(Float64, get(ENV, "FU_TAU", "0.5"))
 dt = parse(Float64, get(ENV, "FU_DT", "0.01"))
 J1 = parse(Float64, get(ENV, "FU_J1", "1.0"))
 init_filename = get(ENV, "FU_INIT", "nothing")
+init_kind = Symbol(get(ENV, "FU_INIT_KIND", "homogeneous"))
 
 if init_filename == "nothing"
-    D = requested_D
-    global Vv = full_update_cell_virtual_space(D)
-    A_set = [random_full_update_cell_tensor(Vv) for _ in 1:cell_Lx, _ in 1:cell_Ly]
+    if init_kind === :homogeneous
+        D = requested_D
+        global Vv = full_update_cell_virtual_space(D)
+        A_set = [random_full_update_cell_tensor(Vv) for _ in 1:cell_Lx, _ in 1:cell_Ly]
+    else
+        (cell_Lx, cell_Ly) == (2, 2) || error(
+            "FU_INIT_KIND=$init_kind is a named 2×2 matching; set FU_LX=2 FU_LY=2",
+        )
+        A_set, _, _ = square_J1_named_initial_state(
+            init_kind,
+            parse(Int, get(ENV, "FU_SEED", "666")),
+        )
+        global Vv = space(A_set[1, 1], 1)
+        D = maximum(
+            dim(space(A_set[cx, cy], leg))
+            for cx in 1:cell_Lx, cy in 1:cell_Ly, leg in 1:4
+        )
+    end
 else
     A_set = load_full_update_cell(init_filename, cell_Lx, cell_Ly)
     global Vv = space(A_set[1, 1], 1)
@@ -126,6 +143,8 @@ else
     end
 end
 _square_fu_validate_cell(A_set)
+default_Dmax = init_filename == "nothing" && startswith(string(init_kind), "minimal_") ?
+    12 : D
 
 save_filename = get(
     ENV,
@@ -156,7 +175,7 @@ algrithm_CTMRG_settings.CTM_cell_ite_method = get(
 )
 
 fu_settings = SquareJ1FullUpdateSettings(
-    Dmax=parse(Int, get(ENV, "FU_DMAX", string(D))),
+    Dmax=parse(Int, get(ENV, "FU_DMAX", string(default_Dmax))),
     multiplet_tol=parse(Float64, get(ENV, "FU_MULTIPLET_TOL", "1e-5")),
     maxiter=parse(Int, get(ENV, "FU_LOCAL_MAXITER", "20")),
     gradient_tolerance=parse(Float64, get(ENV, "FU_GRAD_TOL", "1e-8")),
@@ -186,7 +205,10 @@ function save_and_measure_cell(A_set_now, environment, step, reports)
         Lx=cell_Lx,
         Ly=cell_Ly,
         D=D,
+        initial_D=D,
         Dmax=fu_settings.Dmax,
+        init_kind=init_kind,
+        init_filename=init_filename,
         multiplet_tol=fu_settings.multiplet_tol,
         chi=chi,
         J1=J1,
@@ -204,7 +226,7 @@ println("Starting bosonic square-lattice J1 cell Full Update")
 println(
     "cell=$(cell_Lx)×$(cell_Ly), D=$D, Dmax=$(fu_settings.Dmax), " *
     "multiplet_tol=$(fu_settings.multiplet_tol), Vv=$Vv, chi=$chi, " *
-    "tau=$tau, dt=$dt, J1=$J1, init=$init_filename",
+    "tau=$tau, dt=$dt, J1=$J1, init=$init_filename, init_kind=$init_kind",
 )
 A_set, environment, history = square_J1_full_update_cell(
     A_set,
@@ -225,7 +247,10 @@ jldsave(
     Lx=cell_Lx,
     Ly=cell_Ly,
     D=D,
+    initial_D=D,
     Dmax=fu_settings.Dmax,
+    init_kind=init_kind,
+    init_filename=init_filename,
     multiplet_tol=fu_settings.multiplet_tol,
     chi=chi,
     J1=J1,

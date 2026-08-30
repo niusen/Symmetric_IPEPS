@@ -20,6 +20,19 @@ Vodd  = {(1/2)^2, (3/2)^2}       D*=4, D=12
 placed on a 2×2 perfect matching.  Columnar and ABBA-like staggered choices
 are both tested.
 
+The small parity-resolved initialization requested for growing the paper
+spaces is named `minimal_y_staggered`:
+
+```text
+Veven = {0^1, 1^1}               D*=2, D=4
+Vodd  = {(1/2)^1}                D*=1, D=2
+```
+
+It uses six even bonds and two staggered y-oriented odd bonds, with exactly
+one odd bond incident on every site.  It is included in the default Simple
+Update screen.  The x-oriented and columnar variants are also available as
+`minimal_x_staggered`, `minimal_x_columnar`, and `minimal_y_columnar`.
+
 Run a quick screen with:
 
 ```bash
@@ -61,6 +74,28 @@ FU_INIT=simple_update_virtual_space_scan/results/paper_y_staggered_seed666_fine_
 FU_LX=2 FU_LY=2 FU_DMAX=12 FU_MULTIPLET_TOL=1e-5 \
 FU_CHI=32 FU_TAU=0.01 FU_DT=0.01 \
 julia Full_update_J1_SU2_cell.jl
+```
+
+Full Update can also construct the same small state directly, without an
+input file:
+
+```bash
+FU_INIT_KIND=minimal_y_staggered FU_LX=2 FU_LY=2 \
+FU_DMAX=12 FU_MULTIPLET_TOL=1e-5 FU_CHI=32 \
+julia Full_update_J1_SU2_cell.jl
+```
+
+`FU_INIT_KIND=homogeneous` remains the default.  All named initializations
+accepted by the Simple Update scan are accepted by Full Update as well.  A
+`minimal_*` Full Update initialization defaults to `Dmax=12`; setting
+`FU_DMAX` explicitly still overrides it.
+
+On a server, parameters can instead be edited directly at the top of
+`../Run_full_update_J1_SU2_cell.jl`.  Then no command-line parameters are
+needed:
+
+```bash
+julia Run_full_update_J1_SU2_cell.jl
 ```
 
 For every x or y bond the two rank-5 tensors are first split into fixed

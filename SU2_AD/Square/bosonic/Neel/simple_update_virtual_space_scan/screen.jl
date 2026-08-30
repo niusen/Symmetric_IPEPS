@@ -27,7 +27,8 @@ const QUICK_SCHEDULES = Dict(
 init_names = parse_list(
     "SCAN_INITS",
     "mixed_min,mixed_balanced,mixed_broad,paper_union," *
-    "paper_x_columnar,paper_x_staggered,paper_y_columnar,paper_y_staggered",
+    "minimal_y_staggered,paper_x_columnar,paper_x_staggered," *
+    "paper_y_columnar,paper_y_staggered",
     Symbol,
 )
 seeds = parse_list("SCAN_SEEDS", "666", value -> parse(Int, value))

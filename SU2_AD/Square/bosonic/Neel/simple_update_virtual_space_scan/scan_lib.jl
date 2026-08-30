@@ -24,87 +24,13 @@ include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "simple_update_lib.jl")
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "simple_update_J1_cell.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "full_update_J1.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "full_update_J1_cell.jl"))
+include(joinpath(SCAN_DIR, "..", "square_J1_initial_states.jl"))
 
 const PAPER_ENERGY_SU2_DSTAR4 = -0.6686
 const QMC_ENERGY = -0.6694
-const PAPER_VEVEN = SU2Space(0 => 1, 1 => 2, 2 => 1)
-const PAPER_VODD = SU2Space(1 / 2 => 2, 3 / 2 => 2)
-
-function scan_diagonal_identity(V)
-    reduced_dimension = sum(dim(V, sector) for sector in sectors(V))
-    return DiagonalTensorMap(ones(Float64, reduced_dimension), V)
-end
-
-function scan_random_site_tensor(VL, VD, VR, VU; Vp=SU2Space(1 / 2 => 1))
-    A = TensorMap(randn, VL ⊗ VD ⊗ VR' ⊗ VU', Vp)
-    A = permute(A, (1, 2, 3, 4, 5), ())
-    norm_A = norm(A)
-    isfinite(norm_A) && norm_A > 0 || error(
-        "empty intertwiner for (VL,VD,VR,VU)=($VL,$VD,$VR,$VU)",
-    )
-    return A / norm_A
-end
-
-function scan_cell_from_bond_spaces(xleft::AbstractMatrix, ybelow::AbstractMatrix)
-    size(xleft) == (2, 2) || throw(DimensionMismatch("xleft must be 2×2"))
-    size(ybelow) == (2, 2) || throw(DimensionMismatch("ybelow must be 2×2"))
-    T_set = Matrix{Any}(undef, 2, 2)
-    lambda_x = Matrix{Any}(undef, 2, 2)
-    lambda_y = Matrix{Any}(undef, 2, 2)
-    for cx in 1:2, cy in 1:2
-        VL = xleft[cx, cy]
-        VD = ybelow[cx, cy]
-        VR = xleft[mod1(cx + 1, 2), cy]
-        VU = ybelow[cx, mod1(cy + 1, 2)]
-        T_set[cx, cy] = scan_random_site_tensor(VL, VD, VR, VU)
-        lambda_x[cx, cy] = scan_diagonal_identity(VL)
-        lambda_y[cx, cy] = scan_diagonal_identity(VD')
-    end
-    return T_set, lambda_x, lambda_y
-end
-
-function scan_homogeneous_cell(V)
-    spaces = fill(V, 2, 2)
-    return scan_cell_from_bond_spaces(spaces, spaces)
-end
-
-function scan_paper_matching(kind::Symbol)
-    xleft = fill(PAPER_VEVEN, 2, 2)
-    ybelow = fill(PAPER_VEVEN, 2, 2)
-    if kind === :paper_x_columnar
-        xleft[2, 1] = PAPER_VODD
-        xleft[2, 2] = PAPER_VODD
-    elseif kind === :paper_x_staggered
-        xleft[2, 1] = PAPER_VODD
-        xleft[1, 2] = PAPER_VODD
-    elseif kind === :paper_y_columnar
-        ybelow[1, 2] = PAPER_VODD
-        ybelow[2, 2] = PAPER_VODD
-    elseif kind === :paper_y_staggered
-        ybelow[1, 2] = PAPER_VODD
-        ybelow[2, 1] = PAPER_VODD
-    else
-        throw(ArgumentError("unknown paper matching $kind"))
-    end
-    return scan_cell_from_bond_spaces(xleft, ybelow)
-end
 
 function scan_initial_state(kind::Symbol, seed::Int)
-    Random.seed!(seed)
-    if kind === :mixed_min
-        return scan_homogeneous_cell(SU2Space(0 => 1, 1 / 2 => 1))
-    elseif kind === :mixed_balanced
-        return scan_homogeneous_cell(SU2Space(0 => 2, 1 / 2 => 2))
-    elseif kind === :mixed_broad
-        return scan_homogeneous_cell(SU2Space(0 => 1, 1 / 2 => 1, 1 => 1, 3 / 2 => 1))
-    elseif kind === :paper_union
-        return scan_homogeneous_cell(
-            SU2Space(0 => 1, 1 / 2 => 2, 1 => 2, 3 / 2 => 2, 2 => 1),
-        )
-    elseif startswith(string(kind), "paper_")
-        return scan_paper_matching(kind)
-    end
-    throw(ArgumentError("unknown initialization $kind"))
+    return square_J1_named_initial_state(kind, seed)
 end
 
 function scan_ctm_settings(; tolerance=1.0e-6, maxiter=120, verbose=false)

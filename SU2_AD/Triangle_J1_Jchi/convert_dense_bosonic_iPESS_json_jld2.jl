@@ -290,3 +290,18 @@ if abspath(PROGRAM_FILE) == @__FILE__
     )
     convert_dense_bosonic_ipess_state(ARGS[1], ARGS[2])
 end
+
+
+
+
+#usage:
+
+input_file = "triangle_spin_J1_1_Jchi_0p4_D6_chi80_Lx2_Ly1_D6_to_D8.jld2"
+
+output_file = "triangle_spin_J1_1_Jchi_0p4_D6_chi80_Lx2_Ly1_D6_to_D8.json"
+
+# # Python JSON → Julia JLD2
+# convert_dense_bosonic_ipess_state(input_file, output_file)
+
+# # Julia JLD2 → Python JSON
+# convert_dense_bosonic_ipess_state(input_file, output_file)

@@ -1,3 +1,6 @@
+println("PID=$(getpid())")
+flush(stdout)
+
 using TensorKit
 import TensorKit: ×
 using Zygote
@@ -159,7 +162,7 @@ ctm_setting.CTM_trun_tol = 1e-8
 ctm_setting.svd_lanczos_tol = 1e-8
 ctm_setting.projector_strategy = "4x4"
 ctm_setting.conv_check = "singular_value"
-ctm_setting.CTM_ite_info = true
+ctm_setting.CTM_ite_info = false
 ctm_setting.CTM_conv_info = true
 ctm_setting.CTM_trun_svd = false
 ctm_setting.construct_double_layer = true
@@ -185,49 +188,117 @@ fu_settings = SquareJ1FullUpdateSettings(
     verbose=parse(Bool, get(ENV, "FU_VERBOSE", "true")),
 )
 
-groups = square_J1_bond_groups(cell_Lx, cell_Ly)
-println("Periodic bond-group sizes: $(map(length, groups))")
+function print_full_update_cell_parameters(
+    A_set,
+    cell_Lx,
+    cell_Ly,
+    init_kind,
+    init_filename,
+    chi,
+    tau,
+    dt,
+    J1,
+    save_filename,
+    ctm_setting,
+    fu_settings,
+)
+    nsteps = round(Int, tau / dt)
+    println("Starting bosonic square-lattice J1 Full Update")
+    println("parameters:")
+    println("  cell=$(cell_Lx)x$(cell_Ly)")
+    println("  initial_state_kind=$init_kind")
+    println("  initial_state_file=$init_filename")
+    println("  random_seed=$(get(ENV, \"FU_SEED\", \"666\"))")
+    println("  J1=$J1")
+    println("  tau=$tau, dt=$dt, steps=$nsteps")
+    println("  Dmax=$(fu_settings.Dmax) (total state-counting bond dimension)")
+    println("  multiplet_tol=$(fu_settings.multiplet_tol)")
+    println("  chi=$chi")
+    println("  CTM_cell_ite_method=$(algrithm_CTMRG_settings.CTM_cell_ite_method)")
+    println("  CTM_conv_tol=$(ctm_setting.CTM_conv_tol)")
+    println("  CTM_ite_nums=$(ctm_setting.CTM_ite_nums)")
+    println("  CTM_trun_tol=$(ctm_setting.CTM_trun_tol)")
+    println("  svd_lanczos_tol=$(ctm_setting.svd_lanczos_tol)")
+    println("  projector_strategy=$(ctm_setting.projector_strategy)")
+    println("  local_max_iterations=$(fu_settings.maxiter)")
+    println("  gradient_tolerance=$(fu_settings.gradient_tolerance)")
+    println("  loss_tolerance=$(fu_settings.loss_tolerance)")
+    println("  initial_line_search_step=$(fu_settings.initial_step)")
+    println("  refresh_environment=$(fu_settings.refresh_environment)")
+    println("  save_file=$save_filename")
+    println("initial virtual bonds:")
+    for cy in 1:cell_Ly, cx in 1:cell_Lx
+        for (direction, leg, nx, ny) in (
+            (:x, 3, mod1(cx + 1, cell_Lx), cy),
+            (:y, 2, cx, mod1(cy + 1, cell_Ly)),
+        )
+            Vbond = space(A_set[cx, cy], leg)
+            Dstar = sum(dim(Vbond, sector) for sector in sectors(Vbond))
+            println(
+                "  $direction($cx,$cy)->($nx,$ny): " *
+                "D*=$Dstar, D=$(dim(Vbond)), V=$Vbond",
+            )
+        end
+    end
+    flush(stdout)
+    return nothing
+end
+
+print_full_update_cell_parameters(
+    A_set,
+    cell_Lx,
+    cell_Ly,
+    init_kind,
+    init_filename,
+    chi,
+    tau,
+    dt,
+    J1,
+    save_filename,
+    ctm_setting,
+    fu_settings,
+)
+
 starting_time = now()
+best_energy = Ref(Inf)
 
 function save_and_measure_cell(A_set_now, environment, step, reports)
     energies = square_J1_energy_cell(A_set_now, environment; J1=J1)
-    elapsed = Dates.canonicalize(Dates.CompoundPeriod(now() - starting_time))
     println(
-        "FU sweep $step: E/site=$(energies.energy_per_site), " *
-        "mean(Ex)=$(sum(energies.Ex) / length(energies.Ex)), " *
-        "mean(Ey)=$(sum(energies.Ey) / length(energies.Ey)), " *
-        "CTM error=$(environment.ite_err), elapsed=$elapsed",
+        "E= " * string(energies.energy_per_site) *
+        ", ex_set= " * string(energies.Ex[:]) *
+        ", ey_set= " * string(energies.Ey[:]),
     )
-    jldsave(
-        save_filename;
-        A_set=A_set_now,
-        A_cell=square_fu_cell_to_tuple(A_set_now),
-        Lx=cell_Lx,
-        Ly=cell_Ly,
-        D=D,
-        initial_D=D,
-        Dmax=fu_settings.Dmax,
-        init_kind=init_kind,
-        init_filename=init_filename,
-        multiplet_tol=fu_settings.multiplet_tol,
-        chi=chi,
-        J1=J1,
-        tau=tau,
-        dt=dt,
-        completed_sweeps=step,
-        reports=reports,
-        Ex=energies.Ex,
-        Ey=energies.Ey,
-        energy_per_site=energies.energy_per_site,
-    )
+    if energies.energy_per_site < best_energy[]
+        best_energy[] = energies.energy_per_site
+        jldsave(
+            save_filename;
+            A_set=A_set_now,
+            A_cell=square_fu_cell_to_tuple(A_set_now),
+            Lx=cell_Lx,
+            Ly=cell_Ly,
+            D=D,
+            initial_D=D,
+            Dmax=fu_settings.Dmax,
+            init_kind=init_kind,
+            init_filename=init_filename,
+            multiplet_tol=fu_settings.multiplet_tol,
+            chi=chi,
+            J1=J1,
+            tau=tau,
+            dt=dt,
+            completed_sweeps=step,
+            reports=reports,
+            Ex=energies.Ex,
+            Ey=energies.Ey,
+            energy_per_site=energies.energy_per_site,
+        )
+        elapsed = Dates.canonicalize(Dates.CompoundPeriod(now() - starting_time))
+        println("Time consumed: " * string(elapsed))
+        flush(stdout)
+    end
 end
 
-println("Starting bosonic square-lattice J1 cell Full Update")
-println(
-    "cell=$(cell_Lx)×$(cell_Ly), D=$D, Dmax=$(fu_settings.Dmax), " *
-    "multiplet_tol=$(fu_settings.multiplet_tol), Vv=$Vv, chi=$chi, " *
-    "tau=$tau, dt=$dt, J1=$J1, init=$init_filename, init_kind=$init_kind",
-)
 A_set, environment, history = square_J1_full_update_cell(
     A_set,
     chi,
@@ -238,27 +309,3 @@ A_set, environment, history = square_J1_full_update_cell(
     settings=fu_settings,
     callback=save_and_measure_cell,
 )
-
-final_energies = square_J1_energy_cell(A_set, environment; J1=J1)
-jldsave(
-    save_filename;
-    A_set=A_set,
-    A_cell=square_fu_cell_to_tuple(A_set),
-    Lx=cell_Lx,
-    Ly=cell_Ly,
-    D=D,
-    initial_D=D,
-    Dmax=fu_settings.Dmax,
-    init_kind=init_kind,
-    init_filename=init_filename,
-    multiplet_tol=fu_settings.multiplet_tol,
-    chi=chi,
-    J1=J1,
-    tau=tau,
-    dt=dt,
-    history=history,
-    Ex=final_energies.Ex,
-    Ey=final_energies.Ey,
-    energy_per_site=final_energies.energy_per_site,
-)
-println("Full Update finished; state saved to $save_filename")

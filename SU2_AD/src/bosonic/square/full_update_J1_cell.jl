@@ -435,9 +435,6 @@ function square_J1_full_update_cell_bond(
     accepted_steps = 0
     last_iteration = 0
 
-    settings.verbose && println(
-        "FU cell $(bond.direction) $(Tuple(bond.site1))→$(Tuple(bond.site2)): initial loss=$loss_current",
-    )
     # As in the triangular iPESS FU, optimize one local tensor while holding all
     # other local tensors fixed, then sweep to the next tensor.  The bosonic
     # square bond has two rank-5 tensors instead of the four reduced tensors of
@@ -456,10 +453,6 @@ function square_J1_full_update_cell_bond(
         accepted = accepted_1 || accepted_2
         accepted_steps += Int(accepted_1) + Int(accepted_2)
         push!(loss_history, loss_current)
-        settings.verbose && println(
-            "FU cell $(bond.direction) $(Tuple(bond.site1)) alternating sweep $iteration: " *
-            "loss=$loss_current, |grad|=$gradient_norm",
-        )
         gradient_norm <= settings.gradient_tolerance && break
         accepted || break
         loss_before_sweep - loss_current <= settings.loss_tolerance && break
@@ -482,14 +475,11 @@ function square_J1_full_update_cell_bond(
         bond_space_changed=old_bond_space != new_bond_space,
     ))
     if settings.verbose
-        println(
-            "FU cell $(bond.direction) bond $(Tuple(bond.site1)) → " *
-            "$(Tuple(bond.site2)) virtual space:\n" *
-            "  old bond:           $(report.old_bond_space)\n" *
-            "  direct truncation:  $(report.singular_space)\n" *
-            "  full-update bond:    $(report.new_bond_space)\n" *
-            "  space changed:       $(report.bond_space_changed)",
-        )
+        overlap_initial = sqrt(max(0.0, 1 - report.loss_initial))
+        overlap_final = sqrt(max(0.0, report.fidelity))
+        println("direct truncation:" * string(report.singular_space))
+        println("overlap without optimization:" * string(overlap_initial))
+        println("overlap with environmen after optimization:" * string(overlap_final))
         flush(stdout)
     end
     return A1_current, A2_current, report
@@ -553,10 +543,16 @@ function square_J1_full_update_cell_sweep(
     A_current = copy(A_set)
     environment = isnothing(initial_environment) ?
         _square_fu_environment_cell(A_current, chi, ctm_setting) : initial_environment
+    if settings.verbose && isnothing(initial_environment)
+        println(
+            "ctm_ite_num= " * string(environment.ite_num) *
+            ", ctm_ite_err= " * string(environment.ite_err),
+        )
+        flush(stdout)
+    end
     reports = NamedTuple[]
 
     for (group_index, group) in pairs(groups)
-        settings.verbose && println("FU cell bond group $group_index/$(length(groups)), $(length(group)) bonds")
         for bond in group
             A1_new, A2_new, report = square_J1_full_update_cell_bond(
                 A_current, environment, gate, bond; settings=settings,
@@ -571,6 +567,13 @@ function square_J1_full_update_cell_sweep(
             environment = _square_fu_environment_cell(
                 A_current, chi, ctm_setting; initial_CTM=nothing,
             )
+            if settings.verbose
+                println(
+                    "ctm_ite_num= " * string(environment.ite_num) *
+                    ", ctm_ite_err= " * string(environment.ite_err),
+                )
+                flush(stdout)
+            end
         end
     end
     return A_current, environment, reports
@@ -640,13 +643,19 @@ function square_J1_full_update_cell(
     cell_Lx, cell_Ly = _square_fu_validate_cell(A_set)
     gate = prepare_gate_Heisenberg(J1 * dt, space(A_set[1, 1], 1))
     groups = square_J1_bond_groups(cell_Lx, cell_Ly)
-    environment = nothing
     A_current = copy(A_set)
+    environment = _square_fu_environment_cell(A_current, chi, ctm_setting)
+    if settings.verbose
+        println(
+            "ctm_ite_num= " * string(environment.ite_num) *
+            ", ctm_ite_err= " * string(environment.ite_err),
+        )
+        println("Periodic bond-group sizes: $(map(length, groups))")
+        flush(stdout)
+    end
     history = Vector{Vector{NamedTuple}}()
     for step in 1:nsteps
-        settings.verbose && println(
-            "square J1 $(cell_Lx)×$(cell_Ly) FU sweep $step/$nsteps, dt=$dt",
-        )
+        settings.verbose && println("iteration " * string(step))
         A_current, environment, reports = square_J1_full_update_cell_sweep(
             A_current,
             chi,
@@ -658,9 +667,6 @@ function square_J1_full_update_cell(
         )
         push!(history, reports)
         isnothing(callback) || callback(A_current, environment, step, reports)
-    end
-    if nsteps == 0
-        environment = _square_fu_environment_cell(A_current, chi, ctm_setting)
     end
     return A_current, environment, history
 end

@@ -33,7 +33,7 @@ Dmax = 4
 multiplet_tolerance = 1.0e-5
 
 environment_chi = 60
-imaginary_time = 1
+imaginary_time = 5
 time_step = 0.02
 J1 = 1.0
 
@@ -64,7 +64,6 @@ end
 set_full_update_environment!("FU_LX", cell_Lx)
 set_full_update_environment!("FU_LY", cell_Ly)
 set_full_update_environment!("FU_SEED", random_seed)
-set_full_update_environment!("FU_D", homogeneous_initial_D)
 set_full_update_environment!("FU_DMAX", Dmax)
 set_full_update_environment!("FU_MULTIPLET_TOL", multiplet_tolerance)
 set_full_update_environment!("FU_CHI", environment_chi)
@@ -85,10 +84,16 @@ set_full_update_environment!("FU_SAVE", isabspath(save_file) ? save_file : joinp
 if isnothing(initial_state_file)
     set_full_update_environment!("FU_INIT", "nothing")
     set_full_update_environment!("FU_INIT_KIND", initial_state_kind)
+    if initial_state_kind === :homogeneous
+        set_full_update_environment!("FU_D", homogeneous_initial_D)
+    else
+        pop!(ENV, "FU_D", nothing)
+    end
 else
     state_path = isabspath(initial_state_file) ?
         initial_state_file : joinpath(@__DIR__, initial_state_file)
     isfile(state_path) || error("initial_state_file does not exist: $state_path")
+    pop!(ENV, "FU_D", nothing)
     set_full_update_environment!("FU_INIT", state_path)
     # The loaded file takes precedence; retain this label only as metadata.
     set_full_update_environment!("FU_INIT_KIND", "loaded")

@@ -16,7 +16,7 @@ const SCAN_DIR = joinpath(NEEL_DIR, "simple_update_virtual_space_scan")
 
 include(joinpath(SCAN_DIR, "scan_lib.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_correl_cell.jl"))
-include(joinpath(OBS_DIR, "observables_lib.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_J1_observables_cell.jl"))
 
 # ---------------------------------------------------------------------------
 # Configuration: edit these values directly; no command-line input is needed.

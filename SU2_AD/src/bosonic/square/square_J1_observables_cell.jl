@@ -1,5 +1,5 @@
 """
-Observables for a bosonic SU(2)-symmetric square-lattice iPEPS cell.
+Reusable observables for a bosonic SU(2)-symmetric square-lattice iPEPS cell.
 
 This file deliberately reuses the repository CTMRG environment, the reduced
 two-site density matrix used by square Full Update, and the double-layer plus

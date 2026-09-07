@@ -40,8 +40,9 @@ lambda_y = data["lambda_y"]
 open(joinpath(output_dir, "config.txt"), "w") do io
     println(io, "source_state=$state_file")
     println(io, "schedule=$schedule_name")
-    println(io, "Dstar=$(get(ENV, "SCAN_DSTAR", "4"))")
     println(io, "Dmax=$(get(ENV, "SCAN_DMAX", "12"))")
+    println(io, "limit_Dstar=$(get(ENV, "SCAN_LIMIT_DSTAR", "false"))")
+    println(io, "Dstar_max=$(get(ENV, "SCAN_DSTAR_MAX", "4"))")
     println(io, "multiplet_tolerance=$(get(ENV, "SCAN_MULTIPLET_TOL", "1e-5"))")
     println(io, "save_stages=$(get(ENV, "SCAN_SAVE_STAGES", "false"))")
 end
@@ -55,8 +56,9 @@ T_set, lambda_x, lambda_y, stage_records = scan_run_schedule!(
     lambda_y,
     schedule,
     output_dir;
-    Dstar=parse(Int, get(ENV, "SCAN_DSTAR", "4")),
     Dmax=parse(Int, get(ENV, "SCAN_DMAX", "12")),
+    limit_Dstar=parse(Bool, get(ENV, "SCAN_LIMIT_DSTAR", "false")),
+    Dstar_max=parse(Int, get(ENV, "SCAN_DSTAR_MAX", "4")),
     multiplet_tolerance=parse(Float64, get(ENV, "SCAN_MULTIPLET_TOL", "1e-5")),
 )
 

@@ -19,7 +19,8 @@ Random.seed!(parse(Int, get(ENV, "SU_SEED", "666")))
 cell_Lx = parse(Int, get(ENV, "SU_LX", "2"))
 cell_Ly = parse(Int, get(ENV, "SU_LY", "2"))
 Dmax = parse(Int, get(ENV, "SU_DMAX", "12"))
-Dstar = parse(Int, get(ENV, "SU_DSTAR", "4"))
+limit_Dstar = parse(Bool, get(ENV, "SU_LIMIT_DSTAR", "false"))
+Dstar_max = parse(Int, get(ENV, "SU_DSTAR_MAX", "4"))
 tau = parse(Float64, get(ENV, "SU_TAU", "0.1"))
 dt = parse(Float64, get(ENV, "SU_DT", "0.01"))
 J1 = parse(Float64, get(ENV, "SU_J1", "1.0"))
@@ -55,8 +56,9 @@ else
 end
 
 settings = SquareJ1SimpleUpdateSettings(
-    Dstar=Dstar,
     Dmax=Dmax,
+    limit_Dstar=limit_Dstar,
+    Dstar_max=Dstar_max,
     multiplet_tol=multiplet_tol_su,
     convergence_tol=parse(Float64, get(ENV, "SU_CONV_TOL", "0.0")),
     print_every=print_every,
@@ -65,7 +67,8 @@ settings = SquareJ1SimpleUpdateSettings(
 
 println("Starting square-lattice bosonic J1 SU(2) Simple Update")
 println(
-    "cell=$cell_Lx×$cell_Ly, initial Vmix=$Vmix, Dstar=$Dstar, Dmax=$Dmax, " *
+    "cell=$cell_Lx×$cell_Ly, initial Vmix=$Vmix, Dmax=$Dmax, " *
+    "limit_Dstar=$limit_Dstar" * (limit_Dstar ? ", Dstar_max=$Dstar_max, " : ", ") *
     "tau=$tau, dt=$dt, J1=$J1, multiplet_tol=$multiplet_tol_su",
 )
 println("Initial virtual bonds:")
@@ -83,7 +86,8 @@ function save_simple_update_step(T_now, lx_now, ly_now, step, report, error)
         Lx=cell_Lx,
         Ly=cell_Ly,
         Dmax=Dmax,
-        Dstar=Dstar,
+        limit_Dstar=limit_Dstar,
+        Dstar_max=Dstar_max,
         J1=J1,
         tau_completed=step * dt,
         dt=dt,
@@ -116,7 +120,8 @@ jldsave(
     Lx=cell_Lx,
     Ly=cell_Ly,
     Dmax,
-    Dstar,
+    limit_Dstar,
+    Dstar_max,
     J1,
     tau,
     dt,

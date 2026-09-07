@@ -131,7 +131,7 @@ end
 function tebd_xbond(
     ct,Tset,lambdaxset,lambdayset,gate,px,py,Dmax;
     multiplet_tol=nothing,
-    Dstar=nothing,
+    Dstar_limit=nothing,
     print_space::Bool=true,
 );
     Lx,Ly=size(Tset);
@@ -161,13 +161,13 @@ function tebd_xbond(
 
     @tensor Tbond[:]:=T1_keep[-1,1,2]*T2_keep[1,3,-3]*gate[-2,-4,2,3];#newbond1,R1,d1  L2,d2,newbond2 -> newbond1,d1  ,newbond2,d2
     Tbond_matrix = permute(Tbond,(1,2,),(3,4,))
-    if isnothing(Dstar)
+    if isnothing(Dstar_limit)
         truncation = isnothing(multiplet_tol) ?
             truncdim(Dmax) : truncdim(Dmax; multiplet_tol=multiplet_tol)
         u,s,v=tsvd(Tbond_matrix; trunc=truncation)
     else
-        u,s,v=square_su_tsvd_multiplets(
-            Tbond_matrix, Dstar, Dmax, something(multiplet_tol, 0.0),
+        u,s,v=square_su_tsvd_with_multiplet_limit(
+            Tbond_matrix, Dstar_limit, Dmax, something(multiplet_tol, 0.0),
         )
     end
     T1_keep=u*sqrt(s);
@@ -200,7 +200,7 @@ end
 function tebd_ybond(
     ct,Tset,lambdaxset,lambdayset,gate,px,py,Dmax;
     multiplet_tol=nothing,
-    Dstar=nothing,
+    Dstar_limit=nothing,
     print_space::Bool=true,
 );
     Lx,Ly=size(Tset);
@@ -230,13 +230,13 @@ function tebd_ybond(
 
     @tensor Tbond[:]:=T1_keep[-1,1,2]*T2_keep[1,3,-3]*gate[-2,-4,2,3];#newbond1,D1,d1  U2,d2,newbond2 -> newbond1,d1  newbond2,d2
     Tbond_matrix = permute(Tbond,(1,2,),(3,4,))
-    if isnothing(Dstar)
+    if isnothing(Dstar_limit)
         truncation = isnothing(multiplet_tol) ?
             truncdim(Dmax) : truncdim(Dmax; multiplet_tol=multiplet_tol)
         u,s,v=tsvd(Tbond_matrix; trunc=truncation)
     else
-        u,s,v=square_su_tsvd_multiplets(
-            Tbond_matrix, Dstar, Dmax, something(multiplet_tol, 0.0),
+        u,s,v=square_su_tsvd_with_multiplet_limit(
+            Tbond_matrix, Dstar_limit, Dmax, something(multiplet_tol, 0.0),
         )
     end
     T1_keep=u*sqrt(s);

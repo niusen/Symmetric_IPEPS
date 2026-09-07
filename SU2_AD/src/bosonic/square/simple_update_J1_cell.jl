@@ -6,14 +6,14 @@ The tensor convention is `(L,D,R,U,p)`.  `lambda_x[x,y]` is the horizontal
 bond on the left of `(x,y)`, and `lambda_y[x,y]` is the vertical bond below
 `(x,y)`, exactly as in `simple_update_lib.jl`.
 
-`Dmax` is the ordinary (state-counting) virtual dimension.  For the paper's
-`D*=4, D=12` calculation use `Dmax=12`; the number and type of SU(2)
-multiplets are selected by the SVD rather than prescribed here.
+`Dmax` is the ordinary (state-counting) virtual dimension.  The number and
+type of SU(2) multiplets are selected by the SVD rather than prescribed here.
 """
 
 Base.@kwdef struct SquareJ1SimpleUpdateSettings
-    Dstar::Union{Nothing,Int} = 4
     Dmax::Int = 12
+    limit_Dstar::Bool = false
+    Dstar_max::Int = 4
     multiplet_tol::Float64 = 1.0e-5
     convergence_tol::Float64 = 0.0
     print_every::Int = 1
@@ -28,11 +28,16 @@ function _square_su_close(value_a, value_b, tolerance)
 end
 
 """
-Keep at most `Dstar` reduced singular values globally across all SU(2)
-sectors, subject also to the expanded-dimension safety cap `Dmax`.  A second
-SVD with `truncspace` performs the actual TensorKit-space restriction.
+Optional compatibility truncation used only when `limit_Dstar=true`.  The
+normal path uses `truncdim(Dmax; multiplet_tol=...)` and does not constrain
+the number of retained SU(2) multiplets.
 """
-function square_su_tsvd_multiplets(tensor, Dstar::Int, Dmax::Int, multiplet_tol::Real)
+function square_su_tsvd_with_multiplet_limit(
+    tensor,
+    Dstar_max::Int,
+    Dmax::Int,
+    multiplet_tol::Real,
+)
     _, singular_values, _ = tsvd(tensor)
     singular_space = space(singular_values, 1)
     reduced_diagonal = diag(singular_values)
@@ -45,7 +50,7 @@ function square_su_tsvd_multiplets(tensor, Dstar::Int, Dmax::Int, multiplet_tol:
       for index in eachindex(reduced_diagonal[sector])]
     sort!(candidates; by=entry -> entry.value, rev=true)
 
-    keep_count = min(Dstar, length(candidates))
+    keep_count = min(Dstar_max, length(candidates))
     while keep_count > 0 &&
           sum(entry.quantum_dimension for entry in @view(candidates[1:keep_count])) > Dmax
         keep_count -= 1
@@ -64,7 +69,7 @@ function square_su_tsvd_multiplets(tensor, Dstar::Int, Dmax::Int, multiplet_tol:
         end
     end
     keep_count > 0 || error(
-        "Dstar=$Dstar and Dmax=$Dmax leave no singular multiplet after truncation",
+        "Dstar_max=$Dstar_max and Dmax=$Dmax leave no singular multiplet after truncation",
     )
 
     multiplicities = Dict(sector => 0 for sector in sectors(singular_space))
@@ -101,10 +106,6 @@ end
 _square_su_cycle_color(index::Int, length::Int) =
     isodd(length) && index == length ? 3 : (isodd(index) ? 1 : 2)
 
-function _square_su_multiplet_count(V)
-    return sum(dim(V, sector) for sector in sectors(V))
-end
-
 function _square_su_parity(V)
     sector_parities = unique(isodd(dim(sector)) ? :integer : :half_integer
                              for sector in sectors(V) if dim(V, sector) > 0)
@@ -122,7 +123,6 @@ function _square_su_space_record(lambda)
     ) for sector in sectors(V) if dim(V, sector) > 0]
     return (
         space=string(V),
-        Dstar=_square_su_multiplet_count(V),
         D=dim(V),
         parity=_square_su_parity(V),
         lambda=spectrum,
@@ -165,9 +165,7 @@ function square_J1_print_bond_spaces(lambda_x, lambda_y; prefix="")
             bond.to,
             ": ",
             bond.space,
-            "  [D*=",
-            bond.Dstar,
-            ", D=",
+            "  [D=",
             bond.D,
             ", parity=",
             bond.parity,
@@ -213,7 +211,7 @@ function _square_su_x_sweep!(
                 step, T_set, lambda_x, lambda_y, gate, cx + 0.5, cy,
                 settings.Dmax;
                 multiplet_tol=settings.multiplet_tol,
-                Dstar=settings.Dstar,
+                Dstar_limit=settings.limit_Dstar ? settings.Dstar_max : nothing,
                 print_space=false,
             )
         end
@@ -233,7 +231,7 @@ function _square_su_y_sweep!(
                 step, T_set, lambda_x, lambda_y, gate, cx, cy + 0.5,
                 settings.Dmax;
                 multiplet_tol=settings.multiplet_tol,
-                Dstar=settings.Dstar,
+                Dstar_limit=settings.limit_Dstar ? settings.Dstar_max : nothing,
                 print_space=false,
             )
         end
@@ -268,8 +266,8 @@ function square_J1_simple_update_cell(
     tau >= 0 || throw(ArgumentError("tau must be non-negative"))
     dt > 0 || throw(ArgumentError("dt must be positive"))
     settings.Dmax > 0 || throw(ArgumentError("Dmax must be positive"))
-    isnothing(settings.Dstar) || settings.Dstar > 0 ||
-        throw(ArgumentError("Dstar must be positive or nothing"))
+    !settings.limit_Dstar || settings.Dstar_max > 0 ||
+        throw(ArgumentError("Dstar_max must be positive when limit_Dstar=true"))
     settings.multiplet_tol >= 0 ||
         throw(ArgumentError("multiplet_tol must be non-negative"))
     settings.print_every > 0 || throw(ArgumentError("print_every must be positive"))

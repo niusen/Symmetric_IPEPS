@@ -13,8 +13,21 @@ flush(stdout)
 const OBS_DIR = @__DIR__
 const NEEL_DIR = normpath(joinpath(OBS_DIR, ".."))
 const SCAN_DIR = joinpath(NEEL_DIR, "simple_update_virtual_space_scan")
+const SU2_AD_DIR = normpath(joinpath(NEEL_DIR, "..", "..", ".."))
 
-include(joinpath(SCAN_DIR, "scan_lib.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_spin_operator.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "iPEPS_ansatz.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "Settings.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "Settings_cell.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "AD_lib.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "CTMRG.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "CTMRG_unitcell.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_model.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "simple_update_lib.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "simple_update_J1_cell.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "full_update_J1.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "full_update_J1_cell.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_J1_measurements_cell.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_correl_cell.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_J1_observables_cell.jl"))
 
@@ -56,16 +69,11 @@ end
 A_set isa AbstractMatrix || error("the loaded state must be an Lx×Ly matrix")
 cell_Lx, cell_Ly = size(A_set)
 
-ctm_setting = scan_ctm_settings(
+ctm_setting = square_J1_default_ctm_settings(
     tolerance=ctm_tolerance,
     maxiter=ctm_max_iterations,
     verbose=false,
 )
-scan_prepare_globals(environment_chi, ctm_setting)
-global Lx = cell_Lx
-global Ly = cell_Ly
-global chi = environment_chi
-algrithm_CTMRG_settings.CTM_cell_ite_method = ctm_cell_method
 
 println("Square-lattice J1 SU(2) Simple-Update state analysis")
 println("parameters:")
@@ -89,7 +97,13 @@ end
 flush(stdout)
 
 started = now()
-environment = scan_environment(A_set, environment_chi, ctm_setting)
+environment = square_J1_environment_cell(
+    A_set,
+    environment_chi,
+    ctm_setting;
+    multiplet_tolerance=1.0e-5,
+    cell_method=ctm_cell_method,
+)
 println(
     "CTMRG finished: iterations=$(environment.ite_num), " *
     "error=$(environment.ite_err)",

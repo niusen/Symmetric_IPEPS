@@ -1,3 +1,4 @@
+"""Named SU(2) initial states for square-lattice J1 Simple/Full Update."""
 const SQUARE_J1_PAPER_VEVEN = SU2Space(0 => 1, 1 => 2, 2 => 1)
 const SQUARE_J1_PAPER_VODD = SU2Space(1 / 2 => 2, 3 / 2 => 2)
 

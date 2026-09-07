@@ -24,7 +24,7 @@ include("../../../src/bosonic/square/square_model.jl")
 include("../../../src/bosonic/square/simple_update_lib.jl")
 include("../../../src/bosonic/square/full_update_J1.jl")
 include("../../../src/bosonic/square/full_update_J1_cell.jl")
-include("square_J1_initial_states.jl")
+include("../../../src/bosonic/square/square_J1_initial_states.jl")
 
 Random.seed!(parse(Int, get(ENV, "FU_SEED", "666")))
 
@@ -208,7 +208,7 @@ function print_full_update_cell_parameters(
     println("  cell=$(cell_Lx)x$(cell_Ly)")
     println("  initial_state_kind=$init_kind")
     println("  initial_state_file=$init_filename")
-    println("  random_seed=$(get(ENV, \"FU_SEED\", \"666\"))")
+    println("  random_seed=$(get(ENV, "FU_SEED", "666"))")
     println("  J1=$J1")
     println("  tau=$tau, dt=$dt, steps=$nsteps")
     println("  Dmax=$(fu_settings.Dmax) (total state-counting bond dimension)")

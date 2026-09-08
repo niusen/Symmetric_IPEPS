@@ -153,6 +153,7 @@ function square_J1_environment_cell(
     ctm_settings;
     multiplet_tolerance::Real=1.0e-5,
     cell_method::AbstractString="continuous_update",
+    initial_CTM=nothing,
 )
     square_J1_prepare_ctm_globals!(
         A_set,
@@ -161,7 +162,67 @@ function square_J1_environment_cell(
         multiplet_tolerance,
         cell_method,
     )
-    return _square_fu_environment_cell(A_set, environment_chi, ctm_settings)
+    return _square_fu_environment_cell(
+        A_set,
+        environment_chi,
+        ctm_settings;
+        initial_CTM,
+    )
+end
+
+"""
+    square_J1_measure_ctm_energy_step(A_set, chi; initial_CTM=nothing, ...)
+
+Run one CTMRG energy-measurement step and return `(measurement, CTM)`.  A CTM
+from a smaller previous `chi` may be supplied as the initial boundary for an
+increasing-chi scan.  Only the converged C/T boundary is retained; CTMRG
+double layers and fusion tensors are released before the low-memory 2×1/1×2
+energy contractions.
+"""
+function square_J1_measure_ctm_energy_step(
+    A_set,
+    environment_chi::Int;
+    J1::Real=1,
+    tolerance::Real=1.0e-6,
+    maxiter::Int=120,
+    verbose::Bool=false,
+    multiplet_tolerance::Real=1.0e-5,
+    cell_method::AbstractString="continuous_update",
+    initial_CTM=nothing,
+)
+    ctm_settings = square_J1_default_ctm_settings(;
+        tolerance,
+        maxiter,
+        verbose,
+    )
+    environment = square_J1_environment_cell(
+        A_set,
+        environment_chi,
+        ctm_settings;
+        multiplet_tolerance,
+        cell_method,
+        initial_CTM,
+    )
+
+    CTM = environment.CTM
+    ctm_iterations = environment.ite_num
+    ctm_error = environment.ite_err
+    environment = nothing
+    GC.gc()
+
+    energy = square_J1_energy_cell(
+        A_set,
+        (CTM=CTM,);
+        J1,
+        low_memory=true,
+    )
+    measurement = merge(energy, (
+        chi=environment_chi,
+        ctm_iterations,
+        ctm_error,
+        reused_initial_CTM=!isnothing(initial_CTM),
+    ))
+    return measurement, CTM
 end
 
 """
@@ -180,22 +241,17 @@ function square_J1_measure_ctm_energy_cell(
     multiplet_tolerance::Real=1.0e-5,
     cell_method::AbstractString="continuous_update",
 )
-    ctm_settings = square_J1_default_ctm_settings(;
+    measurement, CTM = square_J1_measure_ctm_energy_step(
+        A_set,
+        environment_chi;
+        J1,
         tolerance,
         maxiter,
         verbose,
-    )
-    environment = square_J1_environment_cell(
-        A_set,
-        environment_chi,
-        ctm_settings;
         multiplet_tolerance,
         cell_method,
     )
-    energy = square_J1_energy_cell(A_set, environment; J1)
-    return merge(energy, (
-        chi=environment_chi,
-        ctm_iterations=environment.ite_num,
-        ctm_error=environment.ite_err,
-    ))
+    CTM = nothing
+    GC.gc()
+    return measurement
 end

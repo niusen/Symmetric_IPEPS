@@ -117,6 +117,48 @@ function square_J1_bond_groups(cell_Lx::Int, cell_Ly::Int)
     return groups
 end
 
+function _square_fu_x_left_half_cell(
+    cx::Int,
+    cy::Int,
+    CTM,
+    AA_1,
+    cell_Lx::Int,
+    cell_Ly::Int,
+)
+    Cset = CTM.Cset
+    Tset = CTM.Tset
+
+    @tensor envL[:] := Cset[mod1(cx, cell_Lx)][mod1(cy, cell_Ly)].C1[1, -1] *
+        Tset[mod1(cx, cell_Lx)][mod1(cy + 1, cell_Ly)].T4[2, -2, 1] *
+        Cset[mod1(cx, cell_Lx)][mod1(cy + 2, cell_Ly)].C4[-3, 2]
+    @tensor envL[:] := envL[1, 2, 4] *
+        Tset[mod1(cx + 1, cell_Lx)][mod1(cy, cell_Ly)].T1[1, 3, -1] *
+        AA_1[2, 5, -2, 3, -4] *
+        Tset[mod1(cx + 1, cell_Lx)][mod1(cy + 2, cell_Ly)].T3[-3, 5, 4]
+    return envL
+end
+
+function _square_fu_x_right_half_cell(
+    cx::Int,
+    cy::Int,
+    CTM,
+    AA_2,
+    cell_Lx::Int,
+    cell_Ly::Int,
+)
+    Cset = CTM.Cset
+    Tset = CTM.Tset
+
+    @tensor envR[:] := Cset[mod1(cx + 3, cell_Lx)][mod1(cy, cell_Ly)].C2[-1, 1] *
+        Tset[mod1(cx + 3, cell_Lx)][mod1(cy + 1, cell_Ly)].T2[1, -2, 2] *
+        Cset[mod1(cx + 3, cell_Lx)][mod1(cy + 2, cell_Ly)].C3[2, -3]
+    @tensor envR[:] := Tset[mod1(cx + 2, cell_Lx)][mod1(cy, cell_Ly)].T1[-1, 3, 1] *
+        AA_2[-2, 5, 2, 3, -4] *
+        Tset[mod1(cx + 2, cell_Lx)][mod1(cy + 2, cell_Ly)].T3[4, 5, -3] *
+        envR[1, 2, 4]
+    return envR
+end
+
 # CTM environment of a horizontal 2×1 cluster; there are no spectator sites.
 function _square_fu_ob_2sites_x_cell(
     cx::Int,
@@ -127,25 +169,52 @@ function _square_fu_ob_2sites_x_cell(
     cell_Lx::Int,
     cell_Ly::Int,
 )
+    envL = _square_fu_x_left_half_cell(cx, cy, CTM, AA_1, cell_Lx, cell_Ly)
+    envR = _square_fu_x_right_half_cell(cx, cy, CTM, AA_2, cell_Lx, cell_Ly)
+    @tensor rho[:] := envL[1, 2, 3, -1] * envR[1, 2, 3, -2]
+    return rho
+end
+
+function _square_fu_y_upper_half_cell(
+    cx::Int,
+    cy::Int,
+    CTM,
+    AA_1,
+    cell_Lx::Int,
+    cell_Ly::Int,
+)
     Cset = CTM.Cset
     Tset = CTM.Tset
 
-    @tensor envL[:] := Cset[mod1(cx, cell_Lx)][mod1(cy, cell_Ly)].C1[1, -1] *
-        Tset[mod1(cx, cell_Lx)][mod1(cy + 1, cell_Ly)].T4[2, -2, 1] *
-        Cset[mod1(cx, cell_Lx)][mod1(cy + 2, cell_Ly)].C4[-3, 2]
-    @tensor envR[:] := Cset[mod1(cx + 3, cell_Lx)][mod1(cy, cell_Ly)].C2[-1, 1] *
-        Tset[mod1(cx + 3, cell_Lx)][mod1(cy + 1, cell_Ly)].T2[1, -2, 2] *
-        Cset[mod1(cx + 3, cell_Lx)][mod1(cy + 2, cell_Ly)].C3[2, -3]
-    @tensor envL[:] := envL[1, 2, 4] *
-        Tset[mod1(cx + 1, cell_Lx)][mod1(cy, cell_Ly)].T1[1, 3, -1] *
-        AA_1[2, 5, -2, 3, -4] *
-        Tset[mod1(cx + 1, cell_Lx)][mod1(cy + 2, cell_Ly)].T3[-3, 5, 4]
-    @tensor envR[:] := Tset[mod1(cx + 2, cell_Lx)][mod1(cy, cell_Ly)].T1[-1, 3, 1] *
-        AA_2[-2, 5, 2, 3, -4] *
-        Tset[mod1(cx + 2, cell_Lx)][mod1(cy + 2, cell_Ly)].T3[4, 5, -3] *
-        envR[1, 2, 4]
-    @tensor rho[:] := envL[1, 2, 3, -1] * envR[1, 2, 3, -2]
-    return rho
+    @tensor envU[:] := Cset[mod1(cx + 2, cell_Lx)][mod1(cy, cell_Ly)].C2[1, -1] *
+        Tset[mod1(cx + 1, cell_Lx)][mod1(cy, cell_Ly)].T1[2, -2, 1] *
+        Cset[mod1(cx, cell_Lx)][mod1(cy, cell_Ly)].C1[-3, 2]
+    @tensor envU[:] := envU[1, 2, 4] *
+        Tset[mod1(cx + 2, cell_Lx)][mod1(cy + 1, cell_Ly)].T2[1, 3, -1] *
+        AA_1[5, -2, 3, 2, -4] *
+        Tset[mod1(cx, cell_Lx)][mod1(cy + 1, cell_Ly)].T4[-3, 5, 4]
+    return envU
+end
+
+function _square_fu_y_lower_half_cell(
+    cx::Int,
+    cy::Int,
+    CTM,
+    AA_2,
+    cell_Lx::Int,
+    cell_Ly::Int,
+)
+    Cset = CTM.Cset
+    Tset = CTM.Tset
+
+    @tensor envD[:] := Cset[mod1(cx + 2, cell_Lx)][mod1(cy + 3, cell_Ly)].C3[-1, 1] *
+        Tset[mod1(cx + 1, cell_Lx)][mod1(cy + 3, cell_Ly)].T3[1, -2, 2] *
+        Cset[mod1(cx, cell_Lx)][mod1(cy + 3, cell_Ly)].C4[2, -3]
+    @tensor envD[:] := Tset[mod1(cx + 2, cell_Lx)][mod1(cy + 2, cell_Ly)].T2[-1, 3, 1] *
+        AA_2[5, 2, 3, -2, -4] *
+        Tset[mod1(cx, cell_Lx)][mod1(cy + 2, cell_Ly)].T4[4, 5, -3] *
+        envD[1, 2, 4]
+    return envD
 end
 
 # CTM environment of a vertical 1×2 cluster; there are no spectator sites.
@@ -158,23 +227,8 @@ function _square_fu_ob_2sites_y_cell(
     cell_Lx::Int,
     cell_Ly::Int,
 )
-    Cset = CTM.Cset
-    Tset = CTM.Tset
-
-    @tensor envU[:] := Cset[mod1(cx + 2, cell_Lx)][mod1(cy, cell_Ly)].C2[1, -1] *
-        Tset[mod1(cx + 1, cell_Lx)][mod1(cy, cell_Ly)].T1[2, -2, 1] *
-        Cset[mod1(cx, cell_Lx)][mod1(cy, cell_Ly)].C1[-3, 2]
-    @tensor envD[:] := Cset[mod1(cx + 2, cell_Lx)][mod1(cy + 3, cell_Ly)].C3[-1, 1] *
-        Tset[mod1(cx + 1, cell_Lx)][mod1(cy + 3, cell_Ly)].T3[1, -2, 2] *
-        Cset[mod1(cx, cell_Lx)][mod1(cy + 3, cell_Ly)].C4[2, -3]
-    @tensor envU[:] := envU[1, 2, 4] *
-        Tset[mod1(cx + 2, cell_Lx)][mod1(cy + 1, cell_Ly)].T2[1, 3, -1] *
-        AA_1[5, -2, 3, 2, -4] *
-        Tset[mod1(cx, cell_Lx)][mod1(cy + 1, cell_Ly)].T4[-3, 5, 4]
-    @tensor envD[:] := Tset[mod1(cx + 2, cell_Lx)][mod1(cy + 2, cell_Ly)].T2[-1, 3, 1] *
-        AA_2[5, 2, 3, -2, -4] *
-        Tset[mod1(cx, cell_Lx)][mod1(cy + 2, cell_Ly)].T4[4, 5, -3] *
-        envD[1, 2, 4]
+    envU = _square_fu_y_upper_half_cell(cx, cy, CTM, AA_1, cell_Lx, cell_Ly)
+    envD = _square_fu_y_lower_half_cell(cx, cy, CTM, AA_2, cell_Lx, cell_Ly)
     @tensor rho[:] := envU[1, 2, 3, -1] * envD[1, 2, 3, -2]
     return rho
 end
@@ -229,6 +283,60 @@ function _square_fu_two_site_density_cell(
     else
         throw(ArgumentError("bond direction must be :x or :y"))
     end
+end
+
+"""
+Streaming two-site density matrix for non-differentiated measurements.  Each
+open double layer is absorbed into its half environment and released before
+the next one is constructed.
+"""
+function _square_fu_two_site_density_cell_low_memory(
+    CTM,
+    A_1::TensorMap,
+    A_2::TensorMap,
+    bond::SquareJ1CellBond,
+    cell_Lx::Int,
+    cell_Ly::Int,
+)
+    x1, y1 = Tuple(bond.site1)
+    anchor_x, anchor_y = x1 - 1, y1 - 1
+
+    AA_1, U_physical_1 = build_square_cross_double_layer_open(A_1, A_1)
+    if bond.direction === :x
+        half_1 = _square_fu_x_left_half_cell(
+            anchor_x, anchor_y, CTM, AA_1, cell_Lx, cell_Ly,
+        )
+    elseif bond.direction === :y
+        half_1 = _square_fu_y_upper_half_cell(
+            anchor_x, anchor_y, CTM, AA_1, cell_Lx, cell_Ly,
+        )
+    else
+        throw(ArgumentError("bond direction must be :x or :y"))
+    end
+    AA_1 = nothing
+    GC.gc()
+
+    AA_2, U_physical_2 = build_square_cross_double_layer_open(A_2, A_2)
+    if bond.direction === :x
+        half_2 = _square_fu_x_right_half_cell(
+            anchor_x, anchor_y, CTM, AA_2, cell_Lx, cell_Ly,
+        )
+    else
+        half_2 = _square_fu_y_lower_half_cell(
+            anchor_x, anchor_y, CTM, AA_2, cell_Lx, cell_Ly,
+        )
+    end
+    AA_2 = nothing
+    GC.gc()
+
+    @tensor rho_fused[:] := half_1[1, 2, 3, -1] * half_2[1, 2, 3, -2]
+    half_1 = nothing
+    half_2 = nothing
+    GC.gc()
+    @tensor rho[:] := rho_fused[1, 2] *
+        U_physical_1[-1, -3, 1] *
+        U_physical_2[-2, -4, 2]
+    return rho
 end
 
 """Split two square-iPEPS tensors down to the two rank-3 tensors touching a bond."""
@@ -585,7 +693,12 @@ end
 Measure all positive-x and positive-y J1 bonds.  The returned total is energy
 per site, while `Ex` and `Ey` retain one value for every cell anchor.
 """
-function square_J1_energy_cell(A_set::AbstractMatrix, environment; J1::Real=1)
+function square_J1_energy_cell(
+    A_set::AbstractMatrix,
+    environment;
+    J1::Real=1,
+    low_memory::Bool=false,
+)
     cell_Lx, cell_Ly = _square_fu_validate_cell(A_set)
     H_Heisenberg, _, _, _, _ = Hamiltonians(space(A_set[1, 1], 1))
     H = permute(H_Heisenberg, (1, 2), (3, 4))
@@ -599,20 +712,30 @@ function square_J1_energy_cell(A_set::AbstractMatrix, environment; J1::Real=1)
                 CartesianIndex(cx, mod1(cy + 1, cell_Ly))
             bond = SquareJ1CellBond(direction, site1, site2)
             A1, A2 = A_set[site1], A_set[site2]
-            rho = _square_fu_two_site_density_cell(
-                environment.CTM,
-                A1,
-                A1,
-                A2,
-                A2,
-                bond,
-                cell_Lx,
-                cell_Ly,
-            )
+            rho = if low_memory
+                _square_fu_two_site_density_cell_low_memory(
+                    environment.CTM, A1, A2, bond, cell_Lx, cell_Ly,
+                )
+            else
+                _square_fu_two_site_density_cell(
+                    environment.CTM,
+                    A1,
+                    A1,
+                    A2,
+                    A2,
+                    bond,
+                    cell_Lx,
+                    cell_Ly,
+                )
+            end
             norm_rho = real(@tensor rho[1, 2, 1, 2])
             norm_rho != 0 || throw(ArgumentError("zero norm for bond $direction at ($cx,$cy)"))
             energy = J1 * real(@tensor rho[1, 2, 3, 4] * H[1, 2, 3, 4]) / norm_rho
             direction === :x ? (Ex[cx, cy] = energy) : (Ey[cx, cy] = energy)
+            if low_memory
+                rho = nothing
+                GC.gc()
+            end
         end
     end
     return (energy_per_site=(sum(Ex) + sum(Ey)) / (cell_Lx * cell_Ly), Ex=Ex, Ey=Ey)

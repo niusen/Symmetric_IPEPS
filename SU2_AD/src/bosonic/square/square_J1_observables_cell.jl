@@ -608,6 +608,29 @@ function square_J1_transfer_spectrum(
     )
 end
 
+"""
+    square_J1_transfer_correlation_length(spectrum)
+
+Extract the leading finite-CTM correlation length from the two largest
+transfer-matrix eigenvalues.  `square_J1_transfer_spectrum` applies one full
+unit-cell transfer step, so its `cell_period` factor is already included in
+the returned correlation length.
+"""
+function square_J1_transfer_correlation_length(spectrum)
+    length(spectrum.eigenvalues) >= 2 || error(
+        "at least two transfer-matrix eigenvalues are required for a correlation length",
+    )
+    xi = Float64(spectrum.correlation_lengths[2])
+    return (
+        xi=xi,
+        inverse_xi=isinf(xi) ? 0.0 : inv(xi),
+        eigenvalue=spectrum.eigenvalues[2],
+        normalized_eigenvalue=spectrum.normalized_eigenvalues[2],
+        magnitude=Float64(spectrum.magnitudes[2]),
+        spin=Float64(spectrum.spin[2]),
+    )
+end
+
 function square_J1_analyze_observables(
     A_set,
     environment;

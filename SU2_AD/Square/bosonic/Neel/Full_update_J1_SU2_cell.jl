@@ -25,6 +25,7 @@ include("../../../src/bosonic/square/simple_update_lib.jl")
 include("../../../src/bosonic/square/full_update_J1.jl")
 include("../../../src/bosonic/square/full_update_J1_cell.jl")
 include("../../../src/bosonic/square/square_J1_initial_states.jl")
+include("../../../src/bosonic/square/square_J1_configured_initial.jl")
 
 Random.seed!(parse(Int, get(ENV, "FU_SEED", "666")))
 
@@ -123,6 +124,26 @@ if init_filename == "nothing"
         D = requested_D
         global Vv = full_update_cell_virtual_space(D)
         A_set = [random_full_update_cell_tensor(Vv) for _ in 1:cell_Lx, _ in 1:cell_Ly]
+    elseif init_kind === :custom_matching
+        (cell_Lx, cell_Ly) == (2, 2) || error(
+            "FU_INIT_KIND=custom_matching requires a 2×2 cell",
+        )
+        for name in (:FU_CUSTOM_MATCHING, :FU_CUSTOM_EVEN_MULTIPLETS, :FU_CUSTOM_ODD_MULTIPLETS)
+            isdefined(@__MODULE__, name) || error(
+                "FU_INIT_KIND=custom_matching requires $name from Run_full_update_J1_SU2_cell.jl",
+            )
+        end
+        A_set, _, _ = square_J1_configured_matching_cell(
+            FU_CUSTOM_MATCHING,
+            FU_CUSTOM_EVEN_MULTIPLETS,
+            FU_CUSTOM_ODD_MULTIPLETS;
+            seed=parse(Int, get(ENV, "FU_SEED", "666")),
+        )
+        global Vv = space(A_set[1, 1], 1)
+        D = maximum(
+            dim(space(A_set[cx, cy], leg))
+            for cx in 1:cell_Lx, cy in 1:cell_Ly, leg in 1:4
+        )
     else
         (cell_Lx, cell_Ly) == (2, 2) || error(
             "FU_INIT_KIND=$init_kind is a named 2×2 matching; set FU_LX=2 FU_LY=2",
@@ -208,6 +229,11 @@ function print_full_update_cell_parameters(
     println("  cell=$(cell_Lx)x$(cell_Ly)")
     println("  initial_state_kind=$init_kind")
     println("  initial_state_file=$init_filename")
+    if init_filename == "nothing" && init_kind === :custom_matching
+        println("  custom_matching=$FU_CUSTOM_MATCHING")
+        println("  custom_even_multiplets=$FU_CUSTOM_EVEN_MULTIPLETS")
+        println("  custom_odd_multiplets=$FU_CUSTOM_ODD_MULTIPLETS")
+    end
     println("  random_seed=$(get(ENV, "FU_SEED", "666"))")
     println("  J1=$J1")
     println("  tau=$tau, dt=$dt, steps=$nsteps")

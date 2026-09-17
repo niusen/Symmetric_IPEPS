@@ -13,11 +13,21 @@ configuration into the interface used by `Full_update_J1_SU2_cell.jl`.
 # Configuration
 # ---------------------------------------------------------------------------
 
-# Random named initial state.  The recommended small parity-resolved seed is
-# :minimal_y_staggered, with Veven=0⊕1 and Vodd=1/2 on a 2x2 matching.
-initial_state_kind = :minimal_y_staggered
+# Use the explicitly configured even/odd spaces below by default.  To use the
+# older named seed instead, set :minimal_y_staggered; that named seed has only
+# one spin-1/2 multiplet on each odd bond and ignores the custom_* fields.
+initial_state_kind = :custom_matching
 
-# Set this to a JLD2 path to continue from a saved Simple/Full Update state.
+# To create a random 2×2 parity-resolved state with chosen virtual spaces,
+# keep initial_state_kind=:custom_matching and initial_state_file=nothing.
+# The values below are SU(2) spin => multiplicity, not total dimensions.
+custom_matching = :y_staggered
+custom_even_multiplets = [0 => 1, 1 => 1]  # D=4
+custom_odd_multiplets = [1 // 2 => 2]      # D=4
+
+# Set this to a JLD2 path to continue from a saved Simple/variational/Full
+# Update state.  In particular, Run_variational_J1_SU2_cell.jl saves A_set
+# in the format already accepted by the Full Update loader.
 # Relative paths are resolved from this file's directory.  Leave as `nothing`
 # to construct `initial_state_kind` directly.
 initial_state_file = nothing
@@ -84,6 +94,11 @@ set_full_update_environment!("FU_SAVE", isabspath(save_file) ? save_file : joinp
 if isnothing(initial_state_file)
     set_full_update_environment!("FU_INIT", "nothing")
     set_full_update_environment!("FU_INIT_KIND", initial_state_kind)
+    if initial_state_kind === :custom_matching
+        global FU_CUSTOM_MATCHING = custom_matching
+        global FU_CUSTOM_EVEN_MULTIPLETS = custom_even_multiplets
+        global FU_CUSTOM_ODD_MULTIPLETS = custom_odd_multiplets
+    end
     if initial_state_kind === :homogeneous
         set_full_update_environment!("FU_D", homogeneous_initial_D)
     else

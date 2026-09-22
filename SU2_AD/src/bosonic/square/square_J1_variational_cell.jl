@@ -73,7 +73,8 @@ Base.:-(a::Square_iPEPS_immutable, b::Square_iPEPS_immutable) =
     square_J1_variational_optimize_cell(A_initial, H, chi, grad_ctm, ls_ctm; ...)
 
 Use the repository's OptimKit LBFGS(8) path, with independent CTMRG settings
-for AD and energy verification. Save only a new best, converged LS energy.
+for AD and energy verification. Keep separate best-energy checkpoints for
+converged and unconverged LS CTMRG measurements.
 """
 function square_J1_variational_optimize_cell(
     A_initial::AbstractMatrix,
@@ -84,12 +85,13 @@ function square_J1_variational_optimize_cell(
     J1::Real=1,
     max_iterations::Int=10,
     gradient_tolerance::Real=1.0e-6,
-    callback=(A_set, evaluation, energy, ctm_iterations, ctm_error) -> nothing,
+    callback=(A_set, evaluation, energy, ctm_iterations, ctm_error, converged) -> nothing,
 )
     _square_fu_validate_cell(A_initial)
     max_iterations > 0 || throw(ArgumentError("max_iterations must be positive"))
     x = square_J1_immutable_cell(map(_square_fu_normalize, A_initial))
     best_energy = Ref(Inf)
+    best_unconverged_energy = Ref(Inf)
     evaluation_count = Ref(0)
 
     function verify_and_save(x_trial, evaluation)
@@ -105,20 +107,29 @@ function square_J1_variational_optimize_cell(
             "ctm_ite_err=$(measured.ctm_error), ctm_converged=$converged",
         )
         flush(stdout)
-        if converged && isfinite(E) && E < best_energy[]
-            best_energy[] = E
+        if isfinite(E) && (
+            (converged && E < best_energy[]) ||
+            (!converged && E < best_unconverged_energy[])
+        )
             callback(
                 square_J1_tensor_cell(x_trial), evaluation, E,
-                measured.ctm_iterations, measured.ctm_error,
+                measured.ctm_iterations, measured.ctm_error, converged,
             )
+            if converged
+                best_energy[] = E
+            else
+                best_unconverged_energy[] = E
+            end
         end
         return nothing
     end
 
     verify_and_save(x, 0)
-    isfinite(best_energy[]) || error(
-        "initial LS CTMRG did not converge; increase ctm_max_iterations or loosen ctm_tolerance",
-    )
+    (isfinite(best_energy[]) || isfinite(best_unconverged_energy[])) ||
+        error("initial LS CTMRG returned a non-finite energy; no state was saved")
+    if !isfinite(best_energy[])
+        @warn "Initial LS CTMRG did not converge; only an unverified checkpoint was saved. Optimization energies and gradients may be unreliable."
+    end
 
     function costfun_grad(x_trial::Matrix{Square_iPEPS_immutable})
         evaluation_count[] += 1
@@ -135,7 +146,7 @@ function square_J1_variational_optimize_cell(
         grad_norm = sqrt(max(my_inner(x_trial, gradient, gradient), 0.0))
         println("  trial energy E=$E, trial grad_norm=$grad_norm")
         flush(stdout)
-        if isfinite(E) && E < best_energy[]
+        if isfinite(E) && (E < best_energy[] || E < best_unconverged_energy[])
             verify_and_save(x_trial, evaluation_count[])
         end
         return E, gradient
@@ -151,5 +162,6 @@ function square_J1_variational_optimize_cell(
         add! = my_add!,
     )
     verify_and_save(x_opt, evaluation_count[])
-    return square_J1_tensor_cell(x_opt), fx, best_energy[], numfg, grad_history
+    return square_J1_tensor_cell(x_opt), fx, best_energy[],
+        best_unconverged_energy[], numfg, grad_history
 end

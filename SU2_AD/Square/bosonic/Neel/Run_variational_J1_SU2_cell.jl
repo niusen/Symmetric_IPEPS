@@ -110,7 +110,12 @@ stamp = Dates.format(now(), "yyyy_mm_dd_HH_MM_SS")
 default_output = "Variational_J1_$(cell_Lx)x$(cell_Ly)_Dinit_$(initial_Dmax)_chi_$(environment_chi)_$(stamp).jld2"
 save_filename = isnothing(output_file) ? joinpath(NEEL_DIR, default_output) :
     (isabspath(output_file) ? output_file : joinpath(NEEL_DIR, output_file))
+save_stem, save_extension = splitext(save_filename)
+unconverged_save_filename = save_stem * "_CTM_unconverge" * save_extension
 isfile(save_filename) && error("refusing to overwrite existing state: $save_filename")
+isfile(unconverged_save_filename) && error(
+    "refusing to overwrite existing state: $unconverged_save_filename",
+)
 
 grad_ctm_setting = grad_CTMRG_settings()
 LS_ctm_setting = LS_CTMRG_settings()
@@ -149,6 +154,7 @@ println("  cell=$(cell_Lx)x$(cell_Ly), initial_Dmax=$initial_Dmax, chi=$environm
 println("  J1=$J1, CTM_tol=$ctm_tolerance, CTM_maxiter=$ctm_max_iterations")
 println("  CTM_checkpoint=$ctm_checkpoint, max_iterations=$max_variational_iterations")
 println("  output_file=$save_filename")
+println("  unconverged_output_file=$unconverged_save_filename")
 println("initial virtual bonds:")
 for group in square_J1_bond_groups(cell_Lx, cell_Ly), bond in group
     V = bond.direction === :x ?
@@ -157,14 +163,18 @@ for group in square_J1_bond_groups(cell_Lx, cell_Ly), bond in group
 end
 flush(stdout)
 
-function save_variational_step(A_set, evaluation, energy, ctm_iterations, ctm_error)
+function save_variational_step(
+    A_set, evaluation, energy, ctm_iterations, ctm_error, ctm_converged,
+)
+    target_filename = ctm_converged ? save_filename : unconverged_save_filename
     jldsave(
-        save_filename;
+        target_filename;
         A_set,
         energy,
         evaluation,
         ctm_iterations,
         ctm_error,
+        ctm_converged,
         initial_state=source_description,
         initial_state_kind,
         custom_matching,
@@ -178,22 +188,34 @@ function save_variational_step(A_set, evaluation, energy, ctm_iterations, ctm_er
         J1,
         multiplet_tolerance,
     )
-    println("saved variational state at fg evaluation $evaluation: E=$energy")
+    status_label = ctm_converged ? "converged" : "CTM_unconverge"
+    println(
+        "saved variational state at fg evaluation $evaluation ($status_label): " *
+        "E=$energy, ctm_ite_err=$ctm_error, file=$target_filename",
+    )
     flush(stdout)
     return nothing
 end
 
-A_final, E_final, E_best, numfg, grad_history = square_J1_variational_optimize_cell(
-    A_initial,
-    H,
-    environment_chi,
-    grad_ctm_setting,
-    LS_ctm_setting;
-    J1,
-    max_iterations=max_variational_iterations,
-    gradient_tolerance,
-    callback=save_variational_step,
+A_final, E_final, E_best, E_unconverged_best, numfg, grad_history =
+    square_J1_variational_optimize_cell(
+        A_initial,
+        H,
+        environment_chi,
+        grad_ctm_setting,
+        LS_ctm_setting;
+        J1,
+        max_iterations=max_variational_iterations,
+        gradient_tolerance,
+        callback=save_variational_step,
+    )
+println(
+    "Final OptimKit energy/site=$E_final, best converged LS energy/site=$E_best, " *
+    "best unconverged LS energy/site=$E_unconverged_best, numfg=$numfg",
 )
-println("Final OptimKit energy/site=$E_final, best saved LS energy/site=$E_best, numfg=$numfg")
-println("For Full Update, set initial_state_file=\"$save_filename\" and Dmax > $initial_Dmax")
+if isfinite(E_best)
+    println("For Full Update, set initial_state_file=\"$save_filename\" and Dmax > $initial_Dmax")
+else
+    println("No converged checkpoint was saved; the CTM_unconverge state requires independent CTMRG verification.")
+end
 flush(stdout)

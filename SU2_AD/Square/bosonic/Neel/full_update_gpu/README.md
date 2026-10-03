@@ -19,6 +19,33 @@ All three stages use the selected GPU by default.  To reduce GPU-memory
 pressure, set any of `ctm_device`, `full_update_device`, or
 `observable_device` to `"cpu"` independently in the configuration block.
 
+CTMRG also has two independent CPU-parking switches (both enabled in the runner):
+
+- `ctm_offload_double_layer`: retain closed AA tensors, fusion maps, and the four
+  rotated AA caches in CPU RAM; load only the current direction's AA cell onto
+  the compute device. Each rotated tensor is built on that device individually.
+- `ctm_offload_intermediates`: park completed `MMup`, `MMlow`, reflected halves,
+  and `RMup`/`RMlow` on CPU while they wait for their next use. Restore only the
+  factors needed for the next product or projector construction.
+
+These switches use the separate `src/bosonic/square/gpu/CTMRG_unitcell_offload.jl`,
+copied from the original CTMRG file with renamed entry points. Contraction
+indices/order, projector truncation, PBC initialization, direction order, and
+convergence/plateau criteria are preserved. The original CTMRG file is unchanged.
+Contractions and SVD still run on `ctm_device`; no automatic differentiation is
+used. Disable both switches to use the copy's original all-device storage path.
+When `ctm_device="cpu"`, parking is automatically inactive.
+
+Parking trades host RAM and CPU/GPU transfers (plus explicit garbage collection)
+for lower simultaneous GPU residency. It does not bound a single contraction's
+workspace, so it cannot guarantee that every D/chi combination will fit.
+Set `ctm_print_memory=true` for diagnostic runs: it reports closed-AA data size,
+initial C/T data size and edge boundary dimension, direction memory snapshots,
+and projector-intermediate data sizes. PBC initialization is unchanged and its
+initial boundary dimension can exceed the requested chi before truncation.
+Tensor data sizes exclude contraction/SVD workspaces and allocator bookkeeping;
+GPU pool usage is reported separately. Diagnostic output is off by default.
+
 The GPU folder also contains CuArray-specialized versions of the existing
 CTMRG initialization, closed double-layer, and open double-layer builders.
 Their contraction order is copied from the CPU routines; only TensorKit's

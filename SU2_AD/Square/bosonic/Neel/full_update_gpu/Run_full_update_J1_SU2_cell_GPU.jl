@@ -17,6 +17,12 @@ full_update_device = run_device
 observable_device = run_device
 print_gpu_memory = false
 
+# Park inactive CTMRG tensors in CPU RAM; contractions and SVD stay on ctm_device.
+# false/false uses the copied CTMRG's original all-device storage path.
+ctm_offload_double_layer = true     # CPU AA/rotations; one GPU direction at a time
+ctm_offload_intermediates = true    # CPU MM/RM while waiting for their next use
+ctm_print_memory = true             # per-direction/projector memory diagnostics
+
 initial_state_kind = :custom_matching
 custom_matching = :y_staggered
 custom_even_multiplets = [0 => 1, 1 => 1]  # D=4
@@ -86,6 +92,7 @@ include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_J1_initial_stat
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_J1_configured_initial.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_gpu_utils.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_gpu_tensor_builders.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "CTMRG_unitcell_offload.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_full_update_als.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_full_update_gpu.jl"))
 
@@ -136,6 +143,12 @@ ctm_setting.CTM_ite_info = false
 ctm_setting.CTM_conv_info = true
 ctm_setting.CTM_trun_svd = false
 ctm_setting.construct_double_layer = true
+ctm_setting.grad_checkpoint = false
+ctm_memory = SquareJ1CTMMemorySettings(
+    offload_double_layer=ctm_offload_double_layer,
+    offload_intermediates=ctm_offload_intermediates,
+    verbose=ctm_print_memory,
+)
 
 global Lx = cell_Lx
 global Ly = cell_Ly
@@ -161,6 +174,8 @@ println("number of cpus: $(BLAS.get_num_threads())")
 println("Starting GPU bosonic square-lattice J1 Full Update")
 println("  run_device=$run_device")
 println("  ctm_device=$ctm_device")
+println("  ctm_offload_double_layer=$ctm_offload_double_layer, ctm_offload_intermediates=$ctm_offload_intermediates")
+println("  ctm_print_memory=$ctm_print_memory")
 println("  full_update_device=$full_update_device")
 println("  observable_device=$observable_device")
 println("  initial_state=$source_description")
@@ -230,6 +245,8 @@ function save_and_measure_gpu(A_set_now, environment, step, reports)
             ctm_device,
             full_update_device,
             observable_device,
+            ctm_offload_double_layer,
+            ctm_offload_intermediates,
         )
         elapsed = Dates.canonicalize(Dates.CompoundPeriod(now() - starting_time))
         println("Saved lower-energy CPU checkpoint; time consumed: $elapsed")
@@ -249,6 +266,7 @@ A_final, environment_final, history = square_J1_full_update_cell_gpu(
     settings=fu_settings,
     ctm_device,
     full_update_device,
+    ctm_memory,
     callback=save_and_measure_gpu,
 )
 

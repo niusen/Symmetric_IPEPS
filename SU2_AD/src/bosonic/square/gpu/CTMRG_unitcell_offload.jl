@@ -1,0 +1,1036 @@
+"""
+Memory-offloading copy of src/bosonic/CTMRG_unitcell.jl (99e4e41).
+
+All copied entry points are renamed; the original CTMRG methods are untouched.
+Contractions, projector truncation, PBC initialization and convergence criteria
+are retained. CPU parking is for non-differentiated Full Update only.
+"""
+Base.@kwdef struct SquareJ1CTMMemorySettings
+    offload_double_layer::Bool = false
+    offload_intermediates::Bool = false
+    verbose::Bool = false
+end
+
+_square_ctm_park(tensor, enabled::Bool) =
+    enabled ? square_J1_to_cpu(tensor) : tensor
+
+_square_ctm_reclaim(enabled::Bool) =
+    enabled ? square_J1_reclaim_device_memory!(aggressive=true) : nothing
+
+_square_ctm_data_bytes(tensor) =
+    sum(length(b) for (_, b) in blocks(tensor)) * sizeof(TensorKit.scalartype(tensor))
+
+function _square_ctm_log_tensor(label, tensor)
+    println(label, " data=", _square_ctm_data_bytes(tensor) / 2.0^30,
+            " GiB; storage=", TensorKit.storagetype(tensor))
+    square_J1_print_device_memory(label)
+    flush(stdout)
+end
+
+function _square_ctm_log_initial_environment(CTM, nx, ny)
+    corners = (get_Cset(CTM.Cset[x][y], d) for x in 1:nx, y in 1:ny, d in 1:4)
+    edges = (get_Tset(CTM.Tset[x][y], d) for x in 1:nx, y in 1:ny, d in 1:4)
+    c_bytes = sum(_square_ctm_data_bytes(t) for t in corners)
+    t_bytes = sum(_square_ctm_data_bytes(t) for t in edges)
+    max_boundary = maximum(max(dim(space(t, 1)), dim(space(t, 3))) for t in edges)
+    println("CTMRG initial C data: ", c_bytes / 2.0^30,
+            " GiB; T data: ", t_bytes / 2.0^30,
+            " GiB; largest initial edge boundary dimension=", max_boundary)
+    square_J1_print_device_memory("CTMRG after PBC initialization:")
+end
+
+# Build each rotated tensor on the compute device, then retain it on CPU.
+# Do not call rotate_AA on GPU: that keeps four large outputs simultaneously.
+function _square_ctm_rotations_host(AA_host, storage)
+    nx, ny = length(AA_host), length(AA_host[1])
+    cells = map(1:4) do direction
+        cell = initial_tuple_cell(nx, ny)
+        for cx in 1:nx, cy in 1:ny
+            source = square_J1_to_storage(storage, AA_host[cx][cy])
+            rotated = permute(source,
+                (mod1(2-direction,4), mod1(3-direction,4),
+                 mod1(4-direction,4), mod1(1-direction,4)), ())
+            cell = fill_tuple(cell, square_J1_to_cpu(rotated), cx, cy)
+            source = nothing
+            rotated = nothing
+            _square_ctm_reclaim(true)
+        end
+        cell
+    end
+    return (T1=cells[1], T2=cells[2], T3=cells[3], T4=cells[4])
+end
+
+# Restore only the two factors needed for this product. Local references die
+# when this helper returns; the caller then releases the CPU copies as well.
+function _square_ctm_half_product(half_host, reflected_host, storage; upper::Bool)
+    half = square_J1_to_storage(storage, half_host)
+    half = permute(half, (1,2), (3,4))
+    _square_ctm_reclaim(true)
+    reflected = square_J1_to_storage(storage, reflected_host)
+    reflected = permute(reflected, (1,2), (3,4))
+    _square_ctm_reclaim(true)
+    product = half * reflected
+    half = reflected = nothing
+    _square_ctm_reclaim(true)
+    return upper ? permute(product, (3,4), (1,2)) : product
+end
+
+# using LinearAlgebra
+# using TensorKit
+using Statistics
+
+function square_J1_convert_cell_posit_offload(cx,cy,dx,dy,direction)
+    global Lx,Ly
+    if direction==1
+        posit=CartesianIndex(mod1(cx+dx,Lx),mod1(cy+dy,Ly));
+    elseif direction==2
+        posit=CartesianIndex(mod1(cy-dy,Lx),mod1(cx+dx,Ly));
+    elseif direction==3
+        posit=CartesianIndex(mod1(cx-dx,Lx),mod1(cy-dy,Ly));
+    elseif direction==4
+        posit=CartesianIndex(mod1(cy+dy,Lx),mod1(cx-dx,Ly));
+    end
+    return posit
+end
+
+function square_J1_rotate_AA_cell_offload(AA_fused_cell,construct_double_layer)
+    if (Lx==1)&(Ly==1)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+
+        direction=1;
+        AA_set1=((AA_11.T1,),);
+        direction=2;
+        AA_set2=((AA_11.T2,),);
+        direction=3;
+        AA_set3=((AA_11.T3,),);
+        direction=4;
+        AA_set4=((AA_11.T4,),);
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    elseif (Lx==2)&(Ly==1)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
+
+        direction=1;
+        AA_set1=((AA_11.T1,), (AA_21.T1,));
+        direction=2;
+        AA_set2=((AA_11.T2,), (AA_21.T2,));
+        direction=3;
+        AA_set3=((AA_11.T3,), (AA_21.T3,));
+        direction=4;
+        AA_set4=((AA_11.T4,), (AA_21.T4,));
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    elseif (Lx==1)&(Ly==2)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+
+        direction=1;
+        AA_set1=((AA_11.T1, AA_12.T1),);
+        direction=2;
+        AA_set2=((AA_11.T2, AA_12.T2),);
+        direction=3;
+        AA_set3=((AA_11.T3, AA_12.T3),);
+        direction=4;
+        AA_set4=((AA_11.T4, AA_12.T4),);
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    elseif (Lx==2)&(Ly==2)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+        AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
+        AA_22=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
+
+        direction=1;
+        AA_set1=((AA_11.T1, AA_12.T1), (AA_21.T1, AA_22.T1));
+        direction=2;
+        AA_set2=((AA_11.T2, AA_12.T2), (AA_21.T2, AA_22.T2));
+        direction=3;
+        AA_set3=((AA_11.T3, AA_12.T3), (AA_21.T3, AA_22.T3));
+        direction=4;
+        AA_set4=((AA_11.T4, AA_12.T4), (AA_21.T4, AA_22.T4));
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    elseif (Lx==4)&(Ly==4)
+        AA_11=rotate_AA(AA_fused_cell[1][1],construct_double_layer);
+        AA_12=rotate_AA(AA_fused_cell[1][2],construct_double_layer);
+        AA_13=rotate_AA(AA_fused_cell[1][3],construct_double_layer);
+        AA_14=rotate_AA(AA_fused_cell[1][4],construct_double_layer);
+        AA_21=rotate_AA(AA_fused_cell[2][1],construct_double_layer);
+        AA_22=rotate_AA(AA_fused_cell[2][2],construct_double_layer);
+        AA_23=rotate_AA(AA_fused_cell[2][3],construct_double_layer);
+        AA_24=rotate_AA(AA_fused_cell[2][4],construct_double_layer);
+
+        AA_31=rotate_AA(AA_fused_cell[3][1],construct_double_layer);
+        AA_32=rotate_AA(AA_fused_cell[3][2],construct_double_layer);
+        AA_33=rotate_AA(AA_fused_cell[3][3],construct_double_layer);
+        AA_34=rotate_AA(AA_fused_cell[3][4],construct_double_layer);
+
+        AA_41=rotate_AA(AA_fused_cell[4][1],construct_double_layer);
+        AA_42=rotate_AA(AA_fused_cell[4][2],construct_double_layer);
+        AA_43=rotate_AA(AA_fused_cell[4][3],construct_double_layer);
+        AA_44=rotate_AA(AA_fused_cell[4][4],construct_double_layer);
+
+        direction=1;
+        AA_set1=((AA_11.T1, AA_12.T1, AA_13.T1, AA_14.T1), (AA_21.T1, AA_22.T1, AA_23.T1, AA_24.T1), (AA_31.T1, AA_32.T1, AA_33.T1, AA_34.T1), (AA_41.T1, AA_42.T1, AA_43.T1, AA_44.T1));
+        direction=2;
+        AA_set2=((AA_11.T2, AA_12.T2, AA_13.T2, AA_14.T2), (AA_21.T2, AA_22.T2, AA_23.T2, AA_24.T2), (AA_31.T2, AA_32.T2, AA_33.T2, AA_34.T2), (AA_41.T2, AA_42.T2, AA_43.T2, AA_44.T2));
+        direction=3;
+        AA_set3=((AA_11.T3, AA_12.T3, AA_13.T3, AA_14.T3), (AA_21.T3, AA_22.T3, AA_23.T3, AA_24.T3), (AA_31.T3, AA_32.T3, AA_33.T3, AA_34.T3), (AA_41.T3, AA_42.T3, AA_43.T3, AA_44.T3));
+        direction=4;
+        AA_set4=((AA_11.T4, AA_12.T4, AA_13.T4, AA_14.T4), (AA_21.T4, AA_22.T4, AA_23.T4, AA_24.T4), (AA_31.T4, AA_32.T4, AA_33.T4, AA_34.T4), (AA_41.T4, AA_42.T4, AA_43.T4, AA_44.T4));
+
+        AA_rotated_cell=(T1=AA_set1, T2=AA_set2, T3=AA_set3, T4=AA_set4);
+    end
+
+    return AA_rotated_cell
+end
+
+function square_J1_CTMRG_cell_offload(A_cell::Tuple,chi,init,CTM0, ctm_setting;
+    memory::SquareJ1CTMMemorySettings=SquareJ1CTMMemorySettings())
+    compute_storage = square_J1_storage_family(TensorKit.storagetype(A_cell[1][1]))
+    offload_AA = memory.offload_double_layer && compute_storage !== Array
+    offload_work = memory.offload_intermediates && compute_storage !== Array
+    if offload_AA || offload_work
+        ctm_setting.construct_double_layer || throw(ArgumentError(
+            "CTM offloading requires construct_double_layer=true"))
+        ctm_setting.grad_checkpoint && throw(ArgumentError(
+            "CTM offloading is for non-differentiated Full Update; set grad_checkpoint=false"))
+    end
+
+    global Lx,Ly
+    global algrithm_CTMRG_settings
+    #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
+    ########################
+    CTM_trun_tol=ctm_setting.CTM_trun_tol;
+    CTM_ite_info=ctm_setting.CTM_ite_info;
+    CTM_conv_info=ctm_setting.CTM_conv_info;
+    projector_strategy=ctm_setting.projector_strategy;
+    CTM_trun_svd=ctm_setting.CTM_trun_svd;
+    svd_lanczos_tol=ctm_setting.svd_lanczos_tol;
+    CTM_ite_nums=ctm_setting.CTM_ite_nums;
+    construct_double_layer=ctm_setting.construct_double_layer;
+    #######################
+    if (CTM_trun_svd==true) & (projector_strategy=="4x4")
+        println("Attention: truncated svd with 4x4 projector could give large error");
+    end
+
+    #initial corner transfer matrix
+    if init.reconstruct_AA
+        AA_fused_cell=initial_tuple_cell(Lx,Ly);
+        U_L_cell=initial_tuple_cell(Lx,Ly);
+        U_D_cell=initial_tuple_cell(Lx,Ly);
+        U_R_cell=initial_tuple_cell(Lx,Ly);
+        U_U_cell=initial_tuple_cell(Lx,Ly);
+        for cx=1:Lx
+            for cy=1:Ly
+                AA_fused_, U_L_,U_D_,U_R_,U_U_=build_double_layer(A_cell[cx][cy],[]);
+                AA_fused_cell=fill_tuple(AA_fused_cell, _square_ctm_park(AA_fused_, offload_AA), cx,cy);
+                U_L_cell=fill_tuple(U_L_cell, _square_ctm_park(U_L_, offload_AA), cx,cy);
+                U_D_cell=fill_tuple(U_D_cell, _square_ctm_park(U_D_, offload_AA), cx,cy);
+                U_R_cell=fill_tuple(U_R_cell, _square_ctm_park(U_R_, offload_AA), cx,cy);
+                U_U_cell=fill_tuple(U_U_cell, _square_ctm_park(U_U_, offload_AA), cx,cy);
+                if offload_AA
+                    AA_fused_ = U_L_ = U_D_ = U_R_ = U_U_ = nothing
+                    _square_ctm_reclaim(true)
+                end
+            end
+        end
+        AA_memory=@ignore_derivatives Base.summarysize(AA_fused_cell)/1024/1024;
+        @ignore_derivatives if CTM_ite_info
+            println("Memory cost of double layer tensor: "*string(AA_memory)*" Mb.");flush(stdout);
+        end
+    else
+        AA_fused_cell=auxi_tensors.AA_fused_cell;
+        U_L_cell=auxi_tensors.U_L_cell;
+        U_D_cell=auxi_tensors.U_D_cell;
+        U_R_cell=auxi_tensors.U_R_cell;
+        U_U_cell=auxi_tensors.U_U_cell;
+    end
+
+    if offload_AA && !init.reconstruct_AA
+        AA_fused_cell = square_J1_to_cpu(AA_fused_cell)
+        U_L_cell = square_J1_to_cpu(U_L_cell)
+        U_D_cell = square_J1_to_cpu(U_D_cell)
+        U_R_cell = square_J1_to_cpu(U_R_cell)
+        U_U_cell = square_J1_to_cpu(U_U_cell)
+    end
+    if memory.verbose
+        aa_bytes = sum(_square_ctm_data_bytes(AA_fused_cell[x][y])
+                       for x in 1:Lx, y in 1:Ly)
+        println("CTMRG closed AA data: ", aa_bytes / 2.0^30,
+                " GiB; AA on CPU=", offload_AA,
+                ", park projector intermediates=", offload_work)
+        square_J1_print_device_memory("CTMRG after building AA:")
+    end
+
+    if init.reconstruct_CTM
+        CTM_cell= square_J1_init_CTM_cell_offload(chi,A_cell,init.init_type,CTM_ite_info);
+    else
+        CTM_cell=deepcopy(CTM0);
+    end
+    memory.verbose && _square_ctm_log_initial_environment(CTM_cell, Lx, Ly)
+
+    ss_old1_cell= Matrix(undef,Lx,Ly);
+    ss_old2_cell= Matrix(undef,Lx,Ly);
+    ss_old3_cell= Matrix(undef,Lx,Ly);
+    ss_old4_cell= Matrix(undef,Lx,Ly);
+    ss_new1_cell= Matrix(undef,Lx,Ly);
+    ss_new2_cell= Matrix(undef,Lx,Ly);
+    ss_new3_cell= Matrix(undef,Lx,Ly);
+    ss_new4_cell= Matrix(undef,Lx,Ly);
+    er1_cell= Matrix(undef,Lx,Ly);
+    er2_cell= Matrix(undef,Lx,Ly);
+    er3_cell= Matrix(undef,Lx,Ly);
+    er4_cell= ones(Lx,Ly);
+
+
+    Cset_cell=CTM_cell.Cset;
+    Tset_cell=CTM_cell.Tset;
+    CTM_cell = nothing  # Cset/Tset own the initial tensors; avoid a stale root.
+    conv_check="singular_value"
+
+    @ignore_derivatives for cx=1:Lx
+        for cy=1:Ly
+            ss_old1_cell[cx,cy]=ones(chi)*2;
+            ss_old2_cell[cx,cy]=ones(chi)*2;
+            ss_old3_cell[cx,cy]=ones(chi)*2;
+            ss_old4_cell[cx,cy]=ones(chi)*2;
+        end
+    end
+    d=2;
+    rho_old=Matrix(I,d^3,d^3);
+
+    #Iteration
+
+    print_corner=false;
+    C1_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    C2_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    C3_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    C4_spec_cell=@ignore_derivatives Matrix(undef,Lx,Ly);
+    @ignore_derivatives if print_corner
+        for cx=1:Lx
+            for cy=1:Ly
+                println("cell position: "*string([cx,cy]))
+                println("corner 4:")
+                C4_spec=svdvals(convert(Array,Cset[4][cx,cy]));
+                C4_spec_cell[cx,cy]=C4_spec/C4_spec[1];
+                println(C4_spec);
+                println("corner 1:")
+                C1_spec=svdvals(convert(Array,Cset[1][cx,cy]));
+                C1_spec_cell[cx,cy]=C1_spec/C1_spec[1];
+                println(C1_spec);
+                println("corner 3:")
+                C3_spec=svdvals(convert(Array,Cset[3][cx,cy]));
+                C3_spec_cell[cx,cy]=C3_spec/C3_spec[1];
+                println(C3_spec);
+                println("corner 2:")
+                C2_spec=svdvals(convert(Array,Cset[2][cx,cy]));
+                C2_spec_cell[cx,cy]=C2_spec/C2_spec[1];
+                println(C2_spec);
+            end
+        end
+        println("CTM init finished")
+    end
+
+    if construct_double_layer
+        AA_rotated_cell = offload_AA ?
+            _square_ctm_rotations_host(AA_fused_cell, compute_storage) :
+            square_J1_rotate_AA_cell_offload(AA_fused_cell,construct_double_layer);
+    else
+        AA_rotated_cell=rotate_AA(A_cell,construct_double_layer);
+    end
+    if memory.verbose
+        square_J1_print_device_memory("CTMRG after preparing all AA rotations:")
+    end
+
+
+    @ignore_derivatives if CTM_ite_info
+        println("start CTM iterations:")
+    end
+    ite_num=0;
+    ite_err=1;
+    err_set=1;
+
+    if algrithm_CTMRG_settings.CTM_cell_ite_method== "together_update"
+        CTM_ite_cell=square_J1_CTM_ite_cell_together_update_offload;
+    elseif algrithm_CTMRG_settings.CTM_cell_ite_method== "continuous_update"
+        CTM_ite_cell=square_J1_CTM_ite_cell_continuous_update_offload;
+    end
+
+    for ci=1:CTM_ite_nums
+        ite_num=ci;
+        #direction_order=[1,2,3,4];
+        #direction_order=[4,1,2,3];
+        direction_order=[3,4,1,2];
+        for direction in direction_order
+
+            AA_direction = offload_AA ?
+                square_J1_to_storage(compute_storage, get_Tset(AA_rotated_cell, direction)) :
+                get_Tset(AA_rotated_cell, direction)
+            if memory.verbose
+                square_J1_print_device_memory("CTMRG iteration $ci direction $direction begin:")
+            end
+            if ctm_setting.grad_checkpoint # only allowed with offloading disabled
+                Cset_cell,Tset_cell= Zygote.checkpointed(CTM_ite_cell, Cset_cell, Tset_cell, AA_direction, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
+            else
+                Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, AA_direction, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer;
+                    offload_intermediates=offload_work, compute_storage, memory_info=memory.verbose);
+            end
+            AA_direction = nothing
+            _square_ctm_reclaim(offload_AA || offload_work)
+            if memory.verbose
+                square_J1_print_device_memory("CTMRG iteration $ci direction $direction end/reclaim:")
+            end
+        end
+
+        print_corner=false;
+        @ignore_derivatives if print_corner
+            for cx=1:Lx
+                for cy=1:Ly
+                    println("cell position: "*string([cx,cy]))
+                    println("corner 4:")
+                    C4_spec=svdvals(convert(Array,Cset[4][cx,cy]));
+                    C4_spec_cell[cx,cy]=C4_spec/C4_spec[1];
+                    println(C4_spec);
+                    println("corner 1:")
+                    C1_spec=svdvals(convert(Array,Cset[1][cx,cy]));
+                    C1_spec_cell[cx,cy]=C1_spec/C1_spec[1];
+                    println(C1_spec);
+                    println("corner 3:")
+                    C3_spec=svdvals(convert(Array,Cset[3][cx,cy]));
+                    C3_spec_cell[cx,cy]=C3_spec/C3_spec[1];
+                    println(C3_spec);
+                    println("corner 2:")
+                    C2_spec=svdvals(convert(Array,Cset[2][cx,cy]));
+                    C2_spec_cell[cx,cy]=C2_spec/C2_spec[1];
+                    println(C2_spec);
+                end
+            end
+            println("next iteration:")
+        end
+
+
+
+        if conv_check=="singular_value" #check convergence of singular value
+            for cx=1:Lx
+                for cy=1:Ly
+                    er1,ss_new1=@ignore_derivatives spectrum_conv_check(ss_old1_cell[cx,cy],Cset_cell[cx][cy].C1);
+                    er2,ss_new2=@ignore_derivatives spectrum_conv_check(ss_old2_cell[cx,cy],Cset_cell[cx][cy].C2);
+                    er3,ss_new3=@ignore_derivatives spectrum_conv_check(ss_old3_cell[cx,cy],Cset_cell[cx][cy].C3);
+                    er4,ss_new4=@ignore_derivatives spectrum_conv_check(ss_old4_cell[cx,cy],Cset_cell[cx][cy].C4);
+
+                    # println([cx,cy])
+                    # println(ss_new1)
+                    # println(ss_new2)
+                    # println(ss_new3)
+                    # println(ss_new4)
+
+
+                    @ignore_derivatives er1_cell[cx,cy]=er1;
+                    @ignore_derivatives er2_cell[cx,cy]=er2;
+                    @ignore_derivatives er3_cell[cx,cy]=er3;
+                    @ignore_derivatives er4_cell[cx,cy]=er4;
+                    @ignore_derivatives ss_new1_cell[cx,cy]=ss_new1;
+                    @ignore_derivatives ss_new2_cell[cx,cy]=ss_new2;
+                    @ignore_derivatives ss_new3_cell[cx,cy]=ss_new3;
+                    @ignore_derivatives ss_new4_cell[cx,cy]=ss_new4;
+
+                end
+            end
+
+            er=@ignore_derivatives maximum([maximum(er1_cell[:]),maximum(er2_cell[:]),maximum(er3_cell[:]),maximum(er4_cell[:])]);
+            err_set=vcat(err_set,er);
+
+            ite_err=er;
+            if CTM_ite_info
+                println("CTMRG iteration: "*string(ci)*", CTMRG err: "*string(er));flush(stdout);
+            end
+            if er<ctm_setting.CTM_conv_tol
+                break;
+            end
+
+            if ci>30
+                err_recent=err_set[end-10:end];
+                Std=std(err_recent)/mean(err_recent);
+                if (Std<0.001)&(er>1e-4)
+                    break;
+                end
+
+            end
+
+            ss_old1_cell=ss_new1_cell;
+            ss_old2_cell=ss_new2_cell;
+            ss_old3_cell=ss_new3_cell;
+            ss_old4_cell=ss_new4_cell;
+        elseif conv_check=="density_matrix" #check reduced density matrix
+        end
+    end
+
+    CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
+    if CTM_conv_info
+        return CTM_cell, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err
+    else
+        return CTM_cell, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell
+    end
+
+end
+
+
+
+
+function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, AA_cell, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer;
+    offload_intermediates::Bool=false,
+    compute_storage=square_J1_storage_family(TensorKit.storagetype(AA_cell[1][1])),
+    memory_info::Bool=false)
+    global Lx,Ly
+    #println(direction)
+    #
+    """change of coordinate
+    (1,1)  (2,1)
+    (1,2)  (2,2)
+
+    coordinate of C1 tensor: (cx,cy)
+    """
+    if direction in [1,3]
+        cx_max=Lx;
+        cy_max=Ly;
+    elseif direction in [2,4]
+        cx_max=Ly;
+        cy_max=Lx;
+    end
+
+    for cx=1:cx_max
+
+        PM_cell=initial_tuple_cell(Lx,Ly);
+        PM_inv_cell=initial_tuple_cell(Lx,Ly);
+        M1tem_cell=initial_tuple_cell(Lx,Ly);
+        M5tem_cell=initial_tuple_cell(Lx,Ly);
+        M7tem_cell=initial_tuple_cell(Lx,Ly);
+
+        for cy=1:cy_max
+            coord=[cx,cy];
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,1,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,0,direction);
+            C1=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,1,direction);
+            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            @tensor MMup[:]:=C1[1,2]*T1[2,3,-3]*T4[-1,4,1]*AA[4,-2,-4,3];
+            MMup = _square_ctm_park(MMup, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup:", MMup)
+            end
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,3,direction);
+            C4=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            @tensor MMlow[:]:=T4[1,3,-1]*AA[3,4,-4,-2]*C4[2,1]*T3[-3,4,2];
+            MMlow = _square_ctm_park(MMlow, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow:", MMlow)
+            end
+
+
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,1,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,0,direction);
+            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,0,direction);
+            C2=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,1,direction);
+            T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
+            @tensor MMup_reflect[:]:=T1[-1,3,1]* C2[1,2]* AA[-2,-4,4,3]* T2[2,4,-3];
+            MMup_reflect = _square_ctm_park(MMup_reflect, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup_reflect:", MMup_reflect)
+            end
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,2,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,2,direction);
+            T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,3,direction);
+            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,3,direction);
+            C3=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            @tensor MMlow_reflect[:]:=T2[-4,-3,2]*T3[1,-2,-1]*C3[2,1];
+            @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
+            MMlow_reflect = _square_ctm_park(MMlow_reflect, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow_reflect:", MMlow_reflect)
+            end
+
+            if offload_intermediates
+                RMup = _square_ctm_half_product(MMup, MMup_reflect, compute_storage; upper=true)
+                MMup = MMup_reflect = nothing
+                RMup = square_J1_to_cpu(RMup)
+                _square_ctm_reclaim(true)
+
+                RMlow = _square_ctm_half_product(MMlow, MMlow_reflect, compute_storage; upper=false)
+                MMlow = MMlow_reflect = nothing
+                RMlow_norm = norm(RMlow)
+                RMlow = RMlow / RMlow_norm
+                RMlow = square_J1_to_cpu(RMlow)
+                _square_ctm_reclaim(true)
+
+                RMup = square_J1_to_storage(compute_storage, RMup)
+                RMup_norm = norm(RMup)
+                RMup = RMup / RMup_norm
+                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                M = RMup * RMlow
+                # Neither RM is needed during the SVD of M.
+                RMup = square_J1_to_cpu(RMup)
+                RMlow = square_J1_to_cpu(RMlow)
+                _square_ctm_reclaim(true)
+            else
+                MMup=permute(MMup,(1,2,),(3,4,))
+
+                # _,ss,_=tsvd(MMup)
+                # display(convert(Array,ss))
+
+                MMlow=permute(MMlow,(1,2,),(3,4,))
+                MMup_reflect=permute(MMup_reflect,(1,2,),(3,4,))
+                MMlow_reflect=permute(MMlow_reflect,(1,2,),(3,4,))
+
+
+
+                RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
+                RMlow=MMlow*MMlow_reflect;
+
+                RMlow_norm=norm(RMlow);
+                RMlow= RMlow/RMlow_norm;
+                RMup_norm=norm(RMup);
+                RMup= RMup/RMup_norm;
+
+                M=RMup*RMlow;
+            end
+
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) M before SVD:", M)
+            end
+            if isa(space(M,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+                chi_extra=3;
+            elseif isa(space(M,1), GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}) #U1 symmetry
+                chi_extra=4;
+            elseif isa(space(M,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}) #SU(2) symmetry
+                chi_extra=20;
+            elseif @isdefined(SU4Irrep) && isa(space(M,1), GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}) #SU(4) symmetry
+                chi_extra=20;
+            elseif isa(space(M,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}) #U1 x SU(2)
+                chi_extra=20;
+            elseif isa(space(M,1), GradedSpace{ProductSector{Tuple{SU2Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{ProductSector{Tuple{SU2Irrep, SU2Irrep}}, Int64}})
+                chi_extra=20;
+            elseif isa(space(M,1), ComplexSpace)
+                chi_extra=1;
+            else
+                chi_extra=10;
+            end
+
+            # uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
+            global multiplet_tol
+            uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra; multiplet_tol=multiplet_tol));#for new version Pkgs, tsvd backward is much better
+            if offload_intermediates
+                M = nothing
+                _square_ctm_reclaim(true)
+            end
+
+            sM_norm=norm(sM);
+            sM=sM/sM_norm;
+
+            sM_inv_sqrt=sdiag_inv_sqrt(sM);
+
+            if offload_intermediates
+                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                PM_inv=RMlow*vM'*sM_inv_sqrt;
+                RMlow = vM = nothing
+                _square_ctm_reclaim(true)
+                RMup = square_J1_to_storage(compute_storage, RMup)
+                PM=sM_inv_sqrt*uM'*RMup;
+                RMup = uM = sM = sM_inv_sqrt = nothing
+                _square_ctm_reclaim(true)
+            else
+                PM_inv=RMlow*vM'*sM_inv_sqrt;
+                PM=sM_inv_sqrt*uM'*RMup;
+            end
+            PM=permute(PM,(2,3,),(1,));
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            #PM_cell[Pos[1]][Pos[2]]=PM;
+            PM_cell=fill_tuple(PM_cell,PM, Pos[1],Pos[2])
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,1,direction);
+            #PM_inv_cell[Pos[1]][Pos[2]]=PM_inv;
+            PM_inv_cell=fill_tuple(PM_inv_cell,PM_inv, Pos[1],Pos[2])
+
+        end
+
+        for cy=1:cy_max
+            coord=[cx,cy];
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,0,direction);
+            C1=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,3,direction);
+            C4=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+
+
+            Posa=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            Posb=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            @tensor M5tem[:]:=T4[4,3,1]*AA[3,5,-2,2]*PM_inv_cell[Posa[1]][Posa[2]][4,5,-1]*PM_cell[Posb[1]][Posb[2]][1,2,-3];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,0,direction);
+            @tensor M1tem[:]:=C1[1,2]*T1[2,3,-2]*PM_inv_cell[Pos[1]][Pos[2]][1,3,-1];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,3,direction);
+            @tensor M7tem[:]:=C4[1,2]*T3[-1,3,1]*PM_cell[Pos[1]][Pos[2]][2,3,-2];
+
+            M5tem=M5tem/norm(M5tem);
+            M1tem=M1tem/norm(M1tem);
+            M7tem=M7tem/norm(M7tem);
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            #M5tem_cell[Pos[1]][Pos[2]]=M5tem;
+            M5tem_cell=fill_tuple(M5tem_cell, M5tem, Pos[1],Pos[2]);
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            #M1tem_cell[Pos[1]][Pos[2]]=M1tem;
+            M1tem_cell=fill_tuple(M1tem_cell, M1tem, Pos[1],Pos[2]);
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            #M7tem_cell[Pos[1]][Pos[2]]=M7tem;
+            M7tem_cell=fill_tuple(M7tem_cell, M7tem, Pos[1],Pos[2]);
+
+        end
+
+
+        for cy=1:cy_max
+            coord=[cx,cy];
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            #Cset_cell[Pos[1]][Pos[2]][mod1(direction,4)]=M1tem_cell[Pos[1]][Pos[2]];
+            Cset_old=Cset_cell[Pos[1]][Pos[2]];
+            Cset_new=set_Cset(Cset_old, M1tem_cell[Pos[1]][Pos[2]], mod1(direction,4))
+            Cset_cell=fill_tuple(Cset_cell, Cset_new, Pos[1],Pos[2]);
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            #Tset_cell[Pos[1]][Pos[2]][mod1(direction-1,4)]=M5tem_cell[Pos[1]][Pos[2]];
+            Tset_old=Tset_cell[Pos[1]][Pos[2]];
+            Tset_new=set_Tset(Tset_old, M5tem_cell[Pos[1]][Pos[2]], mod1(direction-1,4))
+            Tset_cell=fill_tuple(Tset_cell, Tset_new, Pos[1],Pos[2]);
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            #Cset_cell[Pos[1]][Pos[2]][mod1(direction-1,4)]=M7tem_cell[Pos[1]][Pos[2]];
+            Cset_old=Cset_cell[Pos[1]][Pos[2]];
+            Cset_new=set_Cset(Cset_old, M7tem_cell[Pos[1]][Pos[2]], mod1(direction-1,4))
+            Cset_cell=fill_tuple(Cset_cell, Cset_new, Pos[1],Pos[2]);
+        end
+    end
+    return Cset_cell,Tset_cell
+end
+
+
+
+function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA_cell, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer;
+    offload_intermediates::Bool=false,
+    compute_storage=square_J1_storage_family(TensorKit.storagetype(AA_cell[1][1])),
+    memory_info::Bool=false)
+    global Lx,Ly
+    #println(direction)
+    #
+    """change of coordinate
+    (1,1)  (2,1)
+    (1,2)  (2,2)
+
+    coordinate of C1 tensor: (cx,cy)
+    """
+    PM_cell=initial_tuple_cell(Lx,Ly);
+    PM_inv_cell=initial_tuple_cell(Lx,Ly);
+    M1tem_cell=initial_tuple_cell(Lx,Ly);
+    M5tem_cell=initial_tuple_cell(Lx,Ly);
+    M7tem_cell=initial_tuple_cell(Lx,Ly);
+
+    if direction in [1,3]
+        cx_max=Lx;
+        cy_max=Ly;
+    elseif direction in [2,4]
+        cx_max=Ly;
+        cy_max=Lx;
+    end
+
+    for cx=1:cx_max
+        for cy=1:cy_max
+            coord=[cx,cy];
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,1,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,0,direction);
+            C1=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,1,direction);
+            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            @tensor MMup[:]:=C1[1,2]*T1[2,3,-3]*T4[-1,4,1]*AA[4,-2,-4,3];
+            MMup = _square_ctm_park(MMup, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup:", MMup)
+            end
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,3,direction);
+            C4=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            @tensor MMlow[:]:=T4[1,3,-1]*AA[3,4,-4,-2]*C4[2,1]*T3[-3,4,2];
+            MMlow = _square_ctm_park(MMlow, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow:", MMlow)
+            end
+
+
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,1,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,0,direction);
+            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,0,direction);
+            C2=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,1,direction);
+            T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
+            @tensor MMup_reflect[:]:=T1[-1,3,1]* C2[1,2]* AA[-2,-4,4,3]* T2[2,4,-3];
+            MMup_reflect = _square_ctm_park(MMup_reflect, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup_reflect:", MMup_reflect)
+            end
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,2,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,2,direction);
+            T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],2,3,direction);
+            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,3,direction);
+            C3=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            @tensor MMlow_reflect[:]:=T2[-4,-3,2]*T3[1,-2,-1]*C3[2,1];
+            @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
+            MMlow_reflect = _square_ctm_park(MMlow_reflect, offload_intermediates)
+            _square_ctm_reclaim(offload_intermediates)
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow_reflect:", MMlow_reflect)
+            end
+
+            if offload_intermediates
+                RMup = _square_ctm_half_product(MMup, MMup_reflect, compute_storage; upper=true)
+                MMup = MMup_reflect = nothing
+                RMup = square_J1_to_cpu(RMup)
+                _square_ctm_reclaim(true)
+
+                RMlow = _square_ctm_half_product(MMlow, MMlow_reflect, compute_storage; upper=false)
+                MMlow = MMlow_reflect = nothing
+                RMlow_norm = norm(RMlow)
+                RMlow = RMlow / RMlow_norm
+                RMlow = square_J1_to_cpu(RMlow)
+                _square_ctm_reclaim(true)
+
+                RMup = square_J1_to_storage(compute_storage, RMup)
+                RMup_norm = norm(RMup)
+                RMup = RMup / RMup_norm
+                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                M = RMup * RMlow
+                # Neither RM is needed during the SVD of M.
+                RMup = square_J1_to_cpu(RMup)
+                RMlow = square_J1_to_cpu(RMlow)
+                _square_ctm_reclaim(true)
+            else
+                MMup=permute(MMup,(1,2,),(3,4,))
+
+                # _,ss,_=tsvd(MMup)
+                # display(convert(Array,ss))
+
+                MMlow=permute(MMlow,(1,2,),(3,4,))
+                MMup_reflect=permute(MMup_reflect,(1,2,),(3,4,))
+                MMlow_reflect=permute(MMlow_reflect,(1,2,),(3,4,))
+
+
+
+                RMup=permute(MMup*MMup_reflect,(3,4,),(1,2,));
+                RMlow=MMlow*MMlow_reflect;
+
+                RMlow_norm=norm(RMlow);
+                RMlow= RMlow/RMlow_norm;
+                RMup_norm=norm(RMup);
+                RMup= RMup/RMup_norm;
+
+                M=RMup*RMlow;
+            end
+
+            if memory_info
+                _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) M before SVD:", M)
+            end
+            if isa(space(M,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})#Z2 symmetry
+                chi_extra=3;
+            elseif isa(space(M,1), GradedSpace{U1Irrep, TensorKit.SortedVectorDict{U1Irrep, Int64}}) #U1 symmetry
+                chi_extra=4;
+            elseif isa(space(M,1), GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}) #SU(2) symmetry
+                chi_extra=20;
+            elseif isa(space(M,1), GradedSpace{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, TensorKit.SortedVectorDict{TensorKit.ProductSector{Tuple{U1Irrep, SU2Irrep}}, Int64}}) #U1 x SU(2)
+                chi_extra=20;
+            elseif isa(space(M,1), ComplexSpace)
+                chi_extra=1;
+            end
+
+            #uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
+            global multiplet_tol
+            uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra; multiplet_tol=multiplet_tol));#for new version Pkgs, tsvd backward is much better
+            if offload_intermediates
+                M = nothing
+                _square_ctm_reclaim(true)
+            end
+
+            sM_norm=norm(sM);
+            sM=sM/sM_norm;
+
+            sM_inv_sqrt=sdiag_inv_sqrt(sM);
+
+            if offload_intermediates
+                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                PM_inv=RMlow*vM'*sM_inv_sqrt;
+                RMlow = vM = nothing
+                _square_ctm_reclaim(true)
+                RMup = square_J1_to_storage(compute_storage, RMup)
+                PM=sM_inv_sqrt*uM'*RMup;
+                RMup = uM = sM = sM_inv_sqrt = nothing
+                _square_ctm_reclaim(true)
+            else
+                PM_inv=RMlow*vM'*sM_inv_sqrt;
+                PM=sM_inv_sqrt*uM'*RMup;
+            end
+            PM=permute(PM,(2,3,),(1,));
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            #PM_cell[Pos[1]][Pos[2]]=PM;
+            PM_cell=fill_tuple(PM_cell,PM, Pos[1],Pos[2])
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,1,direction);
+            #PM_inv_cell[Pos[1]][Pos[2]]=PM_inv;
+            PM_inv_cell=fill_tuple(PM_inv_cell,PM_inv, Pos[1],Pos[2])
+
+
+        end
+    end
+    for cx=1:cx_max
+        for cy=1:cy_max
+            coord=[cx,cy];
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            AA=AA_cell[Pos[1]][Pos[2]];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            T1=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,0,direction);
+            C1=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction,4));
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,3,direction);
+            C4=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
+
+
+            Posa=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            Posb=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,2,direction);
+            @tensor M5tem[:]:=T4[4,3,1]*AA[3,5,-2,2]* PM_inv_cell[Posa[1]][Posa[2]][4,5,-1]* PM_cell[Posb[1]][Posb[2]][1,2,-3];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,0,direction);
+            @tensor M1tem[:]:=C1[1,2]*T1[2,3,-2]*PM_inv_cell[Pos[1]][Pos[2]][1,3,-1];
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,3,direction);
+            @tensor M7tem[:]:=C4[1,2]*T3[-1,3,1]*PM_cell[Pos[1]][Pos[2]][2,3,-2];
+
+            M5tem=M5tem/norm(M5tem);
+            M1tem=M1tem/norm(M1tem);
+            M7tem=M7tem/norm(M7tem);
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            #M5tem_cell[Pos[1]][Pos[2]]=M5tem;
+            M5tem_cell=fill_tuple(M5tem_cell, M5tem, Pos[1],Pos[2]);
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            #M1tem_cell[Pos[1]][Pos[2]]=M1tem;
+            M1tem_cell=fill_tuple(M1tem_cell, M1tem, Pos[1],Pos[2]);
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            #M7tem_cell[Pos[1]][Pos[2]]=M7tem;
+            M7tem_cell=fill_tuple(M7tem_cell, M7tem, Pos[1],Pos[2]);
+
+        end
+    end
+
+
+    for cx=1:cx_max
+        for cy=1:cy_max
+            coord=[cx,cy];
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,0,direction);
+            #Cset_cell[Pos[1]][Pos[2]][mod1(direction,4)]=M1tem_cell[Pos[1]][Pos[2]];
+            Cset_old=Cset_cell[Pos[1]][Pos[2]];
+            Cset_new=set_Cset(Cset_old, M1tem_cell[Pos[1]][Pos[2]], mod1(direction,4))
+            Cset_cell=fill_tuple(Cset_cell, Cset_new, Pos[1],Pos[2]);
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,2,direction);
+            #Tset_cell[Pos[1]][Pos[2]][mod1(direction-1,4)]=M5tem_cell[Pos[1]][Pos[2]];
+            Tset_old=Tset_cell[Pos[1]][Pos[2]];
+            Tset_new=set_Tset(Tset_old, M5tem_cell[Pos[1]][Pos[2]], mod1(direction-1,4))
+            Tset_cell=fill_tuple(Tset_cell, Tset_new, Pos[1],Pos[2]);
+
+            Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
+            #Cset_cell[Pos[1]][Pos[2]][mod1(direction-1,4)]=M7tem_cell[Pos[1]][Pos[2]];
+            Cset_old=Cset_cell[Pos[1]][Pos[2]];
+            Cset_new=set_Cset(Cset_old, M7tem_cell[Pos[1]][Pos[2]], mod1(direction-1,4))
+            Cset_cell=fill_tuple(Cset_cell, Cset_new, Pos[1],Pos[2]);
+        end
+    end
+    return Cset_cell,Tset_cell
+end
+
+
+function square_J1_init_CTM_cell_offload(chi,A_cell,type,CTM_ite_info)
+    @ignore_derivatives  if CTM_ite_info
+        display("initialize CTM")
+    end
+    global Lx,Ly
+
+    #numind(A)
+    #numin(A)
+    #numout(A)
+    Cset_cell=initial_tuple_cell(Lx,Ly);
+    Tset_cell=initial_tuple_cell(Lx,Ly);
+    #space(A,1)
+    if type=="PBC"
+        for cx=1:Lx
+            for cy=1:Ly
+                CTM_=init_CTM(chi,A_cell[cx][cy],type,false);
+                Cset_cell=fill_tuple(Cset_cell,CTM_.Cset,cx,cy);
+                Tset_cell=fill_tuple(Tset_cell,CTM_.Tset,cx,cy);
+            end
+        end
+        CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
+        return CTM_cell
+    elseif type=="random"
+    end
+end

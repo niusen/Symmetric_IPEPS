@@ -25,14 +25,26 @@ function square_J1_gpu_environment_cell(
     environment_chi::Int,
     ctm_setting;
     device::AbstractString="cuda:0",
+    ctm_memory::SquareJ1CTMMemorySettings=SquareJ1CTMMemorySettings(),
 )
     A_run = square_J1_to_device(device, A_set)
-    environment_run = _square_fu_environment_cell(
-        A_run, environment_chi, ctm_setting; initial_CTM=nothing,
+    cell_Lx, cell_Ly = _square_fu_validate_cell(A_run)
+    global Lx = cell_Lx
+    global Ly = cell_Ly
+    global chi = environment_chi
+    init = initial_condition(init_type="PBC", reconstruct_CTM=true, reconstruct_AA=true)
+    result = square_J1_CTMRG_cell_offload(
+        square_fu_cell_to_tuple(A_run), environment_chi, init, [], ctm_setting;
+        memory=ctm_memory,
     )
+    CTM, AA, U_L, U_D, U_R, U_U = result[1:6]
+    ite_num, ite_err = length(result) == 8 ? (result[7], result[8]) : (missing, missing)
+    environment_run = (; CTM, AA, U_L, U_D, U_R, U_U, ite_num, ite_err,
+                        Lx=cell_Lx, Ly=cell_Ly)
     environment = square_J1_to_cpu(environment_run)
     A_run = nothing
     environment_run = nothing
+    result = CTM = AA = U_L = U_D = U_R = U_U = nothing
     square_J1_reclaim_device_memory!(aggressive=true)
     return environment
 end
@@ -237,6 +249,7 @@ function square_J1_full_update_cell_gpu_sweep(
     initial_environment=nothing,
     ctm_device::AbstractString="cuda:0",
     full_update_device::AbstractString="cuda:0",
+    ctm_memory::SquareJ1CTMMemorySettings=SquareJ1CTMMemorySettings(),
 )
     cell_Lx, cell_Ly = _square_fu_validate_cell(A_set)
     settings.refresh_environment || throw(ArgumentError(
@@ -246,7 +259,7 @@ function square_J1_full_update_cell_gpu_sweep(
     A_current = copy(A_set)
     environment = isnothing(initial_environment) ?
         square_J1_gpu_environment_cell(
-            A_current, environment_chi, ctm_setting; device=ctm_device,
+            A_current, environment_chi, ctm_setting; device=ctm_device, ctm_memory,
         ) : initial_environment
     if settings.verbose && isnothing(initial_environment)
         println(
@@ -270,7 +283,7 @@ function square_J1_full_update_cell_gpu_sweep(
         # Reconstruct CTMRG after every bond, matching the CPU and triangular
         # Full Update algorithms. No old CTM is reused.
         environment = square_J1_gpu_environment_cell(
-            A_current, environment_chi, ctm_setting; device=ctm_device,
+            A_current, environment_chi, ctm_setting; device=ctm_device, ctm_memory,
         )
         if settings.verbose
             println(
@@ -293,6 +306,7 @@ function square_J1_full_update_cell_gpu(
     settings::SquareJ1FullUpdateSettings=SquareJ1FullUpdateSettings(),
     ctm_device::AbstractString="cuda:0",
     full_update_device::AbstractString="cuda:0",
+    ctm_memory::SquareJ1CTMMemorySettings=SquareJ1CTMMemorySettings(),
     callback=nothing,
 )
     dt > 0 || throw(ArgumentError("dt must be positive"))
@@ -308,7 +322,7 @@ function square_J1_full_update_cell_gpu(
     groups = square_J1_bond_groups(cell_Lx, cell_Ly)
     A_current = copy(A_set)
     environment = square_J1_gpu_environment_cell(
-        A_current, environment_chi, ctm_setting; device=ctm_device,
+        A_current, environment_chi, ctm_setting; device=ctm_device, ctm_memory,
     )
     if settings.verbose
         println(
@@ -332,6 +346,7 @@ function square_J1_full_update_cell_gpu(
             initial_environment=environment,
             ctm_device,
             full_update_device,
+            ctm_memory,
         )
         push!(history, reports)
         isnothing(callback) || callback(A_current, environment, step, reports)

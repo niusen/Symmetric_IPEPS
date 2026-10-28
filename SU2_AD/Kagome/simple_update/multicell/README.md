@@ -1,4 +1,9 @@
-# Kagome SU(2) Simple Update on larger cells
+# Kagome SU(2) / U(1) Simple Update on larger cells
+
+U(1) conversion and evolution are now available: see [U1_USAGE.md](U1_USAGE.md).
+Conversion defaults to U(1), with an explicit dense export option. The SU
+runner retains its SU(2) default; `--symmetry u1` selects U(1). An existing
+charged SU(2) state can initialize U(1) through exact component projection.
 
 This adds rectangular and sqrt(3) x sqrt(3) cells to the existing Julia
 kagome Simple Update. All implementation and example files are new.
@@ -151,7 +156,7 @@ copies; a subsequent optimizer must enforce `state.geometry.site_map` if
 it is intended to preserve sqrt3 parameter tying. The helper does not add
 new-version compatibility to the repository's existing CTMRG/AD files.
 
-This runner performs **zero-field SU(2)** Simple Update and does not launch
-CTMRG. Its final lambda-environment energy estimates are explicitly labelled
-as SU diagnostics, not CTMRG or variational energies. A finite-field U(1) or
-other magnetized-state construction is a separate extension.
+The default SU(2) runner performs zero-field singlet Simple Update and does
+not launch CTMRG. Its lambda-environment energy estimates are SU diagnostics,
+not CTMRG or variational energies. The U(1) option supports charged input and
+separate block U(1) CTMRG measurements, as described in U1_USAGE.md.

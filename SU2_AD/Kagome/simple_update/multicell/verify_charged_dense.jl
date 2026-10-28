@@ -1,9 +1,11 @@
-# Convert LOCAL tensors first, independently verify finite observables, and
-# optionally launch the existing iPEPS_Z2 factorized dense CTMRG measurement.
+# Exact U1 export by default, explicit dense fallback, independent finite checks,
+# and optional block U1 / dense factorized CTMRG measurement.
 using TensorKit, LinearAlgebra, JLD2, TOML, SHA
 include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
                  "simple_update_charged_cell.jl"))
 using .KagomeChargedSU2
+include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","simple_update_u1_cells.jl"))
+using .KagomeU1Cells
 
 const DENSE_NAMES = (:B1,:B2,:B3,:Tup,:Tdn)
 
@@ -70,15 +72,27 @@ function dense_finite_measure(psi,state,h)
                 "method"=>"local dense tensors, exact finite nine-site periodic torus")
 end
 
-function export_and_verify(input,out;h=.38,component=1,threads=10)
+function export_and_verify(input,out;h=.38,component=1,threads=10,representation=:u1)
+    representation in (:u1,:dense) || error("representation must be u1 or dense")
     ispath(out) && error("use a NEW output directory")
     BLAS.set_num_threads(threads)
-    state,data = load_charged_checkpoint(input)
-    # Project Q before contraction, then work only with ordinary local arrays.
-    raw = polarized_dense_cells(state;component)
+    data=JLD2.load(input)
+    is_u1=get(data,"format","")=="kagome_u1_cells_v1"
+    if is_u1
+        component==1 || error("a U1 checkpoint already has its auxiliary component selected")
+        u1state=check_u1(data["state"])
+        anchor=only(keys(u1state.auxiliary_charges))
+        state=(raw=(geometry=u1state.geometry,),anchor=anchor,auxiliary_spin=u1state.auxiliary_charges[anchor]//2)
+        raw=u1_dense_cells(u1state)
+        reference=u1_torus_observables(u1state;h)
+    else
+        state,data=load_charged_checkpoint(input)
+        reference=exact_torus_observables(state;component,h)
+        u1state=to_u1(state;component)
+        raw=representation==:u1 ? u1_dense_cells(u1state) : polarized_dense_cells(state;component)
+    end
     cells,D = padded_dense_cells(raw)
     D <= 6 || error("finite verification is restricted to actual D<=6")
-    reference = exact_torus_observables(state;component,h)
     psi_raw = dense_torus_wavefunction(raw,state.anchor)
     psi = dense_torus_wavefunction(cells,state.anchor)
     overlap = dot(psi_raw,psi)
@@ -108,26 +122,36 @@ function export_and_verify(input,out;h=.38,component=1,threads=10)
             "padding_wavefunction_error"=>padding_error,
             "original_shapes"=>Dict("$r,1"=>Dict(string(n)=>collect(size(getfield(c,n)))
                 for n in DENSE_NAMES) for (r,c) in enumerate(raw))))
-    open(joinpath(out,"dense_state.toml"),"w") do io
+    prefix=representation==:u1 ? "u1" : "dense"
+    if representation==:u1
+        portable=export_u1_portable(u1state)
+        portable["conversion"]=Dict("source_sha256"=>source_sha256,"source"=>abspath(input),
+                                     "component"=>component,"auxiliary_charge_unit"=>"2Sz")
+        H=is_u1 ? data["H"] : restrict_tensor(data["H"])
+        save_u1_checkpoint(joinpath(out,"u1_state.jld2"),u1state,H;
+                           metadata=Dict("source_sha256"=>source_sha256,"h"=>h,"symmetry"=>"u1"))
+    else
+        jldsave(joinpath(out,"dense_state.jld2");cells,site_map=map,source_sha256)
+    end
+    open(joinpath(out,"$(prefix)_state.toml"),"w") do io
         TOML.print(io,portable;sorted=true)
     end
-    jldsave(joinpath(out,"dense_state.jld2");cells,site_map=map,source_sha256)
-    report = Dict("h"=>h,"padded_D"=>D,"TensorKit"=>string(pkgversion(TensorKit)),
+    report = Dict("h"=>h,"representation"=>string(representation),"padded_D"=>D,"TensorKit"=>string(pkgversion(TensorKit)),
                   "source_sha256"=>source_sha256,"finite_dense"=>measured,
                   "padding_wavefunction_error"=>padding_error,
                   "absolute_difference_from_SU2_reference"=>differences)
-    open(joinpath(out,"dense_finite_report.toml"),"w") do io
+    open(joinpath(out,"$(prefix)_finite_report.toml"),"w") do io
         TOML.print(io,report;sorted=true)
     end
-    println("DENSE_FINITE ",measured)
+    println(uppercase(string(representation)),"_FINITE ",measured)
     println("maximum reference difference: ",maximum(values(differences)))
     return report
 end
 
 function main_dense(args=ARGS)
-    length(args) >= 2 || error("usage: verify_charged_dense.jl CHECKPOINT NEW_OUT [--ctm --ipeps-root PATH --python PATH --device cuda:1 --chi 8,12]")
+    length(args) >= 2 || error("usage: verify_charged_dense.jl CHECKPOINT NEW_OUT [--representation u1|dense] [--ctm --ipeps-root PATH --python PATH --device cuda:1 --chi 8,12]")
     input,out = args[1],abspath(args[2])
-    opts = Dict("h"=>"0.38","component"=>"1","threads"=>"10",
+    opts = Dict("h"=>"0.38","component"=>"1","threads"=>"10","representation"=>"u1",
                 "ipeps-root"=>get(ENV,"IPEPS_Z2_ROOT",""),"python"=>get(ENV,"PYTHON","python"),
                 "device"=>"cuda:1","chi"=>"8","ctm-iterations"=>"100","ctm-tol"=>"1e-6")
     ctm = false
@@ -144,11 +168,12 @@ function main_dense(args=ARGS)
         i += 1
     end
     ctm && isempty(opts["ipeps-root"]) && error("--ctm requires --ipeps-root or IPEPS_Z2_ROOT")
+    representation=Symbol(lowercase(opts["representation"]))
     export_and_verify(input,out;h=parse(Float64,opts["h"]),component=parse(Int,opts["component"]),
-                      threads=parse(Int,opts["threads"]))
+                      threads=parse(Int,opts["threads"]),representation)
     if ctm
         command = [opts["python"],"-B",joinpath(@__DIR__,"measure_dense_charged.py"),
-            "--state",joinpath(out,"dense_state.toml"),"--out",joinpath(out,"ctm"),
+            "--state",joinpath(out,"$(representation)_state.toml"),"--out",joinpath(out,"ctm"),
             "--ipeps-root",opts["ipeps-root"],"--h",opts["h"],"--device",opts["device"],
             "--threads",opts["threads"],"--ctm-iterations",opts["ctm-iterations"],
             "--ctm-tol",opts["ctm-tol"],"--chi",split(opts["chi"],',')...]

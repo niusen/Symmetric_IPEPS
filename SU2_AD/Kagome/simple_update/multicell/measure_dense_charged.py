@@ -1,4 +1,4 @@
-"""Forward-only infinite-lattice measurement of explicitly polarized dense PESS."""
+"""Forward-only block-U1 or dense measurement of explicitly polarized PESS."""
 import argparse
 import hashlib
 import json
@@ -47,14 +47,20 @@ def main():
     a.out.mkdir(parents=True)
     raw = a.state.read_bytes()
     data = tomllib.loads(raw.decode('utf-8')) if a.state.suffix == '.toml' else json.loads(raw)
-    canonical = a.out / 'dense_state.json'
+    is_u1 = data.get('format') == 'kagome_u1_portable_v1'
+    canonical = a.out / ('u1_state.json' if is_u1 else 'dense_state.json')
     canonical.write_text(json.dumps(data, allow_nan=False), encoding='utf-8')
-    state = load_kagome_iPESS(canonical, device=a.device)
+    if is_u1:
+        from u1_ctm_backend import U1State, ctmrg_u1, u1_energy
+        state = U1State(data, a.device)
+    else:
+        state = load_kagome_iPESS(canonical, device=a.device)
     settings = dict(h=a.h, D=state.D, device=a.device, threads=a.threads,
                     ctm_tol=a.ctm_tol, ctm_iterations=a.ctm_iterations,
                     input_sha256=hashlib.sha256(raw).hexdigest(),
                     source_checkpoint_sha256=data.get('conversion', {}).get('source_sha256'),
-                    method='infinite lattice, dense local PESS, factorized Q/R CTMRG')
+                    symmetry='U1' if is_u1 else 'dense',
+                    method='infinite lattice, block U1 Q/R CTMRG' if is_u1 else 'infinite lattice, dense Q/R CTMRG')
     rows = []
     with torch.no_grad():
         for chi in a.chi:
@@ -63,9 +69,12 @@ def main():
             cfg.CTM_trun_tol = 1e-12
             cfg.checkpoint_move = cfg.checkpoint_energy = cfg.use_sub_checkpoint = False
             cfg.CTM_ite_info = True
-            env, left, right, info = ctmrg_kagome(state, cfg)
-            energy, obs = kagome_energy(state, env, left, right, h_z=a.h,
-                checkpoint_energy=False, return_observables=True)
+            env, left, right, info = ctmrg_u1(state,cfg) if is_u1 else ctmrg_kagome(state,cfg)
+            if is_u1:
+                energy,obs = u1_energy(state,env,left,right,a.h)
+            else:
+                energy, obs = kagome_energy(state, env, left, right, h_z=a.h,
+                    checkpoint_energy=False, return_observables=True)
             mz = obs['Sz'].mean().item()
             exchange = ((obs['E_up']+obs['E_down']).mean()/3).item()
             field = (obs['E_field'].mean()/3).item()
@@ -77,8 +86,8 @@ def main():
             sites = {}
             max_spread = 0.
             for rep in state.inequivalent_cells:
-                values = torch.stack([obs['Sz'][x-1,y-1] for x in range(1,4)
-                                     for y in range(1,4) if state.site_map[f'{x},{y}'] == rep])
+                values = torch.stack([obs['Sz'][x-1,y-1] for x in range(1,state.Lx+1)
+                                     for y in range(1,state.Ly+1) if state.site_map[f'{x},{y}'] == rep])
                 average = values.mean(0)
                 max_spread = max(max_spread, (values-average).abs().max().item())
                 sites[rep] = average.cpu().tolist()
@@ -92,7 +101,7 @@ def main():
                        seconds=time.perf_counter()-start)
             (a.out / f'chi_{chi}.json').write_text(json.dumps(row, indent=2, allow_nan=False))
             rows.append(row)
-            print('DENSE_CTM '+json.dumps(row, allow_nan=False), flush=True)
+            print(('U1_CTM ' if is_u1 else 'DENSE_CTM ')+json.dumps(row, allow_nan=False), flush=True)
     (a.out / 'summary.json').write_text(json.dumps(rows, indent=2, allow_nan=False))
 
 

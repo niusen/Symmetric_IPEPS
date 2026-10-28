@@ -1,15 +1,16 @@
-# Kagome SU(2) SU runner: julia --project=. run.jl --cell sqrt3xsqrt3 --Dmax 6
-using TensorKit, Random, LinearAlgebra, Dates, Printf
+# Kagome SU(2)/U(1) SU runner; choose --symmetry su2|u1.
+using TensorKit, Random, LinearAlgebra, Dates, Printf, TOML
 if !isdefined(@__MODULE__,:KagomeSU2Cells)
     include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
                      "simple_update_cells.jl"))
 end
 using .KagomeSU2Cells
+include(joinpath(@__DIR__,"run_u1_options.jl"))
 
 function options(args)
     values = Dict("cell"=>"sqrt3xsqrt3", "Dmax"=>"3", "seed"=>"1234",
                   "threads"=>"10", "virtual"=>"0:1,1/2:1", "out"=>"",
-                  "resume"=>"", "J1"=>"1.0")
+                  "resume"=>"", "J1"=>"1.0","symmetry"=>"su2","init"=>"","component"=>"1")
     smoke = false
     i = 1
     while i <= length(args)
@@ -18,7 +19,7 @@ function options(args)
             smoke = true
         elseif arg == "--help"
             println("--cell sqrt3xsqrt3|3x3|1x1 --Dmax N --virtual 0:1,1/2:1 ",
-                    "--seed N --threads 10 --J1 1 --out DIRECTORY --resume CHECKPOINT --smoke")
+                    "--symmetry su2|u1 --init SU2_OR_U1_CHECKPOINT --component 1 --seed N --threads 10 --J1 1 --out DIRECTORY --resume CHECKPOINT --smoke")
             return nothing
         else
             startswith(arg,"--") || error("unexpected argument: $arg")
@@ -52,6 +53,10 @@ function main(args=ARGS)
     parsed = options(args)
     isnothing(parsed) && return
     opts,smoke = parsed
+    symmetry=Symbol(lowercase(opts["symmetry"]))
+    symmetry in (:su2,:u1) || error("symmetry must be su2 or u1")
+    symmetry==:u1 && return run_u1_options(opts,smoke)
+    isempty(opts["init"]) || error("--init is a U1 initializer; use run_charged_trial.jl for charged SU2 evolution")
     pattern = opts["cell"] == "sqrt3xsqrt3" ? :sqrt3xsqrt3 : :rectangular
     opts["cell"] in ("sqrt3xsqrt3","3x3","1x1") || error("unsupported --cell")
     length_side = opts["cell"] == "1x1" ? 1 : 3

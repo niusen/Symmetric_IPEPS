@@ -1,5 +1,10 @@
 # Convert the polarized SU(2) PESS and independently measure it
 
+**Current default:** `verify_charged_dense.jl` exports genuine U(1) tensors.
+See [U1_USAGE.md](U1_USAGE.md) for the U(1) path and SU options. This page
+describes the explicitly selected dense fallback; use `--representation dense`
+as shown below.
+
 Entry point: `verify_charged_dense.jl`. It loads a charged SU checkpoint,
 selects an auxiliary Sz component, converts every LOCAL tensor to an ordinary
 dense array, and independently computes magnetization and Heisenberg energy.
@@ -26,7 +31,7 @@ condition that selects the physical magnetization density 2j/9.
 ## Export and independent finite check
 
 ```sh
-julia --project=. verify_charged_dense.jl /path/to/final.jld2 results/dense_check
+julia --project=. verify_charged_dense.jl /path/to/final.jld2 results/dense_check --representation dense
 ```
 
 The default h is 0.38, J1=1 and the BLAS thread count is 10. Use the same
@@ -56,7 +61,7 @@ For a controlled small calculation, exact finite verification requires D<=6.
 
 ```sh
 julia --project=. verify_charged_dense.jl /path/to/final.jld2 results/dense_ctm \
-  --ctm --ipeps-root /path/to/iPEPS_Z2 --python python \
+  --representation dense --ctm --ipeps-root /path/to/iPEPS_Z2 --python python \
   --device cuda:1 --chi 8,12
 ```
 

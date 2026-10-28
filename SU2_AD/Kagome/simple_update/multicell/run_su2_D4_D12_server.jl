@@ -5,7 +5,7 @@ const su2_server_settings = (
     h = 0.38,                         # H = H_exchange + h*sum(Sz)
     chi = 40,
     threads = 10,
-    device = "cuda:1",
+    device = "cpu",                   # 可选 "cuda:1"；默认使用 CPU。
     ctm_iterations = 50,
     ctm_tolerance = 1e-6,
     schedule = [(dt=0.03, tau=40.0), (dt=0.01, tau=20.0),

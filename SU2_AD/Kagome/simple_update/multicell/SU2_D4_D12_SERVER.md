@@ -7,9 +7,9 @@ Its Julia bootstrap selects the CPU or GPU project and installs missing Julia
 dependencies on the first run. There is no supervisor or auto-restart loop.
 
 Defaults: sqrt3xsqrt3, h=0.38, Dmax=4..12, 10 CPU/BLAS threads, chi40,
-`device="cuda:1"`, CTMRG tolerance1e-6, at most50 iterations, and
+`device="cpu"`, CTMRG tolerance1e-6, at most50 iterations, and
 `measurement_representation=:u1`. Choose `:dense` for ordinary TensorKit
-ComplexSpace tensors, or `device="cpu"` for a local small-D check.
+ComplexSpace tensors. GPU remains optional: set `device="cuda:1"` explicitly.
 
 The bundled evolved SU2 D4 candidate initializes D4; each completed D
 initializes D+1, without noise. Complete multiplets are retained during SU.

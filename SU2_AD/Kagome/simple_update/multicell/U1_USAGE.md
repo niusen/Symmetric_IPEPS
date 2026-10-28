@@ -8,7 +8,8 @@ For task=:convert, set conversion_options.input to a SU2 or U1 JLD2 checkpoint.
 representation=:u1 is the default; :dense creates dense TensorKit tensors and
 ordinary Julia arrays. component=1 selects the auxiliary highest weight.
 measure=true computes infinite-system CTMRG and all observables in Julia;
-measure=false only converts/saves. Select device="cpu" or "cuda:1", chi and
+measure=false only converts/saves. CPU is the default; select device="cuda:1"
+explicitly for GPU. Select chi and
 CTMRG tolerance/cap in this same options block. No Python subprocess is used.
 
 The fixed one-dimensional auxiliary charge is retained in U1 TensorMaps.

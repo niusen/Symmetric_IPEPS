@@ -710,7 +710,9 @@ function gate_RU_LD_RD(parameters,energy_setting, dt, space_type)
     Ly=energy_setting.Ly;
 
     @assert energy_setting.model in ("Heisenberg",)
-    if space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
+    if space_type==ComplexSpace
+        Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=SUN_spin(energy_setting.N;dense=true);
+    elseif space_type==GradedSpace{SU2Irrep, TensorKit.SortedVectorDict{SU2Irrep, Int64}}
         #Ident_set, N_occu_set, n_double_set, Cdag_set, C_set=special_Hamiltonians_spinful_SU2();
     elseif space_type==GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}} 
         Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=SUN_spin(energy_setting.N);
@@ -737,8 +739,8 @@ function gate_RU_LD_RD(parameters,energy_setting, dt, space_type)
             @tensor hh=J*(SS12+SS23+SS13);
             #################
             hh=permute(hh,(1,2,3,),(4,5,6,));#
-            @assert norm(hh-hh')/norm(hh)<1e-12;
-            @assert norm(hh-permute(hh,(2,3,1,),(5,6,4,)))/norm(hh)<1e-12;
+            @assert norm(hh-hh')<=1e-12*max(norm(hh),1);
+            @assert norm(hh-permute(hh,(2,3,1,),(5,6,4,)))<=1e-12*max(norm(hh),1);
             eu,ev=eigh(hh);
             gate=ev*exp(-dt*eu)*ev';
             gate_set[cx,cy]=gate;

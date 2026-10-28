@@ -853,6 +853,21 @@ end
 function sdiag_inv_sqrt(S::DiagonalTensorMap)
     toret = deepcopy(S);
     global chi,multiplet_tol,projector_trun_tol
+    if sectortype(S) == Trivial
+        # Dense spaces have one block. Avoid the legacy sector-dictionary API
+        # and 0*Inf on discarded zero singular values.
+        values=real.(diag(convert(Array,S)));
+        boundary=length(values)>chi ? values[chi+1] : 0.0;
+        cutoff=projector_trun_tol*maximum(values);
+        inverse=zeros(eltype(values),length(values));
+        for k=1:min(chi,length(values))
+            v=values[k];
+            if v>cutoff && (multiplet_tol==0 || boundary==0 || (v>boundary && abs(v-boundary)/boundary>=multiplet_tol))
+                inverse[k]=inv(sqrt(v));
+            end
+        end
+        return DiagonalTensorMap(inverse,space(S,1));
+    end
     s_min=truncate_multiplet(S,chi,multiplet_tol,projector_trun_tol);
     if sectortype(S) == Trivial
         b=S.data;

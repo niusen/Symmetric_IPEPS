@@ -1,0 +1,5 @@
+# Local numerical results and server logs.
+!job_su4_D4_D16.sh
+/test_runs_D4_2x2/
+/long_runs/
+/long_runs_tensormap/

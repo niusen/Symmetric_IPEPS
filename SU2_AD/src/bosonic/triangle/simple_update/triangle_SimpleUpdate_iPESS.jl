@@ -39,15 +39,15 @@ function initial_iPESS_uniform(Lx,Ly,V,Vp)
 
             vv=space(t_A,1)';
             # λ_A_1=DiagonalTensorMap(ones(dim(vv)),vv);
-            λ_A_1=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+            λ_A_1=DiagonalTensorMap(ones(vv isa ComplexSpace ? dim(vv) : sum(vv.dims.values)),vv);
 
             vv=space(t_A,2)';
             # λ_A_2=DiagonalTensorMap(ones(dim(vv)),vv);
-            λ_A_2=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+            λ_A_2=DiagonalTensorMap(ones(vv isa ComplexSpace ? dim(vv) : sum(vv.dims.values)),vv);
 
             vv=space(t_A,3)';
             # λ_A_3=DiagonalTensorMap(ones(dim(vv)),vv);
-            λ_A_3=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+            λ_A_3=DiagonalTensorMap(ones(vv isa ComplexSpace ? dim(vv) : sum(vv.dims.values)),vv);
             
             lambdaset1[ca,cb]=λ_A_1;
             lambdaset2[ca,cb]=λ_A_2;
@@ -79,15 +79,15 @@ function initial_iPESS(Lx,Ly,V,Vp)
 
             vv=space(t_A,1)';
             # λ_A_1=DiagonalTensorMap(ones(dim(vv)),vv);
-            λ_A_1=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+            λ_A_1=DiagonalTensorMap(ones(vv isa ComplexSpace ? dim(vv) : sum(vv.dims.values)),vv);
 
             vv=space(t_A,2)';
             # λ_A_2=DiagonalTensorMap(ones(dim(vv)),vv);
-            λ_A_2=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+            λ_A_2=DiagonalTensorMap(ones(vv isa ComplexSpace ? dim(vv) : sum(vv.dims.values)),vv);
 
             vv=space(t_A,3)';
             # λ_A_3=DiagonalTensorMap(ones(dim(vv)),vv);
-            λ_A_3=DiagonalTensorMap(ones(sum(vv.dims.values)),vv);
+            λ_A_3=DiagonalTensorMap(ones(vv isa ComplexSpace ? dim(vv) : sum(vv.dims.values)),vv);
 
             lambdaset1[ca,cb]=λ_A_1;
             lambdaset2[ca,cb]=λ_A_2;
@@ -167,7 +167,10 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
 
     T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
 
-    if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+    if space(T1,1) isa ComplexSpace
+        U1,S1,V1=tsvd(permute(T1_T2_B_T3,(1,2,),(3,4,5,6,));trunc=truncbelow(trun_tol) & truncdim(D_max));
+        U3,S3,V3=tsvd(permute(T1_T2_B_T3,(1,2,3,4,),(5,6,));trunc=truncbelow(trun_tol) & truncdim(D_max));
+    elseif isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         try
             U1,S1,V1=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M1_R1, d1, D1_new) (D1_new, M2_D2, d2, d3, R3_D3
         catch e 
@@ -204,7 +207,9 @@ function triangle_gate_iPESS_simplified(D_max, op_LD_RD_RU, T1, T2, T3, B, trun_
 
     T1_T2_B_T3=remove_small_elements(T1_T2_B_T3,1e-15);
     
-    if isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
+    if space(T1,1) isa ComplexSpace
+        U2,S2,V2=tsvd(permute(T1_T2_B_T3,(1,2,),(3,4,5,6,));trunc=truncbelow(trun_tol) & truncdim(D_max));
+    elseif isa(space(T1,1), GradedSpace{Z2Irrep, Tuple{Int64, Int64}})
         try
             U2,S2,V2=tsvd(T1_T2_B_T3,(1,2,),(3,4,5,6,);trunc=truncdim(D_max));#(M2_D2, d2, R2_new) (R2_new, M1_R1, d1, d3, R3_D3)
         catch e 

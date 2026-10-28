@@ -291,6 +291,13 @@ if !isdefined(@__MODULE__, :truncdim) && isdefined(TensorKit, :truncrank)
     end
 end
 
+if !isdefined(@__MODULE__, :truncerr) && isdefined(TensorKit, :truncerror)
+    truncerr(tol::Real) = TensorKit.truncerror(; atol=tol)
+end
+if !isdefined(@__MODULE__, :truncbelow) && isdefined(TensorKit, :trunctol)
+    truncbelow(tol::Real) = TensorKit.trunctol(; atol=tol)
+end
+
 if !isdefined(@__MODULE__, :tsvd) && isdefined(TensorKit, :svd_compact)
     function tsvd(t::TensorKit.AbstractTensorMap; trunc=nothing, kwargs...)
         if isnothing(trunc)

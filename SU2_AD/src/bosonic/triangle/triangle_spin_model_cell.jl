@@ -558,7 +558,7 @@ function evaluate_ob_cell(parameters, A_cell::Tuple, AA_cell, CTM_cell, ctm_sett
         E_total=E_total/(Lx*Ly);
         return E_total,  ex_set, ey_set, e_diagonal_set, triangle_right_bot_set, triangle_left_top_set
     elseif energy_setting.model=="Heisenberg"
-        Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=@ignore_derivatives SUN_spin(energy_setting.N);
+        Sa,Sb, Id_SS,  P_123_a,P_123_b,P_123_c,  P_132_a,P_132_b,P_132_c,   Id_P123_ab, Id_P123_bc,   chirality_123_a,chirality_123_b,chirality_123_c, Id_chirality_ab,Id_chirality_bc=@ignore_derivatives SUN_spin(energy_setting.N;dense=space(A_cell[1][1],1) isa ComplexSpace);
 
         J=parameters["J"];
         K=parameters["K"];

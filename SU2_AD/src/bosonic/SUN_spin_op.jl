@@ -1,7 +1,11 @@
 
-function SUN_spin(N::Int)
+function SUN_spin(N::Int; dense::Bool=false)
     @assert N>=2;
-    if N==2
+    if dense
+        # Same P_ij-I/N interaction and MPO construction, without symmetry sectors.
+        Vp=ComplexSpace(N);
+        V_trivial=ComplexSpace(1);
+    elseif N==2
         Vp=Rep[SU{N}](1/2=>1);
         V_trivial=Rep[SU{N}](0=>1);
     elseif N>2

@@ -3,6 +3,18 @@
 Environment: Julia 1.11.6, TensorKit 0.14.11 and 0.17.0, 10 BLAS threads.
 No production field scan or long-time SU calculation was run locally.
 
+## Julia settings entry
+
+The code-configured `run_kagome_settings.jl` entry was also checked on both
+TensorKit versions: **8 additional integration checks passed per version**.
+The default file was executed with only its output root redirected to a
+temporary directory. It performed the six-step U(1) charged trial, followed
+by a custom one-step U(1) run initialized from that checkpoint, U(1)
+conversion, and a custom one-step ordinary SU(2) run. Checks covered output
+formats, explicit magnetization, finite conversion agreement, the actual
+saved dt/tau schedule, and invalid-schedule rejection. No production
+schedule was executed, and no Python source was changed for this entry.
+
 ## Exact conversion and SU tests
 
 `test_u1_cells.jl`: **167 checks passed in each TensorKit version**:

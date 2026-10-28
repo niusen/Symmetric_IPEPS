@@ -1,6 +1,9 @@
 # Kagome SU(2) / U(1) Simple Update on larger cells
 
 U(1) conversion and evolution are now available: see [U1_USAGE.md](U1_USAGE.md).
+To edit parameters directly in Julia, open **`run_kagome_settings.jl`**,
+change the settings at the top, and run the whole file. No arguments are
+needed; the default task is a six-step U(1) polarized trial.
 Conversion defaults to U(1), with an explicit dense export option. The SU
 runner retains its SU(2) default; `--symmetry u1` selects U(1). An existing
 charged SU(2) state can initialize U(1) through exact component projection.

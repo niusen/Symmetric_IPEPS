@@ -5,7 +5,7 @@ end
 using .KagomeU1Cells
 using JLD2
 
-function run_u1_options(opts,smoke)
+function run_u1_options(opts,smoke;schedule_override=nothing)
     cell=opts["cell"];cell in ("1x1","3x3","sqrt3xsqrt3") || error("unsupported cell")
     size=cell=="1x1" ? 1 : 3
     pattern=cell=="sqrt3xsqrt3" ? :sqrt3xsqrt3 : :rectangular
@@ -15,7 +15,7 @@ function run_u1_options(opts,smoke)
     BLAS.set_num_threads(threads)
     J1=parse(Float64,opts["J1"])
     isfinite(J1) && J1!=0 || error("J1 must be finite and nonzero")
-    schedule=smoke ? [(dt=.001,tau=.001),(dt=.0005,tau=.0005)] :
+    schedule=!isnothing(schedule_override) ? schedule_override : smoke ? [(dt=.001,tau=.001),(dt=.0005,tau=.0005)] :
         [(dt=.03,tau=40.),(dt=.01,tau=20.),(dt=.003,tau=5.),(dt=.001,tau=2.),(dt=.0005,tau=1.)]
     out=isempty(opts["out"]) ? joinpath(@__DIR__,"results","u1_$(cell)_D$(Dmax)_$(Dates.format(now(),"yyyymmdd_HHMMSS"))") : abspath(opts["out"])
     ispath(out) && error("use a NEW output directory")

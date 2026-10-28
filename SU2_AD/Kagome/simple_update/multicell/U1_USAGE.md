@@ -1,5 +1,26 @@
 # U(1) conversion and Simple Update
 
+## Edit settings in Julia, without command-line options
+
+Open **`run_kagome_settings.jl`**, edit the settings at the top, and run the
+whole file in Julia or your editor. It also works with Julia `include`.
+No arguments are needed. Only the selected task executes:
+
+* `task = :charged_trial`: small polarized trial, with `charged_options`.
+  Default: U(1), Dmax=3, h=0.38, SU(2)-projected initialization, six steps.
+* `task = :simple_update`: use `su_options` for symmetry, cell, Dmax,
+  initial/resume checkpoint, virtual representation, J1, seed, threads,
+  dt/tau schedule and output directory. Its default schedule is the full
+  9000-step production schedule. For the 1/9 sector, fill `initial_state`
+  with a charged checkpoint; a blank path initializes the singlet sector.
+* `task = :convert`: fill `conversion_options.input`; choose `:u1`
+  (default) or `:dense`, auxiliary component, h, threads and output directory.
+
+Each section has its own settings. The default task is the small trial;
+the production schedule in the other section is not executed. Output folders
+include a timestamp by default. Settings and task dispatch are in Julia.
+The command-line entry points documented below remain available.
+
 `verify_charged_dense.jl` now exports **U(1) by default**. Its historical
 filename is retained so existing commands continue to work. Dense export is
 available with `--representation dense`. The SU runner keeps its SU(2)

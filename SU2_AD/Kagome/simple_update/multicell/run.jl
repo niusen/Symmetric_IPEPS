@@ -49,13 +49,13 @@ function virtual_space(text)
     return SU2Space(pairs...)
 end
 
-function main(args=ARGS)
+function main(args=ARGS;schedule_override=nothing)
     parsed = options(args)
     isnothing(parsed) && return
     opts,smoke = parsed
     symmetry=Symbol(lowercase(opts["symmetry"]))
     symmetry in (:su2,:u1) || error("symmetry must be su2 or u1")
-    symmetry==:u1 && return run_u1_options(opts,smoke)
+    symmetry==:u1 && return run_u1_options(opts,smoke;schedule_override)
     isempty(opts["init"]) || error("--init is a U1 initializer; use run_charged_trial.jl for charged SU2 evolution")
     pattern = opts["cell"] == "sqrt3xsqrt3" ? :sqrt3xsqrt3 : :rectangular
     opts["cell"] in ("sqrt3xsqrt3","3x3","1x1") || error("unsupported --cell")
@@ -68,7 +68,7 @@ function main(args=ARGS)
     BLAS.set_num_threads(threads)
     J1 = parse(Float64,opts["J1"])
     isfinite(J1) && J1 != 0 || error("J1 must be finite and nonzero")
-    schedule = smoke ? [(dt=.001,tau=.001),(dt=.0005,tau=.0005)] :
+    schedule = !isnothing(schedule_override) ? schedule_override : smoke ? [(dt=.001,tau=.001),(dt=.0005,tau=.0005)] :
         [(dt=.03,tau=40.),(dt=.01,tau=20.),(dt=.003,tau=5.),
          (dt=.001,tau=2.),(dt=.0005,tau=1.)]
     out = isempty(opts["out"]) ? joinpath(@__DIR__,"results",

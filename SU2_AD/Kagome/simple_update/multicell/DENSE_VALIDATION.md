@@ -1,3 +1,6 @@
+> Historical validation of the former Python bridge. The current implementation
+> is pure Julia; see SU2_D4_D12_SERVER_VALIDATION.md for current checks.
+
 # Dense conversion / measurement validation, 2026-10-28
 
 Inputs are the six-step charged-SU trials from `CHARGED_VALIDATION.md`,

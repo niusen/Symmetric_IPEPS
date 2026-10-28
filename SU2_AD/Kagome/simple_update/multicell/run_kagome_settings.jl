@@ -53,10 +53,15 @@ conversion_options = (
     component = 1,
     h = 0.38,
     threads = 10,
+    measure = true,           # false：只转换/保存；true：再做一次 Julia CTMRG 测量。
+    device = "cuda:1",         # 本机小检查可填 "cpu"。
+    chi = 40,
+    ctm_iterations = 50,
+    ctm_tolerance = 1e-6,
     out = joinpath(output_root, "converted_" * run_name),
 )
-# 此验证入口限于单个带辅助电荷的 sqrt3 cell、实际 D<=6。
-# 一般 SU 保存的 U1 checkpoint / portable TOML 没有这个有限环面的 D 限制。
+# 此转换和无限系统 CTMRG 入口不做有限环面展开，没有 D<=6 限制。
+# 小 D 的独立有限环面验证仍可调用 export_and_verify。
 
 # ---------- 配置区结束，下面不需要修改 ----------
 if !isdefined(@__MODULE__, :run_kagome_settings)

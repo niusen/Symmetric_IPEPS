@@ -1,0 +1,3 @@
+run_su2_D4_D12_server.sh text eol=lf
+su2_D4_seed.toml text eol=lf
+dense_reference_h038.csv text eol=lf

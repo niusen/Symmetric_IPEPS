@@ -37,8 +37,10 @@ function run_kagome_settings(task; su,charged,conversion)
         c=conversion
         isempty(c.input) && error("fill conversion_options.input in run_kagome_settings.jl")
         isfile(c.input) || error("conversion checkpoint does not exist: $(c.input)")
-        return export_and_verify(c.input,c.out;h=c.h,component=c.component,
-            threads=c.threads,representation=c.representation)
+        if !isdefined(@__MODULE__,:KagomeNativeMeasurement)
+            include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","native_measurement","KagomeNativeMeasurement.jl"))
+        end
+        return Base.invokelatest(KagomeNativeMeasurement.run_native_conversion,c)
     end
     error("task must be :charged_trial, :simple_update or :convert")
 end

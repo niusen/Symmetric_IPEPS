@@ -167,3 +167,9 @@ The default SU(2) runner performs zero-field singlet Simple Update and does
 not launch CTMRG. Its lambda-environment energy estimates are SU diagnostics,
 not CTMRG or variational energies. The U(1) option supports charged input and
 separate block U(1) CTMRG measurements, as described in U1_USAGE.md.
+
+## Pure Julia measurement and D4..12 server task
+
+The active conversion/measurement path is entirely Julia/TensorKit. See
+SU2_D4_D12_SERVER.md and run_su2_D4_D12_server.jl. Native functions are in
+src/bosonic/kagome/native_measurement/; no Python bridge is required.

@@ -1,10 +1,14 @@
 # Exact U1 export by default, explicit dense fallback, independent finite checks,
 # and optional block U1 / dense factorized CTMRG measurement.
 using TensorKit, LinearAlgebra, JLD2, TOML, SHA
-include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
-                 "simple_update_charged_cell.jl"))
+if !isdefined(@__MODULE__,:KagomeChargedSU2)
+    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
+                     "simple_update_charged_cell.jl"))
+end
 using .KagomeChargedSU2
-include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","simple_update_u1_cells.jl"))
+if !isdefined(@__MODULE__,:KagomeU1Cells)
+    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","simple_update_u1_cells.jl"))
+end
 using .KagomeU1Cells
 
 const DENSE_NAMES = (:B1,:B2,:B3,:Tup,:Tdn)
@@ -149,38 +153,31 @@ function export_and_verify(input,out;h=.38,component=1,threads=10,representation
 end
 
 function main_dense(args=ARGS)
-    length(args) >= 2 || error("usage: verify_charged_dense.jl CHECKPOINT NEW_OUT [--representation u1|dense] [--ctm --ipeps-root PATH --python PATH --device cuda:1 --chi 8,12]")
-    input,out = args[1],abspath(args[2])
-    opts = Dict("h"=>"0.38","component"=>"1","threads"=>"10","representation"=>"u1",
-                "ipeps-root"=>get(ENV,"IPEPS_Z2_ROOT",""),"python"=>get(ENV,"PYTHON","python"),
-                "device"=>"cuda:1","chi"=>"8","ctm-iterations"=>"100","ctm-tol"=>"1e-6")
-    ctm = false
-    i = 3
-    while i <= length(args)
-        if args[i] == "--ctm"
-            ctm = true
+    length(args)>=2 || error("usage: verify_charged_dense.jl CHECKPOINT NEW_OUT [--representation u1|dense] [--ctm --device cpu --chi 8]")
+    input,out=args[1],abspath(args[2]);measure=false
+    opts=Dict("h"=>"0.38","component"=>"1","threads"=>"10","representation"=>"u1",
+        "device"=>"cpu","chi"=>"8","ctm-iterations"=>"50","ctm-tol"=>"1e-6")
+    i=3
+    while i<=length(args)
+        if args[i]=="--ctm"
+            measure=true
         else
-            startswith(args[i],"--") || error("unknown argument")
-            key = args[i][3:end]
-            haskey(opts,key) && i < length(args) || error("invalid option: $(args[i])")
-            i += 1;opts[key] = args[i]
+            key=replace(args[i],"--"=>"")
+            haskey(opts,key) && i<length(args) || error("invalid native Julia option: $(args[i])")
+            i+=1;opts[key]=args[i]
         end
-        i += 1
+        i+=1
     end
-    ctm && isempty(opts["ipeps-root"]) && error("--ctm requires --ipeps-root or IPEPS_Z2_ROOT")
-    representation=Symbol(lowercase(opts["representation"]))
-    export_and_verify(input,out;h=parse(Float64,opts["h"]),component=parse(Int,opts["component"]),
-                      threads=parse(Int,opts["threads"]),representation)
-    if ctm
-        command = [opts["python"],"-B",joinpath(@__DIR__,"measure_dense_charged.py"),
-            "--state",joinpath(out,"$(representation)_state.toml"),"--out",joinpath(out,"ctm"),
-            "--ipeps-root",opts["ipeps-root"],"--h",opts["h"],"--device",opts["device"],
-            "--threads",opts["threads"],"--ctm-iterations",opts["ctm-iterations"],
-            "--ctm-tol",opts["ctm-tol"],"--chi",split(opts["chi"],',')...]
-        run(Cmd(command))
+    if !isdefined(@__MODULE__,:KagomeNativeMeasurement)
+        include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","native_measurement","KagomeNativeMeasurement.jl"))
     end
+    cfg=(input=input,out=out,representation=Symbol(opts["representation"]),
+        component=parse(Int,opts["component"]),h=parse(Float64,opts["h"]),threads=parse(Int,opts["threads"]),
+        device=opts["device"],chi=parse(Int,opts["chi"]),ctm_iterations=parse(Int,opts["ctm-iterations"]),
+        ctm_tolerance=parse(Float64,opts["ctm-tol"]),measure=measure)
+    Base.invokelatest(KagomeNativeMeasurement.run_native_conversion,cfg)
 end
 
-if abspath(PROGRAM_FILE) == abspath(@__FILE__)
+if abspath(PROGRAM_FILE)==abspath(@__FILE__)
     main_dense()
 end

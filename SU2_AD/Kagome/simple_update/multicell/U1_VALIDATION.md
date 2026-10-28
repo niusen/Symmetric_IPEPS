@@ -1,3 +1,6 @@
+> Historical validation of the former Python bridge. The current implementation
+> is pure Julia; see SU2_D4_D12_SERVER_VALIDATION.md for current checks.
+
 # U(1) validation, 2026-10-28
 
 Environment: Julia 1.11.6, TensorKit 0.14.11 and 0.17.0, 10 BLAS threads.

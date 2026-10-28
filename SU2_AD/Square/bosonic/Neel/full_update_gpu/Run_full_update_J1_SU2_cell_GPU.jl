@@ -9,18 +9,24 @@ launcher and all pre-existing CTMRG/Full Update source files are unchanged.
 # Configuration
 # ---------------------------------------------------------------------------
 
-run_device = "cuda:0"
+run_device = "cuda:1"
 # All stages use `run_device` by default.  Set any individual stage to "cpu"
 # when that stage exceeds GPU memory; the other stages remain on the GPU.
 ctm_device = run_device
 full_update_device = run_device
 observable_device = run_device
-print_gpu_memory = false
+print_gpu_memory = true
+
+# :reduced absorbs SVD residuals into CTM like FU, without constructing AA_open.
+# :legacy uses the original AA_open measurement for small-D comparisons.
+# Both measure the raw CTM network; neither performs an optimization update.
+energy_method = :reduced
 
 # Park inactive CTMRG tensors in CPU RAM; contractions and SVD stay on ctm_device.
 # false/false uses the copied CTMRG's original all-device storage path.
 ctm_offload_double_layer = true     # CPU AA/rotations; one GPU direction at a time
-ctm_offload_intermediates = true    # CPU MM/RM while waiting for their next use
+ctm_offload_intermediates = true    # park only large MM/RM while waiting
+ctm_intermediate_min_mib = 2048     # smaller tensors stay on GPU; 0 parks all sizes
 ctm_print_memory = true             # per-direction/projector memory diagnostics
 
 initial_state_kind = :custom_matching
@@ -35,7 +41,7 @@ initial_state_file = nothing
 cell_Lx = 2
 cell_Ly = 2
 random_seed = 666
-n_cpu = 4
+n_cpu = 8
 
 Dmax = 4
 multiplet_tolerance = 1.0e-5
@@ -75,7 +81,7 @@ if any(device -> lowercase(strip(device)) != "cpu", device_specs)
 end
 
 const GPU_RUN_DIR = @__DIR__
-const SU2_AD_DIR = normpath(joinpath(GPU_RUN_DIR, "..", "..", "..", ".."))
+const SU2_AD_DIR = normpath(joinpath(GPU_RUN_DIR, "..", "..", ".."))
 
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "square_spin_operator.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "iPEPS_ansatz.jl"))
@@ -94,7 +100,10 @@ include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_gpu_u
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_gpu_tensor_builders.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "CTMRG_unitcell_offload.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_full_update_als.jl"))
+include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_bond_energy_reduced.jl"))
 include(joinpath(SU2_AD_DIR, "src", "bosonic", "square", "gpu", "square_J1_full_update_gpu.jl"))
+
+_square_J1_validate_energy_method(energy_method)
 
 BLAS.set_num_threads(n_cpu)
 Random.seed!(random_seed)
@@ -147,6 +156,7 @@ ctm_setting.grad_checkpoint = false
 ctm_memory = SquareJ1CTMMemorySettings(
     offload_double_layer=ctm_offload_double_layer,
     offload_intermediates=ctm_offload_intermediates,
+    intermediate_min_bytes=ctm_intermediate_min_mib * 1024^2,
     verbose=ctm_print_memory,
 )
 
@@ -175,9 +185,11 @@ println("Starting GPU bosonic square-lattice J1 Full Update")
 println("  run_device=$run_device")
 println("  ctm_device=$ctm_device")
 println("  ctm_offload_double_layer=$ctm_offload_double_layer, ctm_offload_intermediates=$ctm_offload_intermediates")
+println("  ctm_intermediate_min_mib=$ctm_intermediate_min_mib")
 println("  ctm_print_memory=$ctm_print_memory")
 println("  full_update_device=$full_update_device")
 println("  observable_device=$observable_device")
+println("  energy_method=$energy_method")
 println("  initial_state=$source_description")
 if isnothing(initial_state_file) && initial_state_kind === :custom_matching
     println("  custom_matching=$custom_matching")
@@ -214,6 +226,7 @@ function save_and_measure_gpu(A_set_now, environment, step, reports)
         device=observable_device,
         low_memory=true,
         debug_memory=print_gpu_memory,
+        energy_method,
     )
     println(
         "E= $(energies.energy_per_site), " *
@@ -245,8 +258,10 @@ function save_and_measure_gpu(A_set_now, environment, step, reports)
             ctm_device,
             full_update_device,
             observable_device,
+            energy_method,
             ctm_offload_double_layer,
             ctm_offload_intermediates,
+            ctm_intermediate_min_mib,
         )
         elapsed = Dates.canonicalize(Dates.CompoundPeriod(now() - starting_time))
         println("Saved lower-energy CPU checkpoint; time consumed: $elapsed")

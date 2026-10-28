@@ -8,6 +8,7 @@ are retained. CPU parking is for non-differentiated Full Update only.
 Base.@kwdef struct SquareJ1CTMMemorySettings
     offload_double_layer::Bool = false
     offload_intermediates::Bool = false
+    intermediate_min_bytes::Int = 256 * 1024^2
     verbose::Bool = false
 end
 
@@ -19,6 +20,31 @@ _square_ctm_reclaim(enabled::Bool) =
 
 _square_ctm_data_bytes(tensor) =
     sum(length(b) for (_, b) in blocks(tensor)) * sizeof(TensorKit.scalartype(tensor))
+
+# Size is measured from symmetry blocks, not dense leg dimensions. Small
+# intermediates stay on the compute device; zero requests parking at any size.
+_square_ctm_should_park(tensor, enabled::Bool, min_bytes::Int) =
+    enabled && _square_ctm_data_bytes(tensor) >= min_bytes
+
+# Unlike a direction/stage boundary reclaim, this collects dead wrappers without
+# a full GC or evicting reusable CUDA pool allocations. Call only after dropping
+# the caller's references to large tensors, never for each small intermediate.
+function _square_ctm_collect_large(enabled::Bool)
+    enabled || return nothing
+    if SQUARE_J1_DEVICE_SPEC[] != "cpu"
+        square_J1_use_selected_device!()
+        CUDA.synchronize()
+    end
+    GC.gc(false)
+    return nothing
+end
+
+# A saved factor may already be on GPU when it is below the parking threshold.
+# Avoid asking Adapt to recreate or copy a tensor that is already on this device.
+function _square_ctm_restore(storage, tensor)
+    square_J1_storage_family(TensorKit.storagetype(tensor)) === storage && return tensor
+    return square_J1_to_storage(storage, tensor)
+end
 
 function _square_ctm_log_tensor(label, tensor)
     println(label, " data=", _square_ctm_data_bytes(tensor) / 2.0^30,
@@ -43,35 +69,37 @@ end
 # Do not call rotate_AA on GPU: that keeps four large outputs simultaneously.
 function _square_ctm_rotations_host(AA_host, storage)
     nx, ny = length(AA_host), length(AA_host[1])
-    cells = map(1:4) do direction
-        cell = initial_tuple_cell(nx, ny)
-        for cx in 1:nx, cy in 1:ny
-            source = square_J1_to_storage(storage, AA_host[cx][cy])
+    cells = Any[initial_tuple_cell(nx, ny) for _ in 1:4]
+    for cx in 1:nx, cy in 1:ny
+        # Upload the source only once, retaining at most one rotated output.
+        source = square_J1_to_storage(storage, AA_host[cx][cy])
+        for direction in 1:4
             rotated = permute(source,
                 (mod1(2-direction,4), mod1(3-direction,4),
                  mod1(4-direction,4), mod1(1-direction,4)), ())
-            cell = fill_tuple(cell, square_J1_to_cpu(rotated), cx, cy)
-            source = nothing
+            cells[direction] = fill_tuple(cells[direction], square_J1_to_cpu(rotated), cx, cy)
             rotated = nothing
-            _square_ctm_reclaim(true)
+            _square_ctm_collect_large(true)
         end
-        cell
+        source = nothing
+        _square_ctm_collect_large(true)
     end
+    _square_ctm_reclaim(true)
     return (T1=cells[1], T2=cells[2], T3=cells[3], T4=cells[4])
 end
 
-# Restore only the two factors needed for this product. Local references die
-# when this helper returns; the caller then releases the CPU copies as well.
-function _square_ctm_half_product(half_host, reflected_host, storage; upper::Bool)
-    half = square_J1_to_storage(storage, half_host)
+# Inputs can be parked CPU tensors or retained small GPU tensors. Restore only
+# the parked factors; leave the contraction and permutation order unchanged.
+function _square_ctm_half_product(half_saved, reflected_saved, storage; upper::Bool)
+    restored = square_J1_storage_family(TensorKit.storagetype(half_saved)) !== storage ||
+               square_J1_storage_family(TensorKit.storagetype(reflected_saved)) !== storage
+    half = _square_ctm_restore(storage, half_saved)
     half = permute(half, (1,2), (3,4))
-    _square_ctm_reclaim(true)
-    reflected = square_J1_to_storage(storage, reflected_host)
+    reflected = _square_ctm_restore(storage, reflected_saved)
     reflected = permute(reflected, (1,2), (3,4))
-    _square_ctm_reclaim(true)
+    _square_ctm_collect_large(restored)
     product = half * reflected
     half = reflected = nothing
-    _square_ctm_reclaim(true)
     return upper ? permute(product, (3,4), (1,2)) : product
 end
 
@@ -188,6 +216,8 @@ end
 
 function square_J1_CTMRG_cell_offload(A_cell::Tuple,chi,init,CTM0, ctm_setting;
     memory::SquareJ1CTMMemorySettings=SquareJ1CTMMemorySettings())
+    memory.intermediate_min_bytes >= 0 || throw(ArgumentError(
+        "intermediate_min_bytes must be nonnegative"))
     compute_storage = square_J1_storage_family(TensorKit.storagetype(A_cell[1][1]))
     offload_AA = memory.offload_double_layer && compute_storage !== Array
     offload_work = memory.offload_intermediates && compute_storage !== Array
@@ -260,7 +290,8 @@ function square_J1_CTMRG_cell_offload(A_cell::Tuple,chi,init,CTM0, ctm_setting;
                        for x in 1:Lx, y in 1:Ly)
         println("CTMRG closed AA data: ", aa_bytes / 2.0^30,
                 " GiB; AA on CPU=", offload_AA,
-                ", park projector intermediates=", offload_work)
+                ", park projector intermediates=", offload_work,
+                ", minimum parked size=", memory.intermediate_min_bytes / 2.0^20, " MiB")
         square_J1_print_device_memory("CTMRG after building AA:")
     end
 
@@ -375,7 +406,9 @@ function square_J1_CTMRG_cell_offload(A_cell::Tuple,chi,init,CTM0, ctm_setting;
                 Cset_cell,Tset_cell= Zygote.checkpointed(CTM_ite_cell, Cset_cell, Tset_cell, AA_direction, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer);
             else
                 Cset_cell,Tset_cell=CTM_ite_cell(Cset_cell, Tset_cell, AA_direction, chi, direction,CTM_trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer;
-                    offload_intermediates=offload_work, compute_storage, memory_info=memory.verbose);
+                    offload_intermediates=offload_work,
+                    intermediate_min_bytes=memory.intermediate_min_bytes,
+                    compute_storage, memory_info=memory.verbose);
             end
             AA_direction = nothing
             _square_ctm_reclaim(offload_AA || offload_work)
@@ -481,6 +514,7 @@ end
 
 function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, AA_cell, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer;
     offload_intermediates::Bool=false,
+    intermediate_min_bytes::Int=256 * 1024^2,
     compute_storage=square_J1_storage_family(TensorKit.storagetype(AA_cell[1][1])),
     memory_info::Bool=false)
     global Lx,Ly
@@ -520,8 +554,9 @@ function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, 
             Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,1,direction);
             T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
             @tensor MMup[:]:=C1[1,2]*T1[2,3,-3]*T4[-1,4,1]*AA[4,-2,-4,3];
-            MMup = _square_ctm_park(MMup, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMup = _square_ctm_should_park(MMup, offload_intermediates, intermediate_min_bytes)
+            MMup = _square_ctm_park(MMup, park_MMup)
+            _square_ctm_collect_large(park_MMup)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup:", MMup)
             end
@@ -535,8 +570,9 @@ function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, 
             Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
             T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
             @tensor MMlow[:]:=T4[1,3,-1]*AA[3,4,-4,-2]*C4[2,1]*T3[-3,4,2];
-            MMlow = _square_ctm_park(MMlow, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMlow = _square_ctm_should_park(MMlow, offload_intermediates, intermediate_min_bytes)
+            MMlow = _square_ctm_park(MMlow, park_MMlow)
+            _square_ctm_collect_large(park_MMlow)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow:", MMlow)
             end
@@ -552,8 +588,9 @@ function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, 
             Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,1,direction);
             T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
             @tensor MMup_reflect[:]:=T1[-1,3,1]* C2[1,2]* AA[-2,-4,4,3]* T2[2,4,-3];
-            MMup_reflect = _square_ctm_park(MMup_reflect, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMup_reflect = _square_ctm_should_park(MMup_reflect, offload_intermediates, intermediate_min_bytes)
+            MMup_reflect = _square_ctm_park(MMup_reflect, park_MMup_reflect)
+            _square_ctm_collect_large(park_MMup_reflect)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup_reflect:", MMup_reflect)
             end
@@ -568,8 +605,9 @@ function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, 
             C3=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
             @tensor MMlow_reflect[:]:=T2[-4,-3,2]*T3[1,-2,-1]*C3[2,1];
             @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
-            MMlow_reflect = _square_ctm_park(MMlow_reflect, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMlow_reflect = _square_ctm_should_park(MMlow_reflect, offload_intermediates, intermediate_min_bytes)
+            MMlow_reflect = _square_ctm_park(MMlow_reflect, park_MMlow_reflect)
+            _square_ctm_collect_large(park_MMlow_reflect)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow_reflect:", MMlow_reflect)
             end
@@ -577,25 +615,30 @@ function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, 
             if offload_intermediates
                 RMup = _square_ctm_half_product(MMup, MMup_reflect, compute_storage; upper=true)
                 MMup = MMup_reflect = nothing
-                RMup = square_J1_to_cpu(RMup)
-                _square_ctm_reclaim(true)
+                # Normalize before making the reusable CPU copy. Small factors
+                # remain on GPU; large RMup is parked while RMlow is built.
+                RMup_norm = norm(RMup)
+                RMup = RMup / RMup_norm
+                park_RMup = _square_ctm_should_park(RMup, true, intermediate_min_bytes)
+                RMup_saved = _square_ctm_park(RMup, park_RMup)
+                RMup = nothing
+                _square_ctm_collect_large(park_RMup)
 
                 RMlow = _square_ctm_half_product(MMlow, MMlow_reflect, compute_storage; upper=false)
                 MMlow = MMlow_reflect = nothing
                 RMlow_norm = norm(RMlow)
                 RMlow = RMlow / RMlow_norm
-                RMlow = square_J1_to_cpu(RMlow)
-                _square_ctm_reclaim(true)
+                park_RMlow = _square_ctm_should_park(RMlow, true, intermediate_min_bytes)
 
-                RMup = square_J1_to_storage(compute_storage, RMup)
-                RMup_norm = norm(RMup)
-                RMup = RMup / RMup_norm
-                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                # RMlow is used immediately: no CPU round trip before this product.
+                RMup = _square_ctm_restore(compute_storage, RMup_saved)
                 M = RMup * RMlow
-                # Neither RM is needed during the SVD of M.
-                RMup = square_J1_to_cpu(RMup)
-                RMlow = square_J1_to_cpu(RMlow)
-                _square_ctm_reclaim(true)
+                RMup = nothing
+                # RMup_saved already contains the normalized factor. Do not
+                # download it again. Park RMlow only once, for the SVD interval.
+                RMlow_saved = _square_ctm_park(RMlow, park_RMlow)
+                RMlow = nothing
+                _square_ctm_collect_large(park_RMup || park_RMlow)
             else
                 MMup=permute(MMup,(1,2,),(3,4,))
 
@@ -642,10 +685,11 @@ function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, 
 
             # uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
             global multiplet_tol
+            large_svd_input = _square_ctm_should_park(M, offload_intermediates, intermediate_min_bytes)
             uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra; multiplet_tol=multiplet_tol));#for new version Pkgs, tsvd backward is much better
             if offload_intermediates
                 M = nothing
-                _square_ctm_reclaim(true)
+                _square_ctm_collect_large(large_svd_input)
             end
 
             sM_norm=norm(sM);
@@ -654,14 +698,16 @@ function square_J1_CTM_ite_cell_continuous_update_offload(Cset_cell, Tset_cell, 
             sM_inv_sqrt=sdiag_inv_sqrt(sM);
 
             if offload_intermediates
-                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                RMlow = _square_ctm_restore(compute_storage, RMlow_saved)
+                RMlow_saved = nothing
                 PM_inv=RMlow*vM'*sM_inv_sqrt;
                 RMlow = vM = nothing
-                _square_ctm_reclaim(true)
-                RMup = square_J1_to_storage(compute_storage, RMup)
+                _square_ctm_collect_large(park_RMlow)
+                RMup = _square_ctm_restore(compute_storage, RMup_saved)
+                RMup_saved = nothing
                 PM=sM_inv_sqrt*uM'*RMup;
                 RMup = uM = sM = sM_inv_sqrt = nothing
-                _square_ctm_reclaim(true)
+                _square_ctm_collect_large(park_RMup)
             else
                 PM_inv=RMlow*vM'*sM_inv_sqrt;
                 PM=sM_inv_sqrt*uM'*RMup;
@@ -748,6 +794,7 @@ end
 
 function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA_cell, chi, direction, trun_tol,CTM_ite_info,projector_strategy,CTM_trun_svd,svd_lanczos_tol,construct_double_layer;
     offload_intermediates::Bool=false,
+    intermediate_min_bytes::Int=256 * 1024^2,
     compute_storage=square_J1_storage_family(TensorKit.storagetype(AA_cell[1][1])),
     memory_info::Bool=false)
     global Lx,Ly
@@ -786,8 +833,9 @@ function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA
             Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],0,1,direction);
             T4=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-1,4));
             @tensor MMup[:]:=C1[1,2]*T1[2,3,-3]*T4[-1,4,1]*AA[4,-2,-4,3];
-            MMup = _square_ctm_park(MMup, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMup = _square_ctm_should_park(MMup, offload_intermediates, intermediate_min_bytes)
+            MMup = _square_ctm_park(MMup, park_MMup)
+            _square_ctm_collect_large(park_MMup)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup:", MMup)
             end
@@ -801,8 +849,9 @@ function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA
             Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],1,3,direction);
             T3=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
             @tensor MMlow[:]:=T4[1,3,-1]*AA[3,4,-4,-2]*C4[2,1]*T3[-3,4,2];
-            MMlow = _square_ctm_park(MMlow, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMlow = _square_ctm_should_park(MMlow, offload_intermediates, intermediate_min_bytes)
+            MMlow = _square_ctm_park(MMlow, park_MMlow)
+            _square_ctm_collect_large(park_MMlow)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow:", MMlow)
             end
@@ -818,8 +867,9 @@ function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA
             Pos=square_J1_convert_cell_posit_offload(coord[1],coord[2],3,1,direction);
             T2=get_Tset(Tset_cell[Pos[1]][Pos[2]], mod1(direction+1,4));
             @tensor MMup_reflect[:]:=T1[-1,3,1]* C2[1,2]* AA[-2,-4,4,3]* T2[2,4,-3];
-            MMup_reflect = _square_ctm_park(MMup_reflect, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMup_reflect = _square_ctm_should_park(MMup_reflect, offload_intermediates, intermediate_min_bytes)
+            MMup_reflect = _square_ctm_park(MMup_reflect, park_MMup_reflect)
+            _square_ctm_collect_large(park_MMup_reflect)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMup_reflect:", MMup_reflect)
             end
@@ -834,8 +884,9 @@ function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA
             C3=get_Cset(Cset_cell[Pos[1]][Pos[2]], mod1(direction-2,4));
             @tensor MMlow_reflect[:]:=T2[-4,-3,2]*T3[1,-2,-1]*C3[2,1];
             @tensor MMlow_reflect[:]:=MMlow_reflect[-1,1,2,-3]*AA[-2,1,2,-4];
-            MMlow_reflect = _square_ctm_park(MMlow_reflect, offload_intermediates)
-            _square_ctm_reclaim(offload_intermediates)
+            park_MMlow_reflect = _square_ctm_should_park(MMlow_reflect, offload_intermediates, intermediate_min_bytes)
+            MMlow_reflect = _square_ctm_park(MMlow_reflect, park_MMlow_reflect)
+            _square_ctm_collect_large(park_MMlow_reflect)
             if memory_info
                 _square_ctm_log_tensor("CTMRG direction $direction ($cx,$cy) MMlow_reflect:", MMlow_reflect)
             end
@@ -843,25 +894,30 @@ function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA
             if offload_intermediates
                 RMup = _square_ctm_half_product(MMup, MMup_reflect, compute_storage; upper=true)
                 MMup = MMup_reflect = nothing
-                RMup = square_J1_to_cpu(RMup)
-                _square_ctm_reclaim(true)
+                # Normalize before making the reusable CPU copy. Small factors
+                # remain on GPU; large RMup is parked while RMlow is built.
+                RMup_norm = norm(RMup)
+                RMup = RMup / RMup_norm
+                park_RMup = _square_ctm_should_park(RMup, true, intermediate_min_bytes)
+                RMup_saved = _square_ctm_park(RMup, park_RMup)
+                RMup = nothing
+                _square_ctm_collect_large(park_RMup)
 
                 RMlow = _square_ctm_half_product(MMlow, MMlow_reflect, compute_storage; upper=false)
                 MMlow = MMlow_reflect = nothing
                 RMlow_norm = norm(RMlow)
                 RMlow = RMlow / RMlow_norm
-                RMlow = square_J1_to_cpu(RMlow)
-                _square_ctm_reclaim(true)
+                park_RMlow = _square_ctm_should_park(RMlow, true, intermediate_min_bytes)
 
-                RMup = square_J1_to_storage(compute_storage, RMup)
-                RMup_norm = norm(RMup)
-                RMup = RMup / RMup_norm
-                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                # RMlow is used immediately: no CPU round trip before this product.
+                RMup = _square_ctm_restore(compute_storage, RMup_saved)
                 M = RMup * RMlow
-                # Neither RM is needed during the SVD of M.
-                RMup = square_J1_to_cpu(RMup)
-                RMlow = square_J1_to_cpu(RMlow)
-                _square_ctm_reclaim(true)
+                RMup = nothing
+                # RMup_saved already contains the normalized factor. Do not
+                # download it again. Park RMlow only once, for the SVD interval.
+                RMlow_saved = _square_ctm_park(RMlow, park_RMlow)
+                RMlow = nothing
+                _square_ctm_collect_large(park_RMup || park_RMlow)
             else
                 MMup=permute(MMup,(1,2,),(3,4,))
 
@@ -902,10 +958,11 @@ function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA
 
             #uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra));#for new version Pkgs, tsvd backward is much better
             global multiplet_tol
+            large_svd_input = _square_ctm_should_park(M, offload_intermediates, intermediate_min_bytes)
             uM,sM,vM = tsvd(M; trunc=truncdim(chi+chi_extra; multiplet_tol=multiplet_tol));#for new version Pkgs, tsvd backward is much better
             if offload_intermediates
                 M = nothing
-                _square_ctm_reclaim(true)
+                _square_ctm_collect_large(large_svd_input)
             end
 
             sM_norm=norm(sM);
@@ -914,14 +971,16 @@ function square_J1_CTM_ite_cell_together_update_offload(Cset_cell, Tset_cell, AA
             sM_inv_sqrt=sdiag_inv_sqrt(sM);
 
             if offload_intermediates
-                RMlow = square_J1_to_storage(compute_storage, RMlow)
+                RMlow = _square_ctm_restore(compute_storage, RMlow_saved)
+                RMlow_saved = nothing
                 PM_inv=RMlow*vM'*sM_inv_sqrt;
                 RMlow = vM = nothing
-                _square_ctm_reclaim(true)
-                RMup = square_J1_to_storage(compute_storage, RMup)
+                _square_ctm_collect_large(park_RMlow)
+                RMup = _square_ctm_restore(compute_storage, RMup_saved)
+                RMup_saved = nothing
                 PM=sM_inv_sqrt*uM'*RMup;
                 RMup = uM = sM = sM_inv_sqrt = nothing
-                _square_ctm_reclaim(true)
+                _square_ctm_collect_large(park_RMup)
             else
                 PM_inv=RMlow*vM'*sM_inv_sqrt;
                 PM=sM_inv_sqrt*uM'*RMup;

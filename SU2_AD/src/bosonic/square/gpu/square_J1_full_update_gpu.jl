@@ -18,7 +18,13 @@ _square_J1_fu_environment_view(environment) = (
     U_U=environment.U_U,
 )
 
-_square_J1_energy_environment_view(environment) = (CTM=environment.CTM,)
+function _square_J1_energy_environment_view(environment, energy_method::Symbol)
+    _square_J1_validate_energy_method(energy_method)
+    # Reduced measurement needs the CTM fusion basis, but never the closed AA
+    # cell. Legacy AA_open constructs its own fusion maps and needs CTM only.
+    return energy_method === :reduced ? _square_J1_fu_environment_view(environment) :
+        (CTM=environment.CTM,)
+end
 
 function square_J1_gpu_environment_cell(
     A_set::AbstractMatrix,
@@ -83,10 +89,12 @@ function square_J1_gpu_energy_cell(
     device::AbstractString="cuda:0",
     low_memory::Bool=true,
     debug_memory::Bool=false,
+    energy_method::Symbol=:legacy,
 )
+    _square_J1_validate_energy_method(energy_method)
     A_run = square_J1_to_device(device, A_set)
     environment_run = square_J1_to_device(
-        device, _square_J1_energy_environment_view(environment),
+        device, _square_J1_energy_environment_view(environment, energy_method),
     )
     # Clear cached workspaces left by the preceding Full Update/CTMRG before
     # the first observable contraction.  Live A/CTM tensors remain valid.
@@ -95,7 +103,7 @@ function square_J1_gpu_energy_cell(
         "Observable baseline after A/CTM transfer:",
     )
     energies = square_J1_energy_cell_device(
-        A_run, environment_run; J1, low_memory, debug_memory,
+        A_run, environment_run; J1, low_memory, debug_memory, energy_method,
     )
     energies = square_J1_to_cpu(energies)
     A_run = nothing
@@ -190,7 +198,9 @@ function square_J1_energy_cell_device(
     J1::Real=1,
     low_memory::Bool=true,
     debug_memory::Bool=false,
+    energy_method::Symbol=:legacy,
 )
+    _square_J1_validate_energy_method(energy_method)
     cell_Lx, cell_Ly = _square_fu_validate_cell(A_set)
     H_Heisenberg, _, _, _, _ = Hamiltonians(space(A_set[1, 1], 1))
     H = permute(H_Heisenberg, (1, 2), (3, 4))
@@ -205,25 +215,33 @@ function square_J1_energy_cell_device(
                 CartesianIndex(cx, mod1(cy + 1, cell_Ly))
             bond = SquareJ1CellBond(direction, site1, site2)
             A1, A2 = A_set[site1], A_set[site2]
-            rho = if low_memory
-                _square_J1_two_site_density_cell_device_low_memory(
-                    environment.CTM, A1, A2, bond, cell_Lx, cell_Ly;
-                    debug_memory,
+            energy = if energy_method === :reduced
+                # Only a scalar escapes this non-inlined bond measurement.
+                # low_memory controls the legacy path; reduced is always staged.
+                square_J1_bond_energy_reduced(
+                    environment, A1, A2, bond, cell_Lx, cell_Ly, H; J1, debug_memory,
                 )
             else
-                _square_fu_two_site_density_cell(
-                    environment.CTM, A1, A1, A2, A2, bond, cell_Lx, cell_Ly,
-                )
-            end
-            norm_rho = real(@tensor rho[1, 2, 1, 2])
-            norm_rho != 0 || throw(ArgumentError(
-                "zero norm for bond $direction at ($cx,$cy)",
-            ))
-            energy_numerator = @tensor rho[1, 2, 3, 4] * H[1, 2, 3, 4]
-            energy = J1 * real(energy_numerator) / norm_rho
-            direction === :x ? (Ex[cx, cy] = energy) : (Ey[cx, cy] = energy)
-            if low_memory
+                rho = if low_memory
+                    _square_J1_two_site_density_cell_device_low_memory(
+                        environment.CTM, A1, A2, bond, cell_Lx, cell_Ly; debug_memory,
+                    )
+                else
+                    _square_fu_two_site_density_cell(
+                        environment.CTM, A1, A1, A2, A2, bond, cell_Lx, cell_Ly,
+                    )
+                end
+                norm_rho = real(@tensor rho[1, 2, 1, 2])
+                norm_rho != 0 || throw(ArgumentError(
+                    "zero norm for bond $direction at ($cx,$cy)",
+                ))
+                energy_numerator = @tensor rho[1, 2, 3, 4] * H[1, 2, 3, 4]
+                value = J1 * real(energy_numerator) / norm_rho
                 rho = nothing
+                value
+            end
+            direction === :x ? (Ex[cx, cy] = energy) : (Ey[cx, cy] = energy)
+            if low_memory || energy_method === :reduced
                 square_J1_reclaim_device_memory!()
                 debug_memory && square_J1_print_device_memory(
                     "  $direction bond ($cx,$cy) after energy/reclaim:",

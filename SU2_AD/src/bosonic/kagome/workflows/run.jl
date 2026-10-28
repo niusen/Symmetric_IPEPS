@@ -1,8 +1,7 @@
 # Kagome SU(2)/U(1) SU runner; choose --symmetry su2|u1.
 using TensorKit, Random, LinearAlgebra, Dates, Printf, TOML
 if !isdefined(@__MODULE__,:KagomeSU2Cells)
-    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
-                     "simple_update_cells.jl"))
+    include(joinpath(@__DIR__,"..","simple_update_cells.jl"))
 end
 using .KagomeSU2Cells
 include(joinpath(@__DIR__,"run_u1_options.jl"))
@@ -71,7 +70,7 @@ function main(args=ARGS;schedule_override=nothing)
     schedule = !isnothing(schedule_override) ? schedule_override : smoke ? [(dt=.001,tau=.001),(dt=.0005,tau=.0005)] :
         [(dt=.03,tau=40.),(dt=.01,tau=20.),(dt=.003,tau=5.),
          (dt=.001,tau=2.),(dt=.0005,tau=1.)]
-    out = isempty(opts["out"]) ? joinpath(@__DIR__,"results",
+    out = isempty(opts["out"]) ? joinpath(@__DIR__,"..","..","..","..","Kagome","simple_update","multicell","results",
         "$(opts["cell"])_D$(Dmax)_seed$(seed)_$(Dates.format(now(),"yyyymmdd_HHMMSS"))") :
         abspath(opts["out"])
     ispath(out) && error("output already exists; use a NEW --out directory (also for --resume)")

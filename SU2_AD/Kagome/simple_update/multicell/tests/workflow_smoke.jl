@@ -1,6 +1,6 @@
 # Small end-to-end launcher/resume checks; no production evolution or CTMRG.
 using Test
-include(joinpath(@__DIR__,"run.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","run.jl"))
 include(joinpath(@__DIR__,"compatibility_probe.jl"))
 
 length(ARGS) == 1 || error("provide a NEW validation output directory")

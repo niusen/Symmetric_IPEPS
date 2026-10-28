@@ -2,12 +2,11 @@
 # and optional block U1 / dense factorized CTMRG measurement.
 using TensorKit, LinearAlgebra, JLD2, TOML, SHA
 if !isdefined(@__MODULE__,:KagomeChargedSU2)
-    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
-                     "simple_update_charged_cell.jl"))
+    include(joinpath(@__DIR__,"..","simple_update_charged_cell.jl"))
 end
 using .KagomeChargedSU2
 if !isdefined(@__MODULE__,:KagomeU1Cells)
-    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","simple_update_u1_cells.jl"))
+    include(joinpath(@__DIR__,"..","simple_update_u1_cells.jl"))
 end
 using .KagomeU1Cells
 
@@ -169,7 +168,7 @@ function main_dense(args=ARGS)
         i+=1
     end
     if !isdefined(@__MODULE__,:KagomeNativeMeasurement)
-        include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","native_measurement","KagomeNativeMeasurement.jl"))
+        include(joinpath(@__DIR__,"..","native_measurement","KagomeNativeMeasurement.jl"))
     end
     cfg=(input=input,out=out,representation=Symbol(opts["representation"]),
         component=parse(Int,opts["component"]),h=parse(Float64,opts["h"]),threads=parse(Int,opts["threads"]),

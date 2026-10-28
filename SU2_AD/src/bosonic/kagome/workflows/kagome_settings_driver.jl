@@ -1,12 +1,12 @@
 # Function entry points for run_kagome_settings.jl; numerical kernels are unchanged.
 if !isdefined(@__MODULE__, :export_and_verify)
-    include(joinpath(@__DIR__, "verify_charged_dense.jl"))
+    include(joinpath(@__DIR__,"verify_charged_dense.jl"))
 end
 if !isdefined(@__MODULE__, :charged_trial)
-    include(joinpath(@__DIR__, "run_charged_trial.jl"))
+    include(joinpath(@__DIR__,"run_charged_trial.jl"))
 end
 if !isdefined(@__MODULE__, :run_u1_options)
-    include(joinpath(@__DIR__, "run.jl"))
+    include(joinpath(@__DIR__,"run.jl"))
 end
 
 function settings_schedule(schedule)
@@ -38,7 +38,7 @@ function run_kagome_settings(task; su,charged,conversion)
         isempty(c.input) && error("fill conversion_options.input in run_kagome_settings.jl")
         isfile(c.input) || error("conversion checkpoint does not exist: $(c.input)")
         if !isdefined(@__MODULE__,:KagomeNativeMeasurement)
-            include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","native_measurement","KagomeNativeMeasurement.jl"))
+            include(joinpath(@__DIR__,"..","native_measurement","KagomeNativeMeasurement.jl"))
         end
         return Base.invokelatest(KagomeNativeMeasurement.run_native_conversion,c)
     end

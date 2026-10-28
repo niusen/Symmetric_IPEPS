@@ -3,8 +3,7 @@
 using TensorKit, LinearAlgebra, Random, TOML
 BLAS.set_num_threads(10)
 if !isdefined(@__MODULE__,:KagomeSU2Cells)
-    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
-                     "simple_update_cells.jl"))
+    include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","simple_update_cells.jl"))
 end
 using .KagomeSU2Cells
 

@@ -1,8 +1,8 @@
 using Test, TensorKit, LinearAlgebra, Random, TOML
 BLAS.set_num_threads(10)
-include(joinpath(@__DIR__,"verify_charged_dense.jl"))
-include(joinpath(@__DIR__,"run_charged_trial.jl"))
-include(joinpath(@__DIR__,"run.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","verify_charged_dense.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","run_charged_trial.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","run.jl"))
 const US=KagomeU1Cells
 const CS1=KagomeChargedSU2
 

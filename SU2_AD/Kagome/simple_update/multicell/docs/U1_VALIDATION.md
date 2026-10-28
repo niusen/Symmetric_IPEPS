@@ -8,7 +8,7 @@ No production field scan or long-time SU calculation was run locally.
 
 ## Julia settings entry
 
-The code-configured `run_kagome_settings.jl` entry was also checked on both
+The code-configured `examples/run_kagome_settings.jl` entry was also checked on both
 TensorKit versions: **8 additional integration checks passed per version**.
 The default file was executed with only its output root redirected to a
 temporary directory. It performed the six-step U(1) charged trial, followed
@@ -20,7 +20,7 @@ schedule was executed, and no Python source was changed for this entry.
 
 ## Exact conversion and SU tests
 
-`test_u1_cells.jl`: **167 checks passed in each TensorKit version**:
+`tests/test_u1_cells.jl`: **167 checks passed in each TensorKit version**:
 
 | Group | Checks per version |
 |---|---:|
@@ -29,7 +29,7 @@ schedule was executed, and no Python source was changed for this entry.
 | Default U(1) export, explicit dense fallback, U(1) re-export | 7 |
 | Both cell geometries, charged U(1) and existing SU(2) trial entry points | 9 |
 
-`test_u1_initialization.jl`: **51 additional checks passed in each version**.
+`tests/test_u1_initialization.jl`: **51 additional checks passed in each version**.
 It exercises charged SU(2) and U(1) `--init` paths, including expansion
 from three tied sqrt3 PESS to nine independent PESS in a 3x3 cell. Starting
 from the same copied state, two full SU steps in the two geometries agree

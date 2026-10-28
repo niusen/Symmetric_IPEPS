@@ -1,6 +1,6 @@
 using Test, TensorKit, LinearAlgebra, Random, JLD2
 BLAS.set_num_threads(10)
-include(joinpath(@__DIR__,"run.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","run.jl"))
 const InitSU=KagomeU1Cells.SU2
 const InitBS=KagomeU1Cells.BS
 

@@ -1,6 +1,6 @@
 # Used by run.jl --symmetry u1 for neutral or charged rectangular / sqrt3 cells.
 if !isdefined(@__MODULE__,:KagomeU1Cells)
-    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","simple_update_u1_cells.jl"))
+    include(joinpath(@__DIR__,"..","simple_update_u1_cells.jl"))
 end
 using .KagomeU1Cells
 using JLD2
@@ -17,7 +17,7 @@ function run_u1_options(opts,smoke;schedule_override=nothing)
     isfinite(J1) && J1!=0 || error("J1 must be finite and nonzero")
     schedule=!isnothing(schedule_override) ? schedule_override : smoke ? [(dt=.001,tau=.001),(dt=.0005,tau=.0005)] :
         [(dt=.03,tau=40.),(dt=.01,tau=20.),(dt=.003,tau=5.),(dt=.001,tau=2.),(dt=.0005,tau=1.)]
-    out=isempty(opts["out"]) ? joinpath(@__DIR__,"results","u1_$(cell)_D$(Dmax)_$(Dates.format(now(),"yyyymmdd_HHMMSS"))") : abspath(opts["out"])
+    out=isempty(opts["out"]) ? joinpath(@__DIR__,"..","..","..","..","Kagome","simple_update","multicell","results","u1_$(cell)_D$(Dmax)_$(Dates.format(now(),"yyyymmdd_HHMMSS"))") : abspath(opts["out"])
     ispath(out) && error("use a NEW output directory")
     completed=0
     isempty(opts["init"]) || isempty(opts["resume"]) || error("choose --init or --resume")

@@ -5,7 +5,7 @@ new; the existing kagome SU and multicell source files were not changed.
 
 ## Correctness checks
 
-`test_charged_cell.jl` passes **86 / 86 checks** in each of TensorKit
+`tests/test_charged_cell.jl` passes **86 / 86 checks** in each of TensorKit
 **0.14.11** and **0.17.0**:
 
 | Check | Assertions per version |

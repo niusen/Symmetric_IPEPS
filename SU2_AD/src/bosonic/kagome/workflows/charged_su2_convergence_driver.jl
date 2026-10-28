@@ -1,7 +1,7 @@
 # Convergence driver for the charged SU2 prototype; original kernels are unchanged.
 using TensorKit, LinearAlgebra, Random, TOML, JLD2, Dates, Printf
 if !isdefined(@__MODULE__, :export_and_verify)
-    include(joinpath(@__DIR__, "verify_charged_dense.jl"))
+    include(joinpath(@__DIR__,"verify_charged_dense.jl"))
 end
 const ConvSU = KagomeChargedSU2
 const ConvBase = ConvSU.BaseSU

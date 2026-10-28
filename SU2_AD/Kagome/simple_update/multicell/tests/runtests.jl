@@ -1,12 +1,11 @@
 using Test, TensorKit, LinearAlgebra, Random
 BLAS.set_num_threads(10)
-include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
-                 "simple_update_cells.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","simple_update_cells.jl"))
 using .KagomeSU2Cells
 
 module OriginalAnsatz
 using TensorKit, ChainRulesCore
-const BOSONIC = normpath(joinpath(@__DIR__,"..","..","..","src","bosonic"))
+const BOSONIC = normpath(joinpath(@__DIR__,"..","..","..","..","src","bosonic"))
 include(joinpath(BOSONIC,"iPEPS_ansatz.jl"))
 include(joinpath(BOSONIC,"kagome_AD_SU2_cell.jl"))
 end

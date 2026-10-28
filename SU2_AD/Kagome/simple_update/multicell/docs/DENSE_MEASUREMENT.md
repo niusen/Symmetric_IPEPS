@@ -1,6 +1,6 @@
 # Pure Julia kagome conversion and measurement
 
-Use task=:convert in run_kagome_settings.jl. All choices are in the Julia
+Use task=:convert in examples/run_kagome_settings.jl. All choices are in the Julia
 configuration block. The default output representation is :u1; choose :dense
 for symmetry-free TensorKit ComplexSpace tensors and ordinary Julia arrays.
 Both representations use the same native factorized CTMRG and observables.
@@ -18,7 +18,7 @@ keeps a one-dimensional charged spectator; dense exports select the same
 component. Ordinary arrays use the original B(down,up,physical), Tu and Td
 axes without changing the state. No large-D finite-torus expansion is used.
 
-The independent function export_and_verify in verify_charged_dense.jl is
+The independent function export_and_verify in ../../../src/bosonic/kagome/workflows/verify_charged_dense.jl is
 retained for small finite nine-site checks (actualD<=6); its historical
 validation records are in DENSE_VALIDATION.md. Its optional CTMRG entry now
 uses the native Julia backend. For current server settings and tests see

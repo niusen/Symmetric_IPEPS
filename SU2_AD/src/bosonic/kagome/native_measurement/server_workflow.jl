@@ -189,7 +189,7 @@ function server_run_locked(cfg,plan)
         folder=joinpath(cfg.out,"D$(D)")
         input=server_evolve_D(cfg,D,input,folder,plan_id)
         server_measure_final(cfg,folder,D)
-        server_collect_outputs(cfg.out)
+        server_collect_outputs(cfg.out;reference_file=get(cfg,:dense_reference,joinpath(SERVER_RUN_DIR,"data","dense_reference_h038.csv")))
         ServerNative.CTM.square_J1_reclaim_device_memory!()
     end
     println("DONE: ",joinpath(cfg.out,"summary.csv"));flush(stdout)

@@ -6,7 +6,7 @@ using Dates
 # :simple_update 一般 SU 演化，支持 sqrt3xsqrt3 和 3x3。
 # :convert       转换已有态，默认输出 U1，并核对九自旋有限环面的观测量。
 task = :charged_trial
-output_root = joinpath(@__DIR__, "results")
+output_root = joinpath(@__DIR__,"..","results")
 run_name = Dates.format(now(), "yyyymmdd_HHMMSS_sss")
 
 # ---------- 小规模带磁化试算 ----------
@@ -65,6 +65,6 @@ conversion_options = (
 
 # ---------- 配置区结束，下面不需要修改 ----------
 if !isdefined(@__MODULE__, :run_kagome_settings)
-    include(joinpath(@__DIR__, "kagome_settings_driver.jl"))
+    include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","kagome_settings_driver.jl"))
 end
 run_kagome_settings(task; su=su_options, charged=charged_options, conversion=conversion_options)

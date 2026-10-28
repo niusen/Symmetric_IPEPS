@@ -1,7 +1,6 @@
 using Test, TensorKit, LinearAlgebra, Random
 BLAS.set_num_threads(10)
-include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
-                 "simple_update_charged_cell.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","simple_update_charged_cell.jl"))
 using .KagomeChargedSU2
 const CS = KagomeChargedSU2
 const BS = CS.BaseSU

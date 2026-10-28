@@ -125,7 +125,7 @@ of the projected infinite-system energy has not been performed here.
 
 ## Reproduction and saved data
 
-Edit **run_su2_D234.jl** directly. It contains the cases, parity matrix,
+Edit **examples/run_su2_D234.jl** directly. It contains the cases, parity matrix,
 seeds, field, thread count, schedule, stopping thresholds and hold settings.
 Set `continuation_input` to an existing after_hold/state.jld2 to use its
 separate continuation schedule. No command-line options are needed.

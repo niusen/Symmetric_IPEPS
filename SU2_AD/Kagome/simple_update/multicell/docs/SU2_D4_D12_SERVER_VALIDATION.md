@@ -6,7 +6,7 @@ is called by the implementation or its Julia tests.
 
 ## Conversion and physical observables
 
-`test_native_measurement.jl` passes **92/92** assertions with TensorKit
+`tests/test_native_measurement.jl` passes **92/92** assertions with TensorKit
 **0.14.11**, and **92/92** with TensorKit **0.17.0**. Checks include every
 local tensor/lambda coefficient in the U1-to-dense conversion, compatible
 truncated SVD/inverse projectors, both native CTMRG representations,
@@ -41,7 +41,7 @@ nonuniform virtual spaces, auxiliary projection and factorized environment.
 
 ## Server I/O and recovery
 
-`test_native_server_workflow.jl` passes **13/13** checks with TensorKit0.14.11.
+`tests/test_native_server_workflow.jl` passes **13/13** checks with TensorKit0.14.11.
 A D2 seed is allowed one SU step with capD4, followed by only two chi2 CTMRG
 iterations. It checks saved JLD2/TOML/JSON observables, aggregate CSV files,
 resume/skip with unchanged report hash, and rejection of changed settings.
@@ -70,3 +70,20 @@ GPU device/storage code reuses the repository's CUDA/cuTENSOR/Adapt helpers.
 Actual cuda:1 execution was not tested locally; GPU startup checks the
 selected device and never silently falls back to CPU. CPU and GPU projects
 are selected by the pure Julia bootstrap from the user's settings.
+
+## Directory and real-entry validation
+
+The launch wrappers were merged into run_su2_D4_D12_server.jl. Its CPU/GPU
+project selection uses an explicit if block, fixing the macro/ternary parse
+error in the retired server_bootstrap.jl. Tests, docs, examples and data now
+have separate subdirectories; workflow functions live under src.
+
+All19 affected Julia files parse successfully, the relocated workflow
+includes load, and the sh passes syntax and LF-line-ending checks.
+The actual sh --foreground entry was also run in an isolated directory named
+su2_multicell, matching the server layout. Only one SU step and two chi2 CTMRG
+iterations were requested. Environment activation, the relocated sources,
+checkpoint/measurement output, summary files and data/ reference loading all
+completed. The production configuration was unchanged: CPU,10 threads,
+D4..12, chi40,9000 steps per D and CTMRG cap50. The short unconverged result
+is a startup check, not a new optimized physical data point.

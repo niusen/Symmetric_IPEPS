@@ -3,7 +3,7 @@
 Run `sh run_su2_D4_D12_server.sh` in this directory. No Python or Slurm is
 called. All options are at the top of `run_su2_D4_D12_server.jl`.
 The sh starts one Julia process group and prints the log / stop command.
-Its Julia bootstrap selects the CPU or GPU project and installs missing Julia
+The Julia entry selects the CPU or GPU project and installs missing Julia
 dependencies on the first run. There is no supervisor or auto-restart loop.
 
 Defaults: sqrt3xsqrt3, h=0.38, Dmax=4..12, 10 CPU/BLAS threads, chi40,
@@ -38,7 +38,7 @@ construction, strip update and CUDA storage helpers. Specialized factor
 contractions retain separate rank3 Q/R double layers; the onsite rank4
 D^8 double layer is never constructed. Only the small corner spectra are
 copied to CPU for convergence diagnostics. TensorKit/CUDA/cuTENSOR/Adapt
-provide the GPU contraction/storage path; the bootstrap uses `gpu/Project.toml`.
+provide the GPU contraction/storage path; the bootstrap uses `environments/gpu/Project.toml`.
 If CUDA is unavailable, the job fails before SU instead of selecting CPU.
 
 The projected auxiliary spin1/2 becomes a one-dimensional charged U1 leg.
@@ -63,7 +63,7 @@ initial/stage/latest/final SU2 checkpoints, projected U1 transport, actual
 virtual spaces, converted measurement states, and full CTM observables in
 JLD2/TOML/JSON. Dense conversion also exposes ordinary Julia tensor arrays.
 
-Historical dense references in dense_reference_h038.csv are compared with
+Historical dense references in data/dense_reference_h038.csv are compared with
 E_SU2-E_dense, retaining their chi, magnetization, initialization/source and
 convergence flags. They are candidate comparisons, not an SU2 energy bound.
 Unconverged CTMRG results at the50-iteration cap remain explicitly flagged.
@@ -77,7 +77,7 @@ The printed `kill -TERM -- -PID` stops the entire Julia process group.
 
 ## Standalone conversion / measurement
 
-In run_kagome_settings.jl choose task=:convert and edit conversion_options:
+In examples/run_kagome_settings.jl choose task=:convert and edit conversion_options:
 input, representation=:u1 or :dense, component, h, device, chi, CTM cap/tolerance,
 and measure=true/false. This native infinite-system path has no D<=6 guard.
 The old export_and_verify function remains for independent small finite-torus

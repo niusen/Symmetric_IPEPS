@@ -1,7 +1,7 @@
 # One SU step and two CTMRG iterations; exercises native I/O and restart only.
 using Test
-include(joinpath(@__DIR__,"charged_su2_convergence_driver.jl"))
-include(joinpath(@__DIR__,"su2_server_driver.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","charged_su2_convergence_driver.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","native_measurement","server_workflow.jl"))
 BLAS.set_num_threads(2)
 @testset "pure Julia server: one-step I/O and resume" begin
     s=convergence_initial_state(2,:integer_singlet,1234)

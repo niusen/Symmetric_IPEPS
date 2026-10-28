@@ -13,7 +13,8 @@ const su2_server_settings = (
     truncation_tolerance = 1e-6,
     checkpoint_every = 250,           # 只存 SU 态，不运行 CTMRG/有限环面测量。
     progress_every = 100,
-    initial_state = joinpath(@__DIR__, "su2_D4_seed.toml"),
+    initial_state = joinpath(@__DIR__, "data", "su2_D4_seed.toml"),
+    dense_reference = joinpath(@__DIR__, "data", "dense_reference_h038.csv"),
     measurement_representation = :u1, # :u1（默认分块）或 :dense（无对称性 TensorMap）
     out = joinpath(@__DIR__, "results", "su2_D4_D12_h038_chi40_native"),
 )
@@ -22,9 +23,16 @@ const su2_server_settings = (
 # 每个 D 都完整做五阶段，round(tau/dt)=[1333,2000,1667,2000,2000]，共9000步。
 # 没有提前停止、额外 hold、随机扰动或中间 CTMRG；每个 D 最后测量一次。
 # D 是完整磁量子态数的上限，不是多重态数；实际表示和维数另存。
-if !isdefined(@__MODULE__, :KAGOME_SETTINGS_ONLY)
-    include(joinpath(@__DIR__, "su2_server_driver.jl"))
-    if abspath(PROGRAM_FILE) == @__FILE__
-        run_su2_server(su2_server_settings)
+# 直接运行本文件或由 sh 启动时执行；include 本文件只读取配置。
+if !isdefined(@__MODULE__, :KAGOME_SETTINGS_ONLY) && abspath(PROGRAM_FILE)==abspath(@__FILE__)
+    import Pkg
+    project = if su2_server_settings.device == "cpu"
+        @__DIR__
+    else
+        joinpath(@__DIR__, "environments", "gpu")
     end
+    Pkg.activate(project)
+    Pkg.instantiate()
+    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","native_measurement","server_workflow.jl"))
+    run_su2_server(su2_server_settings)
 end

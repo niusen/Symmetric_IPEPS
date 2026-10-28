@@ -1,6 +1,6 @@
 # Julia U1 conversion, simple update and measurement
 
-Use run_kagome_settings.jl and edit the options in the file; no command-line
+Use examples/run_kagome_settings.jl and edit the options in the file; no command-line
 parameters are needed. task=:charged_trial / :simple_update retain the existing
 SU2 and U1 simple-update kernels and initial-state conventions.
 

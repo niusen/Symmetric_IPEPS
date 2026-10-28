@@ -78,8 +78,8 @@ fixed-charge family does not change its imposed magnetization.
 Use the environment in this directory or your existing compatible environment:
 
 ```sh
-julia --project=. test_charged_cell.jl
-julia --project=. run_charged_trial.jl results/charged_sqrt3_D3
+julia --project=. tests/test_charged_cell.jl
+julia --project=. ../../../src/bosonic/kagome/workflows/run_charged_trial.jl results/charged_sqrt3_D3
 ```
 
 The trial defaults to j=1/2, Dmax=3, seed=1234, h=0.38, and 10 BLAS threads.
@@ -88,7 +88,7 @@ boundary half-steps. It is a workflow and sector check, not converged
 production data. To change the dimension or seed:
 
 ```sh
-KAGOME_CHARGED_DMAX=6 KAGOME_CHARGED_SEED=1234 julia --project=. run_charged_trial.jl results/charged_sqrt3_D6
+KAGOME_CHARGED_DMAX=6 KAGOME_CHARGED_SEED=1234 julia --project=. ../../../src/bosonic/kagome/workflows/run_charged_trial.jl results/charged_sqrt3_D6
 ```
 
 The trial saves raw SU(2) checkpoints (including auxiliary leg and lambdas),

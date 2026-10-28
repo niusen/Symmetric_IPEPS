@@ -1,6 +1,5 @@
 # Included by the server task; numerical measurements live in the native module.
-function server_dense_references()
-    file=joinpath(SERVER_RUN_DIR,"dense_reference_h038.csv")
+function server_dense_references(file=joinpath(SERVER_RUN_DIR,"data","dense_reference_h038.csv"))
     isfile(file) || return Dict[]
     lines=readlines(file);columns=split(first(lines),',');rows=Dict[]
     for line in lines[2:end]
@@ -10,9 +9,9 @@ function server_dense_references()
     end
     rows
 end
-function server_collect_outputs(root)
+function server_collect_outputs(root;reference_file=joinpath(SERVER_RUN_DIR,"data","dense_reference_h038.csv"))
     rows=Dict[];sites=Dict[];triangles=Dict[];bonds=Dict[];spaces=Dict[]
-    refs=server_dense_references()
+    refs=server_dense_references(reference_file)
     folders=filter(p->isdir(p) && startswith(basename(p),"D") && !isnothing(tryparse(Int,basename(p)[2:end])),readdir(root;join=true))
     sort!(folders;by=p->parse(Int,basename(p)[2:end]))
     for folder in folders

@@ -1,7 +1,7 @@
 # CPU / small D only. No production scan and no Python process.
 using Test
-include(joinpath(@__DIR__,"charged_su2_convergence_driver.jl"))
-include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","native_measurement","KagomeNativeMeasurement.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","charged_su2_convergence_driver.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","native_measurement","KagomeNativeMeasurement.jl"))
 const Native=KagomeNativeMeasurement
 BLAS.set_num_threads(2)
 @testset "pure TensorKit D2 conversion, CTMRG and observables" begin

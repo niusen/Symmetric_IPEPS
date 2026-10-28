@@ -15,7 +15,7 @@ or original numerical source file was edited.
 | Launcher / stage resume / overwrite prevention | 150 / 150 | 150 / 150 |
 | **Total per version** | **1215 / 1215** | **1215 / 1215** |
 
-`runtests.jl` contributes 1065 assertions; `workflow_smoke.jl` contributes
+`tests/runtests.jl` contributes 1065 assertions; `tests/workflow_smoke.jl` contributes
 150. The export test constructs both the original `Kagome_iPESS` and
 `Kagome_iPESS_immutable`, calls the original `build_A_kagome`, and checks
 that physical fusion preserves the tensor norm. No substitute ansatz is
@@ -28,7 +28,7 @@ production convergence calculations.
 
 ## Direct old/new numerical comparison
 
-`compatibility_probe.jl` fills the reduced SU(2) blocks deterministically,
+`tests/compatibility_probe.jl` fills the reduced SU(2) blocks deterministically,
 independently of random-constructor ordering, before applying identical
 evolution in both versions. Both cells and Dmax = 3, 4, 6 were compared.
 
@@ -55,9 +55,9 @@ separately run in this validation.
 To reproduce the old/new comparison with your two environments:
 
 ```sh
-julia --project=/path/to/old_env compatibility_probe.jl old.toml
-julia --project=/path/to/new_env compatibility_probe.jl new.toml
-julia compare_compatibility.jl old.toml new.toml
+julia --project=/path/to/old_env tests/compatibility_probe.jl old.toml
+julia --project=/path/to/new_env tests/compatibility_probe.jl new.toml
+julia tests/compare_compatibility.jl old.toml new.toml
 ```
 
 The comparison checks all retained dimensions and all reported energies /
@@ -67,6 +67,6 @@ if any check disagrees. The local comparison passed 43 / 43 assertions.
 Full small-workflow reproduction:
 
 ```sh
-julia --project=. runtests.jl
-julia --project=. workflow_smoke.jl /path/to/new_validation_output
+julia --project=. tests/runtests.jl
+julia --project=. tests/workflow_smoke.jl /path/to/new_validation_output
 ```

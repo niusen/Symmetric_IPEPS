@@ -1,6 +1,6 @@
 # Short workflow tests only: four Trotter steps per D, no large-D run/CTMRG.
 using Test
-include(joinpath(@__DIR__,"su2_server_driver.jl"))
+include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","native_measurement","server_workflow.jl"))
 BLAS.set_num_threads(2)
 function compare_states(a,b)
     for (ca,cb) in zip(a.raw.cells,b.raw.cells),n in fieldnames(ServerBase.KagomeSUTensors)
@@ -12,7 +12,7 @@ function compare_states(a,b)
 end
 @testset "server SU2 stages and exact mid-stage resume" begin
     out=mktempdir(;cleanup=false)
-    seed=joinpath(@__DIR__,"su2_D4_seed.toml")
+    seed=joinpath(@__DIR__,"..","data","su2_D4_seed.toml")
     cfg=(dims=[4,5],h=.38,chi=2,threads=2,device="cpu",ctm_iterations=2,
         ctm_tolerance=1e-6,schedule=[(dt=.01,tau=.02),(dt=.003,tau=.006)],
         truncation_tolerance=1e-6,checkpoint_every=1,progress_every=2,

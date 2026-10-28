@@ -1,12 +1,11 @@
 # Tiny trial of a polarized auxiliary spin, not a production plateau scan.
 using TensorKit, LinearAlgebra, Random, TOML, JLD2
 if !isdefined(@__MODULE__,:KagomeChargedSU2)
-    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome",
-                     "simple_update_charged_cell.jl"))
+    include(joinpath(@__DIR__,"..","simple_update_charged_cell.jl"))
 end
 using .KagomeChargedSU2
 if !isdefined(@__MODULE__,:KagomeU1Cells)
-    include(joinpath(@__DIR__,"..","..","..","src","bosonic","kagome","simple_update_u1_cells.jl"))
+    include(joinpath(@__DIR__,"..","simple_update_u1_cells.jl"))
 end
 using .KagomeU1Cells
 const ChargedBase = KagomeChargedSU2.BaseSU

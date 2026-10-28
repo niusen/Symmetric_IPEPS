@@ -27,7 +27,7 @@ su2_convergence_settings=(
     continuation_input="",   # 留空为新计算；填 after_hold/state.jld2 则从它继续。
     continuation_schedule=[(dt=.03,tau=400.),(dt=.01,tau=40.),
                            (dt=.003,tau=10.),(dt=.001,tau=5.),(dt=.0005,tau=2.)],
-    out=joinpath(@__DIR__,"results","su2_D234_"*Dates.format(now(),"yyyymmdd_HHMMSS")),
+    out=joinpath(@__DIR__,"..","results","su2_D234_"*Dates.format(now(),"yyyymmdd_HHMMSS")),
 )
 # :homogeneous 的初始表示：D3 为 0+1/2，D4 为 0+0+1/2。
 # :uniform 使用相同表示，但将所有约化系数设为同一实数，避免只检查随机复数初态。
@@ -42,7 +42,7 @@ su2_convergence_settings=(
 # 只有 lambda 和九自旋波函数连续多个检查点都稳定才允许某个 dt 阶段提前结束。
 # 这些局部检查仍需配合 before_hold/after_hold 的无限系统 CTMRG 能量比较。
 if !isdefined(@__MODULE__, :run_su2_convergence)
-    include(joinpath(@__DIR__,"charged_su2_convergence_driver.jl"))
+    include(joinpath(@__DIR__,"..","..","..","..","src","bosonic","kagome","workflows","charged_su2_convergence_driver.jl"))
 end
 if isempty(su2_convergence_settings.continuation_input)
     run_su2_convergence(su2_convergence_settings)

@@ -1,0 +1,10 @@
+[deps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+TensorKit = "07d1fe3e-3e46-537d-9eac-e9e13d0d4cec"
+
+[compat]
+ChainRulesCore = "1"
+JLD2 = "0.5, 0.6"
+TensorKit = "0.14, 0.15, 0.16, 0.17"
+julia = "1.10, 1.11"

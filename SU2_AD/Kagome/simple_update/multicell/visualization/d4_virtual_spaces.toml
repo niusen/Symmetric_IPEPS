@@ -1,0 +1,80 @@
+[metadata]
+pattern = "sqrt3xsqrt3"
+Dmax = 4
+auxiliary_anchor = 1
+auxiliary_spin = "1/2"
+h = 0.38
+energy_per_spin = -0.4336944413459763
+source_sha256 = "355b7a2c992b6547cf943fbf5179e82348116ffe59b2b105c3389011893384d9"
+
+[[bonds]]
+bond = 1
+cell = 1
+down_dimension = 4
+down_space = "Rep[SU鈧俔(1/2 => 2)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+
+[[bonds]]
+bond = 2
+cell = 1
+down_dimension = 4
+down_space = "Rep[SU鈧俔(1/2 => 2)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+
+[[bonds]]
+bond = 3
+cell = 1
+down_dimension = 4
+down_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(1/2 => 2)'"
+
+[[bonds]]
+bond = 1
+cell = 2
+down_dimension = 4
+down_space = "Rep[SU鈧俔(1/2 => 2)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+
+[[bonds]]
+bond = 2
+cell = 2
+down_dimension = 4
+down_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(1/2 => 2)'"
+
+[[bonds]]
+bond = 3
+cell = 2
+down_dimension = 4
+down_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(1/2 => 2)'"
+
+[[bonds]]
+bond = 1
+cell = 3
+down_dimension = 4
+down_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(1/2 => 2)'"
+
+[[bonds]]
+bond = 2
+cell = 3
+down_dimension = 4
+down_space = "Rep[SU鈧俔(1/2 => 2)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+
+[[bonds]]
+bond = 3
+cell = 3
+down_dimension = 4
+down_space = "Rep[SU鈧俔(0 => 1, 1 => 1)'"
+up_dimension = 4
+up_space = "Rep[SU鈧俔(1/2 => 2)'"

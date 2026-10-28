@@ -6,6 +6,8 @@ change the settings at the top, and run the whole file. No arguments are
 needed; the default task is a six-step U(1) polarized trial.
 For the longer SU(2) D=2,3,4 convergence study, use **run_su2_D234.jl**;
 results and limitations are recorded in [SU2_D234_RESULTS.md](SU2_D234_RESULTS.md).
+The spatial cell diagram, plotting script and virtual-space snapshot are in
+[visualization/](visualization/README.md).
 Conversion defaults to U(1), with an explicit dense export option. The SU
 runner retains its SU(2) default; `--symmetry u1` selects U(1). An existing
 charged SU(2) state can initialize U(1) through exact component projection.

@@ -2,6 +2,7 @@
 
 只考虑最近邻 J 项，默认 `H = J sum_<ij> (P_ij - I/4)`，2×2 unit cell。
 `dense` 指无对称分块的 `ComplexSpace`，状态和计算全程使用 TensorMap。
+首个 D 和后续升 D 的默认演化均在 `dt=0.001` 结束。
 
 ## 实际调用的旧代码
 

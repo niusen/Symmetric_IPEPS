@@ -201,6 +201,47 @@ function test_continuation_batch()
         @test_throws ArgumentError LR.validate(LR.LongRunConfig(expansion_noise=0.0))
     end
 end
+function test_schedule_cutoff()
+    @testset "Stop at dt=0.001 and preserve older checkpoint history" begin
+        LR=DenseSU4LongRun
+        @test last(LR.LongRunConfig().schedule)[1]==0.001
+        @test last(LR.LongRunConfig().continuation_schedule)[1]==0.001
+        mktempdir() do dir
+            options=(Ds=[1],seeds=[77],J=0.0,initialization=:random,
+                min_sweeps=1,measure_every=1,checkpoint_every=1,stable_checks=1,
+                blas_threads=1,ctm_chis=[1,2],ctm_max_iterations=3,output_dir=dir)
+            oldcfg=LR.LongRunConfig(;options...,schedule=[(0.001,1),(0.0001,1)])
+            old=LR.run_one(oldcfg,1,77)
+            checkpoint=joinpath(dirname(old.matfile),"checkpoint.jls")
+            saved=load_state(checkpoint)
+            legacy=merge(saved.metadata.longrun,
+                (signature=merge(saved.metadata.longrun.signature,(lambda_tol_scale=1e-4,)),))
+            save_state(checkpoint,saved.state;metadata=merge(saved.metadata,(longrun=legacy,)))
+            cfg=LR.LongRunConfig(;options...,schedule=[(0.001,1)])
+            restored=LR.run_one(cfg,1,77)
+            data=matread(restored.matfile)
+            @test restored.total_sweeps==old.total_sweeps
+            @test data["historical_finer_steps_retained"]==true
+            @test data["su_convergence_dt"]==0.001
+            @test size(data["stage_summary"],1)==2
+            @test data["su_converged"]==true
+            current=load_state(checkpoint)
+            @test current.state.B==saved.state.B && current.state.T==saved.state.T
+            @test current.metadata.longrun.progress.complete
+            @test current.metadata.longrun.signature.schedule==cfg.schedule
+            # A checkpoint still at the first stage must finish that stage,
+            # then stop without entering the removed finer stage.
+            fresh=init_state(2,2;D=1,seed=77)
+            progress=(stage=1,sweep=0,total_sweeps=0,stable=0,block_lambda=0.0,
+                elapsed_seconds=0.0,complete=false)
+            LR.write_checkpoint(checkpoint,fresh,oldcfg,1,77,progress,NamedTuple[],NamedTuple[])
+            resumed=LR.run_one(cfg,1,77)
+            @test resumed.total_sweeps==1
+            @test matread(resumed.matfile)["historical_finer_steps_retained"]==false
+            @test_throws ErrorException LR.run_one(LR.LongRunConfig(;options...,schedule=[(0.001,2)]),1,77)
+        end
+    end
+end
 function run_su4_tests()
     BLAS.set_num_threads(1)
     test_dense_projector()
@@ -210,6 +251,7 @@ function run_su4_tests()
     test_batch_resume()
     test_bond_expansion()
     test_continuation_batch()
+    test_schedule_cutoff()
 end
 if abspath(PROGRAM_FILE)==@__FILE__
     run_su4_tests()

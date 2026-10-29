@@ -18,10 +18,10 @@ Base.@kwdef struct LongRunConfig
     J::Float64=1.0
     convention::Symbol=:traceless
     schedule::Vector{Tuple{Float64,Int}}=[(0.1,1000),(0.05,1000),(0.02,1500),
-        (0.01,1500),(0.005,2000),(0.002,2000),(0.001,2500),(0.0002,3000),(0.0001,3000)]
+        (0.01,1500),(0.005,2000),(0.002,2000),(0.001,2500)]
     initialization::Symbol=:previous_D # :random retains independent initialization
     continuation_schedule::Vector{Tuple{Float64,Int}}=[(0.005,500),(0.002,800),
-        (0.001,1000),(0.0002,1200),(0.0001,1500)]
+        (0.001,1000)]
     expansion_noise::Float64=1e-3
     min_sweeps::Int=100
     measure_every::Int=20 # check SU lambda spectra, not a proxy energy
@@ -109,12 +109,17 @@ function run_one(cfg::LongRunConfig,D::Int,seed::Int)
         meta.Dmax==D && meta.seed==seed || error("checkpoint parameters differ; use a new output directory")
         current_signature=signature(cfg,D)
         previous_signature=meta.longrun.signature
-        # Accept only the specific correction from our earlier, overly strict
-        # default to the original src tolerance. Physical parameters and the
-        # evolution schedule must still match exactly.
+        # Allow the corrected tolerance and removal of trailing finer-dt
+        # stages. Every retained stage and all other parameters must match.
         restored_tolerance=cfg.lambda_tol_scale==1e-3 &&
-            previous_signature==merge(current_signature,(lambda_tol_scale=1e-4,))
-        previous_signature==current_signature || restored_tolerance ||
+            previous_signature.lambda_tol_scale==1e-4
+        normalized_signature=restored_tolerance ? merge(previous_signature,(lambda_tol_scale=1e-3,)) : previous_signature
+        old_schedule=previous_signature.schedule
+        shortened_schedule=length(old_schedule)>length(schedule) &&
+            old_schedule[1:length(schedule)]==schedule &&
+            all(t->t[1]<last(schedule)[1],old_schedule[length(schedule)+1:end]) &&
+            normalized_signature==merge(current_signature,(schedule=old_schedule,))
+        normalized_signature==current_signature || shortened_schedule ||
             error("checkpoint parameters differ; use a new output directory")
         state=saved.state; progress=meta.longrun.progress; history=meta.longrun.history; stages=meta.longrun.stages
         initialization=import_existing ? (method=:existing_checkpoint,source_D=D,
@@ -132,7 +137,15 @@ function run_one(cfg::LongRunConfig,D::Int,seed::Int)
             progress=merge(progress,(stable=0,))
             println("Restored original SU tolerance dt*1e-3; retained state and sweep history.")
         end
-        if restored_tolerance || import_existing
+        if shortened_schedule
+            if progress.stage>length(schedule)
+                cutoff_stage=only(filter(s->s.stage==length(schedule),stages))
+                progress=merge(progress,(stage=length(schedule),sweep=cutoff_stage.sweeps,
+                    stable=0,block_lambda=0.0,complete=true))
+            end
+            println("Removed trailing finer-dt stages; retained tensors and the complete actual history.")
+        end
+        if restored_tolerance || shortened_schedule || import_existing
             write_checkpoint(checkpoint,state,cfg,D,seed,progress,history,stages;initialization)
         end
         println("Resuming D=",D," seed=",seed," total_sweeps=",progress.total_sweeps)
@@ -202,13 +215,17 @@ function run_one(cfg::LongRunConfig,D::Int,seed::Int)
     data=observable_mat_data(obs)
     data["history"],data["history_columns"]=row_matrix(history)
     data["stage_summary"],data["stage_summary_columns"]=row_matrix(stages)
-    converged=stages[end].converged && obs.ctm.chi_converged
+    cutoff_stage=only(filter(s->s.stage==length(schedule),stages))
+    converged=cutoff_stage.converged && obs.ctm.chi_converged
     merge!(data,Dict("Dmax"=>D,"initial_D"=>initialization.initial_D,"seed"=>seed,"complete"=>true,
         "initialization"=>string(initialization.method),"initialization_mode"=>string(cfg.initialization),
         "source_D"=>initialization.source_D,"source_checkpoint"=>initialization.source_checkpoint,
         "expansion_noise"=>initialization.noise,
-        "su_converged"=>stages[end].converged,"converged"=>converged,
-        "all_stages_converged"=>all(r->r.converged,stages),"total_sweeps"=>progress.total_sweeps,
+        "su_converged"=>cutoff_stage.converged,"converged"=>converged,
+        "su_convergence_dt"=>last(schedule)[1],
+        "historical_finer_steps_retained"=>any(r->r.dt<last(schedule)[1],history),
+        "all_stages_converged"=>all(r->r.converged,filter(r->r.stage<=length(schedule),stages)),
+        "total_sweeps"=>progress.total_sweeps,
         "history_quantity"=>"SU lambda convergence (no proxy energy)",
         "ctm_max_iterations"=>cfg.ctm_max_iterations,"ctm_elapsed_seconds"=>time()-started,
         "schedule"=>hcat(first.(schedule),last.(schedule))))

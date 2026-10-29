@@ -9,7 +9,7 @@ function server_dense_references(file=joinpath(SERVER_RUN_DIR,"data","dense_refe
     end
     rows
 end
-function server_collect_outputs(root;reference_file=joinpath(SERVER_RUN_DIR,"data","dense_reference_h038.csv"))
+function server_collect_outputs(root;reference_file=joinpath(SERVER_RUN_DIR,"data","dense_reference_h038.csv"),evolution_symmetry=:su2)
     rows=Dict[];sites=Dict[];triangles=Dict[];bonds=Dict[];spaces=Dict[]
     refs=server_dense_references(reference_file)
     folders=filter(p->isdir(p) && startswith(basename(p),"D") && !isnothing(tryparse(Int,basename(p)[2:end])),readdir(root;join=true))
@@ -34,7 +34,7 @@ function server_collect_outputs(root;reference_file=joinpath(SERVER_RUN_DIR,"dat
             "dense_reference_m"=>isnothing(chosen) ? "" : chosen["m"],
             "dense_reference_ctm_converged"=>isnothing(chosen) ? "" : chosen["ctm_converged"],
             "dense_reference_source"=>isnothing(chosen) ? "" : chosen["source"],
-            "delta_E_su2_minus_dense"=>isnothing(chosen) ? "" : r["energy_per_spin"]-parse(Float64,chosen["energy"]))
+            "delta_E_$(evolution_symmetry)_minus_dense"=>isnothing(chosen) ? "" : r["energy_per_spin"]-parse(Float64,chosen["energy"]))
         push!(rows,row);groups=ServerNative.grouped_observables(r,D)
         append!(sites,groups.sites);append!(triangles,groups.triangles);append!(bonds,groups.bonds)
         append!(spaces,[merge(Dict("D"=>D),v) for v in virtual])
@@ -46,7 +46,7 @@ function server_collect_outputs(root;reference_file=joinpath(SERVER_RUN_DIR,"dat
     ServerNative.write_json(joinpath(root,"summary.json"),rows)
     server_atomic_toml(joinpath(root,"summary.toml"),Dict("results"=>rows))
     open(joinpath(root,"summary.txt"),"w") do io
-        println(io,"Pure Julia TensorKit; sqrt3xsqrt3; H=Hex+h*sum(Sz); projected 1/9 sector.")
+        println(io,"Pure Julia TensorKit; evolution=",uppercase(string(evolution_symmetry)),"; sqrt3xsqrt3; H=Hex+h*sum(Sz); projected 1/9 sector.")
         println(io,"Historical dense references retain their own chi/initialization/convergence flags.")
         for r in rows
             println(io,"D=",r["D"]," actualD=",r["actual_D_min"],"..",r["actual_D_max"],

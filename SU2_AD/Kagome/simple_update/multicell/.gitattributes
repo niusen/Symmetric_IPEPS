@@ -1,3 +1,5 @@
 run_su2_D4_D12_server.sh text eol=lf
 data/su2_D4_seed.toml text eol=lf
 data/dense_reference_h038.csv text eol=lf
+run_u1_D4_D10_server.sh text eol=lf
+data/u1_D4_optimized_seed.toml text eol=lf

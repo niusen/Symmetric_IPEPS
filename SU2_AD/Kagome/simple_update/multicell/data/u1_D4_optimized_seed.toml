@@ -1,0 +1,1142 @@
+Lx = 3
+Ly = 3
+charge_unit = "2Sz"
+format = "kagome_u1_seed_v1"
+pattern = "sqrt3xsqrt3"
+
+[auxiliary_charges]
+1 = 1
+
+[[cells]]
+    [cells.B_a]
+    axis_charges = [[-1, -1, 1, 1], [0, 0, -2, 2], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [-3.052663916592806e-31, -9.175289922962437e-17, 0.0, 0.0, -1.0049229261059535e-29, 2.9276898841999847e-15, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.139209068886254e-14, 7.407057916783475e-15, 0.0, 0.0, 3.791163206182217e-14, -7.357297073352218e-14, 0.0, 0.0, 0.0, 0.0, 5.65661902853948e-41, 1.0501876684489774e-15, 0.0, 0.0]
+    real = [-0.9956386998117165, -0.38969089968751364, 0.0, 0.0, 0.7383678184677028, -2.330846423542459, 0.0, 0.0, 0.0, 0.0, -1.5962992433295813, 5.426108723774501, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.023963600160821, -0.30906204858018616, 0.0, 0.0, -1.2397698255865912, 4.0181581843078, 0.0, 0.0, 0.0, 0.0, -1.201543613464179, 2.9310216597044634, 0.0, 0.0]
+
+        [[cells.B_a.codomain]]
+        dual = true
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_a.codomain]]
+        dual = true
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_a.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_a.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_a.codomain]]
+        dual = false
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.B_b]
+    axis_charges = [[-1, -1, 1, 1], [0, 0, -2, 2], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [-2.368446142564212e-32, 1.4404790279227437e-16, 0.0, 0.0, -3.305298172289611e-30, -1.3128293281038383e-15, 0.0, 0.0, 0.0, 0.0, 9.374197863655305e-42, -1.365787429447899e-16, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.3665970399131633e-14, 2.9442065497925284e-15, 0.0, 0.0, 1.6557590689296362e-14, -3.270082417825223e-14, 0.0, 0.0, 0.0, 0.0, -1.4141547575218687e-41, -2.333750381010365e-16, 0.0, 0.0]
+    real = [-0.9956386998225422, -0.3896908993096943, 0.0, 0.0, 0.738367818964835, -2.3308464251073597, 0.0, 0.0, 0.0, 0.0, -1.5962992424538511, 5.426108722966301, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.023963600085241, -0.30906204837399837, 0.0, 0.0, -1.2397698246932345, 4.018158184323625, 0.0, 0.0, 0.0, 0.0, -1.2015436138002846, 2.9310216637696773, 0.0, 0.0]
+
+        [[cells.B_b.codomain]]
+        dual = true
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_b.codomain]]
+        dual = true
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_b.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_b.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_b.codomain]]
+        dual = false
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.B_c]
+    axis_charges = [[0, 0, -2, 2], [-1, 1, 1, 3], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [9.111071233200596e-39, -1.7964177826569506e-16, 0.0, 0.0, 0.0, 0.0, -5.05297674517961e-33, 0.0, 0.0, 0.0, -1.751698604995598e-31, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.4383337189672468e-16, 1.1247860674255163e-15, 3.674594049729915e-16, 0.0, 0.0, 3.405231934482749e-16, 3.613230590283777e-15, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [-1.0076134591227017, 2.41913229439433, 0.0, 0.0, 0.0, 0.0, -1.0356607091476624, 0.0, 0.0, 0.0, 2.9251272129833086, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.7042169864386976, -1.0037434780496801, -0.3964615219777222, 0.0, 0.0, -0.3316933085916426, 3.0414400204975514, 0.0, 0.0, 0.0, 0.0, -3.2687436720477288, 0.0]
+
+        [[cells.B_c.codomain]]
+        dual = true
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_c.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_c.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_c.codomain]]
+        dual = true
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+            [[cells.B_c.codomain.sectors]]
+            charge = -3
+            multiplicity = 1
+        [[cells.B_c.codomain]]
+        dual = false
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.T_d]
+    axis_charges = [[1, 1, -1, -1], [1, 1, -1, -1], [0, 0, 2, -2]]
+    dims = [4, 4, 4]
+    domain = []
+    imag = [0.0, 0.0, 0.7801999240991866, -0.0002404817133977875, 0.0, 0.0, 0.01231351506513083, 0.009007320814673668, -0.5931725039969155, 0.006496908015787564, 0.0, 0.0, -0.0008410512120267396, -0.014313747737397154, 0.0, 0.0, 0.0, 0.0, -0.03530625350175557, -0.007721997137243062, 0.0, 0.0, 0.07731349123821159, -0.0007299064641051292, -0.04512607280642172, -0.02131326114298987, 0.0, 0.0, 0.018825885260761722, 0.0010192108303664997, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.009794787914532374, 0.016854431651598854, 0.0, 0.0, -0.04842133762036895, -0.0005285893775711486, -0.10133290698004511, -0.02811697042448888, 0.0, 0.0, 0.06785570596626309, 0.00017100389782293506, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.0, 0.0, -0.08011969453214543, 2.4695364383970076e-5, 0.0, 0.0, -0.0012644900815316756, -0.0009249729074991995, 0.06091361759613465, -0.0006671755143136133, 0.0, 0.0, 8.636858850135419e-5, 0.0014698964469326955, 0.0, 0.0, 0.0, 0.0, 0.0036256428105936643, 0.000792981430404979, 0.0, 0.0, -0.007939417974657657, 7.49549969626796e-5, 0.004634052192278938, 0.0021886851299452673, 0.0, 0.0, -0.0019332534262051966, -0.00010466401991401586, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0010058388772900212, -0.0017308024183647786, 0.0, 0.0, 0.004972447008964367, 5.428149651876411e-5, 0.010406001465163715, 0.0028873664454404824, 0.0, 0.0, -0.00696818631526765, -1.7560601628131308e-5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_d.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.T_u]
+    axis_charges = [[0, 0, 2, -2], [0, 0, 2, -2], [1, -1, -1, -3], [1]]
+    dims = [4, 4, 4, 1]
+    domain = []
+    imag = [0.0, 0.0, 0.0, -0.09434268401682731, 0.0, 0.0, 0.0, -0.019058027489528517, 0.0, 0.0, 0.0, 0.0, -0.0943426838615149, -0.01905802751277775, 0.0, 0.0, 0.33031288439047124, -0.006617238589807291, 0.0, 0.0, -0.006617238591673603, -0.05869037205571067, 0.0, 0.0, 0.0, 0.0, 0.0, -0.04095980442981617, 0.0, 0.0, -0.04095980441325718, 0.0, 0.0007084643487545163, -0.020985272099297528, 0.0, 0.0, -0.020985272094811564, -0.00025260524352327586, 0.0, 0.0, 0.0, 0.0, 0.0, 0.006427880819078693, 0.0, 0.0, 0.006427880810031236, 0.0, 0.0, 0.0, -0.012048050975946854, 0.0, 0.0, 0.0, -0.0007446714146619643, 0.0, -0.012048050978492578, -0.0007446714182046158, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.0, 0.0, 0.0, -0.23801699690802045, 0.0, 0.0, 0.0, -0.04808146511115867, 0.0, 0.0, 0.0, 0.0, -0.23801699651619965, -0.04808146516981173, 0.0, 0.0, 0.8333458137424643, -0.01669461997380554, 0.0, 0.0, -0.01669461997851609, -0.1480698397516846, 0.0, 0.0, 0.0, 0.0, 0.0, -0.10333742087078185, 0.0, 0.0, -0.10333742082901111, 0.0, 0.0017873834994650117, -0.052943707256429696, 0.0, 0.0, -0.05294370724511344, -0.0006372973388790697, 0.0, 0.0, 0.0, 0.0, 0.0, 0.016216889576376157, 0.0, 0.0, 0.01621688955355182, 0.0, 0.0, 0.0, -0.030396007298018363, 0.0, 0.0, 0.0, -0.0018787302444091478, 0.0, -0.0303960073044389, -0.0018787302533465329, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_u.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_u.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.T_u.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = -3
+            multiplicity = 1
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+
+    [cells.lambda_d_a]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.7922288959379645, 0.0, 0.0, 0.0, 0.0, 0.10454252627514332, 0.0, 0.0, 0.0, 0.0, 0.5987550774393425, 0.0, 0.0, 0.0, 0.0, 0.05419034860131505]
+
+        [[cells.lambda_d_a.codomain]]
+        dual = false
+
+            [[cells.lambda_d_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_d_a.domain]]
+        dual = false
+
+            [[cells.lambda_d_a.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_a.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_d_b]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.792228895725738, 0.0, 0.0, 0.0, 0.0, 0.10454252611819856, 0.0, 0.0, 0.0, 0.0, 0.598755077744827, 0.0, 0.0, 0.0, 0.0, 0.05419034863137391]
+
+        [[cells.lambda_d_b.codomain]]
+        dual = false
+
+            [[cells.lambda_d_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_d_b.domain]]
+        dual = false
+
+            [[cells.lambda_d_b.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_b.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_d_c]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.944039423194904, 0.0, 0.0, 0.0, 0.0, 0.10456491966960058, 0.0, 0.0, 0.0, 0.0, 0.3059279345001508, 0.0, 0.0, 0.0, 0.0, 0.06529811575225239]
+
+        [[cells.lambda_d_c.codomain]]
+        dual = false
+
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_d_c.domain]]
+        dual = false
+
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_u_a]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.9347529961091575, 0.0, 0.0, 0.0, 0.0, 0.17780535182672672, 0.0, 0.0, 0.0, 0.0, 0.11719125649387753, 0.0, 0.0, 0.0, 0.0, 0.2844086892626767]
+
+        [[cells.lambda_u_a.codomain]]
+        dual = false
+
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_u_a.domain]]
+        dual = false
+
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_u_b]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.9347529962250053, 0.0, 0.0, 0.0, 0.0, 0.17780535180487736, 0.0, 0.0, 0.0, 0.0, 0.11719125654224538, 0.0, 0.0, 0.0, 0.0, 0.284408688875655]
+
+        [[cells.lambda_u_b.codomain]]
+        dual = false
+
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_u_b.domain]]
+        dual = false
+
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_u_c]
+    axis_charges = [[1, -1, -1, -3], [-1, 1, 1, 3]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.3693986158751702, 0.0, 0.0, 0.0, 0.0, 0.9242828223430559, 0.0, 0.0, 0.0, 0.0, 0.08425920058053916, 0.0, 0.0, 0.0, 0.0, 0.046328328575421]
+
+        [[cells.lambda_u_c.codomain]]
+        dual = false
+
+            [[cells.lambda_u_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.lambda_u_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+            [[cells.lambda_u_c.codomain.sectors]]
+            charge = -3
+            multiplicity = 1
+
+        [[cells.lambda_u_c.domain]]
+        dual = false
+
+            [[cells.lambda_u_c.domain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.lambda_u_c.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+            [[cells.lambda_u_c.domain.sectors]]
+            charge = -3
+            multiplicity = 1
+[[cells]]
+    [cells.B_a]
+    axis_charges = [[-1, -1, 1, 1], [0, 0, -2, 2], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [3.6568858634914904e-33, -1.813684748472723e-16, 0.0, 0.0, 3.826056583437358e-31, 1.531828598807602e-14, 0.0, 0.0, 0.0, 0.0, -7.179090302509537e-42, -5.646730267069007e-16, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.8253051584483873e-15, 2.1909183102372074e-16, 0.0, 0.0, -1.3301512583246704e-15, -4.614025571485973e-15, 0.0, 0.0, 0.0, 0.0, 1.1671787005017584e-39, 9.506970118087983e-15, 0.0, 0.0]
+    real = [-0.9934760080136068, -0.18056000466400465, 0.0, 0.0, 1.2361354824080997, -6.2769427025137485, 0.0, 0.0, 0.0, 0.0, -1.2366881011651985, 10.118985217805713, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.005374951867736, -0.09140941526385477, 0.0, 0.0, -0.7268407570731668, 9.687447877840295, 0.0, 0.0, 0.0, 0.0, -1.5400201309639798, 8.74369888162519, 0.0, 0.0]
+
+        [[cells.B_a.codomain]]
+        dual = true
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_a.codomain]]
+        dual = true
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_a.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_a.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_a.codomain]]
+        dual = false
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.B_b]
+    axis_charges = [[0, 0, -2, 2], [-1, -1, 1, 1], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [-7.759673460598123e-35, 7.442946284337775e-17, 0.0, 0.0, 2.0659354621496443e-32, -7.089481983971759e-17, 0.0, 0.0, 0.0, 0.0, 1.9231219003081995e-31, 0.0, 0.0, 0.0, 1.5824545922536042e-29, 0.0, 0.0, 0.0, 0.0, -1.4426852258743714e-16, 0.0, 0.0, 0.0, 4.3396397889751667e-16, -6.486867661486773e-15, -7.375984903025666e-15, 0.0, 0.0, -1.9731513426826977e-15, 2.2194811645963024e-14, 0.0, 0.0]
+    real = [-0.9979307154891149, 0.7889973908913925, 0.0, 0.0, -0.36746426931793924, -2.2526665783281383, 0.0, 0.0, 0.0, 0.0, -1.5258995850314745, 0.0, 0.0, 0.0, 4.796541424811525, 0.0, 0.0, 0.0, 0.0, -1.2458777288878167, 0.0, 0.0, 0.0, 3.3452585949139872, -1.01450602556024, -1.1748023760471062, 0.0, 0.0, -0.31894774563823486, 3.7785015818502656, 0.0, 0.0]
+
+        [[cells.B_b.codomain]]
+        dual = true
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_b.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_b.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_b.codomain]]
+        dual = true
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_b.codomain]]
+        dual = false
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.B_c]
+    axis_charges = [[0, 0, -2, 2], [-1, -1, 1, 1], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [1.4484916419078914e-34, 8.724500952299684e-17, 0.0, 0.0, -9.888369608757873e-32, -1.3825570304134545e-14, 0.0, 0.0, 0.0, 0.0, 1.7577768747191413e-30, 0.0, 0.0, 0.0, 3.0535095423692512e-28, 0.0, 0.0, 0.0, 0.0, -1.0788932815665424e-16, 0.0, 0.0, 0.0, -6.405485547518758e-15, 8.089774245300232e-15, 5.948834037967688e-15, 0.0, 0.0, 4.9038767388775954e-15, -5.939901339829543e-13, 0.0, 0.0]
+    real = [-0.9904549611386999, 1.1553876050378067, 0.0, 0.0, -0.2205218662608618, -4.935801798159302, 0.0, 0.0, 0.0, 0.0, -1.2731902223912126, 0.0, 0.0, 0.0, 7.691321903144964, 0.0, 0.0, 0.0, 0.0, -1.457075163951136, 0.0, 0.0, 0.0, 6.666130478351214, -1.0094996744790075, -0.7537484642783456, 0.0, 0.0, -0.09827399828717692, 8.9920176692948, 0.0, 0.0]
+
+        [[cells.B_c.codomain]]
+        dual = true
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_c.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_c.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_c.codomain]]
+        dual = true
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_c.codomain]]
+        dual = false
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.T_d]
+    axis_charges = [[0, 0, 2, -2], [0, 0, 2, -2], [0, 0, 2, -2]]
+    dims = [4, 4, 4]
+    domain = []
+    imag = [-0.12442170582022505, 0.0014334812078018722, 0.0, 0.0, 0.0014334812074114354, 0.022204976030764743, 0.0, 0.0, 0.0, 0.0, 0.0, 0.017652771184623498, 0.0, 0.0, 0.017652771174900266, 0.0, -0.00011502821688394701, 0.009923805578929355, 0.0, 0.0, 0.009923805580474288, 0.0008295551435191652, 0.0, 0.0, 0.0, 0.0, 0.0, -0.0017329695639838466, 0.0, 0.0, -0.0017329695633928142, 0.0, 0.0, 0.0, 0.0, 0.029152759978157715, 0.0, 0.0, 0.0, 0.004670760674626519, 0.0, 0.0, 0.0, 0.0, 0.029152759975298558, 0.0046707606767741015, 0.0, 0.0, 0.0, 0.0, -0.006280264913951721, 0.0, 0.0, 0.0, -0.0005205785648765723, 0.0, -0.006280264916384887, -0.0005205785657186644, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [-0.9030957740800721, 0.010404702398628575, 0.0, 0.0, 0.010404702395793849, 0.16117139597738162, 0.0, 0.0, 0.0, 0.0, 0.0, 0.12812991875123006, 0.0, 0.0, 0.12812991868066298, 0.0, -0.0008349145824935446, 0.07203041319874301, 0.0, 0.0, 0.07203041320995243, 0.006021198146573331, 0.0, 0.0, 0.0, 0.0, 0.0, -0.01257849247063623, 0.0, 0.0, -0.012578492466346623, 0.0, 0.0, 0.0, 0.0, 0.2116008148697691, 0.0, 0.0, 0.0, 0.03390199643372215, 0.0, 0.0, 0.0, 0.0, 0.21160081484901277, 0.03390199644931229, 0.0, 0.0, 0.0, 0.0, -0.045584334875524796, 0.0, 0.0, 0.0, -0.0037785392742961084, 0.0, -0.045584334893181755, -0.003778539280408679, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_d.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_d.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_d.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.T_u]
+    axis_charges = [[0, 0, 2, -2], [1, 1, -1, -1], [1, 1, -1, -1]]
+    dims = [4, 4, 4]
+    domain = []
+    imag = [0.0, 0.0, 0.0, -0.01137201870794361, 0.0, 0.0, 0.0, 0.009159541020030599, -0.10717241504015898, -0.00556305722182717, 0.0, 0.0, -0.00028415530559832385, 0.003655853814792063, 0.0, 0.0, 0.0, 0.0, 0.0, -0.00727064823602, 0.0, 0.0, 0.0, 4.065416418828713e-5, 0.0010968379295139506, -0.005896564810192605, 0.0, 0.0, -0.0033223278023397037, 0.00020500533983190775, 0.0, 0.0, 0.1316597856883164, -0.004552856028517517, 0.0, 0.0, 0.0011461842303931115, 0.010239583472107655, 0.0, 0.0, 0.0, 0.0, 0.0005071700704670575, 0.0, 0.0, 0.0, -0.009092854529863007, 0.0, -5.644163181830905e-5, -0.0010393721553331747, 0.0, 0.0, 0.0015509480409101933, -0.00024877690344197263, 0.0, 0.0, 0.0, 0.0, 0.003544836689932279, 0.0, 0.0, 0.0, -0.00018375405392716964, 0.0]
+    real = [0.0, 0.0, 0.0, -0.06533646381531097, 0.0, 0.0, 0.0, 0.05262495919057652, -0.6157452601074751, -0.03196182632222539, 0.0, 0.0, -0.0016325775852960365, 0.0210042356259351, 0.0, 0.0, 0.0, 0.0, 0.0, -0.041772569812486976, 0.0, 0.0, 0.0, 0.0002335732463731948, 0.006301740573366067, -0.03387795107007671, 0.0, 0.0, -0.019088005024869372, 0.0011778316859890033, 0.0, 0.0, 0.7564342835230983, -0.026157845920156114, 0.0, 0.0, 0.006585253367761895, 0.058830203518903064, 0.0, 0.0, 0.0, 0.0, 0.0029138800953662806, 0.0, 0.0, 0.0, -0.05224182057959429, 0.0, -0.00032427810133645046, -0.005971578394442302, 0.0, 0.0, 0.00891077153113752, -0.0014293155478594297, 0.0, 0.0, 0.0, 0.0, 0.020366401082426554, 0.0, 0.0, 0.0, -0.0010557351692479634, 0.0]
+
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_u.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_d_a]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.610745762818777, 0.0, 0.0, 0.0, 0.0, 0.038842307277021274, 0.0, 0.0, 0.0, 0.0, 0.7906014773831419, 0.0, 0.0, 0.0, 0.0, 0.020741078175951163]
+
+        [[cells.lambda_d_a.codomain]]
+        dual = false
+
+            [[cells.lambda_d_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_d_a.domain]]
+        dual = false
+
+            [[cells.lambda_d_a.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_a.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_d_b]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.9403205739269757, 0.0, 0.0, 0.0, 0.0, 0.181904117699586, 0.0, 0.0, 0.0, 0.0, 0.13792041373813108, 0.0, 0.0, 0.0, 0.0, 0.252360990820454]
+
+        [[cells.lambda_d_b.codomain]]
+        dual = false
+
+            [[cells.lambda_d_b.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_b.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_b.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_d_b.domain]]
+        dual = false
+
+            [[cells.lambda_d_b.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_b.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_b.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_d_c]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.9854850822874782, 0.0, 0.0, 0.0, 0.0, 0.10117790918961743, 0.0, 0.0, 0.0, 0.0, 0.05247525497984644, 0.0, 0.0, 0.0, 0.0, 0.125811489521665]
+
+        [[cells.lambda_d_c.codomain]]
+        dual = false
+
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_d_c.domain]]
+        dual = false
+
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_u_a]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.990303448167193, 0.0, 0.0, 0.0, 0.0, 0.08366966252250792, 0.0, 0.0, 0.0, 0.0, 0.05700123491399576, 0.0, 0.0, 0.0, 0.0, 0.09512795246307618]
+
+        [[cells.lambda_u_a.codomain]]
+        dual = false
+
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_u_a.domain]]
+        dual = false
+
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_u_b]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.7723114140068104, 0.0, 0.0, 0.0, 0.0, 0.08091831127034434, 0.0, 0.0, 0.0, 0.0, 0.6271683682249221, 0.0, 0.0, 0.0, 0.0, 0.06039159373659269]
+
+        [[cells.lambda_u_b.codomain]]
+        dual = false
+
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_u_b.domain]]
+        dual = false
+
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_u_c]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.6319726315087111, 0.0, 0.0, 0.0, 0.0, 0.058293098456922036, 0.0, 0.0, 0.0, 0.0, 0.7724397987117769, 0.0, 0.0, 0.0, 0.0, 0.023436404638000966]
+
+        [[cells.lambda_u_c.codomain]]
+        dual = false
+
+            [[cells.lambda_u_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_u_c.domain]]
+        dual = false
+
+            [[cells.lambda_u_c.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_c.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+[[cells]]
+    [cells.B_a]
+    axis_charges = [[0, 0, -2, 2], [-1, -1, 1, 1], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [2.483095507425482e-35, -7.180778448498663e-17, 0.0, 0.0, -6.356724499009233e-33, -5.776739134610587e-16, 0.0, 0.0, 0.0, 0.0, -2.197853601486933e-31, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.11012528233942e-17, 0.0, 0.0, 0.0, -5.021448626416527e-16, 2.0567911975253017e-15, 2.5020519553041597e-15, 0.0, 0.0, 1.3964663357802093e-15, -2.5350410409955298e-14, 0.0, 0.0]
+    real = [-0.9979307155162921, 0.7889973902810128, 0.0, 0.0, -0.36746426925393294, -2.252666577234883, 0.0, 0.0, 0.0, 0.0, -1.5258995856658255, 0.0, 0.0, 0.0, 4.796541424692179, 0.0, 0.0, 0.0, 0.0, -1.245877728565826, 0.0, 0.0, 0.0, 3.3452585947077704, -1.0145060255314498, -1.1748023769274722, 0.0, 0.0, -0.31894774574102724, 3.778501583594933, 0.0, 0.0]
+
+        [[cells.B_a.codomain]]
+        dual = true
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_a.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_a.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_a.codomain]]
+        dual = true
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_a.codomain]]
+        dual = false
+
+            [[cells.B_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.B_b]
+    axis_charges = [[-1, -1, 1, 1], [0, 0, -2, 2], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [-4.7062531123341924e-33, 1.0803605231654834e-17, 0.0, 0.0, -3.9725864109303106e-30, -3.579835518231453e-14, 0.0, 0.0, 0.0, 0.0, -1.7947725752533944e-42, 8.812311304485968e-17, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9427228945569525e-14, 2.2998066623964166e-15, 0.0, 0.0, 1.4063789076669409e-14, -2.9322480953666174e-13, 0.0, 0.0, 0.0, 0.0, 0.0, -2.230030027244112e-14, 0.0, 0.0]
+    real = [-0.9934760080025521, -0.18056000471088032, 0.0, 0.0, 1.236135483130065, -6.276942704205437, 0.0, 0.0, 0.0, 0.0, -1.2366881009221433, 10.118985220272194, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0053749518689503, -0.09140941522107886, 0.0, 0.0, -0.7268407566295197, 9.687447880105596, 0.0, 0.0, 0.0, 0.0, -1.540020131481656, 8.743698882183253, 0.0, 0.0]
+
+        [[cells.B_b.codomain]]
+        dual = true
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_b.codomain]]
+        dual = true
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_b.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_b.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_b.codomain]]
+        dual = false
+
+            [[cells.B_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.B_c]
+    axis_charges = [[0, 0, -2, 2], [-1, -1, 1, 1], [1, -1]]
+    dims = [4, 4, 2]
+    domain = []
+    imag = [-2.8969832837592464e-34, -1.1931530042638407e-16, 0.0, 0.0, 2.4720924021412234e-31, 2.7174076111412196e-14, 0.0, 0.0, 0.0, 0.0, 6.591663277304929e-31, 0.0, 0.0, 0.0, 8.83910656613842e-29, 0.0, 0.0, 0.0, 0.0, 6.192267059564331e-17, 0.0, 0.0, 0.0, 1.3391086579911976e-14, 2.714092656067646e-14, 2.0157136328936002e-14, 0.0, 0.0, 1.1567190394463573e-15, -5.173083986495908e-14, 0.0, 0.0]
+    real = [-0.9904549611702737, 1.155387605897038, 0.0, 0.0, -0.2205218658136575, -4.93580181003566, 0.0, 0.0, 0.0, 0.0, -1.2731902219876656, 0.0, 0.0, 0.0, 7.69132191948595, 0.0, 0.0, 0.0, 0.0, -1.4570751648126397, 0.0, 0.0, 0.0, 6.666130497208287, -1.0094996744261007, -0.753748463921536, 0.0, 0.0, -0.09827399815888634, 8.992017680974522, 0.0, 0.0]
+
+        [[cells.B_c.codomain]]
+        dual = true
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.B_c.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.B_c.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.B_c.codomain]]
+        dual = true
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.B_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.B_c.codomain]]
+        dual = false
+
+            [[cells.B_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 1
+            [[cells.B_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 1
+
+    [cells.T_d]
+    axis_charges = [[1, 1, -1, -1], [1, 1, -1, -1], [0, 0, 2, -2]]
+    dims = [4, 4, 4]
+    domain = []
+    imag = [0.0, 0.0, 0.47939720241201655, 0.0006797307627115469, 0.0, 0.0, -0.005250748341616748, 0.011568254738225262, -0.6305512455327009, -0.009951682967688565, 0.0, 0.0, 0.00019435536928385385, -0.007279643565353787, 0.0, 0.0, 0.0, 0.0, 0.03647052584880081, -0.015214927634640826, 0.0, 0.0, 0.017225204639757984, -0.0008237179203519222, 0.02853422755595494, -0.06248413612168548, 0.0, 0.0, 0.006240855405796025, 0.0005899044777901808, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.007916068127599638, 0.03913373198205761, 0.0, 0.0, -0.013621614829134585, 0.00042720164386914793, 0.08189643316451005, -0.05484043082372628, 0.0, 0.0, 0.022723907261557607, -0.00013820396131498735, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.0, 0.0, 0.3546017628929372, 0.0005027850090426538, 0.0, 0.0, -0.003883887117147816, 0.00855683659214133, -0.46640777654781396, -0.007361086602798382, 0.0, 0.0, 0.00014376128235400642, -0.005384625585044908, 0.0, 0.0, 0.0, 0.0, 0.02697661291002357, -0.011254217034198388, 0.0, 0.0, 0.012741183929981888, -0.0006092898023052361, 0.021106271257364567, -0.04621842745454402, 0.0, 0.0, 0.004616252071811488, 0.0004363420702298229, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.005855377751684539, 0.028946540112453165, 0.0, 0.0, -0.010075671296279341, 0.00031599361711870714, 0.0605773655512874, -0.040564511745291014, 0.0, 0.0, 0.0168084785105598, -0.00010222706364250619, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.T_d.codomain]]
+        dual = false
+
+            [[cells.T_d.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_d.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_d.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.T_u]
+    axis_charges = [[1, 1, -1, -1], [0, 0, 2, -2], [1, 1, -1, -1]]
+    dims = [4, 4, 4]
+    domain = []
+    imag = [0.0, 0.0, 0.21083350613586646, 0.0005590007377552933, 0.0, 0.0, 0.010943850248791489, -0.007191929724579725, 0.0, 0.0, 0.0, 0.0, 0.022371452405636254, -0.01801898507672689, 0.0, 0.0, 0.0, 0.0, -0.0021577398058617763, 0.0065358051115479284, 0.0, 0.0, 0.011599938543515948, -0.00040329402377473067, 0.0, 0.0, 0.0, 0.0, 0.014303085857947507, -7.997636422243643e-5, 0.0, 0.0, -0.2590059600977267, -0.0022548156651901853, 0.0, 0.0, 0.008956545396403547, -0.020143684221300317, 0.0, 0.0, 0.0, 0.0, -0.0009977235314018985, 0.017887796992404115, 0.0, 0.0, 0.0, 0.0, 0.00011103404778100782, -0.003051081874837832, 0.0, 0.0, 0.002044691032953462, 0.0004894030478000316, 0.0, 0.0, 0.0, 0.0, -0.006973532760515861, 0.0003614877146911448, 0.0, 0.0, 0.0, 0.0]
+    real = [0.0, 0.0, -0.5883684086096159, -0.0015599910114517121, 0.0, 0.0, -0.030540761157726977, 0.02007035942454183, 0.0, 0.0, 0.0, 0.0, -0.062431518079983914, 0.05028518364401735, 0.0, 0.0, 0.0, 0.0, 0.006021556815313496, -0.018239326959662797, 0.0, 0.0, -0.03237169226992019, 0.0011254637240494302, 0.0, 0.0, 0.0, 0.0, -0.0399153057722467, 0.00022318827308961015, 0.0, 0.0, 0.7228022118311255, 0.006292464271695873, 0.0, 0.0, -0.024994833402451292, 0.05621453461568928, 0.0, 0.0, 0.0, 0.0, 0.0027843250210149995, -0.04991907995482817, 0.0, 0.0, 0.0, 0.0, -0.00030986026458397703, 0.008514586794753516, 0.0, 0.0, -0.005706074101817411, -0.0013657662753911177, 0.0, 0.0, 0.0, 0.0, 0.019460883840956462, -0.0010087957807222968, 0.0, 0.0, 0.0, 0.0]
+
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.T_u.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+        [[cells.T_u.codomain]]
+        dual = false
+
+            [[cells.T_u.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.T_u.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_d_a]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.9403205739239314, 0.0, 0.0, 0.0, 0.0, 0.1819041176983182, 0.0, 0.0, 0.0, 0.0, 0.13792041366481292, 0.0, 0.0, 0.0, 0.0, 0.25236099087278074]
+
+        [[cells.lambda_d_a.codomain]]
+        dual = false
+
+            [[cells.lambda_d_a.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_a.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_a.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_d_a.domain]]
+        dual = false
+
+            [[cells.lambda_d_a.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_a.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_a.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_d_b]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.6107457625937474, 0.0, 0.0, 0.0, 0.0, 0.03884230728416502, 0.0, 0.0, 0.0, 0.0, 0.7906014775570374, 0.0, 0.0, 0.0, 0.0, 0.020741078160355485]
+
+        [[cells.lambda_d_b.codomain]]
+        dual = false
+
+            [[cells.lambda_d_b.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_b.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_d_b.domain]]
+        dual = false
+
+            [[cells.lambda_d_b.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_d_b.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_d_c]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.9854850823516468, 0.0, 0.0, 0.0, 0.0, 0.10117790900832818, 0.0, 0.0, 0.0, 0.0, 0.05247525500352986, 0.0, 0.0, 0.0, 0.0, 0.12581148915494547]
+
+        [[cells.lambda_d_c.codomain]]
+        dual = false
+
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_c.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_d_c.domain]]
+        dual = false
+
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_d_c.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_u_a]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.7723114142290094, 0.0, 0.0, 0.0, 0.0, 0.0809183112453984, 0.0, 0.0, 0.0, 0.0, 0.6271683679532777, 0.0, 0.0, 0.0, 0.0, 0.06039159374948181]
+
+        [[cells.lambda_u_a.codomain]]
+        dual = false
+
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_a.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_u_a.domain]]
+        dual = false
+
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_a.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+    [cells.lambda_u_b]
+    axis_charges = [[0, 0, 2, -2], [0, 0, -2, 2]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.9903034481695888, 0.0, 0.0, 0.0, 0.0, 0.0836696624799757, 0.0, 0.0, 0.0, 0.0, 0.057001234931567404, 0.0, 0.0, 0.0, 0.0, 0.09512795246501278]
+
+        [[cells.lambda_u_b.codomain]]
+        dual = false
+
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_b.codomain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+        [[cells.lambda_u_b.domain]]
+        dual = false
+
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = 0
+            multiplicity = 2
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = 2
+            multiplicity = 1
+            [[cells.lambda_u_b.domain.sectors]]
+            charge = -2
+            multiplicity = 1
+
+    [cells.lambda_u_c]
+    axis_charges = [[1, 1, -1, -1], [-1, -1, 1, 1]]
+    dims = [4, 4]
+    imag = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    real = [0.6319726312602774, 0.0, 0.0, 0.0, 0.0, 0.05829309822700501, 0.0, 0.0, 0.0, 0.0, 0.7724397989332508, 0.0, 0.0, 0.0, 0.0, 0.023436404609445127]
+
+        [[cells.lambda_u_c.codomain]]
+        dual = false
+
+            [[cells.lambda_u_c.codomain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_c.codomain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+        [[cells.lambda_u_c.domain]]
+        dual = false
+
+            [[cells.lambda_u_c.domain.sectors]]
+            charge = 1
+            multiplicity = 2
+            [[cells.lambda_u_c.domain.sectors]]
+            charge = -1
+            multiplicity = 2
+
+[metadata]
+TensorKit_source = "0.14.11"
+h = 0.38
+reference_energy_chi24 = -0.4374196134316011
+reference_m_chi24 = 0.11111111057450687
+source = "SU2 D4 projected to U1; 600 full SU steps"
+source_sha256 = "31b89a8955cf508ba1a8c0558486a79f2396620d64524fd5d55fce84501984cf"
+
+    [metadata.finite_nine_spin_validation]
+    h = 0.38
+    m_normalized = 0.11111111111111116
+    site_Sz = [0.09025645060904693, 0.09025645047067347, -0.31627421233921493, -0.14301778945874694, 0.07180595208047007, -0.11090750682935717, 0.07180595235997235, -0.14301778971864695, -0.11090750717419708]
+    total_energy_per_spin = -0.44242683541904365

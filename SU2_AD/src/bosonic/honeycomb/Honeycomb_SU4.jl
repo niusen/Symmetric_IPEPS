@@ -31,12 +31,14 @@ function sdiag_inv_sqrt(S::DiagonalTensorMap{<:Real})
     return R
 end
 
+include("multiplet_truncation.jl")
 include("honeycomb_SimpleUpdate.jl")
+include("star/honeycomb_star_state.jl")
 include("honeycomb_spin_model.jl")
 
-export initial_honeycomb_iPEPS, honeycomb_virtual_space, honeycomb_bonds,
+export initial_honeycomb_iPEPS, initial_honeycomb_star_iPEPS, honeycomb_virtual_space, honeycomb_bonds,
        Hamiltonian_honeycomb_SU4, itebd_honeycomb, honeycomb_energy_simple,
        honeycomb_energy_CTM, convert_honeycomb_to_iPEPS,
-       LS_CTMRG_settings, Algrithm_CTMRG_settings
+       LS_CTMRG_settings, Algrithm_CTMRG_settings, WholeMultipletBudget
 
 end

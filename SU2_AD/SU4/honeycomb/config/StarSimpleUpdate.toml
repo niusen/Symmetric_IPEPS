@@ -1,0 +1,40 @@
+# Initial tensor is always the exact D=9, 1+4+4bar star-covering PEPS.
+# Dmax is the allowed UPDATED bond dimension, including irrep dimensions.
+[run]
+Lx = 4
+Ly = 4
+J = 1.0
+Dmax = 24
+output_dir = "../server_runs/star_D24"
+identity_sweeps = 0
+checkpoint_every = 20
+keep_every = 200
+local_energy_every = 100  # 0 disables the approximate local energy, not checkpoints
+blas_threads = 1
+max_seconds = 0.0        # 0 means no limit; otherwise stop between checkpoint chunks
+
+# Fixed-duration schedule: completion does NOT imply SU convergence.
+# First run a small pilot by reducing steps, using a separate output directory.
+[[schedule]]
+dt = 0.01
+steps = 300
+
+[[schedule]]
+dt = 0.005
+steps = 600
+
+[[schedule]]
+dt = 0.002
+steps = 1500
+
+[[schedule]]
+dt = 0.001
+steps = 2000
+
+[ctm]
+enabled = true          # Same job: SU evolution, then CTMRG energy / bond observables
+chis = [48, 64, 96]
+iterations = 100
+tol = 1e-7
+energy_tol = 1e-6
+blas_threads = 4

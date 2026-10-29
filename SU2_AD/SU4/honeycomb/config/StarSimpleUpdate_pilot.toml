@@ -1,0 +1,24 @@
+# Small server pilot: three full sweeps, no expensive energy/CTMRG evaluation.
+[run]
+Lx = 4
+Ly = 4
+J = 1.0
+Dmax = 24
+output_dir = "../server_runs/star_D24_pilot"
+identity_sweeps = 0
+checkpoint_every = 1
+keep_every = 1
+local_energy_every = 0
+blas_threads = 1
+
+[[schedule]]
+dt = 0.001
+steps = 3
+
+[ctm]
+enabled = false
+chis = [48, 64, 96]
+iterations = 100
+tol = 1e-7
+energy_tol = 1e-6
+blas_threads = 4

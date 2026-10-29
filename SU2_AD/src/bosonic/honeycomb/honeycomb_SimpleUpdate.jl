@@ -105,10 +105,16 @@ and lambdax/y store sqrt(s), exactly as in the reused tebd_xbond/tebd_ybond.
 Dmax counts total states, including SU(4) irrep dimensions. Initial sectors
 are user supplied; the SVD may change them while preserving whole irreps.
 Three bond directions remain independent; no C3 projection is imposed.
+step_offset continues the direction-order cycle across checkpoint chunks.
+truncation=:optimal maximizes the retained norm within Dmax using whole irreps.
+truncation=:legacy reproduces the previous TensorKit rank-budget policy.
 """
 function itebd_honeycomb(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
-                          convention=:traceless,rotate_order=true,verbose=true)
+                          convention=:traceless,rotate_order=true,verbose=true,
+                          truncation=:optimal,step_offset=0)
     dt>0 && tau>=0 && Dmax>=1 || throw(ArgumentError("require dt>0, tau>=0, Dmax>=1"));
+    truncation in (:optimal,:legacy) || throw(ArgumentError("use truncation=:optimal or :legacy"));
+    budget=truncation==:optimal ? WholeMultipletBudget(Dmax) : Dmax;
     steps=round(Int,tau/dt);
     isapprox(steps*dt,tau;atol=1e-12,rtol=1e-10) || throw(ArgumentError("tau must be an integer multiple of dt"));
     Lx,Ly=size(T_set); bonds=honeycomb_bonds(Lx,Ly);
@@ -121,16 +127,16 @@ function itebd_honeycomb(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
     end
     directions=(:x,:y,:z);
     for ct=1:steps
-        offset=rotate_order ? mod(ct-1,3) : 0;
+        offset=rotate_order ? mod(ct+step_offset-1,3) : 0;
         a,b,c=ntuple(k->directions[mod1(k+offset,3)],3);
         for (direction,g) in ((a,gate_half),(b,gate_half),(c,gate),(b,gate_half),(a,gate_half))
             for bond in bonds
                 bond.direction==direction || continue;
                 cx,cy=bond.site1;
                 if bond.axis==:horizontal
-                    tebd_xbond(1,T_set,lambdax_set,lambday_set,g,cx+0.5,cy,Dmax);
+                    tebd_xbond(1,T_set,lambdax_set,lambday_set,g,cx+0.5,cy,budget);
                 else
-                    tebd_ybond(1,T_set,lambdax_set,lambday_set,g,cx,cy-0.5,Dmax);
+                    tebd_ybond(1,T_set,lambdax_set,lambday_set,g,cx,cy-0.5,budget);
                 end
             end
         end

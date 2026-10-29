@@ -1,6 +1,6 @@
 using LinearAlgebra, TensorKit, TensorKitSectors, SUNRepresentations
 using JLD2
-include("../../src/bosonic/honeycomb/Honeycomb_SU4.jl")
+include("../../../../src/bosonic/honeycomb/Honeycomb_SU4.jl")
 using .HoneycombSU4
 
 function main(;symmetry=:dense)
@@ -27,7 +27,8 @@ function main(;symmetry=:dense)
         println("simple-lambda estimate: E/site=",ob.energy_per_site,", bonds=",ob.bond_energy);
     end
 
-    filename=joinpath(@__DIR__,"SU_honeycomb_$(symmetry)_D$(D_max).jld2");
+    output=normpath(joinpath(@__DIR__,"../../data/baseline"));mkpath(output);
+    filename=joinpath(output,"SU_honeycomb_$(symmetry)_D$(D_max).jld2");
     jldsave(filename;T_set,lambdax_set,lambday_set,parameters,convention,symmetry,D_max);
 
     ctm_setting=LS_CTMRG_settings();

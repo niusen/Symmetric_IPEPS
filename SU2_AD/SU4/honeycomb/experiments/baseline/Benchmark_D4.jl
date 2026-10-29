@@ -1,6 +1,6 @@
 using LinearAlgebra, JLD2, Printf
 BLAS.set_num_threads(1);
-include("../../src/bosonic/honeycomb/Honeycomb_SU4.jl")
+include("../../../../src/bosonic/honeycomb/Honeycomb_SU4.jl")
 using .HoneycombSU4
 
 function bond_spectra(lx,ly)
@@ -11,7 +11,7 @@ function spectrum_change(a,b)
 end
 
 function main(;seeds=(1234,2025,42),Lx=2,Ly=2)
-    output=joinpath(@__DIR__,"benchmark_D4_$(Lx)x$(Ly)"); mkpath(output);
+    output=joinpath(@__DIR__,"../../data","benchmark_D4_$(Lx)x$(Ly)"); mkpath(output);
     parameters=Dict("J"=>1.0);
     trace_path=joinpath(output,"evolution.csv");
     ctm_path=joinpath(output,"ctm.csv");
@@ -92,7 +92,7 @@ Record every measurement so iteration and chi changes can both be checked.
 """
 function measure_saved_D4(;seed=1234,chis=(8,16,24,32),iterations=80)
     BLAS.set_num_threads(4);
-    output=joinpath(@__DIR__,"benchmark_D4_2x2");
+    output=joinpath(@__DIR__,"../../data","benchmark_D4_2x2");
     data=load(joinpath(output,"seed_$(seed).jld2"));
     T=data["T_set"]; parameters=data["parameters"];
     setting=LS_CTMRG_settings(CTM_ite_nums=iterations,CTM_conv_tol=1e-6,

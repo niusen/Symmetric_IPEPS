@@ -1,0 +1,8 @@
+# Keep server launchers even when a parent/global rule ignores shell scripts.
+!run_star_su.sh
+!job_star_su.sbatch
+server_runs/
+logs/
+__pycache__/
+# Preserve the previously versioned benchmark tables at their new location.
+!data/benchmark_D4_2x2/*.csv

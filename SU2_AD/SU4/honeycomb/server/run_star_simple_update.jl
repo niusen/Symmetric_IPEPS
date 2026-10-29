@@ -13,7 +13,7 @@ The standard configuration runs SU and then CTMRG observables in the SAME job.
   --dry-run        Validate and print configuration, without constructing tensors
   --help           Print this message
 
-Source library may be local or selected with SU4_SRC_DIR / SU2_AD_ROOT.
+Uses the existing shared source library, selected with SU4_SRC_DIR / SU2_AD_ROOT if needed.
 No SU2_AD directory name or fixed relative location is required.
 JULIA_PROJECT is honored; packages are never installed or updated by this script.
 """;
@@ -51,7 +51,7 @@ function star_source_dir(;entry_dir=@__DIR__,work_dir=pwd(),env=ENV)
             parent=dirname(base);parent==base && break;base=parent;
         end
     end
-    error("Cannot find the honeycomb source library. Put src beside the run folder, or set SU4_SRC_DIR=/path/to/src. The run folder can be anywhere.");
+    error("Cannot find the shared honeycomb library. Set SU4_SRC_DIR=/path/to/your/existing/src; no source copy is needed.");
 end
 
 function star_default_config(;entry_dir=@__DIR__,work_dir=pwd())

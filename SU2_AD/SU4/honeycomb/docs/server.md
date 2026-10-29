@@ -13,7 +13,8 @@
 默认不做恒等门预整理。所有局部/CTM 能量 `E_P` 采用 `sum(P_ij)` 每格点单位，
 实际 Hamiltonian 为 `J*sum(P_ij)`；CTM 另记录 `E_H=J*E_P`。
 
-运行目录可以放在任意位置，不要求完整仓库或 `SU2_AD/SU4/honeycomb` 层级。
+只复用已有的一份通用 `src/`，不导出或复制算法源码。
+运行目录可以放在任意位置，不要求 `SU2_AD/SU4/honeycomb` 层级。
 程序自动沿入口和当前目录的父目录查找 src，也支持
 `SU4_SRC_DIR=/absolute/path/to/src` 或 `SU2_AD_ROOT=/absolute/project/root`。
 显式指定的路径若无效会直接报出该路径，避免意外载入另一份源码。
@@ -22,7 +23,7 @@ JLD2 初态或 Windows 路径。脚本不安装或更新任何包。
 本机验证环境为 Julia1.11.6、TensorKit0.17 与现有 SUNRepresentations；其他后端版本
 仍需先跑 pilot。`JULIA_BIN`、`JULIA_PROJECT` 可选择服务器可执行文件和环境。
 
-原仓库布局下可从 SU2_AD 目录运行以下命令；便携布局直接用 `sh run_star_su.sh`：
+原仓库布局下可从 SU2_AD 目录运行以下命令；独立运行目录直接用 `sh run_star_su.sh`：
 
 ```sh
 # 可选：指向已有环境，不要照抄本机 Windows 路径。

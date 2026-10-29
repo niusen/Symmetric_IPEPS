@@ -1,6 +1,8 @@
 #!/bin/sh
 # Same launch style as the existing server sh files: detach, log, and record PID.
 set -eu
+# Outside the project layout, point to the EXISTING shared src; never copy it:
+# export SU4_SRC_DIR=/path/to/existing/src
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 julia_bin=${JULIA_BIN:-julia}
 foreground=${SU4_STAR_FOREGROUND:-0}

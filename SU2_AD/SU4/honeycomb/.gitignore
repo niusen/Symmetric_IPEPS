@@ -4,6 +4,5 @@
 server_runs/
 logs/
 __pycache__/
-deploy/
 # Preserve the previously versioned benchmark tables at their new location.
 !data/benchmark_D4_2x2/*.csv

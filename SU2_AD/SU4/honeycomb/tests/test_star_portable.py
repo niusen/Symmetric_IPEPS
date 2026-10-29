@@ -1,26 +1,29 @@
-"""Verify the source-only archive outside the repository, without evolving."""
+"""Verify a normal exported run directory outside the repository, without evolving."""
 import importlib.util
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-import zipfile
 
 
 def main():
     run = Path(__file__).resolve().parents[1]
-    spec = importlib.util.spec_from_file_location('star_packager',run/'server/package_star_run.py')
+    spec = importlib.util.spec_from_file_location('star_exporter',run/'server/prepare_star_run.py')
     packager = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(packager)
     julia = os.environ.get('JULIA_BIN') or shutil.which('julia')
-    assert julia, 'Set JULIA_BIN to test the archive'
+    assert julia, 'Set JULIA_BIN to test the directory'
     with tempfile.TemporaryDirectory(prefix='star_portable_') as directory:
         root = Path(directory)
-        archive = packager.package_star_run(root/'portable.zip')
-        with zipfile.ZipFile(archive) as package:
-            package.extractall(root)
-        portable = root/'su4_star_run'
+        portable = packager.prepare_star_run(root/'my_calculation')
+        assert (portable/'src/bosonic/honeycomb/star/StarSimpleUpdateRun.jl').is_file()
+        try:
+            packager.prepare_star_run(portable)
+        except FileExistsError:
+            pass
+        else:
+            raise AssertionError('Existing run directories must not be overwritten')
         env = os.environ.copy()
         for key in ('SU4_SRC_DIR','SU2_AD_ROOT','SU4_STAR_ENTRY'):
             env.pop(key,None)
@@ -37,7 +40,7 @@ def main():
             cwd=portable,env=env,capture_output=True,text=True,encoding='utf-8',timeout=60)
         assert result.returncode==0,result.stderr
         assert 'automatic CTMRG: true' in result.stdout
-        # Load all library dependencies from the archive, not the original checkout.
+        # Load all library dependencies from the copied folder, not the original checkout.
         code = ('include("src/bosonic/honeycomb/star/StarSimpleUpdateRun.jl");'
                 '@assert isdefined(HoneycombStarRun,:run_star_server);'
                 '@assert isdefined(HoneycombStarRun,:measure_star_server);'

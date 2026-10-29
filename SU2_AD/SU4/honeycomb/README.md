@@ -43,15 +43,28 @@ honeycomb/
 用 `SU4_SRC_DIR=/path/to/src sh run_star_su.sh` 指定源码；默认也会沿脚本位置和
 当前目录的父目录查找源码。`SU2_AD_ROOT` 可指向已有项目根目录。
 
-也可在本机生成只含运行文件与必要源码的便携包：
+也可生成只含运行文件与必要源码的普通目录：
 
 ```sh
-python SU4/honeycomb/server/package_star_run.py
+python SU4/honeycomb/server/prepare_star_run.py
 ```
 
-上传 `dist/su4_star_run.zip` 后，在服务器任意位置解压，进入 `su4_star_run/`，
-直接执行 `sh run_star_su.sh`。包内自动包含所需的 src 子树，不需要整个仓库。
-运行包本身不需要 Python；仍使用服务器已有的兼容 Julia 包环境。
+直接上传生成的 `deploy/su4_star_run/` 文件夹即可，不需要压缩或解压。目录层次为：
+
+```text
+su4_star_run/
+├── run_star_su.sh
+├── server/                 Julia 运行入口
+├── config/                 演化与测量配置
+└── src/bosonic/            所需的原有算法库
+    ├── honeycomb/          蜂窝模型与星形态流程
+    └── triangle/           复用的两点更新和观测量辅助代码
+```
+
+在服务器进入该目录，执行 `sh run_star_su.sh`。不需要整个仓库，也不要求目录名。
+根 `src/` 仍是唯一维护的算法源码，`deploy/` 只是供上传的拷贝，不另维护一套算法。
+生成工具不会覆盖已有运行目录；更新时用 `--output /path/to/new_folder` 指定新目录，
+以免覆盖服务器配置和检查点。运行目录本身不需要 Python，仍使用兼容 Julia 包环境。
 
 正式运行不依赖 `experiments/`、本机数据或 Python。功能性代码在
 `src/bosonic/honeycomb/`，相对 `SU2_AD` 的结构如下：

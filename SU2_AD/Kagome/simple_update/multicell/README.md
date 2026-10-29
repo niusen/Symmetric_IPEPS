@@ -32,3 +32,5 @@ multicell/
 GPU 环境文件夹均不影响默认 CPU 任务启动。
 
 详细说明：[服务器任务](docs/SU2_D4_D12_SERVER.md)。
+
+D4 的 SU2→U1 后继续 simple update：直接运行 `examples/run_u1_from_su2.jl`，所有选项都在文件顶部；见 [U1 说明](docs/U1_USAGE.md)。

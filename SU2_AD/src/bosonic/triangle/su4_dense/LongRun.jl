@@ -25,7 +25,7 @@ Base.@kwdef struct LongRunConfig
     stable_checks::Int=4
     trun_tol::Float64=1e-12
     lambda_tol_floor::Float64=1e-8
-    lambda_tol_scale::Float64=1e-4
+    lambda_tol_scale::Float64=1e-3 # original itebd_iPESS stopping tolerance: dt*1e-3
     blas_threads::Int=min(8,Sys.CPU_THREADS)
     ctm_chis::Vector{Int}=[16,32,48]
     ctm_max_iterations::Int=50
@@ -79,8 +79,30 @@ function run_one(cfg::LongRunConfig,D::Int,seed::Int)
     if isfile(checkpoint)
         cfg.resume || error("checkpoint exists; use resume=true or a new output directory")
         saved=load_state(checkpoint); meta=saved.metadata
-        meta.longrun.signature==signature(cfg) && meta.Dmax==D && meta.seed==seed || error("checkpoint parameters differ; use a new output directory")
+        meta.Dmax==D && meta.seed==seed || error("checkpoint parameters differ; use a new output directory")
+        current_signature=signature(cfg)
+        previous_signature=meta.longrun.signature
+        # Accept only the specific correction from our earlier, overly strict
+        # default to the original src tolerance. Physical parameters and the
+        # evolution schedule must still match exactly.
+        restored_tolerance=cfg.lambda_tol_scale==1e-3 &&
+            previous_signature==merge(current_signature,(lambda_tol_scale=1e-4,))
+        previous_signature==current_signature || restored_tolerance ||
+            error("checkpoint parameters differ; use a new output directory")
         state=saved.state; progress=meta.longrun.progress; history=meta.longrun.history; stages=meta.longrun.stages
+        if restored_tolerance
+            for i in eachindex(stages)
+                stage=stages[i]
+                checks=filter(r->r.stage==stage.stage && cfg.min_sweeps<=r.sweep<=stage.sweeps,history)
+                tol=max(cfg.lambda_tol_floor,cfg.lambda_tol_scale*stage.dt)
+                converged=length(checks)>=cfg.stable_checks &&
+                    all(r->r.lambda_change<=tol,last(checks,cfg.stable_checks))
+                stages[i]=merge(stage,(converged=converged,))
+            end
+            progress=merge(progress,(stable=0,))
+            write_checkpoint(checkpoint,state,cfg,D,seed,progress,history,stages)
+            println("Restored original SU tolerance dt*1e-3; retained state and sweep history.")
+        end
         println("Resuming D=",D," seed=",seed," total_sweeps=",progress.total_sweeps)
     else
         state=init_state(cfg.Lx,cfg.Ly;D,seed)

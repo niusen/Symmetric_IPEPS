@@ -112,8 +112,23 @@ function test_batch_resume()
             r2=LR.run_one(cfg,1,77)
             @test r2.total_sweeps==r.total_sweeps
             @test r2.energy ≈ r.energy atol=1e-12
-            @test load_state(joinpath(dirname(r.matfile),"checkpoint.jls")).state.T[1] isa TensorMap
+            checkpoint=joinpath(dirname(r.matfile),"checkpoint.jls")
+            saved=load_state(checkpoint)
+            @test saved.state.T[1] isa TensorMap
+            # The old, ten-times-stricter checkpoint must resume without
+            # repeating SU; convergence is rechecked from its saved history.
+            legacy=merge(saved.metadata.longrun,
+                (signature=merge(saved.metadata.longrun.signature,(lambda_tol_scale=1e-4,)),
+                 stages=NamedTuple[merge(stage,(converged=false,)) for stage in saved.metadata.longrun.stages]))
+            save_state(checkpoint,saved.state;metadata=merge(saved.metadata,(longrun=legacy,)))
+            r3=LR.run_one(cfg,1,77)
+            @test r3.total_sweeps==r.total_sweeps
+            @test r3.converged
+            migrated=load_state(checkpoint)
+            @test migrated.metadata.longrun.signature.lambda_tol_scale==1e-3
+            @test all(stage->stage.converged,migrated.metadata.longrun.stages)
         end
+        @test LR.LongRunConfig().lambda_tol_scale==1e-3
         @test_throws ArgumentError LR.validate(LR.LongRunConfig(ctm_max_iterations=51))
     end
 end

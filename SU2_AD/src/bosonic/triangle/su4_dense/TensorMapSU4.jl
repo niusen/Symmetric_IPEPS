@@ -16,7 +16,7 @@ include(joinpath(SRC,"triangle/triangle_iPESS_method.jl"))
 include(joinpath(SRC,"triangle/simple_update/triangle_SimpleUpdate.jl"))
 include(joinpath(SRC,"triangle/simple_update/triangle_SimpleUpdate_iPESS.jl"))
 
-export init_state, model_settings, measure_state, save_state, load_state,
+export init_state, expand_state, model_settings, measure_state, save_state, load_state,
        nearest_neighbor_bonds, bond_table_matrix, bond_pattern_diagnostics,
        print_observables, save_observables, observable_mat_data
 
@@ -31,6 +31,50 @@ function init_state(nx,ny;D=4,seed=1234)
     Random.seed!(seed)
     B,T,l1,l2,l3=initial_iPESS(nx,ny,ComplexSpace(D),ComplexSpace(4))
     return (B=B,T=T,lambda1=l1,lambda2=l2,lambda3=l3)
+end
+
+"""Embed a dense iPESS in larger virtual spaces, preserving every old tensor block.
+Noise is restricted to the added virtual sectors. Lambda tails receive small
+positive weights so the old SU dressing/inverse can use the added directions.
+Array conversion is confined to this initialization; the returned state and
+all subsequent SU/CTMRG calculations use the original TensorMap routines.
+"""
+function expand_state(state,D::Integer;seed=1234,noise=1e-3)
+    isfinite(noise) && noise>=0 || throw(ArgumentError("expansion noise must be finite and nonnegative"))
+    oldmax=maximum(dim(space(t,k)) for t in state.B for k=1:3)
+    D>oldmax || throw(ArgumentError("target D must exceed all source bond dimensions"))
+    all(t->all(k->space(t,k) isa ComplexSpace,1:3),state.B) ||
+        throw(ArgumentError("expand_state supports dense ComplexSpace tensors only"))
+    expanded=init_state(size(state.B)...;D,seed)
+    for field in (:B,:T)
+        for k in eachindex(getproperty(state,field))
+            old=getproperty(state,field)[k]
+            template=getproperty(expanded,field)[k]
+            values=convert(Array,old)
+            ranges=map(d->1:d,size(values))
+            padded=zeros(ComplexF64,size(convert(Array,template)))
+            padded[ranges...]=values
+            if noise>0
+                perturbation=ComplexF64.(convert(Array,template))
+                perturbation[ranges...].=0
+                perturbation .*= noise*norm(values)/norm(perturbation)
+                padded .+= perturbation
+            end
+            getproperty(expanded,field)[k]=TensorMap(padded,codomain(template),domain(template))
+        end
+    end
+    for field in (:lambda1,:lambda2,:lambda3)
+        for k in eachindex(getproperty(state,field))
+            old=real.(diag(convert(Array,getproperty(state,field)[k])))
+            length(old)<D || throw(ArgumentError("target D must exceed source lambda dimensions"))
+            values=zeros(Float64,D)
+            values[1:length(old)]=old
+            values[length(old)+1:end].=noise*norm(old)/sqrt(D-length(old))
+            template=getproperty(expanded,field)[k]
+            getproperty(expanded,field)[k]=DiagonalTensorMap(values,space(template,1))
+        end
+    end
+    return expanded
 end
 
 function save_state(path,state;metadata=NamedTuple())

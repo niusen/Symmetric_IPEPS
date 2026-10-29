@@ -22,9 +22,9 @@
 
 可复用的 Julia 函数集中在 `src/bosonic/triangle/su4_dense/`：
 
-- `TensorMapSU4.jl`：加载旧代码、设置参数、转换观测量坐标、检查点读写。
+- `TensorMapSU4.jl`：加载旧代码、设置参数、扩展虚空间、转换观测量坐标、检查点读写。
 - `Observables_iPESS.jl`：12 条键的坐标、文本/CSV/MAT 格式辅助与 Fourier 分析，无收缩算法。
-- `LongRun.jl`：多 D、多 seed 调度、断点续算、MAT 输出及检查点重新测量。
+- `LongRun.jl`：多 D、多 seed 的升 D 续接或独立随机计算、断点续算、MAT 输出及检查点重新测量。
 - `PlotBondPattern.py`：完整键图的绘图工具。
 
 `SU4/simple_update_dense/` 保留简短运行入口和使用文件：
@@ -60,4 +60,6 @@ python src/bosonic/triangle/su4_dense/PlotBondPattern.py /path/to/observables_bo
 
 批量运行见 `LONG_RUN.md`。历史 `test_runs_D4_2x2` 的数据/图像保留，
 它们属于此前 Array 实现的结果；新程序不将其作为 TensorMap 检查点续算。
-新格式使用独立输出目录 `long_runs_tensormap`。
+新格式使用独立输出根目录 `long_runs_tensormap`。默认升 D 计算保存在其 `continuation/`
+子目录，可复用根目录里已有的第一个 D 的 TensorMap 检查点；独立随机模式为
+`LongRunConfig(initialization=:random)`。详情见 `LONG_RUN.md`。

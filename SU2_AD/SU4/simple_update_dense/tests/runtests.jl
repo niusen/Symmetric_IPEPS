@@ -132,6 +132,75 @@ function test_batch_resume()
         @test_throws ArgumentError LR.validate(LR.LongRunConfig(ctm_max_iterations=51))
     end
 end
+function test_bond_expansion()
+    @testset "Dense iPESS virtual-space expansion" begin
+        s=init_state(2,2;D=1,seed=31)
+        original=deepcopy(s)
+        padded=expand_state(s,2;noise=0.0,seed=99)
+        oldpsi=triangle_wavefunction(s.T[1,2],s.T[2,1],s.T[1,1],s.B[1,1])
+        newpsi=triangle_wavefunction(padded.T[1,2],padded.T[2,1],padded.T[1,1],padded.B[1,1])
+        @test newpsi[:,1] ≈ oldpsi[:,1] atol=1e-12
+        @test norm(newpsi[:,2:end])==0
+        perturbed=expand_state(s,2;noise=1e-3,seed=99)
+        repeated=expand_state(s,2;noise=1e-3,seed=99)
+        @test perturbed.T==repeated.T
+        @test perturbed.B==repeated.B
+        @test s.B==original.B && s.T==original.T
+        @test all(l->diag(convert(Array,l))[end]>0,perturbed.lambda1)
+        @test all(t->all(k->SU4TM.dim(SU4TM.space(t,k))==2,1:3),perturbed.B)
+        gates=SU4TM.gate_RU_LD_RD(Dict("J"=>1.0,"K"=>0.0,"Φ"=>0.0),
+            model_settings(2,2),0.005,SU4TM.ComplexSpace)
+        SU4TM.triangle_update_iPESS(2,1,perturbed.B,perturbed.T,
+            perturbed.lambda1,perturbed.lambda2,perturbed.lambda3,gates,1e-12)
+        @test all(t->isfinite(norm(t)),perturbed.B)
+        @test all(t->isfinite(norm(t)),perturbed.T)
+        @test maximum(SU4TM.dim(SU4TM.space(b,k)) for b in perturbed.B for k=1:3)==2
+        @test_throws ArgumentError expand_state(s,1)
+        @test_throws ArgumentError expand_state(s,2;noise=-1.0)
+    end
+end
+function test_continuation_batch()
+    @testset "Previous-D chain, existing state reuse and restart" begin
+        LR=DenseSU4LongRun
+        mktempdir() do dir
+            options=(Ds=[1,2],seeds=[77],J=0.0,schedule=[(0.1,2)],
+                continuation_schedule=[(0.005,2)],min_sweeps=1,measure_every=1,
+                checkpoint_every=1,stable_checks=1,blas_threads=1,
+                ctm_chis=[1,2],ctm_max_iterations=3,output_dir=dir)
+            independent=LR.LongRunConfig(;options...,initialization=:random)
+            base=LR.run_one(independent,1,77)
+            original_checkpoint=joinpath(dirname(base.matfile),"checkpoint.jls")
+            original_bytes=read(original_checkpoint)
+            ignored_checkpoint=joinpath(LR.run_directory(independent,2,77),"checkpoint.jls")
+            mkpath(dirname(ignored_checkpoint))
+            write(ignored_checkpoint,"independent D=2 result must not be overwritten")
+            cfg=LR.LongRunConfig(;options...,initialization=:previous_D)
+            rows=LR.run_batch(cfg)
+            @test all(r->r.complete,rows)
+            all(r->r.complete,rows) || error("continuation batch failed")
+            first_data=matread(rows[1].matfile)
+            next_data=matread(rows[2].matfile)
+            @test first_data["initialization"]=="existing_checkpoint"
+            @test rows[1].total_sweeps==base.total_sweeps
+            @test next_data["initialization"]=="previous_D"
+            @test next_data["source_D"]==1
+            @test next_data["initial_D"]==1
+            @test next_data["schedule"]≈[0.005 2.0]
+            @test next_data["expansion_noise"]==cfg.expansion_noise
+            @test read(original_checkpoint)==original_bytes
+            @test read(ignored_checkpoint,String)=="independent D=2 result must not be overwritten"
+            @test isfile(joinpath(dir,"continuation","scan_summary.mat"))
+            resumed=LR.run_one(cfg,2,77)
+            @test resumed.total_sweeps==rows[2].total_sweeps
+            @test resumed.energy≈rows[2].energy atol=1e-10
+            saved=load_state(joinpath(dirname(resumed.matfile),"checkpoint.jls"))
+            @test saved.metadata.initialization.source_D==1
+            @test saved.metadata.longrun.signature.schedule==cfg.continuation_schedule
+        end
+        @test_throws ArgumentError LR.validate(LR.LongRunConfig(Ds=[5,4]))
+        @test_throws ArgumentError LR.validate(LR.LongRunConfig(expansion_noise=0.0))
+    end
+end
 function run_su4_tests()
     BLAS.set_num_threads(1)
     test_dense_projector()
@@ -139,6 +208,8 @@ function run_su4_tests()
     test_product_measurements()
     test_d4_smoke()
     test_batch_resume()
+    test_bond_expansion()
+    test_continuation_batch()
 end
 if abspath(PROGRAM_FILE)==@__FILE__
     run_su4_tests()

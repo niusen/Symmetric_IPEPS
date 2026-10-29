@@ -68,14 +68,9 @@ function _change(a,b)
 end
 
 function _validate(T,lx,ly,cap)
-    for t in T
-        n=norm(t);
-        isfinite(n) && n>0 || error("nonfinite or zero site tensor");
-    end
-    for s in _spectra(lx,ly)
-        0<dim(space(s,1))<=cap || error("invalid real-bond dimension");
-        all(v->isfinite(v) && v>=0,(v for (_,b) in blocks(s) for v in diag(b))) || error("invalid bond weights");
-        isfinite(norm(s)) && norm(s)>0 || error("zero bond weights");
+    HoneycombSU4._check_honeycomb_state(T,lx,ly;maxdim=cap);
+    for s in (lx...,ly...)
+        all(v->v>=0,(v for (_,b) in blocks(s) for v in diag(b))) || error("negative bond weights");
     end
 end
 
@@ -99,7 +94,8 @@ function _checkpoint(c,T,lx,ly,p,history;archive=false)
     _atomic_write(latest) do tmp
         jldsave(tmp;schema_version=SCHEMA,physics=star_physics(c),T_set=T,
             lambdax_set=lx,lambday_set=ly,progress=p,history,sectors,
-            julia_version=string(VERSION),tensorkit_version=string(Base.pkgversion(TensorKit)));
+            julia_version=string(VERSION),tensorkit_version=string(Base.pkgversion(TensorKit)),
+            sunrepresentations_version=string(Base.pkgversion(SUNRepresentations)));
     end
     if archive
         path=joinpath(c.output_dir,"state_step$(lpad(string(p["total_steps"]),8,'0')).jld2");
@@ -109,7 +105,8 @@ function _checkpoint(c,T,lx,ly,p,history;archive=false)
     _csv(joinpath(c.output_dir,"bond_sectors_latest.csv"),sectors);
     _atomic_write(joinpath(c.output_dir,"status.toml")) do tmp
         open(io->TOML.print(io,Dict("progress"=>p,"julia_version"=>string(VERSION),
-            "tensorkit_version"=>string(Base.pkgversion(TensorKit)),"saved_at"=>string(now()))),tmp,"w");
+            "tensorkit_version"=>string(Base.pkgversion(TensorKit)),
+            "sunrepresentations_version"=>string(Base.pkgversion(SUNRepresentations)),"saved_at"=>string(now()))),tmp,"w");
     end
     return latest
 end
@@ -144,6 +141,8 @@ stop_after_chunks is a lightweight restart-test hook, not a convergence criterio
 function run_star_server(c::StarRunConfig;resume=false,initial_checkpoint=nothing,stop_after_chunks=typemax(Int))
     resume && !isnothing(initial_checkpoint) && error("Use either resume or initial_checkpoint, not both");
     describe_star_run(c);BLAS.set_num_threads(c.blas_threads);
+    println("Backend: Julia=",VERSION," TensorKit=",Base.pkgversion(TensorKit),
+        " SUNRepresentations=",Base.pkgversion(SUNRepresentations));flush(stdout);
     return _locked(c.output_dir) do
         latest=joinpath(c.output_dir,"state_latest.jld2");
         if resume

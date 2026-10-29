@@ -8,6 +8,76 @@ function honeycomb_virtual_space(sectors)
     return Rep[SU₄](sectors...)
 end
 
+function _honeycomb_lambda_summary(s)
+    values=[v for (_,b) in blocks(s) for v in diag(b)];
+    return (D=dim(space(s,1)),stored=length(values),norm=norm(s),
+        max_abs=maximum(abs,values;init=0.),
+        sectors=[(sector=string(c),dim=Int(dim(c)),multiplicity=size(b,1)) for (c,b) in blocks(s)]);
+end
+
+function _require_honeycomb_lambda(s,where)
+    info=_honeycomb_lambda_summary(s);
+    info.D>0 && info.stored>0 || throw(ArgumentError("empty bond lambda at $where: $info"));
+    isfinite(info.max_abs) && info.max_abs>0 || throw(ArgumentError("zero/nonfinite bond lambda at $where: $info"));
+    all(isfinite,(v for (_,b) in blocks(s) for v in diag(b))) ||
+        throw(ArgumentError("nonfinite bond entries at $where"));
+    return info
+end
+
+# Keep the shared AD_lib implementation unchanged for other models. For real
+# honeycomb SU weights, avoid dense Array conversion and overflow in lambda^2.
+function my_pinv(T::DiagonalTensorMap{<:Real})
+    info=_require_honeycomb_lambda(T,"my_pinv input");
+    scale=info.max_abs;R=copy(T);
+    for (_,b) in blocks(R),i=1:size(b,1)
+        x=b[i,i]/scale;
+        b[i,i]=(x/(x*x+1e-12))/scale;
+        isfinite(b[i,i]) || throw(ArgumentError("bond inverse is not representable at scale=$scale"));
+    end
+    return R
+end
+
+function _check_honeycomb_state(T,lx,ly;maxdim=nothing)
+    size(T)==size(lx)==size(ly) || throw(DimensionMismatch("inconsistent honeycomb state cells"));
+    for i in CartesianIndices(T)
+        n=norm(T[i]);
+        isfinite(n) && n>0 || throw(ArgumentError("zero/nonfinite site tensor at $(Tuple(i))"));
+        for (axis,weights) in ((:x,lx),(:y,ly))
+            info=_require_honeycomb_lambda(weights[i],"$axis $(Tuple(i))");
+            isnothing(maxdim) || info.D<=maxdim || throw(ArgumentError("bond at $axis $(Tuple(i)) exceeds Dmax=$maxdim"));
+        end
+    end
+    return nothing
+end
+
+function _honeycomb_incident_weights(lx,ly,bond)
+    nx,ny=size(lx);locations=Set{Tuple{Symbol,Int,Int}}();
+    for (x,y) in (bond.site1,bond.site2)
+        union!(locations,((:x,x,y),(:x,mod1(x+1,nx),y),(:y,x,y),(:y,x,mod1(y+1,ny))));
+    end
+    return [(axis=axis,site=(x,y),lambda=axis==:x ? lx[x,y] : ly[x,y])
+            for (axis,x,y) in sort!(collect(locations))];
+end
+
+struct HoneycombUpdateError <: Exception
+    sweep::Int
+    bond::Any
+    dt::Float64
+    Dmax::Int
+    weights::Any
+    cause::CapturedException
+end
+
+function Base.showerror(io::IO,e::HoneycombUpdateError)
+    println(io,"Honeycomb SU failed at sweep=",e.sweep," direction=",e.bond.direction,
+        " sites=",(e.bond.site1,e.bond.site2)," dt=",e.dt," Dmax=",e.Dmax);
+    println(io,"TensorKit=",Base.pkgversion(TensorKit)," SUNRepresentations=",Base.pkgversion(SUNRepresentations));
+    for info in e.weights
+        println(io,"  ",info);
+    end
+    showerror(io,e.cause);
+end
+
 function honeycomb_bonds(Lx,Ly)
     Lx>=2 && Ly>=2 && iseven(Lx) && iseven(Ly) ||
         throw(ArgumentError("brick-wall periodic cells require even Lx,Ly >= 2"));
@@ -119,6 +189,7 @@ function itebd_honeycomb(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
     isapprox(steps*dt,tau;atol=1e-12,rtol=1e-10) || throw(ArgumentError("tau must be an integer multiple of dt"));
     Lx,Ly=size(T_set); bonds=honeycomb_bonds(Lx,Ly);
     size(lambdax_set)==size(lambday_set)==size(T_set) || throw(DimensionMismatch("inconsistent cells"));
+    _check_honeycomb_state(T_set,lambdax_set,lambday_set);
     H=Hamiltonian_honeycomb_SU4(space(T_set[1],5);J=parameters["J"],convention=convention);
     if iszero(norm(H))
         gate=unitary(codomain(H),domain(H)); gate_half=gate;
@@ -133,10 +204,27 @@ function itebd_honeycomb(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
             for bond in bonds
                 bond.direction==direction || continue;
                 cx,cy=bond.site1;
-                if bond.axis==:horizontal
-                    tebd_xbond(1,T_set,lambdax_set,lambday_set,g,cx+0.5,cy,budget);
-                else
-                    tebd_ybond(1,T_set,lambdax_set,lambday_set,g,cx,cy-0.5,budget);
+                try
+                    for info in _honeycomb_incident_weights(lambdax_set,lambday_set,bond)
+                        _require_honeycomb_lambda(info.lambda,"$(info.axis) $(info.site)");
+                    end
+                    if bond.axis==:horizontal
+                        tebd_xbond(1,T_set,lambdax_set,lambday_set,g,cx+0.5,cy,budget);
+                    else
+                        tebd_ybond(1,T_set,lambdax_set,lambday_set,g,cx,cy-0.5,budget);
+                    end
+                    updated=bond.axis==:horizontal ? lambdax_set[bond.site2...] : lambday_set[bond.site1...];
+                    result=_require_honeycomb_lambda(updated,"output of $(bond.direction) $(bond.site1)");
+                    result.D<=Dmax || error("updated bond exceeds Dmax=$Dmax");
+                    for site in (bond.site1,bond.site2)
+                        n=norm(T_set[site...]);
+                        isfinite(n) && n>0 || error("zero/nonfinite output tensor at $site");
+                    end
+                catch err
+                    details=[(axis=info.axis,site=info.site,summary=_honeycomb_lambda_summary(info.lambda))
+                        for info in _honeycomb_incident_weights(lambdax_set,lambday_set,bond)];
+                    throw(HoneycombUpdateError(step_offset+ct,bond,Float64(dt),Int(Dmax),
+                        details,CapturedException(err,catch_backtrace())));
                 end
             end
         end

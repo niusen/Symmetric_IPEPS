@@ -116,3 +116,20 @@ julia --startup-file=no SU4/honeycomb/tests/test_star_server_config.jl
 julia --startup-file=no SU4/honeycomb/tests/test_star_server_runtime.jl
 julia --startup-file=no SU4/honeycomb/tests/test_star_server_branch.jl
 ```
+
+### 空 lambda 的诊断
+
+蜂窝模块的实数 bond 逆运算直接逐对称块计算，不再先 `convert(Array,lambda)`。
+每个两点门之前检查相关 lambda，之后立即检查新 bond 和两个格点张量；
+全局及检查点检查也包含 brick-wall 的平凡腿。空空间、零权重和非有限值会停止
+更新，而不是给空集合的 maximum 补一个默认值继续演化。
+`failure.log` 会记录绝对更新步数、方向、键坐标、Dmax、各邻接 bond 的表示与权重
+概况，以及后端版本；最近的有效磁盘检查点保持不变。
+
+本机 Dmax=24、4×4、dt=0.01 的33步诊断通过；这并不证明服务器报错的根因已定位。
+若服务器仍报空 bond，需要报错前的最后一条 `STAR SERVER`、是否从检查点续跑，
+以及新的 `failure.log` 中首次失败键的信息。可单独运行逆运算/空腿检查：
+
+```sh
+julia --startup-file=no SU4/honeycomb/tests/test_honeycomb_bond_validation.jl
+```

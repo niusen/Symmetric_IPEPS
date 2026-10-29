@@ -13,12 +13,60 @@ The standard configuration runs SU and then CTMRG observables in the SAME job.
   --dry-run        Validate and print configuration, without constructing tensors
   --help           Print this message
 
-Requires the complete repository and the Julia environment used by its SU(4) code.
+Source library may be local or selected with SU4_SRC_DIR / SU2_AD_ROOT.
+No SU2_AD directory name or fixed relative location is required.
 JULIA_PROJECT is honored; packages are never installed or updated by this script.
 """;
 
+function star_source_dir(;entry_dir=@__DIR__,work_dir=pwd(),env=ENV)
+    function probe(base)
+        base=abspath(expanduser(base));
+        for suffix in ("", "src/bosonic/honeycomb/star", "bosonic/honeycomb/star",
+                       "honeycomb/star", "star")
+            path=normpath(joinpath(base,suffix));
+            if isfile(joinpath(path,"StarRunConfig.jl")) &&
+               isfile(joinpath(path,"StarSimpleUpdateRun.jl")) &&
+               isfile(joinpath(path,"../Honeycomb_SU4.jl"))
+                return path
+            end
+        end
+        return nothing
+    end
+    for name in ("SU4_SRC_DIR","SU2_AD_ROOT")
+        value=get(env,name,"");
+        if !isempty(value)
+            path=probe(value);
+            isnothing(path) && error("$name=$value does not contain the honeycomb source library. Point it to src, the project root, or bosonic/honeycomb/star.");
+            return path
+        end
+    end
+    seen=Set{String}();
+    for start in (entry_dir,work_dir)
+        base=abspath(start);
+        for _=1:8
+            if !(base in seen)
+                push!(seen,base);path=probe(base);
+                isnothing(path) || return path
+            end
+            parent=dirname(base);parent==base && break;base=parent;
+        end
+    end
+    error("Cannot find the honeycomb source library. Put src beside the run folder, or set SU4_SRC_DIR=/path/to/src. The run folder can be anywhere.");
+end
+
+function star_default_config(;entry_dir=@__DIR__,work_dir=pwd())
+    paths=(joinpath(entry_dir,"config/StarSimpleUpdate.toml"),
+        joinpath(entry_dir,"StarSimpleUpdate.toml"),
+        joinpath(entry_dir,"../config/StarSimpleUpdate.toml"),
+        joinpath(work_dir,"config/StarSimpleUpdate.toml"),joinpath(work_dir,"StarSimpleUpdate.toml"));
+    for path in paths
+        isfile(path) && return normpath(abspath(path))
+    end
+    error("Configuration not found; pass --config /path/to/StarSimpleUpdate.toml");
+end
+
 function star_cli(args)
-    config=joinpath(@__DIR__,"../config/StarSimpleUpdate.toml");output=nothing;
+    config=nothing;output=nothing;
     resume=false;measure=false;dry=false;initial=nothing;auto=false;i=1;
     while i<=length(args)
         a=args[i];
@@ -40,6 +88,7 @@ function star_cli(args)
             error("Unknown option: $a. Use --help.");
         end
     end
+    isnothing(config) && (config=star_default_config());
     !isnothing(initial) && (resume || measure) && error("--init-checkpoint requires a new run, not --resume/--measure-only");
     return (;config,output,resume,measure,dry,initial,auto)
 end
@@ -52,14 +101,15 @@ if abspath(PROGRAM_FILE)==@__FILE__
         println(STAR_HELP);
     else
         options=star_cli(ARGS);
+        source_dir=star_source_dir();
         # Configuration-only dry runs do not load TensorKit or build CGCs.
         if options.dry
             using TOML
-            include(joinpath(@__DIR__,"../../../src/bosonic/honeycomb/star/StarRunConfig.jl"));
+            include(joinpath(source_dir,"StarRunConfig.jl"));
             describe_star_run(read_star_config(options.config;output_dir=options.output));
             isnothing(options.initial) || println("Continue from checkpoint (not loaded in dry-run): ",options.initial);
         else
-            include(joinpath(@__DIR__,"../../../src/bosonic/honeycomb/star/StarSimpleUpdateRun.jl"));
+            include(joinpath(source_dir,"StarSimpleUpdateRun.jl"));
             using .HoneycombStarRun
             c=HoneycombStarRun.read_star_config(options.config;output_dir=options.output);
             if options.measure

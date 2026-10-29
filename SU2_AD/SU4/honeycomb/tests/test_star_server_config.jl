@@ -44,4 +44,26 @@ include("../server/run_star_simple_update.jl")
         @test !star_should_resume(star_cli(["--auto-resume","--init-checkpoint","parent.jld2"]),c)
         @test_throws ErrorException star_cli(["--resume","--init-checkpoint","parent.jld2"])
     end
+    mktempdir() do dir
+        # No SU2_AD/SU4/honeycomb names: local src, a sibling library, and an
+        # explicitly selected external source tree are all valid layouts.
+        source=joinpath(dir,"my_run","src","bosonic","honeycomb","star");mkpath(source);
+        for file in ("StarRunConfig.jl","StarSimpleUpdateRun.jl")
+            touch(joinpath(source,file));
+        end
+        touch(joinpath(dirname(source),"Honeycomb_SU4.jl"));
+        entry=joinpath(dir,"my_run","server");mkpath(entry);
+        @test star_source_dir(entry_dir=entry,work_dir=dir,env=Dict())==source
+        @test star_source_dir(entry_dir=dir,work_dir=dir,
+            env=Dict("SU4_SRC_DIR"=>joinpath(dir,"my_run","src")))==source
+        @test star_source_dir(entry_dir=dir,work_dir=dir,
+            env=Dict("SU2_AD_ROOT"=>joinpath(dir,"my_run")))==source
+        @test_throws ErrorException star_source_dir(entry_dir=entry,work_dir=dir,
+            env=Dict("SU4_SRC_DIR"=>joinpath(dir,"missing")))
+        config=joinpath(dir,"my_run","config");mkpath(config);
+        touch(joinpath(config,"StarSimpleUpdate.toml"));
+        @test star_default_config(entry_dir=entry,work_dir=dir)==joinpath(config,"StarSimpleUpdate.toml")
+        flat=joinpath(dir,"flat");mkpath(flat);touch(joinpath(flat,"StarSimpleUpdate.toml"));
+        @test star_default_config(entry_dir=flat,work_dir=dir)==joinpath(flat,"StarSimpleUpdate.toml")
+    end
 end

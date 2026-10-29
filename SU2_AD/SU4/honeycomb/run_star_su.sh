@@ -19,17 +19,20 @@ if ! command -v "$julia_bin" >/dev/null 2>&1; then
     printf 'Julia not found. Set JULIA_BIN or load your server Julia environment.\n' >&2
     exit 1
 fi
-if [ ! -f "$script_dir/../../src/bosonic/honeycomb/star/StarSimpleUpdateRun.jl" ]; then
-    printf 'Keep SU4/honeycomb and src together in the complete SU2_AD repository.\n' >&2
-    exit 1
-fi
 # JULIA_PROJECT selects the user's existing compatible package environment.
 export JULIA_NUM_THREADS=${JULIA_NUM_THREADS:-1}
 if [ -n "${SU4_STAR_BLAS_THREADS:-}" ]; then
     export OMP_NUM_THREADS=$SU4_STAR_BLAS_THREADS
     export MKL_NUM_THREADS=$SU4_STAR_BLAS_THREADS
 fi
-entry="$script_dir/server/run_star_simple_update.jl"
+entry=${SU4_STAR_ENTRY:-"$script_dir/server/run_star_simple_update.jl"}
+if [ -z "${SU4_STAR_ENTRY:-}" ] && [ ! -f "$entry" ] && [ -f "$script_dir/run_star_simple_update.jl" ]; then
+    entry="$script_dir/run_star_simple_update.jl"
+fi
+if [ ! -f "$entry" ]; then
+    printf 'Julia entry not found: %s\nSet SU4_STAR_ENTRY to run_star_simple_update.jl.\n' "$entry" >&2
+    exit 1
+fi
 if [ "$foreground" = 1 ]; then
     exec "$julia_bin" --startup-file=no "$entry" --auto-resume "$@"
 fi

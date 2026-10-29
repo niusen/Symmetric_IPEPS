@@ -75,6 +75,17 @@ sh 脚本新建结果时默认使用同目录下的 `long_runs`，已有结果�
 - `observables*.csv/.txt/.jls`：完整键表及易读摘要。
 - `run.log`：该初态的 SU 进度。
 
+测量日志按每个 chi 分别打印闭合双层构造、环境初始化、CTMRG 迭代、键观测量和单点观测量耗时。
+MAT 中的 `timing_ctmrg_seconds` 是前三者的合计；`timing_bond_observables_seconds` 与
+`timing_onsite_observables_seconds` 分别记录两类测量。细分数据也附在带列名的 `ctm_history` 中。
+原有 `ctm_elapsed_seconds` 继续表示 CTMRG 和全部观测量的合计，不能把它当成纯 CTMRG 耗时。
+手动上传时，计时功能还需同步更新共享文件 `src/bosonic/CTMRG_unitcell.jl`，
+以及 `src/bosonic/triangle/su4_dense/TensorMapSU4.jl`；Git 更新会同时取得这些改动。
+
+当前 2×2 cell 的四个 SU 三角形任意两个都共享两个站点张量，不能把四个 gate 同时更新。
+旧三角晶格 Hubbard 代码的无重叠分组并行思路适用于存在独立三角形的分组；
+是否能并行必须检查周期胞内站点和 lambda 的读写依赖，不能仅按 gate 数量分配进程。
+
 续接目录（独立随机模式为根目录）有 `scan_summary.mat/.csv`：
 status=0 待计算、1 收敛、2 完成但未收敛、-1 失败。
 某任务失败保留检查点并继续其余任务，全部结束后若存在失败则以非零状态退出。

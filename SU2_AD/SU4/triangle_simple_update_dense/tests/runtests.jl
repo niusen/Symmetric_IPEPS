@@ -242,6 +242,35 @@ function test_schedule_cutoff()
         end
     end
 end
+function test_measurement_timings()
+    @testset "Separate CTMRG/observable timings preserve the environment" begin
+        s=init_state(2,2;D=1,seed=21)
+        o=measure_state(s;chis=[1,2],max_iterations=3,verbose=false)
+        t=o.ctm.timings
+        @test all(x->isfinite(x) && x>=0,values(t))
+        @test t.ctmrg_seconds+t.bond_observables_seconds+t.onsite_observables_seconds<=t.total_seconds+1e-6
+        data=observable_mat_data(o)
+        @test data["timing_ctmrg_seconds"]==t.ctmrg_seconds
+        @test data["timing_bond_observables_seconds"]==t.bond_observables_seconds
+        @test data["timing_onsite_observables_seconds"]==t.onsite_observables_seconds
+        @test size(data["ctm_history"],2)==length(data["ctm_history_columns"])
+        A=SU4TM.convert_iPESS_to_iPEPS(s.B,s.T)
+        config=SU4TM.LS_CTMRG_settings(CTM_ite_nums=2,CTM_ite_info=false,
+            CTM_conv_info=true,grad_checkpoint=false)
+        init=SU4TM.initial_condition(init_type="PBC",reconstruct_CTM=true,reconstruct_AA=true)
+        baseline=SU4TM.CTMRG_cell(A,2,init,nothing,config)
+        phases=Dict{Symbol,Float64}()
+        timed=SU4TM.CTMRG_cell(A,2,init,nothing,config;timings=phases)
+        @test length(baseline)==8 && length(timed)==8
+        @test Set(keys(phases))==Set((:double_layer_seconds,:environment_init_seconds,:iteration_seconds,:total_seconds))
+        @test all(x->isfinite(x) && x>=0,values(phases))
+        p=Dict("J"=>1.0,"K"=>0.0,"Φ"=>0.0)
+        setting=model_settings(2,2)
+        E0=SU4TM.evaluate_ob_cell(p,A,baseline[2],baseline[1],config,setting)[1]
+        E1=SU4TM.evaluate_ob_cell(p,A,timed[2],timed[1],config,setting)[1]
+        @test E0≈E1 atol=1e-12
+    end
+end
 function run_su4_tests()
     BLAS.set_num_threads(1)
     test_dense_projector()
@@ -252,6 +281,7 @@ function run_su4_tests()
     test_bond_expansion()
     test_continuation_batch()
     test_schedule_cutoff()
+    test_measurement_timings()
 end
 if abspath(PROGRAM_FILE)==@__FILE__
     run_su4_tests()

@@ -109,7 +109,8 @@ function rotate_AA_cell(AA_fused_cell,construct_double_layer)
     return AA_rotated_cell
 end
 
-function CTMRG_cell(A_cell::Tuple,chi,init,CTM0, ctm_setting) 
+function CTMRG_cell(A_cell::Tuple,chi,init,CTM0, ctm_setting; timings=nothing)
+    timing_start=isnothing(timings) ? 0.0 : time();
     global Lx,Ly
     global algrithm_CTMRG_settings
     #Ref: PHYSICAL REVIEW B 98, 235148 (2018)
@@ -156,6 +157,10 @@ function CTMRG_cell(A_cell::Tuple,chi,init,CTM0, ctm_setting)
         U_U_cell=auxi_tensors.U_U_cell;
     end
 
+    if !isnothing(timings)
+        timings[:double_layer_seconds]=time()-timing_start;
+    end
+    initialization_start=isnothing(timings) ? 0.0 : time();
     if init.reconstruct_CTM
         CTM_cell= init_CTM_cell(chi,A_cell,init.init_type,CTM_ite_info);
     else
@@ -243,6 +248,10 @@ function CTMRG_cell(A_cell::Tuple,chi,init,CTM0, ctm_setting)
         CTM_ite_cell=CTM_ite_cell_continuous_update;
     end
 
+    if !isnothing(timings)
+        timings[:environment_init_seconds]=time()-initialization_start;
+    end
+    iteration_start=isnothing(timings) ? 0.0 : time();
     for ci=1:CTM_ite_nums
         ite_num=ci;
         #direction_order=[1,2,3,4];
@@ -340,6 +349,10 @@ function CTMRG_cell(A_cell::Tuple,chi,init,CTM0, ctm_setting)
         end
     end
 
+    if !isnothing(timings)
+        timings[:iteration_seconds]=time()-iteration_start;
+        timings[:total_seconds]=time()-timing_start;
+    end
     CTM_cell=(Cset=Cset_cell,Tset=Tset_cell);
     if CTM_conv_info
         return CTM_cell, AA_fused_cell, U_L_cell,U_D_cell,U_R_cell,U_U_cell,ite_num,ite_err

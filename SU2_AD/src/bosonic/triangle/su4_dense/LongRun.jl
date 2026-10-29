@@ -8,7 +8,7 @@ using LinearAlgebra, Dates, Printf, MAT
 const TM=TensorMapSU4
 export LongRunConfig, run_batch, run_one, evaluate_checkpoint
 
-const DEFAULT_OUTPUT_DIR=normpath(joinpath(@__DIR__,"../../../../SU4/simple_update_dense/long_runs_tensormap"))
+const DEFAULT_OUTPUT_DIR=normpath(joinpath(@__DIR__,"../../../../SU4/triangle_simple_update_dense/long_runs_tensormap"))
 
 Base.@kwdef struct LongRunConfig
     Ds::Vector{Int}=collect(4:16)

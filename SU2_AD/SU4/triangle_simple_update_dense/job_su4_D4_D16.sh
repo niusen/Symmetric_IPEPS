@@ -15,14 +15,24 @@ entry="$script_dir/LongRun_D4_D16.jl"
 # export SU4_OUTPUT_DIR=/scratch/your_user/su4_results
 julia_bin=${JULIA_BIN:-julia}
 export SU4_BLAS_THREADS=${SU4_BLAS_THREADS:-${SLURM_CPUS_PER_TASK:-8}}
-export SU4_OUTPUT_DIR=${SU4_OUTPUT_DIR:-"$script_dir/long_runs_tensormap"}
+# Reuse existing results, including untracked server data left at the old
+# directory name after git pull. An explicit SU4_OUTPUT_DIR takes precedence.
+output_default="$script_dir/long_runs"
+for output_candidate in "$script_dir/long_runs" "$script_dir/long_runs_tensormap" \
+    "$repo_dir/SU4/simple_update_dense/long_runs" "$repo_dir/SU4/simple_update_dense/long_runs_tensormap"; do
+    if [ -d "$output_candidate" ]; then
+        output_default="$output_candidate"
+        break
+    fi
+done
+export SU4_OUTPUT_DIR=${SU4_OUTPUT_DIR:-"$output_default"}
 
 if ! command -v "$julia_bin" >/dev/null 2>&1; then
     printf 'Julia executable not found: %s\nSet JULIA_BIN or load the server Julia environment first.\n' "$julia_bin" >&2
     exit 1
 fi
 if [ ! -f "$entry" ] || [ ! -f "$repo_dir/src/bosonic/CTMRG_unitcell.jl" ]; then
-    printf 'Keep this script in SU4/simple_update_dense/ within the complete repository.\n' >&2
+    printf 'Keep this script in SU4/triangle_simple_update_dense/ within the complete repository.\n' >&2
     exit 1
 fi
 case "$SU4_BLAS_THREADS" in

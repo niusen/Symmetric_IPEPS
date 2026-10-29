@@ -3,7 +3,7 @@
 将完整仓库传到服务器，沿用旧自旋计算使用的 Julia 包环境。从仓库根目录运行：
 
 ```sh
-sh SU4/simple_update_dense/job_su4_D4_D16.sh
+sh SU4/triangle_simple_update_dense/job_su4_D4_D16.sh
 ```
 
 脚本直接调用 `julia --startup-file=no ...`，没有 nohup。普通 shell 下后台启动，
@@ -18,7 +18,7 @@ export JULIA_BIN=/path/to/julia
 export JULIA_PROJECT=/path/to/your/existing/environment
 export SU4_BLAS_THREADS=16
 export SU4_OUTPUT_DIR=/scratch/your_user/su4_tensormap
-sh SU4/simple_update_dense/job_su4_D4_D16.sh
+sh SU4/triangle_simple_update_dense/job_su4_D4_D16.sh
 ```
 
 ## 默认计算
@@ -59,9 +59,13 @@ sh SU4/simple_update_dense/job_su4_D4_D16.sh
 
 ## 输出与续算
 
-默认目录 `SU4/simple_update_dense/long_runs_tensormap`。
+直接运行 Julia 入口时，默认目录为 `SU4/triangle_simple_update_dense/long_runs_tensormap`；
+sh 脚本新建结果时默认使用同目录下的 `long_runs`，已有结果或 `SU4_OUTPUT_DIR` 设置优先。
 默认续接结果放在该根目录的 `continuation/` 子目录内；原独立随机结果仍位于根目录。
 如果服务器此前设置了 `SU4_OUTPUT_DIR`，请继续指定相同的根目录，以自动找到已有 D=4 检查点。
+运行目录由 `SU4/simple_update_dense/` 更名为 `SU4/triangle_simple_update_dense/`。
+服务器拉取代码后，旧目录里的未跟踪结果可能仍留在原处；提交脚本会自动识别旧目录中的
+`long_runs` 或 `long_runs_tensormap` 并继续使用，也可以显式指定 `SU4_OUTPUT_DIR`。
 每个 D/seed 独立目录包含：
 
 - `checkpoint.jls`：TensorMap 状态、lambda、进度及 SU 历史。

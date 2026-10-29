@@ -28,7 +28,7 @@
 - `LongRun.jl`：多 D、多 seed 的升 D 续接或独立随机计算、断点续算、MAT 输出及检查点重新测量。
 - `PlotBondPattern.py`：完整键图的绘图工具。
 
-`SU4/simple_update_dense/` 保留简短运行入口和使用文件：
+`SU4/triangle_simple_update_dense/` 保留简短运行入口和使用文件：
 
 - `LongRun_D4_D16.jl`、`Evaluate_observables.jl`：加载 src 模块并启动计算。
 - `job_su4_D4_D16.sh`：直接调用 Julia 的服务器启动脚本。
@@ -54,8 +54,8 @@
 ChainRulesCore、KrylovKit、MAT）：
 
 ```sh
-julia --startup-file=no SU4/simple_update_dense/tests/runtests.jl
-julia --startup-file=no SU4/simple_update_dense/Evaluate_observables.jl /path/to/checkpoint.jls
+julia --startup-file=no SU4/triangle_simple_update_dense/tests/runtests.jl
+julia --startup-file=no SU4/triangle_simple_update_dense/Evaluate_observables.jl /path/to/checkpoint.jls
 python src/bosonic/triangle/su4_dense/PlotBondPattern.py /path/to/observables_bonds.csv
 ```
 

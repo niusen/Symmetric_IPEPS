@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "matchedMoves": 56,
+  "matchedPhaseSnapshots": 168,
+  "layouts": [
+    {
+      "width": 736,
+      "theme": "light",
+      "contentWidth": 704
+    },
+    {
+      "width": 736,
+      "theme": "dark",
+      "contentWidth": 704
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "contentWidth": 288
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "contentWidth": 288
+    }
+  ],
+  "details": {
+    "3": "C₁(4,5)：最后写入 初始化阶段；构造投影时读取。",
+    "17": "C₁(4,5)：最后写入 #17 第 1 轮 · top · y=5；本步已写入。",
+    "30": "C₁(4,5)：最后写入 #17 第 1 轮 · top · y=5；构造投影时读取。",
+    "56": "C₁(4,5)：最后写入 #44 第 2 轮 · top · y=5；本步不改写。"
+  },
+  "consoleErrors": []
+}

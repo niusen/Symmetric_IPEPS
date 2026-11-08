@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-07",
+  "kind": "symbolic coordinate audit, not a tensor numerical test",
+  "directions": [
+    {
+      "direction": 1,
+      "updated_tensors": 36,
+      "passed": true
+    },
+    {
+      "direction": 2,
+      "updated_tensors": 36,
+      "passed": true
+    },
+    {
+      "direction": 3,
+      "updated_tensors": 36,
+      "passed": true
+    },
+    {
+      "direction": 4,
+      "updated_tensors": 36,
+      "passed": true
+    }
+  ],
+  "source_sha256": {
+    "src/bosonic/kagome/native_measurement/energy_variance/variance_array_sweeps.jl": "46f4a7febed01725e5e3e5fb0db1860967553d118e14da6ea6a129ce06c83178",
+    "src/bosonic/kagome/native_measurement/energy_variance/variance_contraction.jl": "5b9ef22e315801f9aeeb211392a29bc8a45e130f8937feb30e0002eb8e950b73",
+    "src/bosonic/kagome/native_measurement/energy_variance/variance_workflow.jl": "d00455d6cf4f770ba1aa4ce0ee22f6a83f3a96e89f1beda7071bb86ed7718644",
+    "src/bosonic/kagome/native_measurement/factorized_ctm.jl": "4c3c69af7f07429fa9728e59c43cd55b39eeb612d3a6713764bc58615ed111d2",
+    "src/bosonic/kagome/native_measurement/memory_bounded_ctm.jl": "d2960b7f7a0ea8205304f4d10b417d46aa0cc7acfae4b22814c17eb04f96016a",
+    "src/fermionic/Fermionic_CTMRG_unitcell_iPESS.jl": "56a99235058606a373cd4c9fa8f199d0417561c03367a7700d108342269e8c1c"
+  },
+  "verified_output_and_direct_input_formulas": 144
+}

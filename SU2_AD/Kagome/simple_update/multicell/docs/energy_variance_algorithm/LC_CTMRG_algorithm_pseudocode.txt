@@ -1,0 +1,304 @@
+说明补充（2026-11-08）：
+本文件描述当前实现；并非论文原版算法正确性的证明。
+代码无条件先做 right(xmax)、bottom(ymax) 两次预备更新。
+论文的水平源示例只做一次 right 预备更新，竖直源旋转整套流程。
+当前额外预备更新、对角线源扫描安排尚未用独立纠缠态参考充分验证。
+动画颜色只表示计算依赖，包括投影器依赖；不表示算符物理进入该角区域。
+详细区分及文件导航见同目录 README.md。
+
+LC-CTMRG 能量方差：当前 Julia kagome 实现的伪代码与核对记录
+核对日期：2026-11-07
+
+本说明记录“当前代码实际做什么”，不是作者原始代码的逐行翻译。
+这里使用标准双层张量 a 说明收缩。程序实际将 a 保留成 iPESS 的两个因子，
+并复用原库的角、边收缩函数；不要求显式保存所有四腿 a。
+本次只写说明和做坐标依赖检查，没有修改数值算法或服务器设置。
+
+1. 统一坐标、符号与储存
+
+  x 向右增加，y 向下增加；所有数组使用 1-based 坐标。
+  C1=左上，C2=右上，C3=右下，C4=左下。
+  T1=上边，T2=右边，T3=下边，T4=左边。
+  a 的腿顺序为 (左,下,右,上)。角和边的指标方向沿用原库。
+
+  N：实际收缩网格的边长，对应代码中的 L、输出中的 contraction_Lmax。
+  ell：最后关联求和窗口的宽度，对应 summary.csv 中的 L。
+  当前默认 N=15，ell_list=[3,6,9]，chi=40/60/80，mixed_sweeps=2。
+  N 与 ell 不是同一个数字。N=max(ell_list)+6 是目前任务的补边规则。
+  补边保证测量块和中心位置放得下，不保证 N 已经收敛。
+
+  必须保留：
+    原始态、元胞几何 geometry、原始 norm 环境 C0/T0（小周期元胞）。
+    原始双层局部张量 a0；实际为因子及其融合映射。
+    mean[x_mod,y_mod,triangle,edge] = 原始态上每条 bond 的期望值。
+    每个中心源当前的 aH[x,y]：bra=原始态，ket=(h0+cI)作用后的态。
+    C[i,x,y], T[i,x,y]，i=1..4，x,y=1..N：当前大网格的环境。
+    当前 move 的 P/Pi：只填充这一切面需要的 N 对投影。
+      实际 Julia 临时分配两个 N×N 引用数组，其余未填位置不读取。
+    当前 move 的三个长度为 N 的待提交缓冲区：新角、新边、另一新角。
+    totals[ell] 和逐条 connected_terms、每个中心的计时。
+
+  大网格中未改变的局部张量共享原元胞数据，仅复制引用；不是 N² 份数据拷贝。
+  C/T 网格位置分别保留各自最新环境；换中心 h0 时重新从 C0/T0 初始化。
+  一个中心的环境完成后，用于该中心对应的全部 hb；不逐 hb 重新扫描。
+
+2. 主流程（交换哈密顿量 H_ex=sum_b h_b）
+
+  function EXCHANGE_VARIANCE(saved_state, chi, ell_list, N):
+    检查 N>=6，且 N 是原 display cell 两个边长的倍数。
+    检查 ell_list 为正的、严格递增的整数列表。
+
+    # 周期 norm CTMRG；这是 mixed 大网格扫描之前的独立阶段。
+    C0,T0 = 原库给出的初始周期环境
+    for iteration = 1..50:
+      依次执行周期 CTMRG 的 right,bottom,left,top 扫描
+      # 各方向的内部实现复用原有 continuous_update。
+      # 这一阶段允许周期循环，是普通无限周期态的 norm 环境。
+      比较所有角张量归一化奇异值谱与前一轮的差异
+      if error < 1e-8: break
+    保存实际 iterations/error/converged；达到50轮仍不收敛时当前代码继续测量。
+
+    在 C0/T0 上测出原 display cell 所有 bond 均值 mean。
+    按精确的元胞坐标相位存 mean，不能只用一个代表位置代替全部相位。
+
+    sources = 每个独立代表三角块的 up/down × 三条边
+    # sqrt3×sqrt3：3个独立代表 ×2×3 =18条中心源；9个物理自旋。
+    totals[ell] = 0
+
+    ell_max = max(ell_list)
+    lo = -floor((ell_max-1)/2)
+    hi =  floor(ell_max/2)
+
+    for source in sources:
+      # 中心位置是组合块原点，不必是唯一几何中心。
+      candidates = 所有满足以下条件的 (x0,y0)：
+          x0,y0 ∈ [2,N-3]
+          owner(geometry,x0,y0) == source.representative
+          x0+lo >=2, y0+lo >=2
+          x0+hi <=N-2, y0+hi <=N-2
+      选使 |x0-(N+1)/2|+|y0-(N+1)/2| 最小的候选。
+      并列按原循环 x外层、y内层的先后取第一个。
+
+      aH = 从原始双层网格平铺得到的引用数组
+      C,T = 将 C0/T0 按原周期相位平铺到 N×N 的新引用网格
+
+      c = 1.0
+      在 ket 上精确施加 O0=h0+cI；bra 保持原始态。
+      # up三角上的bond完全落在一个组合块里，直接作用局部物理腿。
+      # down三角上的bond用精确4通道算符分解，经三角因子连接两个物理站点；
+      # 中心相关虚拟空间扩大，使用融合映射，不截断这个算符插入。
+      # 中心扩大虚拟腿对应的初始 T，用算符的 identity 通道嵌入扩大空间。
+      # 附近双层因子、融合映射按修改后的单层腿空间重建。
+      support = unique(实际改变的单层局部因子位置 cq ∪ cr)
+      xmin,xmax,ymin,ymax = support 的包围盒
+
+      # 当前 kagome 代码有两个初始化 move，这是一项几何适配。
+      MOVE(right, xmax)
+      MOVE(bottom,ymax)
+
+      for sweep = 1..mixed_sweeps:
+        for j = xmin-1, xmin, ..., N-1: MOVE(left,  j)
+        for j = xmax+1, xmax, ..., 2:  MOVE(right, j)
+        for j = ymin-1, ymin, ..., N-1: MOVE(top,   j)
+        for j = ymax+1, ymax, ..., 2:  MOVE(bottom,j)
+      # 不在第二轮重置环境。每个move读取上一个move提交后的网格。
+
+      e0 = mean[source at (x0,y0)]
+      for dx = lo..hi, dy = lo..hi:
+        xb=x0+dx; yb=y0+dy
+        for triangle in [up,down], edge in [1,2,3]:
+          eb = mean[(xb,yb)的元胞相位,triangle,edge]
+          ratio = MEASURE_LOCAL(aH,C,T,xb,yb,triangle,edge)
+          # ratio = <Psi|hb (h0+cI)|Psi> / <Psi|(h0+cI)|Psi>
+          connected = (e0+c)*(ratio-eb)
+          # 精确代数：connected=<hb h0>-<hb><h0>，常数c消掉。
+          for ell in ell_list:
+            low_ell=-floor((ell-1)/2); high_ell=floor(ell/2)
+            if dx,dy 都在 [low_ell,high_ell]: totals[ell]+=connected
+          保存 source/target坐标、bond类型、connected实部/虚部。
+
+    nspin=3*独立代表块数       # 当前 sqrt3×sqrt3 为9
+    variance_density[ell]=totals[ell]/nspin
+    # 不强制变为正数，不裁掉非零虚部；两者均作为诊断输出。
+    # 若输入态不处于精确固定Sz扇区，不能将交换方差等同含磁场H的方差。
+
+3. 一个 MOVE 的完整顺序与读写规则
+
+  d=1:left, d=2:top, d=3:right, d=4:bottom。
+  i(k)=1+mod(k-1,4)。所有 C/T 的方向编号都经 i(k) 处理。
+  w(v)=1+mod(v-1,N)。以下坐标运算最后逐分量经过 w。
+
+  ROT(d,c,t,u,v):
+    d=1: (c+u,t+v)
+    d=2: (t-v,c+u)
+    d=3: (c-u,t-v)
+    d=4: (t+v,c-u)
+    return (w(x),w(y))
+
+  function MOVE(d,j):
+    c = j-1 if d∈{1,2}, otherwise j+1
+    oldC,oldT = 当前 C,T 的只读快照视图
+    # 算投影和新环境期间，不能写 oldC/oldT。
+
+    for t = 1..N:
+      z(u,v)=ROT(d,c,t,u,v)
+      # 以下 all corners 均读取同一份 oldC/oldT。
+      EU = 扩大角(oldC[d,z(0,0)], oldT[d,z(1,0)],
+                  oldT[i(d-1),z(0,1)], aH[z(1,1)]；旋转方向d)
+      ED = 扩大角(oldT[i(d-1),z(0,2)], oldC[i(d-1),z(0,3)],
+                  oldT[i(d-2),z(1,3)], aH[z(1,2)]；旋转方向d)
+      EUr= 扩大角(oldT[d,z(2,0)], oldC[i(d+1),z(3,0)],
+                  oldT[i(d+1),z(3,1)], aH[z(2,1)]；旋转方向d)
+      EDr= 扩大角(oldT[i(d+1),z(3,2)], oldT[i(d-2),z(2,3)],
+                  oldC[i(d-2),z(3,3)], aH[z(2,2)]；旋转方向d)
+
+      # 四个扩大角分别有四条开放腿，腿顺序沿用原库的 factor_corner。
+      Hu[a,b,c1,d1] = sum_{p,q} EU[a,b,p,q]*EUr[p,q,c1,d1]
+      Hl[a,b,c1,d1] = sum_{p,q} ED[a,b,p,q]*EDr[p,q,c1,d1]
+      Hu = reshape_as_matrix(Hu, rows=(c1,d1), cols=(a,b))
+      Hl = reshape_as_matrix(Hl, rows=(a,b), cols=(c1,d1))
+      Hu/=norm(Hu); Hl/=norm(Hl)
+      M=Hu*Hl; M/=norm(M)
+      U,S,Vdag = truncated_SVD(M, chi最大维数, tol=1e-12)
+      S/=norm(S)
+      Sinvhalf = 对保留奇异值做安全的逆平方根，极小值按阈值置零
+
+      Pi[z(0,1)] = Hl * adjoint(Vdag) * Sinvhalf
+      P[z(0,2)]  = reshape/permute(Sinvhalf * adjoint(U) * Hu)
+      # P恢复为当前方向所需的三腿排布；不是将Pi简单设为P的厄米共轭。
+      # Hu/Hl/M/S和输出C/T均有整体归一化，不能声称P*Pi严格等于单位阵。
+
+    # 整条切面的全部投影计算完成后，才计算待提交环境。
+    for t = 1..N:
+      z(u,v)=ROT(d,c,t,u,v)
+      new_edge[t] = CONTRACT_EDGE(
+          oldT[i(d-1),z(0,2)], aH[z(1,2)], Pi[z(0,2)], P[z(0,2)], d)
+      new_upper[t] = CONTRACT(
+          oldC[d,z(0,0)], oldT[d,z(1,0)], Pi[z(0,0)])
+      new_lower[t] = CONTRACT(
+          oldC[i(d-1),z(0,3)], oldT[i(d-2),z(1,3)], P[z(0,3)])
+      将这三个结果分别除以自己的 Frobenius norm。
+
+    # 最后统一提交。不能在上一个循环中逐位置覆盖旧网格。
+    for t = 1..N:
+      z(u,v)=ROT(d,c,t,u,v)
+      C[d,z(1,0)]       = new_upper[t]
+      T[i(d-1),z(1,2)]  = new_edge[t]
+      C[i(d-1),z(1,3)]  = new_lower[t]
+    # 仅替换指定方向的角/边，保留该位置其余分量。
+
+4. 每种 move 的输出位置：用物理 x,y 写清楚
+
+  所有索引采用 w(.) 回绕；CONTRACT省略腿排列，Norm表示最后归一化。
+  以下右侧一律是该move开始时的旧环境，以及本move刚算出的P/Pi。
+
+  LEFT(j)，遍历 y=1..N：
+    C1[j,y] <- Norm CONTRACT(C1[j-1,y],T1[j,y],Pi[j-1,y])
+    T4[j,y] <- Norm CONTRACT(T4[j-1,y],aH[j,y],Pi[j-1,y],P[j-1,y])
+    C4[j,y] <- Norm CONTRACT(C4[j-1,y],T3[j,y],P[j-1,y])
+    只更新第j列的 C1,T4,C4。
+
+  RIGHT(j)，遍历 y=1..N：
+    C3[j,y] <- Norm CONTRACT(C3[j+1,y],T3[j,y],Pi[j+1,y])
+    T2[j,y] <- Norm CONTRACT(T2[j+1,y],aH[j,y],Pi[j+1,y],P[j+1,y])
+    C2[j,y] <- Norm CONTRACT(C2[j+1,y],T1[j,y],P[j+1,y])
+    只更新第j列的 C3,T2,C2。
+
+  TOP(j)，遍历 x=1..N：
+    C2[x,j] <- Norm CONTRACT(C2[x,j-1],T2[x,j],Pi[x,j-1])
+    T1[x,j] <- Norm CONTRACT(T1[x,j-1],aH[x,j],Pi[x,j-1],P[x,j-1])
+    C1[x,j] <- Norm CONTRACT(C1[x,j-1],T4[x,j],P[x,j-1])
+    只更新第j行的 C2,T1,C1。
+
+  BOTTOM(j)，遍历 x=1..N：
+    C4[x,j] <- Norm CONTRACT(C4[x,j+1],T4[x,j],Pi[x,j+1])
+    T3[x,j] <- Norm CONTRACT(T3[x,j+1],aH[x,j],Pi[x,j+1],P[x,j+1])
+    C3[x,j] <- Norm CONTRACT(C3[x,j+1],T2[x,j],P[x,j+1])
+    只更新第j行的 C4,T3,C3。
+
+  注意：切面之间顺序提交；同一切面内所有位置同步提交。
+  几何坐标固定，重复sweep重算的是压缩表示，不是增加一份物理区域。
+  精确左上区域不因区域外h0改变；C的压缩基底可因全环境选投影而改变。
+  有限chi时保留子空间也可能改变，不能把所有这种变化都说成纯gauge。
+
+5. 最终局部测量（所有hb共享一次中心源扫描所得的网格）
+
+  function MEASURE_LOCAL(aH,C,T,x,y,triangle,edge):
+    要求此测量块不跨边界；本任务 x,y>=2 且 x,y<=N-2。
+    局部块 = aH[x,y],aH[x+1,y],aH[x,y+1],aH[x+1,y+1]
+    周围角：C1[x-1,y-1], C2[x+2,y-1], C4[x-1,y+2], C3[x+2,y+2]
+    上边：T1[x,y-1],T1[x+1,y-1]
+    右边：T2[x+2,y],T2[x+2,y+1]
+    下边：T3[x,y+2],T3[x+1,y+2]
+    左边：T4[x-1,y],T4[x-1,y+1]
+    denominator = 用上述4角、8边、4局部块闭合得到的mixed重叠。
+    numerator   = 在局部块的物理腿间额外插入hb，闭合相同网络。
+    return numerator/denominator
+    # 实际程序先做4个扩大角再close_corners；带电算符分解逐项累加。
+    # 测量只读环境。hb与h0重叠/相同，也采用有序物理算符乘积。
+
+6. 边界规则与论文对照
+
+  原库ROT使用mod1，所以投影局部邻域也可能在网格边缘回绕。
+  mixed扫描只吸收到N-1和2，不继续把中心插入沿扫描方向带到相邻元胞。
+  这不等于证明所有有限N影响消失；仍须检查N、求和窗口、chi、sweeps。
+  测量阶段的2×2局部物理块不允许跨边界；与投影阶段的mod1要区分。
+
+  论文直接规定：大网格从norm环境开始；中心施加h0；收缩mixed重叠；
+  从中心附近向外扫描，避免跨元胞传播；通常两轮；测量各处hb；重复各不等价源。
+  当前适配：kagome的组合块/三角结构、两个方向初始化、h0+I的稳定化。
+  当前实现：显式Hu/Hl/M与SVD。论文给出的D^4*chi^3投影成本要求迭代求解器；
+  当前不能据此宣称已经达到论文最优D标度。
+  当前ell为primitive-cell原点的窗口宽度，另有N=ell_max+6的收缩区域。
+  与论文方格模型的L进行数值比较前，必须明确这些不同的长度单位和补边。
+
+7. 已有验证与仍未确认的部分
+
+  已有独立代数检查（读取已有日志，本次没有重新运行）：
+    D1自旋积态：972个关联项与直接代数比较，最大误差0。
+    D1三角块内纠缠、块间积态：972个关联项，最大误差2.36e-16。
+    小D2纠缠态：6种中心bond自关联恒等式，最大误差约4.70e-8。
+    保存U1 D4态：插入算符但未mixed截断前，自关联恒等式误差约3.61e-16。
+    新数组存储与旧tuple内核：四方向每个C/T及测量结果一致性检查。
+    TensorKit 0.14/0.17与批量输出、续算的一致性检查。
+
+  不能由以上检查推出：
+    大D、远距离非重叠bond关联已正确且收敛；
+    kagome两步初始化严格等同作者的几何适配；
+    固定两轮mixed扫描、固定N和有限chi已足够；
+    与作者原始LC实现的逐项一致性——尚未取得其原始实现。
+
+  进一步独立验证应使用小的、站点间纠缠的D2网络，对多个距离/方向，
+  用固定边界的有限patch精确收缩对照LC结果，并检查chi增大时误差下降。
+  还应检查source_shift=1和2的有限chi差异、窗口/总区域和sweeps收敛。
+  这需要单独的小规模数值验证；本次伪代码核对没有冒充完成这些验证。
+
+8. 作者代码查找（2026-11-07）
+
+  方差论文 arXiv:2511.22669v2：
+    https://arxiv.org/html/2511.22669v2
+    https://journals.aps.org/prb/abstract/10.1103/fkyw-c5tn
+  2024年前作 arXiv:2405.10628v2：
+    https://arxiv.org/html/2405.10628v2
+  当前检查到的正文、arXiv记录和可访问的期刊页面没有作者LC实现下载链接。
+  期刊全文网页受订阅限制；未找到公开实现不等于证明不存在公开实现。
+
+  Corboz共同署名的另一项工作确实有公开代码：
+    https://github.com/XingyuZhang2018/iPEPS_preconditioner
+    这是预条件变分优化工作，不是这篇LC方差论文的复现仓库。
+  合作者Juraj公开的标准CTMRG/iPEPS代码：
+    https://github.com/jurajHasik/peps-torch
+    不能因它有标准CTMRG就认定它包含本论文完整的LC方差算法。
+  可参考的Julia标准CTMRG实现：
+    https://github.com/QuantumKitHub/PEPSKit.jl
+
+9. 对应本机源文件（所有坐标公式均据此展开）
+
+  Julia根目录：
+    D:/My Documents/Code/Julia_codes/Tensor network/Symmetric_IPEPS/SU2_AD
+  主流程：src/bosonic/kagome/native_measurement/energy_variance/variance_workflow.jl
+  扫描/单move：src/bosonic/kagome/native_measurement/energy_variance/variance_array_sweeps.jl
+  插入/测量：src/bosonic/kagome/native_measurement/energy_variance/variance_contraction.jl
+  四角输入：src/bosonic/kagome/native_measurement/factorized_ctm.jl
+  半环境与SVD矩阵：src/bosonic/kagome/native_measurement/memory_bounded_ctm.jl
+  坐标旋转：src/fermionic/Fermionic_CTMRG_unitcell_iPESS.jl

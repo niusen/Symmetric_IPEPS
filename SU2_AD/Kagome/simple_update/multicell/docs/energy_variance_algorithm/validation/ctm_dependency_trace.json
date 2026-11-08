@@ -1,0 +1,2398 @@
+[
+  {
+    "sweeps": 1,
+    "kagome_warm": false,
+    "patch_height": 1,
+    "total_moves": 28,
+    "ancestor_moves": 19,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 5,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 5,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 2,
+            "j": 6,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 3,
+            "j": 7,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 4,
+            "j": 8,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 5,
+            "j": 9,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 16,
+            "j": 6,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 17,
+            "j": 7,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 18,
+            "j": 8,
+            "d": 2,
+            "sweep": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sweeps": 1,
+    "kagome_warm": false,
+    "patch_height": 2,
+    "total_moves": 28,
+    "ancestor_moves": 19,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          11,
+          4
+        ],
+        "move": {
+          "id": 5,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 18,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          10,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 5,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 5,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 2,
+            "j": 6,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 3,
+            "j": 7,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 4,
+            "j": 8,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 5,
+            "j": 9,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 16,
+            "j": 6,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 17,
+            "j": 7,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 18,
+            "j": 8,
+            "d": 2,
+            "sweep": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sweeps": 1,
+    "kagome_warm": true,
+    "patch_height": 1,
+    "total_moves": 29,
+    "ancestor_moves": 20,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep0_d4": [
+        6
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 6,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 6,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 3,
+            "j": 6,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 4,
+            "j": 7,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 5,
+            "j": 8,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 6,
+            "j": 9,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 17,
+            "j": 6,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 18,
+            "j": 7,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 19,
+            "j": 8,
+            "d": 2,
+            "sweep": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sweeps": 1,
+    "kagome_warm": true,
+    "patch_height": 2,
+    "total_moves": 29,
+    "ancestor_moves": 20,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep0_d4": [
+        6
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          11,
+          4
+        ],
+        "move": {
+          "id": 6,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 19,
+          "j": 8,
+          "d": 2,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          10,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 6,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 6,
+          "j": 9,
+          "d": 1,
+          "sweep": 1
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 3,
+            "j": 6,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 4,
+            "j": 7,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 5,
+            "j": 8,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 6,
+            "j": 9,
+            "d": 1,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 17,
+            "j": 6,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 18,
+            "j": 7,
+            "d": 2,
+            "sweep": 1
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 19,
+            "j": 8,
+            "d": 2,
+            "sweep": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sweeps": 2,
+    "kagome_warm": false,
+    "patch_height": 1,
+    "total_moves": 55,
+    "ancestor_moves": 46,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d4": [
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep2_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 32,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 32,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 29,
+            "j": 6,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 30,
+            "j": 7,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 31,
+            "j": 8,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 32,
+            "j": 9,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 43,
+            "j": 6,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 44,
+            "j": 7,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 45,
+            "j": 8,
+            "d": 2,
+            "sweep": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sweeps": 2,
+    "kagome_warm": false,
+    "patch_height": 2,
+    "total_moves": 55,
+    "ancestor_moves": 46,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d4": [
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep2_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          11,
+          4
+        ],
+        "move": {
+          "id": 32,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 45,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          10,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 32,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 32,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 29,
+            "j": 6,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 30,
+            "j": 7,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 31,
+            "j": 8,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 32,
+            "j": 9,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 43,
+            "j": 6,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 44,
+            "j": 7,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 45,
+            "j": 8,
+            "d": 2,
+            "sweep": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sweeps": 2,
+    "kagome_warm": true,
+    "patch_height": 1,
+    "total_moves": 56,
+    "ancestor_moves": 47,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep0_d4": [
+        6
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d4": [
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep2_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 33,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          10,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 33,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 30,
+            "j": 6,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 31,
+            "j": 7,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 32,
+            "j": 8,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 33,
+            "j": 9,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 44,
+            "j": 6,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 45,
+            "j": 7,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 46,
+            "j": 8,
+            "d": 2,
+            "sweep": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sweeps": 2,
+    "kagome_warm": true,
+    "patch_height": 2,
+    "total_moves": 56,
+    "ancestor_moves": 47,
+    "pruned_replay_same_expression": true,
+    "groups": {
+      "sweep0_d3": [
+        7
+      ],
+      "sweep0_d4": [
+        6
+      ],
+      "sweep1_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep1_d2": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep1_d4": [
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d1": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "sweep2_d3": [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "sweep2_d2": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "last_writers": [
+      {
+        "tensor": [
+          "C",
+          9,
+          8,
+          1
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          8,
+          2
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "C",
+          12,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "C",
+          9,
+          11,
+          4
+        ],
+        "move": {
+          "id": 33,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          8,
+          1
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          8,
+          1
+        ],
+        "move": {
+          "id": 46,
+          "j": 8,
+          "d": 2,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          9,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          12,
+          10,
+          2
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          10,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          11,
+          11,
+          3
+        ],
+        "move": null
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          9,
+          4
+        ],
+        "move": {
+          "id": 33,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      },
+      {
+        "tensor": [
+          "T",
+          9,
+          10,
+          4
+        ],
+        "move": {
+          "id": 33,
+          "j": 9,
+          "d": 1,
+          "sweep": 2
+        }
+      }
+    ],
+    "physical_paths": {
+      "('C', 9, 8, 1)": [
+        {
+          "tensor": [
+            "a",
+            6,
+            6
+          ],
+          "move": null
+        },
+        {
+          "tensor": [
+            "T",
+            6,
+            6,
+            4
+          ],
+          "move": {
+            "id": 30,
+            "j": 6,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            7,
+            6,
+            4
+          ],
+          "move": {
+            "id": 31,
+            "j": 7,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            8,
+            6,
+            4
+          ],
+          "move": {
+            "id": 32,
+            "j": 8,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "T",
+            9,
+            6,
+            4
+          ],
+          "move": {
+            "id": 33,
+            "j": 9,
+            "d": 1,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            6,
+            1
+          ],
+          "move": {
+            "id": 44,
+            "j": 6,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            7,
+            1
+          ],
+          "move": {
+            "id": 45,
+            "j": 7,
+            "d": 2,
+            "sweep": 2
+          }
+        },
+        {
+          "tensor": [
+            "C",
+            9,
+            8,
+            1
+          ],
+          "move": {
+            "id": 46,
+            "j": 8,
+            "d": 2,
+            "sweep": 2
+          }
+        }
+      ]
+    }
+  }
+]

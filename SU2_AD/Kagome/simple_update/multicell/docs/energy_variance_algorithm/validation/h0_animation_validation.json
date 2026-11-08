@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "offline": true,
+  "matchedDependencySnapshots": 57,
+  "matchedPendingMoves": 56,
+  "matchedPhaseSnapshots": 168,
+  "firstMove": [
+    "C2,7,5",
+    "C2,7,6",
+    "C3,7,6",
+    "C3,7,7",
+    "T2,7,5",
+    "T2,7,6",
+    "T2,7,7"
+  ],
+  "layouts": [
+    {
+      "width": 736,
+      "theme": "light"
+    },
+    {
+      "width": 736,
+      "theme": "dark"
+    },
+    {
+      "width": 320,
+      "theme": "light"
+    },
+    {
+      "width": 320,
+      "theme": "dark"
+    }
+  ],
+  "errors": []
+}

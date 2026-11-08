@@ -1,0 +1,273 @@
+<div id="ctmrg-moves-20261107">
+  <style>
+    #ctmrg-moves-20261107 { --move-color:var(--viz-series-1,var(--blue)); --read-color:var(--viz-series-2,var(--orange)); --source-color:var(--viz-series-3,var(--green)); display:flex; flex-direction:column; gap:calc(var(--font-size-base)*.8); color:var(--foreground); }
+    #ctmrg-moves-20261107 .move-heading { display:flex; flex-direction:column; gap:calc(var(--font-size-base)*.35); padding-right:90px; }
+    #ctmrg-moves-20261107 .move-controls { display:flex; flex-wrap:wrap; align-items:center; gap:calc(var(--font-size-base)*.5); }
+    #ctmrg-moves-20261107 .move-slider { display:flex; flex-direction:column; gap:calc(var(--font-size-base)*.3); }
+    #ctmrg-moves-20261107 .move-diagrams { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.85fr); gap:calc(var(--font-size-base)*1.25); align-items:start; }
+    #ctmrg-moves-20261107 .move-diagram { min-width:0; display:flex; flex-direction:column; gap:calc(var(--font-size-base)*.4); }
+    #ctmrg-moves-20261107 .move-svg { display:block; width:100%; overflow:visible; }
+    #ctmrg-moves-20261107 .move-svg text { fill:var(--foreground); font-family:inherit; }
+    #ctmrg-moves-20261107 .move-legend { display:flex; flex-wrap:wrap; gap:calc(var(--font-size-base)*.7); }
+    #ctmrg-moves-20261107 .move-legend span { display:inline-flex; align-items:center; gap:calc(var(--font-size-base)*.3); }
+    #ctmrg-moves-20261107 .move-swatch { width:calc(var(--font-size-base)*.8); height:calc(var(--font-size-base)*.8); display:inline-block; }
+    #ctmrg-moves-20261107 .move-write { background:var(--move-color); }
+    #ctmrg-moves-20261107 .move-read { background:var(--read-color); }
+    #ctmrg-moves-20261107 .move-source { background:var(--source-color); border-radius:50%; }
+    #ctmrg-moves-20261107 .move-status { display:flex; flex-wrap:wrap; gap:calc(var(--font-size-base)*.55); align-items:baseline; }
+    #ctmrg-moves-20261107 .move-phase { display:flex; flex-wrap:wrap; gap:calc(var(--font-size-base)*.4); }
+    #ctmrg-moves-20261107 .move-focus-field { display:flex; flex-wrap:wrap; align-items:center; gap:calc(var(--font-size-base)*.5); }
+    #ctmrg-moves-20261107 .move-small-gap { display:flex; flex-direction:column; gap:calc(var(--font-size-base)*.35); }
+    #ctmrg-moves-20261107 .move-detail { overflow-wrap:anywhere; }
+    @media(max-width:620px) { #ctmrg-moves-20261107 .move-diagrams { grid-template-columns:minmax(0,1fr); } }
+  </style>
+  <div class="move-heading">
+    <h2>逐步看 CTMRG 更新环境</h2>
+    <div class="text-small text-muted">12×12；x 向右、y 向下；中心 h₀ 位于 (6,6)—(7,6)</div>
+  </div>
+  <div class="move-controls">
+    <button class="btn" type="button" data-action="previous">上个 move</button>
+    <button class="btn btn-primary" type="button" data-action="play">播放</button>
+    <button class="btn" type="button" data-action="next">下个 move</button>
+    <span class="tabular-nums" data-role="counter">0 / 56</span>
+  </div>
+  <div class="move-slider">
+    <label class="form-label" for="ctm-move-position">move 顺序</label>
+    <input class="form-range" id="ctm-move-position" type="range" min="0" max="56" step="1" value="0">
+  </div>
+  <div class="move-status">
+    <strong data-role="move-name">初始化之前</strong>
+    <span data-role="write-set" class="text-small text-muted">尚未执行 mixed move</span>
+  </div>
+  <div class="move-phase" aria-label="单个move的三个阶段">
+    <button class="btn" type="button" data-phase="0" aria-pressed="false">① 计算投影</button>
+    <button class="btn" type="button" data-phase="1" aria-pressed="false">② 暂存新张量</button>
+    <button class="btn" type="button" data-phase="2" aria-pressed="false">③ 写回环境</button>
+  </div>
+  <div class="text-small" data-role="phase-status">初始环境已平铺；中心插入和空间嵌入已准备</div>
+  <div class="move-diagrams">
+    <div class="move-diagram">
+      <h3>整行／整列的存储位置</h3>
+      <svg class="move-svg" data-role="grid" role="img" aria-label="环境存储网格：高亮当前读取位置和写入切面"></svg>
+    </div>
+    <div class="move-diagram">
+      <h3>放大观察一个坐标</h3>
+      <label class="move-focus-field form-label" for="ctm-move-focus">观察位置
+        <select class="form-select" id="ctm-move-focus">
+          <option value="fixed45">固定 (4,5)</option>
+          <option value="fixed98">固定 (9,8)</option>
+          <option value="follow">跟随当前切面</option>
+        </select>
+      </label>
+      <svg class="move-svg" data-role="components" role="img" aria-label="所选存储坐标的八个环境分量及其最后写入步骤"></svg>
+      <div class="text-small text-muted">初始／#步号：各分量最后一次写入记录</div>
+    </div>
+  </div>
+  <div class="move-legend text-small">
+    <span><i class="move-swatch move-write" aria-hidden="true"></i><span data-role="write-legend">本步待写入分量</span></span>
+    <span><i class="move-swatch move-read" aria-hidden="true"></i>构造投影时读取</span>
+    <span><i class="move-swatch move-source" aria-hidden="true"></i>固定中心插入</span>
+  </div>
+  <div class="text-small move-detail" data-role="detail">C₁(4,5)：初始记录</div>
+  <div class="text-small text-muted">显示存储坐标与更新依赖；不是张量数值或物理影响大小。</div>
+  <div class="sr-only" aria-live="polite" data-role="announcement"></div>
+</div>
+<script>
+(() => {
+  const root=document.getElementById('ctmrg-moves-20261107');
+  const N=12, names={1:'left',2:'top',3:'right',4:'bottom'};
+  const kinds={1:['C1','T4','C4'],2:['C2','T1','C1'],3:['C3','T2','C2'],4:['C4','T3','C3']};
+  const components=['C1','T1','C2','T4','T2','C4','T3','C3'];
+  const positions={C1:[0,0],T1:[1,0],C2:[2,0],T4:[0,1],T2:[2,1],C4:[0,2],T3:[1,2],C3:[2,2]};
+  const $=role=>root.querySelector('[data-role="'+role+'"]');
+  const grid=$('grid'), comp=$('components'), slider=root.querySelector('#ctm-move-position');
+  const focusSelect=root.querySelector('#ctm-move-focus');
+  const prev=root.querySelector('[data-action="previous"]'), next=root.querySelector('[data-action="next"]');
+  const play=root.querySelector('[data-action="play"]'), phaseButtons=[...root.querySelectorAll('[data-phase]')];
+  const wrap=v=>(v-1+N*8)%N+1, dir=v=>(v-1+8)%4+1;
+  const key=(kind,x,y)=>kind+','+wrap(x)+','+wrap(y);
+  const steps=[];
+  function append(d,j,sweep){steps.push({d,j,sweep,id:steps.length+1});}
+  append(3,7,0);append(4,6,0);
+  for(let s=1;s<=2;s++){
+    for(let j=5;j<=11;j++)append(1,j,s);
+    for(let j=8;j>=2;j--)append(3,j,s);
+    for(let j=5;j<=11;j++)append(2,j,s);
+    for(let j=7;j>=2;j--)append(4,j,s);
+  }
+  function xy(d,c,t,u,v){
+    const p=d===1?[c+u,t+v]:d===2?[t-v,c+u]:d===3?[c-u,t-v]:[t+v,c-u];
+    return p.map(wrap);
+  }
+  function readKeys(step){
+    const result=new Set(),d=step.d,c=(d===1||d===2)?step.j-1:step.j+1;
+    const specs=[['C',0,0,d],['T',1,0,d],['T',0,1,d-1],
+      ['T',0,2,d-1],['C',0,3,d-1],['T',1,3,d-2],
+      ['T',2,0,d],['C',3,0,d+1],['T',3,1,d+1],
+      ['T',3,2,d+1],['T',2,3,d-2],['C',3,3,d-2]];
+    for(let t=1;t<=N;t++)for(const [kind,u,v,k] of specs){
+      const [x,y]=xy(d,c,t,u,v);result.add(key(kind+dir(k),x,y));
+    }
+    return result;
+  }
+  function writeKeys(step){
+    const result=new Set();
+    for(let t=1;t<=N;t++){
+      const [x,y]=(step.d===1||step.d===3)?[step.j,t]:[t,step.j];
+      for(const kind of kinds[step.d])result.add(key(kind,x,y));
+    }
+    return result;
+  }
+  for(const step of steps){step.reads=readKeys(step);step.writes=writeKeys(step);}
+  let state={move:0,phase:0,focus:'fixed45'},timer=null,playing=false;
+  const sessionId=Date.now().toString(36)+Math.random().toString(36).slice(2);
+  function applySaved(saved){
+    const p=saved?.privateContent||saved;
+    if(!p||p.schema!=='ctm-moves-v1')return;
+    if(Number.isInteger(p.move)&&p.move>=0&&p.move<=56)state.move=p.move;
+    if([0,1,2].includes(p.phase))state.phase=p.phase;
+    if(['fixed45','fixed98','follow'].includes(p.focus))state.focus=p.focus;
+  }
+  applySaved(window.openai?.widgetState);
+  function persist(){
+    if(!window.openai?.setWidgetState)return;
+    const step=steps[state.move-1];
+    window.openai.setWidgetState({modelContent:{move:state.move,phase:state.phase,
+      operation:step?names[step.d]+' '+step.j:'initial',focus:state.focus},
+      privateContent:{schema:'ctm-moves-v1',origin:sessionId,...state}}).catch(()=>{});
+  }
+  window.addEventListener('openai:set_globals',event=>{
+    const saved=event.detail?.globals?.widgetState;
+    if(saved&&saved.privateContent?.origin!==sessionId){stop();applySaved(saved);render(false);}
+  });
+  function snapshot(move=state.move,phase=state.phase){
+    const count=move===0?0:move-1+(phase===2?1:0),record=new Map();
+    for(let k=0;k<count;k++)for(const id of steps[k].writes)record.set(id,k+1);
+    return record;
+  }
+  function focused(step){
+    if(state.focus==='fixed98')return [9,8];
+    if(state.focus==='fixed45'||!step)return [4,5];
+    return (step.d===1||step.d===3)?[step.j,6]:[6,step.j];
+  }
+  function escape(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  const cs=name=>'var('+name+')';
+  const mix=(color,pct)=>'color-mix(in srgb,'+color+' '+pct+'%,transparent)';
+  function text(x,y,label,anchor='middle',klass=''){
+    return '<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" dominant-baseline="middle"'+(klass?' class="'+klass+'"':'')+'>'+escape(label)+'</text>';
+  }
+  function drawGrid(step,records,focus){
+    const width=Math.max(260,Math.round(grid.parentElement.getBoundingClientRect().width));
+    const left=40,top=48,right=12,bottom=29,cell=(width-left-right)/N;
+    const height=top+N*cell+bottom;
+    grid.setAttribute('viewBox','0 0 '+width+' '+height);grid.style.height=height+'px';
+    const reads=step?step.reads:new Set(),writes=step?step.writes:new Set();
+    let svg='<title>第'+state.move+'个move的整行或整列环境更新</title>';
+    svg+=text(left+N*cell/2,12,'x →');
+    svg+=text(7,top+N*cell/2,'y↓');
+    for(let v=1;v<=N;v++){
+      if(width>=360||v===1||v%2===0)svg+=text(left+(v-.5)*cell,top-10,v,'middle','text-small');
+      svg+=text(left-11,top+(v-.5)*cell,v,'middle','text-small');
+    }
+    for(let x=1;x<=N;x++)for(let y=1;y<=N;y++){
+      const gx=left+(x-1)*cell,gy=top+(y-1)*cell;
+      const read=components.some(k=>reads.has(key(k,x,y)));
+      const write=components.some(k=>writes.has(key(k,x,y)));
+      let fill=read?mix(cs('--read-color'),12):'transparent';
+      if(write)fill=mix(cs('--move-color'),state.phase===2?19:8);
+      svg+='<rect x="'+gx+'" y="'+gy+'" width="'+cell+'" height="'+cell+'" fill="'+fill+'" stroke="'+cs('--border')+'" stroke-width=".65"/>';
+      // Small corner / edge marks show which three C/T entries this move writes.
+      for(const kind of components){
+        const [px,py]=positions[kind],xx=gx+cell*(.18+.32*px),yy=gy+cell*(.18+.32*py);
+        const id=key(kind,x,y),active=writes.has(id),old=records.has(id);
+        if(!active&&!old)continue;
+        const size=Math.max(2,cell*.10),color=active?cs('--move-color'):mix(cs('--foreground'),22);
+        svg+='<rect x="'+(xx-size/2)+'" y="'+(yy-size/2)+'" width="'+size+'" height="'+size+'" fill="'+(active&&state.phase<2?'transparent':color)+'" stroke="'+color+'" stroke-width=".8"/>';
+      }
+      if((x===6||x===7)&&y===6){
+        svg+='<circle cx="'+(gx+cell/2)+'" cy="'+(gy+cell/2)+'" r="'+Math.max(2.6,cell*.12)+'" fill="'+cs('--source-color')+'"/>';
+      }
+      if(x===focus[0]&&y===focus[1]){
+        svg+='<rect x="'+(gx+1.5)+'" y="'+(gy+1.5)+'" width="'+(cell-3)+'" height="'+(cell-3)+'" fill="none" stroke="'+cs('--foreground')+'" stroke-width="1.7"/>';
+      }
+    }
+    svg+=text(left+N*cell/2,height-9,'框选：观察坐标 ('+focus.join(',')+')','middle','text-small');
+    grid.innerHTML=svg;
+  }
+  function drawComponents(step,records,focus){
+    const width=Math.max(260,Math.round(comp.parentElement.getBoundingClientRect().width));
+    const pad=5,gap=8,boxWidth=(width-2*pad-2*gap)/3,boxHeight=61;
+    const height=boxHeight*3+gap*2+42;
+    comp.setAttribute('viewBox','0 0 '+width+' '+height);comp.style.height=height+'px';
+    let svg='<title>坐标('+focus.join(',')+')的四角和四边存储记录</title>';
+    for(const kind of components){
+      const [cx,cy]=positions[kind],x=pad+cx*(boxWidth+gap),y=cy*(boxHeight+gap);
+      const id=key(kind,...focus),write=step?.writes.has(id),read=step?.reads.has(id),last=records.get(id)||0;
+      let fill=mix(cs('--foreground'),4),stroke=cs('--border'),dash='';
+      if(read&&state.phase===0){fill=mix(cs('--read-color'),18);stroke=cs('--read-color');}
+      if(write&&state.phase>0){fill=mix(cs('--move-color'),state.phase===2?26:10);stroke=cs('--move-color');if(state.phase===1)dash=' stroke-dasharray="4 3"';}
+      svg+='<rect x="'+x+'" y="'+y+'" width="'+boxWidth+'" height="'+boxHeight+'" rx="5" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1"'+dash+'/>';
+      svg+=text(x+boxWidth/2,y+20,kind);
+      const version=state.phase===1&&write?(last?'#'+last:'初始')+' → #'+state.move:(last?'#'+last:'初始');
+      svg+=text(x+boxWidth/2,y+43,version,'middle','text-small');
+    }
+    svg+=text(width/2,boxHeight+gap+22,'('+focus.join(',')+')');
+    svg+=text(width/2,boxHeight+gap+43,'存储坐标','middle','text-small');
+    svg+=text(width/2,height-13,'8 项记录，非完整物理收缩网络','middle','text-small');
+    comp.innerHTML=svg;
+  }
+  function stepLabel(step){
+    if(!step)return '初始化之前';
+    return (step.sweep?'第 '+step.sweep+' 轮':'初始化')+' · '+names[step.d]+' · '+(step.d===1||step.d===3?'x':'y')+'='+step.j;
+  }
+  function render(announce=false){
+    const step=steps[state.move-1],records=snapshot(),focus=focused(step);
+    root.dataset.move=state.move;root.dataset.phase=state.phase;root.dataset.focus=state.focus;
+    $('counter').textContent=state.move+' / '+steps.length;
+    $('move-name').textContent=stepLabel(step);
+    $('write-set').textContent=step?'写入分量：'+kinds[step.d].join('、')+'；整'+(step.d===1||step.d===3?'列':'行')+' 12 个位置':'尚未执行 mixed move';
+    slider.value=state.move;focusSelect.value=state.focus;
+    prev.disabled=state.move===0;next.disabled=state.move===56;
+    play.textContent=playing?'暂停':'播放';
+    phaseButtons.forEach(b=>{b.disabled=!step;b.setAttribute('aria-pressed',String(!!step&&Number(b.dataset.phase)===state.phase));});
+    const phaseLabels=['计算整条切面的投影：只读旧环境','计算新角、新边：暂存，尚未覆盖环境数组','统一写回：下一 move 将读取这些新环境'];
+    $('phase-status').textContent=step?phaseLabels[state.phase]:'初始环境已平铺；中心插入和空间嵌入已准备';
+    $('write-legend').textContent=state.phase===2?'本步已写入分量':'本步待写入分量';
+    const id=key('C1',...focus),last=records.get(id)||0;
+    let action='本步不改写';
+    if(step?.writes.has(id))action=state.phase===2?'本步已写入':state.phase===1?'新值暂存中':'本步将写入';
+    else if(step?.reads.has(id))action='构造投影时读取';
+    const prior=last?'#'+last+' '+stepLabel(steps[last-1]):'初始化阶段';
+    $('detail').textContent='C₁('+focus.join(',')+')：最后写入 '+prior+'；'+action+'。';
+    drawGrid(step,records,focus);drawComponents(step,records,focus);
+    if(announce)$('announcement').textContent=stepLabel(step)+'。'+$('phase-status').textContent;
+  }
+  function stop(){if(timer!==null){clearTimeout(timer);timer=null;}playing=false;}
+  function advance(){
+    if(!playing)return;
+    if(state.move===0){state.move=1;state.phase=0;}
+    else if(state.phase<2)state.phase++;
+    else if(state.move<56){state.move++;state.phase=0;}
+    else{stop();render(true);persist();return;}
+    render(false);
+    timer=setTimeout(advance,state.phase===2?850:450);
+  }
+  prev.addEventListener('click',()=>{stop();state.move=Math.max(0,state.move-1);state.phase=2;render(true);persist();});
+  next.addEventListener('click',()=>{stop();state.move=Math.min(56,state.move+1);state.phase=0;render(true);persist();});
+  play.addEventListener('click',()=>{
+    if(playing){stop();render(true);persist();return;}
+    if(state.move===56&&state.phase===2){state.move=0;state.phase=0;}
+    playing=true;advance();
+  });
+  slider.addEventListener('input',()=>{stop();state.move=Number(slider.value);state.phase=2;render(false);});
+  slider.addEventListener('change',()=>{render(true);persist();});
+  phaseButtons.forEach(b=>b.addEventListener('click',()=>{stop();state.phase=Number(b.dataset.phase);render(true);persist();}));
+  focusSelect.addEventListener('change',()=>{state.focus=focusSelect.value;render(true);persist();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing){stop();render(false);}});
+  const observer=new ResizeObserver(()=>render(false));observer.observe(root);
+  root.__ctmModel={steps,readKeys,writeKeys,snapshot,
+    setStep:(move,phase=2,focus='fixed45')=>{stop();state={move,phase,focus};render(false);},
+    getState:()=>({...state})};
+  render(false);
+})();
+</script>

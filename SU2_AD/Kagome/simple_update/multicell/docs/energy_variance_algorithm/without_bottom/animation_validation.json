@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "offline": true,
+  "matchedScheduleMoves": 55,
+  "matchedDependencySnapshots": 56,
+  "matchedPendingMoves": 55,
+  "matchedPhaseSnapshots": 165,
+  "layouts": [
+    {
+      "width": 736,
+      "theme": "light"
+    },
+    {
+      "width": 736,
+      "theme": "dark"
+    },
+    {
+      "width": 320,
+      "theme": "light"
+    },
+    {
+      "width": 320,
+      "theme": "dark"
+    }
+  ],
+  "errors": []
+}

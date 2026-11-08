@@ -1,0 +1,741 @@
+{
+  "interpretation": "Boolean dependencies only; equality does not imply equal projectors or tensor values",
+  "old_moves": 56,
+  "new_moves": 55,
+  "aligned_moves": [
+    {
+      "direction": 3,
+      "coordinate": 7,
+      "sweep": 0,
+      "old_move": 1,
+      "new_move": 1,
+      "old_count": 7,
+      "new_count": 7,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 5,
+      "sweep": 1,
+      "old_move": 3,
+      "new_move": 2,
+      "old_count": 28,
+      "new_count": 20,
+      "only_old": [
+        "C3,6,6",
+        "C3,8,6",
+        "C4,6,6",
+        "C4,7,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 6,
+      "sweep": 1,
+      "old_move": 4,
+      "new_move": 3,
+      "old_count": 46,
+      "new_count": 39,
+      "only_old": [
+        "C3,6,6",
+        "C3,8,6",
+        "C4,7,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 7,
+      "sweep": 1,
+      "old_move": 5,
+      "new_move": 4,
+      "old_count": 70,
+      "new_count": 64,
+      "only_old": [
+        "C3,6,6",
+        "C3,8,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 8,
+      "sweep": 1,
+      "old_move": 6,
+      "new_move": 5,
+      "old_count": 101,
+      "new_count": 95,
+      "only_old": [
+        "C3,6,6",
+        "C3,8,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 9,
+      "sweep": 1,
+      "old_move": 7,
+      "new_move": 6,
+      "old_count": 137,
+      "new_count": 131,
+      "only_old": [
+        "C3,6,6",
+        "C3,8,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 10,
+      "sweep": 1,
+      "old_move": 8,
+      "new_move": 7,
+      "old_count": 173,
+      "new_count": 167,
+      "only_old": [
+        "C3,6,6",
+        "C3,8,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 11,
+      "sweep": 1,
+      "old_move": 9,
+      "new_move": 8,
+      "old_count": 209,
+      "new_count": 203,
+      "only_old": [
+        "C3,6,6",
+        "C3,8,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 8,
+      "sweep": 1,
+      "old_move": 10,
+      "new_move": 9,
+      "old_count": 233,
+      "new_count": 228,
+      "only_old": [
+        "C3,6,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 7,
+      "sweep": 1,
+      "old_move": 11,
+      "new_move": 10,
+      "old_count": 257,
+      "new_count": 252,
+      "only_old": [
+        "C3,6,6",
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 6,
+      "sweep": 1,
+      "old_move": 12,
+      "new_move": 11,
+      "old_count": 292,
+      "new_count": 288,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 5,
+      "sweep": 1,
+      "old_move": 13,
+      "new_move": 12,
+      "old_count": 328,
+      "new_count": 324,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 4,
+      "sweep": 1,
+      "old_move": 14,
+      "new_move": 13,
+      "old_count": 364,
+      "new_count": 360,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 3,
+      "sweep": 1,
+      "old_move": 15,
+      "new_move": 14,
+      "old_count": 400,
+      "new_count": 396,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 2,
+      "sweep": 1,
+      "old_move": 16,
+      "new_move": 15,
+      "old_count": 436,
+      "new_count": 432,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 5,
+      "sweep": 1,
+      "old_move": 17,
+      "new_move": 16,
+      "old_count": 458,
+      "new_count": 454,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 6,
+      "sweep": 1,
+      "old_move": 18,
+      "new_move": 17,
+      "old_count": 480,
+      "new_count": 476,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 7,
+      "sweep": 1,
+      "old_move": 19,
+      "new_move": 18,
+      "old_count": 502,
+      "new_count": 498,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 8,
+      "sweep": 1,
+      "old_move": 20,
+      "new_move": 19,
+      "old_count": 525,
+      "new_count": 521,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 9,
+      "sweep": 1,
+      "old_move": 21,
+      "new_move": 20,
+      "old_count": 549,
+      "new_count": 545,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 10,
+      "sweep": 1,
+      "old_move": 22,
+      "new_move": 21,
+      "old_count": 575,
+      "new_count": 571,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 11,
+      "sweep": 1,
+      "old_move": 23,
+      "new_move": 22,
+      "old_count": 603,
+      "new_count": 599,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 7,
+      "sweep": 1,
+      "old_move": 24,
+      "new_move": 23,
+      "old_count": 625,
+      "new_count": 621,
+      "only_old": [
+        "T3,5,6",
+        "T3,6,6",
+        "T3,7,6",
+        "T3,8,6"
+      ],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 6,
+      "sweep": 1,
+      "old_move": 25,
+      "new_move": 24,
+      "old_count": 643,
+      "new_count": 643,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 5,
+      "sweep": 1,
+      "old_move": 26,
+      "new_move": 25,
+      "old_count": 665,
+      "new_count": 665,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 4,
+      "sweep": 1,
+      "old_move": 27,
+      "new_move": 26,
+      "old_count": 688,
+      "new_count": 688,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 3,
+      "sweep": 1,
+      "old_move": 28,
+      "new_move": 27,
+      "old_count": 712,
+      "new_count": 712,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 2,
+      "sweep": 1,
+      "old_move": 29,
+      "new_move": 28,
+      "old_count": 738,
+      "new_count": 738,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 5,
+      "sweep": 2,
+      "old_move": 30,
+      "new_move": 29,
+      "old_count": 754,
+      "new_count": 754,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 6,
+      "sweep": 2,
+      "old_move": 31,
+      "new_move": 30,
+      "old_count": 766,
+      "new_count": 766,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 7,
+      "sweep": 2,
+      "old_move": 32,
+      "new_move": 31,
+      "old_count": 774,
+      "new_count": 774,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 8,
+      "sweep": 2,
+      "old_move": 33,
+      "new_move": 32,
+      "old_count": 778,
+      "new_count": 778,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 9,
+      "sweep": 2,
+      "old_move": 34,
+      "new_move": 33,
+      "old_count": 778,
+      "new_count": 778,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 10,
+      "sweep": 2,
+      "old_move": 35,
+      "new_move": 34,
+      "old_count": 778,
+      "new_count": 778,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 1,
+      "coordinate": 11,
+      "sweep": 2,
+      "old_move": 36,
+      "new_move": 35,
+      "old_count": 778,
+      "new_count": 778,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 8,
+      "sweep": 2,
+      "old_move": 37,
+      "new_move": 36,
+      "old_count": 786,
+      "new_count": 786,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 7,
+      "sweep": 2,
+      "old_move": 38,
+      "new_move": 37,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 6,
+      "sweep": 2,
+      "old_move": 39,
+      "new_move": 38,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 5,
+      "sweep": 2,
+      "old_move": 40,
+      "new_move": 39,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 4,
+      "sweep": 2,
+      "old_move": 41,
+      "new_move": 40,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 3,
+      "sweep": 2,
+      "old_move": 42,
+      "new_move": 41,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 3,
+      "coordinate": 2,
+      "sweep": 2,
+      "old_move": 43,
+      "new_move": 42,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 5,
+      "sweep": 2,
+      "old_move": 44,
+      "new_move": 43,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 6,
+      "sweep": 2,
+      "old_move": 45,
+      "new_move": 44,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 7,
+      "sweep": 2,
+      "old_move": 46,
+      "new_move": 45,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 8,
+      "sweep": 2,
+      "old_move": 47,
+      "new_move": 46,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 9,
+      "sweep": 2,
+      "old_move": 48,
+      "new_move": 47,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 10,
+      "sweep": 2,
+      "old_move": 49,
+      "new_move": 48,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 2,
+      "coordinate": 11,
+      "sweep": 2,
+      "old_move": 50,
+      "new_move": 49,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 7,
+      "sweep": 2,
+      "old_move": 51,
+      "new_move": 50,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 6,
+      "sweep": 2,
+      "old_move": 52,
+      "new_move": 51,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 5,
+      "sweep": 2,
+      "old_move": 53,
+      "new_move": 52,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 4,
+      "sweep": 2,
+      "old_move": 54,
+      "new_move": 53,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 3,
+      "sweep": 2,
+      "old_move": 55,
+      "new_move": 54,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    },
+    {
+      "direction": 4,
+      "coordinate": 2,
+      "sweep": 2,
+      "old_move": 56,
+      "new_move": 55,
+      "old_count": 790,
+      "new_count": 790,
+      "only_old": [],
+      "only_new": []
+    }
+  ]
+}

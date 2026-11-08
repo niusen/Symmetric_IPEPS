@@ -30,6 +30,7 @@ end
 include("conversion_layers.jl")
 include("factorized_ctm.jl")
 include("observables.jl")
+include("memory_bounded_ctm.jl")
 include("measurement_io.jl")
 include("conversion_workflow.jl")
 export to_dense, conversion_state, native_ctmrg, native_observables,

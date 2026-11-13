@@ -59,6 +59,38 @@ sh SU4/triangle_simple_update_dense/job_su4_D4_D16.sh
 
 ## 输出与续算
 
+已有 D=9、seed=1234 的 checkpoint、任务退出后，可专门从 D=9 恢复：
+
+```sh
+sh SU4/triangle_simple_update_dense/job_resume_D9_D16.sh /原来的输出根目录
+```
+
+输出根目录下应直接有 `continuation/L2x2_J1_traceless_D09_seed1234/checkpoint.jls`。
+该 sh 直接调用 Julia，不使用 nohup；普通终端下自动后台启动，无需在命令末尾再加 `&`，
+并输出后台任务 PID（等待 Julia 的 shell worker）和日志位置，PID 另存为同前缀 `.pid`。
+SLURM/PBS/LSF 作业内自动保持前台，作业取得实际退出码；普通终端可用
+`SU4_FOREGROUND=1 sh job_resume_D9_D16.sh` 强制前台。
+脚本不申请调度器资源，可放进原来的资源申请脚本中，或在已分配的计算节点运行。
+仍支持 `JULIA_BIN`、`JULIA_PROJECT`、`SU4_BLAS_THREADS`。
+若不提供路径参数，优先使用 `SU4_OUTPUT_DIR`；未设置时优先在脚本旁的
+`long_runs_tensormap`、`long_runs` 等已知结果目录中寻找实际 D=9 checkpoint，
+最后尝试历史路径 `/scratch/home/sniu/iPEPS_SU4_spin/triangle_SU4/simple_update_dense/long_runs_tensormap`。
+若绝对路径不可用、当前运行目录下可以列出 checkpoint，可显式执行
+`sh job_resume_D9_D16.sh "$(pwd -P)/long_runs_tensormap"`。
+该路径不包含 `continuation/` 或单个 D 的子目录。
+
+入口为 `Resume_D9_D16.jl`，续跑管理函数在 `src/bosonic/triangle/su4_dense/Resume.jl`，
+直接复用 `LongRun.jl` 的 `run_one`，不更改数值算法或收敛参数。
+保留完整 `Ds=4:16` 来确定上一 D；只执行 D=9…16，seeds=1234、5678、9012。
+已完成的匹配结果（包括完成但未收敛的结果）跳过；D=4…8 的完整 MAT 结果保留到总汇总表。
+若 D=9 的 SU checkpoint 已标记完成，则跳过 SU，重新从 chi=16 开始 CTMRG；环境没有断点保存。
+找不到恢复点、已有结果元数据不匹配或计算报错时停止，不继续启动更大的 D。
+日志放在原输出根目录的 `logs/resume_D9_D16_*.out/.err`；存在 `/usr/bin/time` 时，
+另有同前缀 `.resources` 记录峰值 RSS 和退出信息。系统直接终止整个作业时，此记录可能不完整。
+Julia 退出后写入同前缀 `.exit`：`0` 表示成功，非零表示失败；若整个 worker 被系统终止，
+该文件可能不会生成。后台启动时 sh 返回成功仅表示任务已启动，完成状态应看 `.exit` 和日志。
+本入口没有降低开放双层张量的内存需求；若原因为内存不足，需增加可用作业内存或另行优化测量。
+
 直接运行 Julia 入口时，默认目录为 `SU4/triangle_simple_update_dense/long_runs_tensormap`；
 sh 脚本新建结果时默认使用同目录下的 `long_runs`，已有结果或 `SU4_OUTPUT_DIR` 设置优先。
 默认续接结果放在该根目录的 `continuation/` 子目录内；原独立随机结果仍位于根目录。

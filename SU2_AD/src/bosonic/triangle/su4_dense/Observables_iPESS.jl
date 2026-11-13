@@ -14,11 +14,16 @@ function nearest_neighbor_bonds(obs)
         tx,ty=mod1(x+dx,nx),mod1(y+dy,ny)
         sx,sy=mod1(x+dx,nx),y # Convert physical-origin indexing to B/simplex indexing.
         at(field)=getproperty(getproperty(obs,field),d)[sx,sy]
-        push!(bonds,(id=length(bonds)+1,direction=d,source=(x,y),target=(tx,ty),
+        bond=(id=length(bonds)+1,direction=d,source=(x,y),target=(tx,ty),
             source_label=label(x,y),target_label=label(tx,ty),
             target_cell=(fld(x+dx-1,nx),fld(y+dy-1,ny)),displacement=(dx,dy),simplex=(sx,sy),
             exchange=at(:exchange),coupling=at(:coupling),generator_dot=at(:generator_dot),
-            connected_generator_dot=at(:connected_generator_dot),bond_energy=at(:bond_energy)))
+            connected_generator_dot=at(:connected_generator_dot),bond_energy=at(:bond_energy))
+        if hasproperty(obs,:singlet_weight)
+            bond=merge(bond,(singlet_weight=at(:singlet_weight),adjoint_weight=at(:adjoint_weight),
+                symmetric20_weight=at(:symmetric20_weight)))
+        end
+        push!(bonds,bond)
     end
     return bonds
 end
@@ -28,11 +33,15 @@ function bond_table_matrix(obs)
     columns=["bond_id","direction_code","source_x","source_y","target_x","target_y",
         "target_cell_x","target_cell_y","displacement_x","displacement_y","simplex_x","simplex_y",
         "exchange","coupling","generator_dot","connected_generator_dot","bond_energy"]
+    six=hasproperty(obs,:singlet_weight)
+    six && append!(columns,["singlet_weight","adjoint_weight","symmetric20_weight"])
     A=zeros(length(bonds),length(columns))
     for b in bonds
         code=findfirst(==(b.direction),(:x,:y,:diagonal))
-        A[b.id,:]=[b.id,code,b.source...,b.target...,b.target_cell...,b.displacement...,b.simplex...,
+        row=[b.id,code,b.source...,b.target...,b.target_cell...,b.displacement...,b.simplex...,
             b.exchange,b.coupling,b.generator_dot,b.connected_generator_dot,b.bond_energy]
+        six && append!(row,[b.singlet_weight,b.adjoint_weight,b.symmetric20_weight])
+        A[b.id,:]=row
     end
     return A,columns
 end
@@ -60,8 +69,13 @@ function bond_pattern_diagnostics(obs)
 end
 
 function print_observables(io::IO,obs)
+    six=hasproperty(obs,:physical_dimension) && obs.physical_dimension==6
     if obs.environment==:ctmrg
-        println(io,"Dense SU(4) triangle iPESS: CTMRG environment")
+        if six
+            println(io,"SU(4) antisymmetric six-irrep triangle iPESS: CTMRG environment; backend=",obs.backend)
+        else
+            println(io,"Dense SU(4) triangle iPESS: CTMRG environment")
+        end
         println(io,"chi=",obs.ctm.chi," corner_converged=",obs.ctm.corner_converged,
                 " iteration_converged=",obs.ctm.iteration_converged," chi_converged=",obs.ctm.chi_converged)
     else
@@ -69,7 +83,8 @@ function print_observables(io::IO,obs)
     end
     println(io,"cell=",obs.cell," J=",obs.J," convention=",obs.convention)
     @printf(io,"energy/site = %.16g\nenergy/bond = %.16g\n",obs.energy_per_site,obs.energy_per_bond)
-    println(io,"direction         <Pij>           <Pij>-1/4      generator_dot    connected_dot     bond_energy")
+    println(io,six ? "direction         <swap_6>         <h/J>         generator_dot    connected_dot     bond_energy" :
+        "direction         <Pij>           <Pij>-1/4      generator_dot    connected_dot     bond_energy")
     for d in keys(obs.exchange)
         @printf(io,"%-9s %16.10g %16.10g %16.10g %16.10g %16.10g\n",string(d),
                 getproperty(obs.means.exchange,d),getproperty(obs.means.coupling,d),
@@ -77,7 +92,8 @@ function print_observables(io::IO,obs)
                 getproperty(obs.means.connected_generator_dot,d),getproperty(obs.means.bond_energy,d))
     end
     println(io,"All independent bonds: source is in cell (0,0); target cell is explicit.")
-    println(io," id  direction   source -> target[cell_dx,cell_dy]      <Pij>        <Pij>-1/4       bond_energy")
+    println(io,six ? " id  direction   source -> target[cell_dx,cell_dy]      <swap_6>        <h/J>         bond_energy" :
+        " id  direction   source -> target[cell_dx,cell_dy]      <Pij>        <Pij>-1/4       bond_energy")
     for b in nearest_neighbor_bonds(obs)
         endpoint="$(b.source_label) -> $(b.target_label)[$(b.target_cell[1]),$(b.target_cell[2])]"
         @printf(io,"%3d  %-9s %-30s %14.9f %14.9f %14.9f\n",b.id,string(b.direction),endpoint,b.exchange,b.coupling,b.bond_energy)
@@ -98,6 +114,8 @@ print_observables(obs) = print_observables(stdout,obs)
 
 """Save full observables as .jls, human-readable summary as .txt and per-bond .csv."""
 function save_observables(prefix::AbstractString,obs)
+    six=hasproperty(obs,:singlet_weight)
+    sector_columns=six ? ",singlet_weight,adjoint_weight,symmetric20_weight" : ""
     paths = (data=prefix*".jls",summary=prefix*".txt",bonds=prefix*".csv",
              full_bonds=prefix*"_bonds.csv",pattern=prefix*"_pattern.csv")
     serialize(paths.data,obs)
@@ -106,7 +124,7 @@ function save_observables(prefix::AbstractString,obs)
     end
     nx,ny = obs.cell
     open(paths.bonds,"w") do io
-        println(io,"simplex_x,simplex_y,direction,site_i_x,site_i_y,site_j_x,site_j_y,exchange,coupling,generator_dot,connected_generator_dot,bond_energy")
+        println(io,"simplex_x,simplex_y,direction,site_i_x,site_i_y,site_j_x,site_j_y,exchange,coupling,generator_dot,connected_generator_dot,bond_energy",sector_columns)
         for y=1:ny,x=1:nx
             endpoints = (x=((mod1(x-1,nx),y),(x,y)),
                          y=((x,y),(x,mod1(y+1,ny))),
@@ -117,16 +135,22 @@ function save_observables(prefix::AbstractString,obs)
                        getproperty(obs.exchange,d)[x,y],getproperty(obs.coupling,d)[x,y],
                        getproperty(obs.generator_dot,d)[x,y],
                        getproperty(obs.connected_generator_dot,d)[x,y],getproperty(obs.bond_energy,d)[x,y])
+                if six
+                    row=(row...,getproperty(obs.singlet_weight,d)[x,y],getproperty(obs.adjoint_weight,d)[x,y],
+                        getproperty(obs.symmetric20_weight,d)[x,y])
+                end
                 println(io,join(row,','))
             end
         end
     end
     open(paths.full_bonds,"w") do io
-        println(io,"bond_id,direction,source_label,target_label,source_x,source_y,target_x,target_y,target_cell_x,target_cell_y,displacement_x,displacement_y,simplex_x,simplex_y,exchange,coupling,generator_dot,connected_generator_dot,bond_energy,environment")
+        println(io,"bond_id,direction,source_label,target_label,source_x,source_y,target_x,target_y,target_cell_x,target_cell_y,displacement_x,displacement_y,simplex_x,simplex_y,exchange,coupling,generator_dot,connected_generator_dot,bond_energy,environment",sector_columns)
         for b in nearest_neighbor_bonds(obs)
-            println(io,join((b.id,string(b.direction),b.source_label,b.target_label,b.source...,b.target...,
+            row=(b.id,string(b.direction),b.source_label,b.target_label,b.source...,b.target...,
                 b.target_cell...,b.displacement...,b.simplex...,b.exchange,b.coupling,
-                b.generator_dot,b.connected_generator_dot,b.bond_energy,string(obs.environment)),','))
+                b.generator_dot,b.connected_generator_dot,b.bond_energy,string(obs.environment))
+            six && (row=(row...,b.singlet_weight,b.adjoint_weight,b.symmetric20_weight))
+            println(io,join(row,','))
         end
     end
     diag=bond_pattern_diagnostics(obs)

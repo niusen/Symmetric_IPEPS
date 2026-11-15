@@ -36,9 +36,10 @@ mktempdir() do tmp
         @test length(nodes)==63
         @test count(n->n.parent==0,nodes)==7
         @test all(n.parent==0 || (nodes[n.parent].D==n.D-1 && nodes[n.parent].h==n.h) for n in nodes)
-        dzcfg=merge(production,(mode=:Dz_chain,dims=[2],Dz_values=[-.1,-.075,-.05,-.03,-.02,-.01,0.,.01,.02,.03,.05,.075,.1]))
+        dzcfg=merge(production,(mode=:Dz_chain,dims=[2],Dz_values=[-.7,-.6,-.5,-.4,-.35,-.3,-.28,-.25,-.2,-.15,-.1,-.075,-.05,-.03,-.02,-.01,0.,.01,.02,.03,.05,.075,.1,.15,.2,.25,.28,.3,.35,.4,.5,.6,.7]))
         dzplan=C.plan(dzcfg)
-        @test length(dzplan)==91
+        @test length(dzplan)==231
+        @test maximum(n.Dz for n in dzplan)==.7 && minimum(n.Dz for n in dzplan)==-.7
         @test all(n.parent==0 || dzplan[n.parent].h==n.h for n in dzplan)
         for n in dzplan
             n.Dz==-.02 || continue

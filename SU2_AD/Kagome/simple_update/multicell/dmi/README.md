@@ -54,7 +54,7 @@ plateau candidate in the completed independent-random data:
 - `server/run_platform_D_chain.jl/.sh`: fixed Dz=0.02, D=2 -> 10, seven fields.
   Every new D reads the preceding D at the SAME h.
 - `server/run_platform_Dz_signed.jl/.sh`: fixed D=2, signed Dz through zero up to
-  |Dz|=0.10, the same seven fields. Two Dz paths leave the common +0.02 base.
+  |Dz|=0.70 (231 points), the same seven fields. Two Dz paths leave the common +0.02 base.
 
 Neither task inherits a neighboring-h state or adds noise/U1 projection. Both
 save data only and support stage-level resume. A flat continued magnetization

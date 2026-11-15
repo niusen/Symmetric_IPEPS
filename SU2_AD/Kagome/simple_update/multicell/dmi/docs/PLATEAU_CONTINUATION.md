@@ -38,20 +38,27 @@ Output: `results/DMI_platform_D2_D10_Dz002_sqrt3_chi12/`.
 
 From **dmi/server/** run `sh run_platform_Dz_signed.sh`.
 
-Default Dz=0, +/-0.01, +/-0.02, +/-0.03, +/-0.05, +/-0.075, +/-0.10, with the
-same seven fields: 91 points. Each h first evolves the SAME original seed at
+Default Dz=0 and both signs of 0.01, 0.02, 0.03, 0.05, 0.075, 0.10, 0.15,
+0.20, 0.25, 0.28, 0.30, 0.35, 0.40, 0.50, 0.60, 0.70. The same seven fields
+give 33 Dz values and 231 points. Each h first evolves the SAME original seed at
 Dz=+0.02. Then two separate paths leave that base:
 
 ```text
-+0.02 -> +0.03 -> +0.05 -> +0.075 -> +0.10
-+0.02 -> +0.01 -> 0 -> -0.01 -> -0.02 -> -0.03 -> -0.05 -> -0.075 -> -0.10
++0.02 -> +0.03 -> +0.05 -> +0.075 -> +0.10 -> +0.15 -> ... -> +0.70
++0.02 -> +0.01 -> 0 -> -0.01 -> -0.02 -> -0.03 -> ... -> -0.70
 ```
 
 Every Dz uses its preceding Dz at the SAME h. The decreasing path does not pass
 through the high-positive-Dz state, and no conjugation/reset is silently applied
 to the seed. h>0 always means H_field=-h Sz; only Dz changes sign.
 
-Output: `results/DMI_platform_D2_signed_Dz010_sqrt3_chi12/`.
+Output: `results/DMI_platform_D2_signed_Dz070_sqrt3_chi12/`.
+
+The expanded task writes a new Dz070 output directory and does not overwrite
+the earlier Dz010 data. Its h window remains 0.28--0.48; a plateau shifted outside
+this window is not excluded by its absence in the scan. The grid samples 0.25,
+0.28 and 0.30, near the spinon band-inversion scale discussed in Kumar et al.;
+that band-inversion scale is not a magnetic-plateau boundary.
 
 ## Evolution, data and restart
 

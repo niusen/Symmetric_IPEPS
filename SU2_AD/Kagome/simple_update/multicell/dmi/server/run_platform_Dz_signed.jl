@@ -6,12 +6,13 @@ platform_seed=joinpath(@__DIR__,"..","..","results","DMI_independent_random3_D2_
     "D2_Dz0.02_random1","h0.32","final.jld2")
 options=(
     mode=:Dz_chain,dims=[2],
-    Dz_values=[-.10,-.075,-.05,-.03,-.02,-.01,0.,.01,.02,.03,.05,.075,.10],
+    Dz_values=[-.70,-.60,-.50,-.40,-.35,-.30,-.28,-.25,-.20,-.15,-.10,-.075,-.05,-.03,-.02,-.01,
+               0.,.01,.02,.03,.05,.075,.10,.15,.20,.25,.28,.30,.35,.40,.50,.60,.70],
     fields=[.28,.32,.36,.38,.40,.44,.48],
     input=platform_seed,seed_observables=joinpath(dirname(platform_seed),"independent_result.toml"),
     seed_D=2,seed_Dz=.02,seed_h=.32,seed_magnetization=1/9,seed_m_tolerance=1e-5,
     threads=10,trun_tol=1e-8,chi=12,ctm_max=50,ctm_tol=1e-6,
     schedule=[(dt=.03,tau=40.),(dt=.01,tau=20.),(dt=.003,tau=5.),(dt=.001,tau=2.),(dt=.0005,tau=1.)],
-    out=joinpath(@__DIR__,"..","..","results","DMI_platform_D2_signed_Dz010_sqrt3_chi12"),
+    out=joinpath(@__DIR__,"..","..","results","DMI_platform_D2_signed_Dz070_sqrt3_chi12"),
 )
 KagomeDMIPlateauContinuation.run(options)

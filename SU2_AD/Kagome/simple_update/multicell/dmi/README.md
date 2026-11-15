@@ -12,6 +12,7 @@ dmi/
   server/       editable run options and background .sh launchers
   experiments/  pure-DMI order probe and historical candidate checks
   tests/        small-D correctness checks and independent-seed smoke test
+  docs/         task settings, seed lineage and upload instructions
   data/logs/    local and server logs/PID records
   data/tests/   small-test results and the preserved pre-reorganization baseline
   README.md
@@ -44,6 +45,22 @@ julia --project=. dmi/tests/test_independent_random_fields.jl
 
 These use small tensors and temporary output directories. The longer
 **experiments/** scripts are separate from the small correctness tests.
+
+## Plateau-seed continuation tasks
+
+Two new tasks start from the reliable D=2, Dz=0.02, h=0.32, trial=1 dense
+plateau candidate in the completed independent-random data:
+
+- `server/run_platform_D_chain.jl/.sh`: fixed Dz=0.02, D=2 -> 10, seven fields.
+  Every new D reads the preceding D at the SAME h.
+- `server/run_platform_Dz_signed.jl/.sh`: fixed D=2, signed Dz through zero up to
+  |Dz|=0.10, the same seven fields. Two Dz paths leave the common +0.02 base.
+
+Neither task inherits a neighboring-h state or adds noise/U1 projection. Both
+save data only and support stage-level resume. A flat continued magnetization
+must still compete in energy with independently found states.
+See [plateau task instructions](docs/PLATEAU_CONTINUATION.md) for source checkpoint
+paths, full dependency rules, signed-Dz checks, output data and uploads.
 
 ## Single-run options
 

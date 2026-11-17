@@ -119,3 +119,14 @@ At J=h=0, the coherent q=0 120-degree product reference has energy per spin
 `-sqrt(3)*Dz/4`. This is a sign/geometry check, not the exact quantum energy.
 Python uses the opposite field parameter sign (-h Sz); reverse h to compare
 the same ket. The DMI convention is the same.
+
+## D=6,8 random scan to Dz=0.7
+
+The new `server/run_independent_random_D6_D8.jl/.sh` task uses dense sqrt3 iPESS,
+D=6,8, twelve NONNEGATIVE Dz values up to 0.7, eleven fields up to h=0.64,
+and three independent random seeds per point: 792 optimizations. It reuses the
+existing Julia independent-random workflow, CPU/10 threads, chi=12 (conditional
+chi=24 diagnostic recheck), CTMRG max50/tol=1e-6, and the same five-stage,
+9000-step SU schedule. No saved platform state or continuation is used.
+See [settings, resume and uploads](docs/RANDOM_D6_D8.md). Only the two new
+server entry files need uploading if the existing Julia random task is installed.

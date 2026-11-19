@@ -1,0 +1,34 @@
+[model]
+t_up = 1.0
+t_dn = 1.0
+U = 4.0
+mu = 0.0
+centered = true
+
+[run]
+Lx = 1
+Ly = 1
+D_even = 2
+D_odd = 2
+D_max = 4
+seed = 888
+blas_threads = 1
+trun_tol = 1e-10
+print_every = 20
+resume = ""
+output = "results"
+
+[[schedule]]
+tau = 2.0
+dt = 0.02
+
+[[schedule]]
+tau = 1.0
+dt = 0.005
+
+[ctm]
+enabled = true
+chi = 20
+maxiter = 100
+tol = 1e-6
+verbose = true

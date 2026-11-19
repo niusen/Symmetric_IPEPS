@@ -1,0 +1,28 @@
+[model]
+t_up = 1.0
+t_dn = 1.0
+U = 2.0
+mu = 0.0
+centered = true
+
+[run]
+Lx = 1
+Ly = 1
+D_even = 1
+D_odd = 1
+D_max = 2
+seed = 888
+blas_threads = 1
+trun_tol = 1e-10
+output = "smoke_results"
+
+[[schedule]]
+tau = 0.02
+dt = 0.01
+
+[ctm]
+enabled = true
+chi = 4
+maxiter = 3
+tol = 1e-6
+verbose = false

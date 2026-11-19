@@ -1,0 +1,23 @@
+TensorKit = "0.14.11"
+julia = "1.11.6"
+scope = "D1 product/trimer exact tests and D2 central-bond smoke; no production state evolved"
+
+[dense_D2]
+central_bond_max_error = 4.699419672848926e-8
+
+    [dense_D2.baseline_ctm]
+    actual_corner_dimensions = [4]
+    chi = 4
+    converged = true
+    error = 4.668549911775804e-9
+    iterations = 9
+
+[product_D1]
+connected_pairs = 972
+max_pair_error = 0.0
+variance = 0.22222222222222227
+
+[trimer_product_D1]
+connected_pairs = 972
+max_pair_error = 2.3605381005112525e-16
+variance = 0.2541272997376358

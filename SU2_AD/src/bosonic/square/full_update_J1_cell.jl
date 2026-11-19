@@ -404,6 +404,7 @@ function _square_fu_reduced_fidelity(
     cell_Ly;
     target_norm,
     metric_floor,
+    density_scale=1,
 )
     candidate1, candidate2 = _square_fu_reassemble_reduced(
         residual1, keep1, keep2, residual2, bond.direction,
@@ -418,7 +419,7 @@ function _square_fu_reduced_fidelity(
         cell_Lx,
         cell_Ly,
     )
-    norm_candidate = real(_square_fu_rho_trace(rho_candidate))
+    norm_candidate = real(density_scale * _square_fu_rho_trace(rho_candidate))
     rho_overlap = _square_fu_two_site_density_cell(
         environment.CTM,
         candidate1,
@@ -429,7 +430,7 @@ function _square_fu_reduced_fidelity(
         cell_Lx,
         cell_Ly,
     )
-    overlap = @tensor rho_overlap[1, 2, 3, 4] * gate[1, 2, 3, 4]
+    overlap = density_scale * (@tensor rho_overlap[1, 2, 3, 4] * gate[1, 2, 3, 4])
     denominator = abs(norm_candidate * target_norm)
     denominator > metric_floor || throw(ArgumentError(
         "the reduced two-site CTM fidelity denominator is too small: $denominator",
@@ -483,6 +484,9 @@ function square_J1_full_update_cell_bond(
     gate::TensorMap,
     bond::SquareJ1CellBond;
     settings::SquareJ1FullUpdateSettings=SquareJ1FullUpdateSettings(),
+    bond_initializer=nothing,
+    compare_old_candidate::Bool=false,
+    density_scale=1,
 )
     cell_Lx, cell_Ly = size(A_set)
     A1_old = A_set[bond.site1]
@@ -500,9 +504,14 @@ function square_J1_full_update_cell_bond(
     # The fork-specific multiplet-aware truncation chooses a new SU(2) bond
     # space before the CTM-environment variational sweeps begin.  The exact target is
     # kept as `gate * |old>`; it is never factorized or truncated.
-    truncation = truncdim(settings.Dmax; multiplet_tol=settings.multiplet_tol)
-    keep1_current, keep2_current, singular_values =
-        _square_fu_factor_bond(gated_bond; truncation=truncation)
+    if isnothing(bond_initializer)
+        truncation = truncdim(settings.Dmax; multiplet_tol=settings.multiplet_tol)
+        keep1_current, keep2_current, singular_values =
+            _square_fu_factor_bond(gated_bond; truncation=truncation)
+    else
+        keep1_current, keep2_current, singular_values =
+            bond_initializer(gated_bond, old_keep1, old_keep2)
+    end
 
     rho_old = _square_fu_two_site_density_cell(
         environment.CTM,
@@ -515,7 +524,7 @@ function square_J1_full_update_cell_bond(
         cell_Ly,
     )
     gate_norm = gate' * gate
-    target_norm = real(@tensor rho_old[1, 2, 3, 4] * gate_norm[1, 2, 3, 4])
+    target_norm = real(density_scale * (@tensor rho_old[1, 2, 3, 4] * gate_norm[1, 2, 3, 4]))
     target_norm > settings.metric_floor || throw(ArgumentError(
         "the reduced two-site CTM target norm is non-positive: $target_norm",
     ))
@@ -534,9 +543,22 @@ function square_J1_full_update_cell_bond(
         cell_Ly;
         target_norm=target_norm,
         metric_floor=settings.metric_floor,
+        density_scale=density_scale,
     )
 
     loss_current = objective(keep1_current, keep2_current)
+    if compare_old_candidate
+        space(keep1_current)==space(old_keep1) && space(keep2_current)==space(old_keep2) ||
+            throw(SpaceMismatch("comparing the old candidate requires the same reduced spaces"))
+        loss_old = objective(old_keep1, old_keep2)
+        # Keep the old coefficients when CTM cannot resolve an improvement;
+        # do not move in an environment-null direction just to adopt the
+        # unweighted SVD initialization's gauge.
+        if loss_old <= loss_current + settings.loss_tolerance
+            keep1_current, keep2_current = copy(old_keep1), copy(old_keep2)
+            loss_current = loss_old
+        end
+    end
     loss_initial = loss_current
     loss_history = Float64[loss_current]
     gradient_norm = Inf

@@ -2,7 +2,7 @@ variance_window_contains(dx,dy,w)=(-div(w-1,2)<=dx<=div(w,2) && -div(w-1,2)<=dy<
 
 function exchange_variance(state;L=12,radii=[0,1,2],chi=8,ctm_iterations=30,
         ctm_tolerance=1e-8,sweeps=2,source_shift=1.,anchors=nothing,verbose=true,
-        norm_environment=nothing,window_sizes=nothing)
+        norm_environment=nothing,window_sizes=nothing,extra_bottom_warmup::Bool=false)
     start=time()
     verbose && (println("Variance: building local factors (first call may compile Julia kernels)");flush(stdout))
     f=state isa N.NativeFactors ? state : N.build_factors(state);g=f.state.geometry
@@ -67,7 +67,7 @@ function exchange_variance(state;L=12,radii=[0,1,2],chi=8,ctm_iterations=30,
                     println("  Mixed sweep moves=",moves[],"; elapsed=",round(time()-sweep_start;digits=3)," s");flush(stdout)
                 end
             end : nothing
-            mixed=large_cell_sweeps(ctx,support;chi,sweeps,callback=progress)
+            mixed=large_cell_sweeps(ctx,support;chi,sweeps,callback=progress,extra_bottom_warmup)
             sweep_seconds=time()-sweep_start
             verbose && (println("  Mixed sweeps finished in ",round(sweep_seconds;digits=3)," s; target bonds start");flush(stdout))
             measurement_start=time()
@@ -108,6 +108,7 @@ function exchange_variance(state;L=12,radii=[0,1,2],chi=8,ctm_iterations=30,
     Dict("format"=>"kagome_LC_exchange_variance_v1","full_anchor_sum"=>full,
          "n_physical_sites"=>nspin,"anchor_count"=>length(selected),"L"=>L,"chi"=>chi,
          "sweeps"=>sweeps,"source_shift"=>source_shift,"ctm"=>ctm,
+         "extra_bottom_warmup"=>extra_bottom_warmup,
          "summation_mode"=>windows ? "cell_windows" : "legacy_radius",
          "exchange_energy_per_spin"=>real(sum(values(means)))/(3g.Lx*g.Ly),
          "timing"=>Dict("factor_seconds"=>factor_seconds,"norm_ctm_seconds"=>norm_seconds,

@@ -1,5 +1,6 @@
 # Keep server launchers even when a parent/global rule ignores shell scripts.
 !run_star_su.sh
+!run_full_update.sh
 !job_star_su.sbatch
 server_runs/
 logs/

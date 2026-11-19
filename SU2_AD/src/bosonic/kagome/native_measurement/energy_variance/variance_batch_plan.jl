@@ -12,7 +12,10 @@ function variance_jobs(cfg;check_inputs=true)
     end
     issorted(cfg.sizes) || error("L values must be increasing")
     cfg.threads>0 && cfg.sweeps>0 && 2<=cfg.ctm_iterations<=50 && cfg.ctm_tolerance>0 && cfg.source_shift>=1 || error("invalid measurement settings")
-    all(L->L%3==0,cfg.sizes) || error("Reported L values must be multiples of 3")
+    get(cfg,:extra_bottom_warmup,false) isa Bool || error("extra_bottom_warmup must be Bool")
+    # Only the contraction grid must tile the original period-3 state.
+    # Reported L is a correlation-sum window, so L=8 is valid as well.
+    all(L->L isa Integer,cfg.sizes) || error("Reported L values must be integers")
     cfg.contraction_size%3==0 && cfg.contraction_size>=maximum(cfg.sizes)+6 ||
         error("Contraction size must be a multiple of 3, at least max(reported L)+6 for patch/boundary padding")
     jobs=NamedTuple[]
@@ -32,6 +35,7 @@ function case_settings(cfg,job,source_hash,code_hash)
     Dict("format"=>"kagome_variance_batch_case_v1","D"=>job.D,"chi"=>job.chi,"L"=>job.L,
         "source_checkpoint"=>job.checkpoint,"source_sha256"=>source_hash,"code_sha256"=>code_hash,
         "window_sizes"=>collect(cfg.sizes),"threads"=>cfg.threads,"sweeps"=>cfg.sweeps,
+        "extra_bottom_warmup"=>get(cfg,:extra_bottom_warmup,false),
         "ctm_iterations"=>cfg.ctm_iterations,"ctm_tolerance"=>cfg.ctm_tolerance,
         "source_shift"=>cfg.source_shift,"device"=>"cpu")
 end

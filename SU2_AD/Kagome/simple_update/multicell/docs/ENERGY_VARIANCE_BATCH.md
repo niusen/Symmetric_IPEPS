@@ -11,12 +11,17 @@ returns immediately. No Slurm, Python, GPU, watchdog or automatic restart.
 All options are in `run_energy_variance_server.jl`:
 
 - D=4 through 15; READ saved U1 states, never evolve or overwrite them.
-- chi=40,60,80; CPU and 10 threads; periodic norm CTMRG at most 50 steps,
+- Fixed chi=40 for every D; CPU and 10 threads; periodic norm CTMRG at most 50 steps,
   tolerance 1e-8; two center-outward mixed-environment sweeps.
-- Report cumulative variance for L=3,6,9. There is NO independent R setting.
+- `extra_bottom_warmup=false`: initialize with right only. Each sweep still
+  includes its normal bottom scan. Set true only to compare the former schedule.
+  This option is recorded in settings, results and the summary CSV.
+- Report cumulative variance for L=3,6,8,12,15. There is NO independent R setting.
 - For each (D,chi), do ONE large-region contraction and extract all requested
   windows from its individually measured connected bond correlations.
-- The contraction grid is automatically max(L)+6=15 on each side. The padding
+- The contraction grid is max(L)+6 rounded up to a multiple of 3: currently 21
+  on each side. Only this grid must tile the saved state's period. Reported
+  sum windows need not be multiples of 3, so L=8 is valid. The padding
   accommodates 2x2 observable patches, down-triangle bonds and the three source
   representative positions without wrapping a measured patch across the edge.
   This padding is not an independently scanned physical cutoff.
@@ -27,6 +32,8 @@ primitive position represents three physical spins. The original infinite
 sqrt3xsqrt3 state/unit cell is unchanged. Windows are centered at each source
 origin: offsets `-div(L-1,2):div(L,2)` in both directions (also supports even L).
 All 18 inequivalent central bonds are summed and divided by nine physical spins.
+For L=8, the offsets are -3 through +4 on each axis (64 primitive origins).
+This is a sum-window boundary, not a change to the state's unit cell.
 
 This follows the LC-CTMRG large-region correlation contraction and extraction
 of smaller sums described in arXiv:2511.22669v2, II.3 and III.1. It uses the
@@ -52,13 +59,15 @@ CTMRG. The worker verifies the actual maximum virtual dimension matches D.
 
 ## Outputs and timing
 
-Default root: `results/variance_D4_D15_chi40_60_80_L3_6_9_Lmax15`.
-There are 36 (D,chi) contractions and 108 reported (D,chi,L) estimates.
+Default root: `results/variance_D4_D15_chi40_L3_6_8_12_15_Lmax21_right_warmup`.
+D is processed in ascending order, 4 through 15, from its existing saved state.
+There are 12 (D,chi) contractions and 60 reported (D,chi,L) estimates.
+The five windows reuse ONE contraction per D, not five independent CTMRG runs.
 
 - `summary.csv` / `variance_by_L_all.csv`: all estimates, energies, window sizes,
   signed/absolute shell contributions, largest shell correlation, imaginary
   parts, norm CTMRG status and actual retained corner dimensions.
-- `timing_by_anchor_all.csv`: 18 central-bond timings per contraction, 648 rows.
+- `timing_by_anchor_all.csv`: 18 central-bond timings per contraction, 216 rows.
 - `D*/chi*/variance_by_L.csv`: cumulative results for the selected windows.
 - `D*/chi*/connected_terms.csv`: every measured pair, offsets and source/target
   labels. Its `radius` column is only a distance diagnostic, NOT a task option.
@@ -70,7 +79,7 @@ There are 36 (D,chi) contractions and 108 reported (D,chi,L) estimates.
 - `batch_completed.toml`: total invocation time and module-loading time.
 
 The per-L rows share ONE contraction time. Do not sum their shared-time columns
-as if three contractions were performed. Load/factor/norm timings have `_shared`
+as if five contractions were performed. Load/factor/norm timings have `_shared`
 labels; source states are loaded/built once per D, norm CTMRG once per (D,chi).
 First calls may compile Julia kernels. Timings are wall time, not peak memory.
 If `/usr/bin/time` is available, the sh additionally writes whole-job wall/CPU
@@ -83,12 +92,17 @@ not establish convergence in chi, spatial range or number of sweeps.
 
 ## Restart and uploads
 
+The right-only default uses the new output-directory suffix `_right_warmup`.
+Keep earlier results separately: changing the schedule/code must not resume into
+case directories produced by the previous implementation.
+
 Rerun the same sh after an interruption. Finished (D,chi) cases are verified and
 skipped; an unfinished one is recomputed. Changed state hashes, numerical
 settings or loaded implementation hashes are rejected in existing case folders.
 Use a new output root when deliberately changing them. An exception stops the
 batch with a traceback in the log; completed data are retained.
 
-Upload the two root entry files and ALL seven `.jl` files in
-`src/bosonic/kagome/native_measurement/energy_variance/`, retaining the relative
-layout and the existing Julia library/Project/Manifest. No zip is required.
+Upload the two root entry files and the seven production `.jl` files listed by
+the shell preflight from `src/bosonic/kagome/native_measurement/energy_variance/`,
+retaining the relative layout and existing Julia library/Project/Manifest.
+The additional warmup-comparison helper is optional for diagnostics. No zip is required.

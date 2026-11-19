@@ -6,6 +6,8 @@ using .HoneycombSU4
 using TensorKit, SUNRepresentations
 
 export read_star_config, describe_star_run, run_star_server, measure_star_server
+export trace_star_simple_update
+include("StarUpdateTrace.jl")
 const SCHEMA=1
 
 function _atomic_write(writer,path)
@@ -116,7 +118,7 @@ function _load(c)
     isfile(path) || error("No checkpoint to resume: $path");
     s=load(path);
     s["schema_version"]==SCHEMA || error("unsupported checkpoint schema");
-    s["physics"]==star_physics(c) || error("Resume requires the same cell, J, identity sweeps and schedule. Use a separate output directory for a different run.");
+    s["physics"]==star_physics(c) || error("Resume requires the same cell, J, identity sweeps, schedule, update method, HOSVD tolerance and truncation policy. Use a separate output directory for a different run.");
     return s
 end
 
@@ -192,7 +194,7 @@ function run_star_server(c::StarRunConfig;resume=false,initial_checkpoint=nothin
                     n=min(c.checkpoint_every,c.identity_sweeps-p["identity_done"]);
                     dt=.01;cap=9;phase="identity";
                     itebd_honeycomb(Dict("J"=>0.),T,lx,ly,n*dt,dt,cap;
-                        convention=:permutation,step_offset=p["identity_done"],verbose=true);
+                        convention=:permutation,truncation=:legacy,method=c.method,hosvd_tol=c.hosvd_tol,step_offset=p["identity_done"],verbose=true);
                     p["identity_done"]+=n;
                 else
                     k=p["stage"];
@@ -201,7 +203,7 @@ function run_star_server(c::StarRunConfig;resume=false,initial_checkpoint=nothin
                     k==1 && p["stage_step"]==0 && (n=1); # Secure the first expanded state promptly.
                     dt=s.dt;cap=s.Dmax;phase="evolve";
                     itebd_honeycomb(Dict("J"=>c.J),T,lx,ly,n*dt,dt,cap;
-                        convention=:permutation,step_offset=p["total_steps"],verbose=true);
+                        convention=:permutation,truncation=:legacy,method=c.method,hosvd_tol=c.hosvd_tol,step_offset=p["total_steps"],verbose=true);
                     p["stage_step"]+=n;p["total_steps"]+=n;p["tau"]+=n*dt;
                 end
                 _validate(T,lx,ly,cap);
@@ -279,6 +281,7 @@ function measure_star_server(c::StarRunConfig)
                 _csv(joinpath(c.output_dir,"ctm_bonds_step$(p["total_steps"])_chi$(ch).csv"),bondrows);
                 env=valid ? ob.CTM : nothing;previous=valid ? ob.energy_per_site : NaN;
             catch err
+                err isa InterruptException && rethrow();
                 env=nothing;previous=NaN;
                 open(joinpath(c.output_dir,"ctm_failure.log"),"a") do io
                     println(io,"chi=",ch," ",now(),"\n",sprint(showerror,err,catch_backtrace()));

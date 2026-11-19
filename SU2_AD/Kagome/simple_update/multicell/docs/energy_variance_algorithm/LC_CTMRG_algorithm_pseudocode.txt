@@ -1,8 +1,9 @@
 说明补充（2026-11-08）：
 本文件描述当前实现；并非论文原版算法正确性的证明。
-代码无条件先做 right(xmax)、bottom(ymax) 两次预备更新。
+当前默认只做 right(xmax) 预备更新；每轮正常的 bottom 扫描保留。
+extra_bottom_warmup=false 为默认值，true 显式恢复旧版额外预备操作。
 论文的水平源示例只做一次 right 预备更新，竖直源旋转整套流程。
-当前额外预备更新、对角线源扫描安排尚未用独立纠缠态参考充分验证。
+对角线源扫描安排尚未用独立纠缠态参考充分验证。
 动画颜色只表示计算依赖，包括投影器依赖；不表示算符物理进入该角区域。
 详细区分及文件导航见同目录 README.md。
 
@@ -23,8 +24,9 @@ LC-CTMRG 能量方差：当前 Julia kagome 实现的伪代码与核对记录
 
   N：实际收缩网格的边长，对应代码中的 L、输出中的 contraction_Lmax。
   ell：最后关联求和窗口的宽度，对应 summary.csv 中的 L。
-  当前默认 N=15，ell_list=[3,6,9]，chi=40/60/80，mixed_sweeps=2。
-  N 与 ell 不是同一个数字。N=max(ell_list)+6 是目前任务的补边规则。
+  当前任务默认 N=21，ell_list=[3,6,8,12,15]，固定chi=40，mixed_sweeps=2。
+  N 与 ell 不是同一个数字。N=3*ceil((max(ell_list)+6)/3) 是目前补边规则。
+  只有N必须是态周期3的倍数；求和窗口ell可以是8等其他正整数。
   补边保证测量块和中心位置放得下，不保证 N 已经收敛。
 
   必须保留：
@@ -92,9 +94,9 @@ LC-CTMRG 能量方差：当前 Julia kagome 实现的伪代码与核对记录
       support = unique(实际改变的单层局部因子位置 cq ∪ cr)
       xmin,xmax,ymin,ymax = support 的包围盒
 
-      # 当前 kagome 代码有两个初始化 move，这是一项几何适配。
+      # 默认只有 right 预备；额外 bottom 仅用于旧流程对照。
       MOVE(right, xmax)
-      MOVE(bottom,ymax)
+      if extra_bottom_warmup: MOVE(bottom,ymax)  # 默认 false
 
       for sweep = 1..mixed_sweeps:
         for j = xmin-1, xmin, ..., N-1: MOVE(left,  j)
@@ -246,10 +248,11 @@ LC-CTMRG 能量方差：当前 Julia kagome 实现的伪代码与核对记录
 
   论文直接规定：大网格从norm环境开始；中心施加h0；收缩mixed重叠；
   从中心附近向外扫描，避免跨元胞传播；通常两轮；测量各处hb；重复各不等价源。
-  当前适配：kagome的组合块/三角结构、两个方向初始化、h0+I的稳定化。
+  当前适配：kagome的组合块/三角结构、源支撑区域选择、h0+I的稳定化。
+  原先额外的bottom初始化现仅作为对照选项，不是默认步骤。
   当前实现：显式Hu/Hl/M与SVD。论文给出的D^4*chi^3投影成本要求迭代求解器；
   当前不能据此宣称已经达到论文最优D标度。
-  当前ell为primitive-cell原点的窗口宽度，另有N=ell_max+6的收缩区域。
+  当前ell为primitive-cell原点的窗口宽度，收缩区域N由ell_max+6向上取3的倍数。
   与论文方格模型的L进行数值比较前，必须明确这些不同的长度单位和补边。
 
 7. 已有验证与仍未确认的部分

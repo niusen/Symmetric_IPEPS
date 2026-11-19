@@ -22,7 +22,7 @@ function main(;symmetry=:dense)
 
     for (tau,dt) in ((1.0,0.1),(1.0,0.02),(0.2,0.002))
         T_set,lambdax_set,lambday_set=itebd_honeycomb(parameters,
-            T_set,lambdax_set,lambday_set,tau,dt,D_max;convention=convention);
+            T_set,lambdax_set,lambday_set,tau,dt,D_max;convention=convention,method=:two_site);
         ob=honeycomb_energy_simple(parameters,T_set,lambdax_set,lambday_set;convention=convention);
         println("simple-lambda estimate: E/site=",ob.energy_per_site,", bonds=",ob.bond_energy);
     end

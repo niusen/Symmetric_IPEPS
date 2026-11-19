@@ -1,0 +1,11 @@
+Ready: 36 contractions / 108 L estimates; D=[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]; chi=[40, 60, 80]
+One contraction Lmax=15 extracts L=[3, 6, 9]; no independent R setting.
+CPU, 10 threads; completed (D,chi) cases resume automatically.
+Results: D:\My Documents\Code\python_codes\tmp\kagome_variance_batch_20261106\tests\launcher_repo\Kagome\simple_update\u1_multicell\results\variance_D4_D15_chi40_60_80_L3_6_9_Lmax15
+Submitted PID/process-group=1644
+Log: /d/My Documents/Code/python_codes/tmp/kagome_variance_batch_20261106/tests/launcher_repo/Kagome/simple_update/u1_multicell/logs/energy_variance_batch_2026_11_06_16_05_24_1639.out
+PID file: /d/My Documents/Code/python_codes/tmp/kagome_variance_batch_20261106/tests/launcher_repo/Kagome/simple_update/u1_multicell/logs/energy_variance_batch_2026_11_06_16_05_24_1639.pid
+Watch: tail -f "/d/My Documents/Code/python_codes/tmp/kagome_variance_batch_20261106/tests/launcher_repo/Kagome/simple_update/u1_multicell/logs/energy_variance_batch_2026_11_06_16_05_24_1639.out"
+Stop: kill -TERM -- -1644
+
+PASS: real Julia preflight, exact plan count, no R, background log/PID, missing checkpoint rejected before worker; mocked numerical worker only.

@@ -126,7 +126,7 @@ function simple_update_Heisenberg(T_set,lambdax_set,lambday_set,tau,dt,Dmax)
 end
 
 
-function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
+function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax;trace=nothing);
     Lx,Ly=size(Tset);
     pos1=[mod1(Int(px-0.5),Lx),py];
     pos2=[mod1(Int(px+0.5),Lx),py];
@@ -141,19 +141,26 @@ function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     T1=Tset[pos1[1],pos1[2]];
     T2=Tset[pos2[1],pos2[2]];
 
+    isnothing(trace) || trace(:input;T1,T2,gate,lambdas=(λ1,λ2,λ3,λ4,λ5,λ6),shared=lambdaxset[pos2[1],pos2[2]]);
+
     @tensor T1[:]:=T1[1,2,-3,3,-5]*λ1[-1,1]*λ2[2,-2]*λ3[-4,3];
     @tensor T2[:]:=T2[-1,1,2,3,-5]*λ4[1,-2]*λ5[2,-3]*λ6[-4,3];
+    isnothing(trace) || trace(:dressed;T1,T2);
 
     u,s,v=tsvd(permute(T1,(1,2,4,),(3,5,)));#L1,D1,U1,newbond1,     newbond1,R1,d1
     T1_left=u;
     T1_keep=s*v;
+    isnothing(trace) || trace(:left_svd;T1,u,s,v,keep=T1_keep);
 
     u,s,v=tsvd(permute(T2,(1,5,),(2,3,4,)));#L2,d2,newbond2,     newbond2,D2,R2,U2
     T2_left=v;
     T2_keep=u*s;
+    isnothing(trace) || trace(:right_svd;T2,u,s,v,keep=T2_keep);
 
     @tensor Tbond[:]:=T1_keep[-1,1,2]*T2_keep[1,3,-3]*gate[-2,-4,2,3];#newbond1,R1,d1  L2,d2,newbond2 -> newbond1,d1  ,newbond2,d2
+    isnothing(trace) || trace(:bond;Tbond,left=T1_keep,right=T2_keep);
     u,s,v=tsvd(permute(Tbond,(1,2,),(3,4,)); trunc=truncdim(Dmax));#newbond1,d1  ,newbond2,d2 -> newbond1,d1,R1,    L2,newbond2,d2
+    isnothing(trace) || trace(:truncated;Tbond,u,s,v);
     T1_keep=u*sqrt(s);
     T2_keep=sqrt(s)*v;
 
@@ -166,12 +173,16 @@ function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     λ4_inv=my_pinv(λ4);
     λ5_inv=my_pinv(λ5);
     λ6_inv=my_pinv(λ6);
+    isnothing(trace) || trace(:inverse;lambdas=(λ1_inv,λ2_inv,λ3_inv,λ4_inv,λ5_inv,λ6_inv));
     @tensor T1[:]:=T1[1,2,-3,3,-5]*λ1_inv[-1,1]*λ2_inv[2,-2]*λ3_inv[-4,3];
     @tensor T2[:]:=T2[-1,1,2,3,-5]*λ4_inv[1,-2]*λ5_inv[2,-3]*λ6_inv[-4,3];
+
+    isnothing(trace) || trace(:before_normalize;T1,T2,s);
 
     T1=T1/norm(T1);
     T2=T2/norm(T2);
     s=s/norm(s);
+    isnothing(trace) || trace(:normalized;T1,T2,s);
     lambdaxset[pos2[1],pos2[2]]=sqrt(s);
     Tset[pos1[1],pos1[2]]=T1;
     Tset[pos2[1],pos2[2]]=T2;
@@ -181,7 +192,7 @@ function tebd_xbond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     return Tset,lambdaxset,lambdayset
 end
 
-function tebd_ybond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
+function tebd_ybond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax;trace=nothing);
     Lx,Ly=size(Tset);
     pos1=[px,mod1(Int(py+0.5),Ly)];
     pos2=[px,mod1(Int(py-0.5),Ly)];
@@ -196,19 +207,26 @@ function tebd_ybond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     T1=Tset[pos1[1],pos1[2]];
     T2=Tset[pos2[1],pos2[2]];
 
+    isnothing(trace) || trace(:input;T1,T2,gate,lambdas=(λ1,λ2,λ3,λ4,λ5,λ6),shared=lambdayset[pos1[1],pos1[2]]);
+
     @tensor T1[:]:=T1[1,-2,2,3,-5]*λ1[-1,1]*λ2[2,-3]*λ3[-4,3];
     @tensor T2[:]:=T2[1,2,3,-4,-5]*λ4[-1,1]*λ5[2,-2]*λ6[3,-3];
+    isnothing(trace) || trace(:dressed;T1,T2);
 
     u,s,v=tsvd(permute(T1,(1,3,4,),(2,5,)));#L1,R1,U1,newbond1,     newbond1,D1,d1
     T1_left=u;
     T1_keep=s*v;
+    isnothing(trace) || trace(:left_svd;T1,u,s,v,keep=T1_keep);
 
     u,s,v=tsvd(permute(T2,(4,5,),(1,2,3,)));#U2,d2,newbond2,     newbond2,L2,D2,R2
     T2_keep=u*s;
+    isnothing(trace) || trace(:right_svd;T2,u,s,v,keep=T2_keep);
     T2_left=v;
 
     @tensor Tbond[:]:=T1_keep[-1,1,2]*T2_keep[1,3,-3]*gate[-2,-4,2,3];#newbond1,D1,d1  U2,d2,newbond2 -> newbond1,d1  newbond2,d2
+    isnothing(trace) || trace(:bond;Tbond,left=T1_keep,right=T2_keep);
     u,s,v=tsvd(permute(Tbond,(1,2,),(3,4,)); trunc=truncdim(Dmax));#newbond1,d1  ,newbond2,d2 -> newbond1,d1,D1,    U2,newbond2,d2
+    isnothing(trace) || trace(:truncated;Tbond,u,s,v);
     T1_keep=u*sqrt(s);
     T2_keep=sqrt(s)*v;
 
@@ -221,12 +239,16 @@ function tebd_ybond(ct,Tset,lambdaxset,lambdayset, gate,px,py,Dmax);
     λ4_inv=my_pinv(λ4);
     λ5_inv=my_pinv(λ5);
     λ6_inv=my_pinv(λ6);
+    isnothing(trace) || trace(:inverse;lambdas=(λ1_inv,λ2_inv,λ3_inv,λ4_inv,λ5_inv,λ6_inv));
     @tensor T1[:]:=T1[1,-2,2,3,-5]*λ1_inv[-1,1]*λ2_inv[2,-3]*λ3_inv[-4,3];
     @tensor T2[:]:=T2[1,2,3,-4,-5]*λ4_inv[-1,1]*λ5_inv[2,-2]*λ6_inv[3,-3];
+
+    isnothing(trace) || trace(:before_normalize;T1,T2,s);
 
     T1=T1/norm(T1);
     T2=T2/norm(T2);
     s=s/norm(s);
+    isnothing(trace) || trace(:normalized;T1,T2,s);
     lambdayset[pos1[1],pos1[2]]=sqrt(s);
     Tset[pos1[1],pos1[2]]=T1;
     Tset[pos2[1],pos2[2]]=T2;

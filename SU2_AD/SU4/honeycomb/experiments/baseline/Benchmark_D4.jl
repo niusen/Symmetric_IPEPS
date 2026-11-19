@@ -32,7 +32,7 @@ function main(;seeds=(1234,2025,42),Lx=2,Ly=2)
         append!(schedule,fill((2.0,0.001),5));
         for (stage,(tau,dt)) in enumerate(schedule)
             old_spectra=bond_spectra(lx,ly);
-            itebd_honeycomb(parameters,T,lx,ly,tau,dt,4;verbose=false);
+            itebd_honeycomb(parameters,T,lx,ly,tau,dt,4;verbose=false,method=:two_site);
             ob=honeycomb_energy_simple(parameters,T,lx,ly);
             elapsed_tau+=tau;
             delta=abs(ob.energy_per_site-previous);

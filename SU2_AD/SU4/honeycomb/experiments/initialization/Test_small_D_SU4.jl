@@ -123,7 +123,7 @@ function run_small_D_SU4(;seeds=(1234,2025),measure=true,truncation=:optimal,
                 if truncation in (:rank,:optimal)
                     policy=truncation==:optimal ? :optimal : :legacy;
                     itebd_honeycomb(parameters,T,lx,ly,steps*dt,dt,Dmax;
-                        verbose=false,truncation=policy);
+                        verbose=false,truncation=policy,method=:two_site);
                 else
                     fixed_space_steps(parameters,T,lx,ly,steps,dt,V);
                 end

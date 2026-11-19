@@ -1,0 +1,371 @@
+[2026-11-06T08:01:15.397Z] BATCH START: 2 contractions; 4 L estimates; CPU; 1 threads; all 18 central bonds
+[2026-11-06T08:01:15.615Z] D START: D=4
+[2026-11-06T08:01:15.930Z] LOAD D=4: C:\Users\senni\AppData\Local\Temp\jl_KVtCc4\D4.jld2
+[2026-11-06T08:01:45.904Z] NORM CTMRG D=4 chi=2; shared by all extracted L values
+Julia CTMRG 1: corner-spectrum error=Inf
+Julia CTMRG 2: corner-spectrum error=0.2712220865943888
+[2026-11-06T08:02:45.166Z] START D=4 chi=2 contraction Lmax=12; extract L=[3, 6]
+Variance: building local factors (first call may compile Julia kernels)
+Variance: reusing periodic norm CTM at chi=2
+Variance: reference bond means start; norm CTMRG seconds=0.014
+Variance: reference means finished in 48.465 s; 18 central bonds
+Variance anchor 1/18: (representative = 1, orientation = :up, edge = 1) at (6, 6)
+  Center factors finished in 0.496 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.546 s
+  Mixed sweep moves=24; elapsed=0.634 s
+  Mixed sweeps finished in 0.661 s; target bonds start
+  Anchor finished; target bonds seconds=1.475
+Variance anchor 2/18: (representative = 1, orientation = :up, edge = 2) at (6, 6)
+  Center factors finished in 0.009 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.084 s
+  Mixed sweep moves=24; elapsed=0.162 s
+  Mixed sweeps finished in 0.189 s; target bonds start
+  Anchor finished; target bonds seconds=0.404
+Variance anchor 3/18: (representative = 1, orientation = :up, edge = 3) at (6, 6)
+  Center factors finished in 0.01 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.078 s
+  Mixed sweep moves=24; elapsed=0.15 s
+  Mixed sweeps finished in 0.177 s; target bonds start
+  Anchor finished; target bonds seconds=0.406
+Variance anchor 4/18: (representative = 1, orientation = :down, edge = 1) at (6, 6)
+  Center factors finished in 15.318 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.101 s
+  Mixed sweep moves=24; elapsed=0.198 s
+  Mixed sweeps finished in 0.238 s; target bonds start
+  Anchor finished; target bonds seconds=3.569
+Variance anchor 5/18: (representative = 1, orientation = :down, edge = 2) at (6, 6)
+  Center factors finished in 0.657 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.123 s
+  Mixed sweep moves=24; elapsed=0.23 s
+  Mixed sweeps finished in 0.292 s; target bonds start
+  Anchor finished; target bonds seconds=3.43
+Variance anchor 6/18: (representative = 1, orientation = :down, edge = 3) at (6, 6)
+  Center factors finished in 0.033 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.132 s
+  Mixed sweep moves=24; elapsed=0.258 s
+  Mixed sweeps finished in 0.299 s; target bonds start
+  Anchor finished; target bonds seconds=0.579
+Variance anchor 7/18: (representative = 2, orientation = :up, edge = 1) at (7, 6)
+  Center factors finished in 0.014 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.107 s
+  Mixed sweep moves=24; elapsed=0.207 s
+  Mixed sweeps finished in 0.24 s; target bonds start
+  Anchor finished; target bonds seconds=0.55
+Variance anchor 8/18: (representative = 2, orientation = :up, edge = 2) at (7, 6)
+  Center factors finished in 0.011 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.089 s
+  Mixed sweep moves=24; elapsed=0.189 s
+  Mixed sweeps finished in 0.222 s; target bonds start
+  Anchor finished; target bonds seconds=0.542
+Variance anchor 9/18: (representative = 2, orientation = :up, edge = 3) at (7, 6)
+  Center factors finished in 0.019 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.106 s
+  Mixed sweep moves=24; elapsed=0.205 s
+  Mixed sweeps finished in 0.239 s; target bonds start
+  Anchor finished; target bonds seconds=0.533
+Variance anchor 10/18: (representative = 2, orientation = :down, edge = 1) at (7, 6)
+  Center factors finished in 0.029 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.104 s
+  Mixed sweep moves=24; elapsed=0.204 s
+  Mixed sweeps finished in 0.236 s; target bonds start
+  Anchor finished; target bonds seconds=0.546
+Variance anchor 11/18: (representative = 2, orientation = :down, edge = 2) at (7, 6)
+  Center factors finished in 0.024 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.111 s
+  Mixed sweep moves=24; elapsed=0.217 s
+  Mixed sweeps finished in 0.278 s; target bonds start
+  Anchor finished; target bonds seconds=0.6
+Variance anchor 12/18: (representative = 2, orientation = :down, edge = 3) at (7, 6)
+  Center factors finished in 0.015 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.1 s
+  Mixed sweep moves=24; elapsed=0.2 s
+  Mixed sweeps finished in 0.233 s; target bonds start
+  Anchor finished; target bonds seconds=0.567
+Variance anchor 13/18: (representative = 3, orientation = :up, edge = 1) at (6, 7)
+  Center factors finished in 0.023 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.103 s
+  Mixed sweep moves=24; elapsed=0.193 s
+  Mixed sweeps finished in 0.232 s; target bonds start
+  Anchor finished; target bonds seconds=0.539
+Variance anchor 14/18: (representative = 3, orientation = :up, edge = 2) at (6, 7)
+  Center factors finished in 0.012 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.093 s
+  Mixed sweep moves=24; elapsed=0.193 s
+  Mixed sweeps finished in 0.226 s; target bonds start
+  Anchor finished; target bonds seconds=0.533
+Variance anchor 15/18: (representative = 3, orientation = :up, edge = 3) at (6, 7)
+  Center factors finished in 0.017 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.101 s
+  Mixed sweep moves=24; elapsed=0.189 s
+  Mixed sweeps finished in 0.235 s; target bonds start
+  Anchor finished; target bonds seconds=0.544
+Variance anchor 16/18: (representative = 3, orientation = :down, edge = 1) at (6, 7)
+  Center factors finished in 0.02 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.115 s
+  Mixed sweep moves=24; elapsed=0.237 s
+  Mixed sweeps finished in 0.271 s; target bonds start
+  Anchor finished; target bonds seconds=0.68
+Variance anchor 17/18: (representative = 3, orientation = :down, edge = 2) at (6, 7)
+  Center factors finished in 0.027 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.121 s
+  Mixed sweep moves=24; elapsed=0.254 s
+  Mixed sweeps finished in 0.302 s; target bonds start
+  Anchor finished; target bonds seconds=0.599
+Variance anchor 18/18: (representative = 3, orientation = :down, edge = 3) at (6, 7)
+  Center factors finished in 0.021 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.114 s
+  Mixed sweep moves=24; elapsed=0.217 s
+  Mixed sweeps finished in 0.271 s; target bonds start
+  Anchor finished; target bonds seconds=0.599
+[2026-11-06T08:04:15.512Z] DONE D=4 chi=2; extracted L=[3, 6]; seconds=90.103; E=-0.41588441718284724; variance=0.008679115518365043
+[2026-11-06T08:04:16.873Z] NORM CTMRG D=4 chi=3; shared by all extracted L values
+Julia CTMRG 1: corner-spectrum error=Inf
+Julia CTMRG 2: corner-spectrum error=0.2777166222934858
+[2026-11-06T08:04:17.254Z] START D=4 chi=3 contraction Lmax=12; extract L=[3, 6]
+Variance: building local factors (first call may compile Julia kernels)
+Variance: reusing periodic norm CTM at chi=3
+Variance: reference bond means start; norm CTMRG seconds=0.0
+Variance: reference means finished in 0.238 s; 18 central bonds
+Variance anchor 1/18: (representative = 1, orientation = :up, edge = 1) at (6, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.302 s
+  Mixed sweep moves=24; elapsed=0.636 s
+  Mixed sweeps finished in 0.682 s; target bonds start
+  Anchor finished; target bonds seconds=0.636
+Variance anchor 2/18: (representative = 1, orientation = :up, edge = 2) at (6, 6)
+  Center factors finished in 0.0 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.128 s
+  Mixed sweep moves=24; elapsed=0.255 s
+  Mixed sweeps finished in 0.288 s; target bonds start
+  Anchor finished; target bonds seconds=0.541
+Variance anchor 3/18: (representative = 1, orientation = :up, edge = 3) at (6, 6)
+  Center factors finished in 0.017 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.168 s
+  Mixed sweep moves=24; elapsed=0.335 s
+  Mixed sweeps finished in 0.351 s; target bonds start
+  Anchor finished; target bonds seconds=0.59
+Variance anchor 4/18: (representative = 1, orientation = :down, edge = 1) at (6, 6)
+  Center factors finished in 0.032 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.134 s
+  Mixed sweep moves=24; elapsed=0.255 s
+  Mixed sweeps finished in 0.303 s; target bonds start
+  Anchor finished; target bonds seconds=0.573
+Variance anchor 5/18: (representative = 1, orientation = :down, edge = 2) at (6, 6)
+  Center factors finished in 0.015 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.16 s
+  Mixed sweep moves=24; elapsed=0.287 s
+  Mixed sweeps finished in 0.354 s; target bonds start
+  Anchor finished; target bonds seconds=0.544
+Variance anchor 6/18: (representative = 1, orientation = :down, edge = 3) at (6, 6)
+  Center factors finished in 0.029 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.148 s
+  Mixed sweep moves=24; elapsed=0.25 s
+  Mixed sweeps finished in 0.298 s; target bonds start
+  Anchor finished; target bonds seconds=0.562
+Variance anchor 7/18: (representative = 2, orientation = :up, edge = 1) at (7, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.095 s
+  Mixed sweep moves=24; elapsed=0.222 s
+  Mixed sweeps finished in 0.254 s; target bonds start
+  Anchor finished; target bonds seconds=0.596
+Variance anchor 8/18: (representative = 2, orientation = :up, edge = 2) at (7, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.115 s
+  Mixed sweep moves=24; elapsed=0.277 s
+  Mixed sweeps finished in 0.318 s; target bonds start
+  Anchor finished; target bonds seconds=0.516
+Variance anchor 9/18: (representative = 2, orientation = :up, edge = 3) at (7, 6)
+  Center factors finished in 0.015 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.129 s
+  Mixed sweep moves=24; elapsed=0.241 s
+  Mixed sweeps finished in 0.287 s; target bonds start
+  Anchor finished; target bonds seconds=0.557
+Variance anchor 10/18: (representative = 2, orientation = :down, edge = 1) at (7, 6)
+  Center factors finished in 0.022 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.15 s
+  Mixed sweep moves=24; elapsed=0.264 s
+  Mixed sweeps finished in 0.31 s; target bonds start
+  Anchor finished; target bonds seconds=0.62
+Variance anchor 11/18: (representative = 2, orientation = :down, edge = 2) at (7, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.127 s
+  Mixed sweep moves=24; elapsed=0.286 s
+  Mixed sweeps finished in 0.35 s; target bonds start
+  Anchor finished; target bonds seconds=0.594
+Variance anchor 12/18: (representative = 2, orientation = :down, edge = 3) at (7, 6)
+  Center factors finished in 0.0 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.143 s
+  Mixed sweep moves=24; elapsed=0.287 s
+  Mixed sweeps finished in 0.351 s; target bonds start
+  Anchor finished; target bonds seconds=0.583
+Variance anchor 13/18: (representative = 3, orientation = :up, edge = 1) at (6, 7)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.126 s
+  Mixed sweep moves=24; elapsed=0.269 s
+  Mixed sweeps finished in 0.316 s; target bonds start
+  Anchor finished; target bonds seconds=0.559
+Variance anchor 14/18: (representative = 3, orientation = :up, edge = 2) at (6, 7)
+  Center factors finished in 0.018 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.127 s
+  Mixed sweep moves=24; elapsed=0.255 s
+  Mixed sweeps finished in 0.297 s; target bonds start
+  Anchor finished; target bonds seconds=0.532
+Variance anchor 15/18: (representative = 3, orientation = :up, edge = 3) at (6, 7)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.112 s
+  Mixed sweep moves=24; elapsed=0.239 s
+  Mixed sweeps finished in 0.274 s; target bonds start
+  Anchor finished; target bonds seconds=0.601
+Variance anchor 16/18: (representative = 3, orientation = :down, edge = 1) at (6, 7)
+  Center factors finished in 0.014 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.16 s
+  Mixed sweep moves=24; elapsed=0.288 s
+  Mixed sweeps finished in 0.344 s; target bonds start
+  Anchor finished; target bonds seconds=0.597
+Variance anchor 17/18: (representative = 3, orientation = :down, edge = 2) at (6, 7)
+  Center factors finished in 0.03 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.119 s
+  Mixed sweep moves=24; elapsed=0.216 s
+  Mixed sweeps finished in 0.279 s; target bonds start
+  Anchor finished; target bonds seconds=0.572
+Variance anchor 18/18: (representative = 3, orientation = :down, edge = 3) at (6, 7)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.144 s
+  Mixed sweep moves=24; elapsed=0.268 s
+  Mixed sweeps finished in 0.332 s; target bonds start
+  Anchor finished; target bonds seconds=0.53
+[2026-11-06T08:04:34.262Z] DONE D=4 chi=3; extracted L=[3, 6]; seconds=17.007; E=-0.4161406210503922; variance=0.010141663749605928
+[2026-11-06T08:04:34.955Z] D DONE: D=4; wall seconds=199.348
+[2026-11-06T08:04:35.290Z] BATCH DONE: 2 cases; wall seconds=199.882; module load seconds=0.25
+[2026-11-06T08:04:42.794Z] BATCH START: 2 contractions; 4 L estimates; CPU; 1 threads; all 18 central bonds
+[2026-11-06T08:04:42.797Z] D START: D=4
+[2026-11-06T08:04:42.940Z] SKIP completed D=4; saved results/settings/hash verified
+[2026-11-06T08:04:42.940Z] D DONE: D=4; wall seconds=0.147
+[2026-11-06T08:04:43.322Z] BATCH DONE: 2 cases; wall seconds=0.529; module load seconds=0.0
+[2026-11-06T08:04:43.338Z] BATCH START: 2 contractions; 4 L estimates; CPU; 1 threads; all 18 central bonds
+[2026-11-06T08:04:43.354Z] D START: D=4
+[2026-11-06T08:04:43.356Z] BATCH START: 2 contractions; 4 L estimates; CPU; 1 threads; all 18 central bonds
+[2026-11-06T08:04:43.356Z] D START: D=4
+[2026-11-06T08:04:43.370Z] LOAD D=4: C:\Users\senni\AppData\Local\Temp\jl_KVtCc4\D4.jld2
+[2026-11-06T08:04:43.450Z] NORM CTMRG D=4 chi=2; shared by all extracted L values
+Julia CTMRG 1: corner-spectrum error=Inf
+Julia CTMRG 2: corner-spectrum error=0.2712220865943888
+[2026-11-06T08:04:43.584Z] START D=4 chi=2 contraction Lmax=12; extract L=[3, 6]
+Variance: building local factors (first call may compile Julia kernels)
+Variance: reusing periodic norm CTM at chi=2
+Variance: reference bond means start; norm CTMRG seconds=0.0
+Variance: reference means finished in 0.107 s; 18 central bonds
+Variance anchor 1/18: (representative = 1, orientation = :up, edge = 1) at (6, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.127 s
+  Mixed sweep moves=24; elapsed=0.207 s
+  Mixed sweeps finished in 0.239 s; target bonds start
+  Anchor finished; target bonds seconds=0.52
+Variance anchor 2/18: (representative = 1, orientation = :up, edge = 2) at (6, 6)
+  Center factors finished in 0.0 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.13 s
+  Mixed sweep moves=24; elapsed=0.226 s
+  Mixed sweeps finished in 0.273 s; target bonds start
+  Anchor finished; target bonds seconds=0.462
+Variance anchor 3/18: (representative = 1, orientation = :up, edge = 3) at (6, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.095 s
+  Mixed sweep moves=24; elapsed=0.19 s
+  Mixed sweeps finished in 0.218 s; target bonds start
+  Anchor finished; target bonds seconds=0.45
+Variance anchor 4/18: (representative = 1, orientation = :down, edge = 1) at (6, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.095 s
+  Mixed sweep moves=24; elapsed=0.175 s
+  Mixed sweeps finished in 0.207 s; target bonds start
+  Anchor finished; target bonds seconds=0.528
+Variance anchor 5/18: (representative = 1, orientation = :down, edge = 2) at (6, 6)
+  Center factors finished in 0.014 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.095 s
+  Mixed sweep moves=24; elapsed=0.19 s
+  Mixed sweeps finished in 0.222 s; target bonds start
+  Anchor finished; target bonds seconds=0.508
+Variance anchor 6/18: (representative = 1, orientation = :down, edge = 3) at (6, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.096 s
+  Mixed sweep moves=24; elapsed=0.193 s
+  Mixed sweeps finished in 0.239 s; target bonds start
+  Anchor finished; target bonds seconds=0.517
+Variance anchor 7/18: (representative = 2, orientation = :up, edge = 1) at (7, 6)
+  Center factors finished in 0.0 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.096 s
+  Mixed sweep moves=24; elapsed=0.176 s
+  Mixed sweeps finished in 0.191 s; target bonds start
+  Anchor finished; target bonds seconds=0.524
+Variance anchor 8/18: (representative = 2, orientation = :up, edge = 2) at (7, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.08 s
+  Mixed sweep moves=24; elapsed=0.175 s
+  Mixed sweeps finished in 0.191 s; target bonds start
+  Anchor finished; target bonds seconds=0.493
+Variance anchor 9/18: (representative = 2, orientation = :up, edge = 3) at (7, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.079 s
+  Mixed sweep moves=24; elapsed=0.176 s
+  Mixed sweeps finished in 0.203 s; target bonds start
+  Anchor finished; target bonds seconds=0.554
+Variance anchor 10/18: (representative = 2, orientation = :down, edge = 1) at (7, 6)
+  Center factors finished in 0.013 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.111 s
+  Mixed sweep moves=24; elapsed=0.206 s
+  Mixed sweeps finished in 0.237 s; target bonds start
+  Anchor finished; target bonds seconds=0.509
+Variance anchor 11/18: (representative = 2, orientation = :down, edge = 2) at (7, 6)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.112 s
+  Mixed sweep moves=24; elapsed=0.191 s
+  Mixed sweeps finished in 0.226 s; target bonds start
+  Anchor finished; target bonds seconds=0.501
+Variance anchor 12/18: (representative = 2, orientation = :down, edge = 3) at (7, 6)
+  Center factors finished in 0.021 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.064 s
+  Mixed sweep moves=24; elapsed=0.179 s
+  Mixed sweeps finished in 0.222 s; target bonds start
+  Anchor finished; target bonds seconds=0.508
+Variance anchor 13/18: (representative = 3, orientation = :up, edge = 1) at (6, 7)
+  Center factors finished in 0.0 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.09 s
+  Mixed sweep moves=24; elapsed=0.183 s
+  Mixed sweeps finished in 0.213 s; target bonds start
+  Anchor finished; target bonds seconds=0.496
+Variance anchor 14/18: (representative = 3, orientation = :up, edge = 2) at (6, 7)
+  Center factors finished in 0.02 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.093 s
+  Mixed sweep moves=24; elapsed=0.171 s
+  Mixed sweeps finished in 0.186 s; target bonds start
+  Anchor finished; target bonds seconds=0.499
+Variance anchor 15/18: (representative = 3, orientation = :up, edge = 3) at (6, 7)
+  Center factors finished in 0.009 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.093 s
+  Mixed sweep moves=24; elapsed=0.183 s
+  Mixed sweeps finished in 0.206 s; target bonds start
+  Anchor finished; target bonds seconds=0.5
+Variance anchor 16/18: (representative = 3, orientation = :down, edge = 1) at (6, 7)
+  Center factors finished in 0.016 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.079 s
+  Mixed sweep moves=24; elapsed=0.159 s
+  Mixed sweeps finished in 0.191 s; target bonds start
+  Anchor finished; target bonds seconds=0.513
+Variance anchor 17/18: (representative = 3, orientation = :down, edge = 2) at (6, 7)
+  Center factors finished in 0.011 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.095 s
+  Mixed sweep moves=24; elapsed=0.207 s
+  Mixed sweeps finished in 0.256 s; target bonds start
+  Anchor finished; target bonds seconds=0.493
+Variance anchor 18/18: (representative = 3, orientation = :down, edge = 3) at (6, 7)
+  Center factors finished in 0.018 s; mixed sweeps start
+  Mixed sweep moves=12; elapsed=0.093 s
+  Mixed sweep moves=24; elapsed=0.188 s
+  Mixed sweeps finished in 0.236 s; target bonds start
+  Anchor finished; target bonds seconds=0.545
+[2026-11-06T08:04:57.128Z] DONE D=4 chi=2; extracted L=[3, 6]; seconds=13.535; E=-0.41588441718284724; variance=0.008679115518365043
+[2026-11-06T08:04:58.162Z] D DONE: D=4; wall seconds=14.807
+[2026-11-06T08:04:58.512Z] BATCH DONE: 2 cases; wall seconds=15.151; module load seconds=0.0
+Test Summary:                                                                 | Pass  Total     Time
+small batch: shared CTM, all outputs, restart and changed-settings protection |   31     31  4m35.9s
+SMALL VARIANCE BATCH PASSED; no D>4, no chi40/60/80 calculation was run

@@ -219,15 +219,16 @@ multiplet 时直接停止，不会继续寻找能装下的其他表示。这不�
 这能解释空空间和部分过度丢块，但固定空间短跑也出现团簇化，尚不能把全部高能量
 归因于这个后端策略。
 
-## 修正后的总维数截断
+## 可选的总维数优化截断
 
-`itebd_honeycomb` 现在默认 `truncation=:optimal`。新增
+此前测试曾将 `itebd_honeycomb` 默认设为 `truncation=:optimal`；当前默认已恢复
+旧 simple update 的 TensorKit `truncdim(Dmax)`（`truncation=:legacy`）。可选的
 `src/bosonic/honeycomb/multiplet_truncation.jl`，在总物理维数 Dmax 内选择完整
 irreps，使保留的 Frobenius 范数平方 `sum_r dim(r)*sum_k s[r,k]^2` 最大。
 对每个 irrep 只选择前 k 个奇异值，使用动态规划求预算内的最优组合。
 不强制每类中心电荷都存在，也不施加点群投影；只修正局部 SVD 的预算选择。
 
-旧行为可用 `truncation=:legacy` 调用。策略类型只传给蜂窝 SU 的两点更新，
+自定义策略需显式指定 `truncation=:optimal`。策略类型只传给蜂窝 SU 的两点更新，
 没有改动 TensorKit 自身的整数 rank 策略、旧三角晶格代码或 CTMRG 策略。
 dense 的新策略与普通 rank 截断等价。新接口对不可行预算或零范数谱给出明确错误，
 而不是继续对空键归一化。
@@ -237,7 +238,7 @@ julia --startup-file=no SU4/honeycomb/tests/test_multiplet_truncation.jl
 julia --startup-file=no SU4/honeycomb/experiments/initialization/Test_small_D_SU4.jl
 ```
 
-第二条默认使用新策略，结果写入 `small_D_SU4_optimal/`，不会覆盖旧数据。
+第二条历史对照脚本仍显式选择自定义策略，结果写入 `small_D_SU4_optimal/`，不会覆盖旧数据。
 `test_multiplet_truncation.jl` 包含预算反例、逐一枚举所有简并度组合的独立对照、
 Frobenius 截断误差和 dense 对照。当前实测环境为 Julia 1.11.6 / TensorKit 0.17。
 源文件也提供 TensorKit 0.14--0.16 的旧截断接口适配，该分支尚未在本轮运行中测试。

@@ -1,0 +1,254 @@
+format = "mila_local_magnetization_reference_v1"
+source = "https://doi.org/10.6084/m9.figshare.34731234"
+arxiv = "https://arxiv.org/abs/2610.34439"
+figure = "S3"
+paper_D = 15
+paper_h = 0.4
+Lx = 3
+Ly = 3
+meaning = "Target local magnetizations only; not a tensor state"
+coordinates = "Julia B1=-a1/2, B2=0, B3=-a2/2; a2 at +60 degrees"
+mapping = "Fig S3 reflected vertically; copied through C3 about (a1-a2)/2"
+
+[[sites]]
+x = 1
+y = 1
+site = "B1"
+paper_label = 4
+rotation = 1
+Sz_field_aligned = 0.08284718856742163
+Sz_plus_h_convention = -0.08284718856742163
+
+[[sites]]
+x = 1
+y = 1
+site = "B2"
+paper_label = 1
+rotation = 0
+Sz_field_aligned = 0.23337830720451205
+Sz_plus_h_convention = -0.23337830720451205
+
+[[sites]]
+x = 1
+y = 1
+site = "B3"
+paper_label = 8
+rotation = 1
+Sz_field_aligned = -0.08104514966099897
+Sz_plus_h_convention = 0.08104514966099897
+
+[[sites]]
+x = 2
+y = 1
+site = "B1"
+paper_label = 8
+rotation = 0
+Sz_field_aligned = -0.08104514966099897
+Sz_plus_h_convention = 0.08104514966099897
+
+[[sites]]
+x = 2
+y = 1
+site = "B2"
+paper_label = 4
+rotation = 0
+Sz_field_aligned = 0.08284718856742163
+Sz_plus_h_convention = -0.08284718856742163
+
+[[sites]]
+x = 2
+y = 1
+site = "B3"
+paper_label = 1
+rotation = 2
+Sz_field_aligned = 0.23337830720451205
+Sz_plus_h_convention = -0.23337830720451205
+
+[[sites]]
+x = 3
+y = 1
+site = "B1"
+paper_label = 2
+rotation = 0
+Sz_field_aligned = 0.2105717194437428
+Sz_plus_h_convention = -0.2105717194437428
+
+[[sites]]
+x = 3
+y = 1
+site = "B2"
+paper_label = 9
+rotation = 1
+Sz_field_aligned = -0.1195324543460381
+Sz_plus_h_convention = 0.1195324543460381
+
+[[sites]]
+x = 3
+y = 1
+site = "B3"
+paper_label = 7
+rotation = 1
+Sz_field_aligned = 3.514750707296025e-05
+Sz_plus_h_convention = -3.514750707296025e-05
+
+[[sites]]
+x = 1
+y = 2
+site = "B1"
+paper_label = 5
+rotation = 2
+Sz_field_aligned = 0.052284032917685644
+Sz_plus_h_convention = -0.052284032917685644
+
+[[sites]]
+x = 1
+y = 2
+site = "B2"
+paper_label = 3
+rotation = 0
+Sz_field_aligned = 0.10360326313055473
+Sz_plus_h_convention = -0.10360326313055473
+
+[[sites]]
+x = 1
+y = 2
+site = "B3"
+paper_label = 6
+rotation = 0
+Sz_field_aligned = 0.017859057262121825
+Sz_plus_h_convention = -0.017859057262121825
+
+[[sites]]
+x = 2
+y = 2
+site = "B1"
+paper_label = 7
+rotation = 0
+Sz_field_aligned = 3.514750707296025e-05
+Sz_plus_h_convention = -3.514750707296025e-05
+
+[[sites]]
+x = 2
+y = 2
+site = "B2"
+paper_label = 2
+rotation = 2
+Sz_field_aligned = 0.2105717194437428
+Sz_plus_h_convention = -0.2105717194437428
+
+[[sites]]
+x = 2
+y = 2
+site = "B3"
+paper_label = 9
+rotation = 0
+Sz_field_aligned = -0.1195324543460381
+Sz_plus_h_convention = 0.1195324543460381
+
+[[sites]]
+x = 3
+y = 2
+site = "B1"
+paper_label = 9
+rotation = 2
+Sz_field_aligned = -0.1195324543460381
+Sz_plus_h_convention = 0.1195324543460381
+
+[[sites]]
+x = 3
+y = 2
+site = "B2"
+paper_label = 7
+rotation = 2
+Sz_field_aligned = 3.514750707296025e-05
+Sz_plus_h_convention = -3.514750707296025e-05
+
+[[sites]]
+x = 3
+y = 2
+site = "B3"
+paper_label = 2
+rotation = 1
+Sz_field_aligned = 0.2105717194437428
+Sz_plus_h_convention = -0.2105717194437428
+
+[[sites]]
+x = 1
+y = 3
+site = "B1"
+paper_label = 3
+rotation = 1
+Sz_field_aligned = 0.10360326313055473
+Sz_plus_h_convention = -0.10360326313055473
+
+[[sites]]
+x = 1
+y = 3
+site = "B2"
+paper_label = 6
+rotation = 1
+Sz_field_aligned = 0.017859057262121825
+Sz_plus_h_convention = -0.017859057262121825
+
+[[sites]]
+x = 1
+y = 3
+site = "B3"
+paper_label = 5
+rotation = 0
+Sz_field_aligned = 0.052284032917685644
+Sz_plus_h_convention = -0.052284032917685644
+
+[[sites]]
+x = 2
+y = 3
+site = "B1"
+paper_label = 1
+rotation = 1
+Sz_field_aligned = 0.23337830720451205
+Sz_plus_h_convention = -0.23337830720451205
+
+[[sites]]
+x = 2
+y = 3
+site = "B2"
+paper_label = 8
+rotation = 2
+Sz_field_aligned = -0.08104514966099897
+Sz_plus_h_convention = 0.08104514966099897
+
+[[sites]]
+x = 2
+y = 3
+site = "B3"
+paper_label = 4
+rotation = 2
+Sz_field_aligned = 0.08284718856742163
+Sz_plus_h_convention = -0.08284718856742163
+
+[[sites]]
+x = 3
+y = 3
+site = "B1"
+paper_label = 6
+rotation = 2
+Sz_field_aligned = 0.017859057262121825
+Sz_plus_h_convention = -0.017859057262121825
+
+[[sites]]
+x = 3
+y = 3
+site = "B2"
+paper_label = 5
+rotation = 1
+Sz_field_aligned = 0.052284032917685644
+Sz_plus_h_convention = -0.052284032917685644
+
+[[sites]]
+x = 3
+y = 3
+site = "B3"
+paper_label = 3
+rotation = 2
+Sz_field_aligned = 0.10360326313055473
+Sz_plus_h_convention = -0.10360326313055473

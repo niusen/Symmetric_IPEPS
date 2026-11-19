@@ -19,8 +19,9 @@ command -v setsid >/dev/null 2>&1 || { echo 'setsid is required for background s
     end
     c=variance_settings
     jobs=KagomeVariancePlan.variance_jobs(c)
-    println("Ready: ",length(jobs)," contractions / ",length(jobs)*length(c.sizes)," L estimates; D=",c.dims,"; chi=",c.chis)
+    println("Ready: ",length(jobs)," (D,chi) cases / ",18*length(jobs)," source contractions / ",length(jobs)*length(c.sizes)," L estimates; D=",c.dims,"; chi=",c.chis)
     println("One contraction Lmax=",c.contraction_size," extracts L=",c.sizes,"; no independent R setting.")
+    println("Mixed sweeps=",c.sweeps,"; extra bottom warmup=",c.extra_bottom_warmup," (normal bottom scans remain).")
     println("CPU, 10 threads; completed (D,chi) cases resume automatically.")
     println("Results: ",c.out)
 '

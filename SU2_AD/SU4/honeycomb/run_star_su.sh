@@ -50,7 +50,7 @@ log_dir=${SU4_STAR_LOG_DIR:-"$script_dir/logs"}
 mkdir -p "$log_dir"
 log_dir=$(CDPATH= cd -- "$log_dir" && pwd)
 stamp=$(date +'%Y_%m_%d_%H_%M_%S')_$$
-prefix="$log_dir/star_SU_${stamp}"
+prefix="$log_dir/${SU4_STAR_JOB_NAME:-star_SU}_${stamp}"
 nohup setsid "$julia_bin" --startup-file=no "$entry" --auto-resume "$@" \
     >"$prefix.out" 2>"$prefix.err" < /dev/null &
 pid=$!

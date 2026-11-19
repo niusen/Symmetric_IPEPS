@@ -3,6 +3,7 @@ module HoneycombSU4
 # Settings.jl already provides the repository's TensorKit compatibility layer.
 using TensorKit, TensorKitSectors, SUNRepresentations
 using LinearAlgebra, Random, Zygote, KrylovKit, ChainRulesCore
+import JLD2
 using Zygote: @ignore_derivatives
 
 include("../Settings.jl")
@@ -33,12 +34,19 @@ end
 
 include("multiplet_truncation.jl")
 include("honeycomb_SimpleUpdate.jl")
+include("honeycomb_StarSimpleUpdate.jl")
 include("star/honeycomb_star_state.jl")
+include("star/StarHOSVDTrace.jl")
 include("honeycomb_spin_model.jl")
+include("honeycomb_FullUpdate.jl")
 
 export initial_honeycomb_iPEPS, initial_honeycomb_star_iPEPS, honeycomb_virtual_space, honeycomb_bonds,
        Hamiltonian_honeycomb_SU4, itebd_honeycomb, honeycomb_energy_simple,
        honeycomb_energy_CTM, convert_honeycomb_to_iPEPS,
        LS_CTMRG_settings, Algrithm_CTMRG_settings, WholeMultipletBudget
+export honeycomb_star_groups, honeycomb_star_geometry, honeycomb_star_hamiltonian,
+       honeycomb_star_hosvd, honeycomb_star_update!, itebd_honeycomb_star, trace_honeycomb_star_hosvd
+export SquareJ1FullUpdateSettings, honeycomb_fu_bond_groups, honeycomb_fu_environment,
+       honeycomb_full_update_bond, honeycomb_full_update_sweep, honeycomb_energy_FU
 
 end

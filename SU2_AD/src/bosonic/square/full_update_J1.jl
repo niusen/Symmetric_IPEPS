@@ -53,13 +53,16 @@ function build_square_cross_double_layer_open(A_bra::TensorMap, A_ket::TensorMap
         fuse(space(A_bra, 2)' ⊗ space(A_ket, 2)),
         space(A_bra, 2)' ⊗ space(A_ket, 2),
     ) * (1 + 0im)
+    # R/U are incoming legs of the fused layer. Fuse their actual codomain
+    # pair; the opposite conjugation only agrees for self-dual spaces or
+    # identical bra/ket. Mixed SU(N) bond spaces need this orientation.
     U_R = @ignore_derivatives unitary(
         space(A_bra, 3) ⊗ space(A_ket, 3)',
-        fuse(space(A_bra, 3)' ⊗ space(A_ket, 3)),
+        fuse(space(A_bra, 3) ⊗ space(A_ket, 3)'),
     ) * (1 + 0im)
     U_U = @ignore_derivatives unitary(
         space(A_bra, 4) ⊗ space(A_ket, 4)',
-        fuse(space(A_bra, 4)' ⊗ space(A_ket, 4)),
+        fuse(space(A_bra, 4) ⊗ space(A_ket, 4)'),
     ) * (1 + 0im)
 
     # Split bra and ket at the same virtual cut.  The unitaries depend only on

@@ -170,18 +170,28 @@ function Hamiltonian_honeycomb_SU4(Vp;J=1.0,convention=:traceless)
 end
 
 """
-Second-order two-site simple update. T contains sqrt(s) on each end of a bond,
-and lambdax/y store sqrt(s), exactly as in the reused tebd_xbond/tebd_ybond.
+Default method=:star_hosvd performs kagome-style simultaneous HOSVD on
+four-site stars. It requires a cell divisible by four in both directions.
+method=:two_site explicitly selects the historical tebd_xbond/tebd_ybond.
+T contracts directly to the PEPS; lambdax/y store balanced sqrt(s) weights.
 Dmax counts total states, including SU(4) irrep dimensions. Initial sectors
 are user supplied; the SVD may change them while preserving whole irreps.
 Three bond directions remain independent; no C3 projection is imposed.
-step_offset continues the direction-order cycle across checkpoint chunks.
-truncation=:optimal maximizes the retained norm within Dmax using whole irreps.
-truncation=:legacy reproduces the previous TensorKit rank-budget policy.
+step_offset continues the layer-order cycle across checkpoint chunks.
+truncation=:legacy (default) uses the original TensorKit truncdim(Dmax) policy.
+truncation=:optimal explicitly opts into the custom whole-multiplet optimizer.
 """
 function itebd_honeycomb(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
                           convention=:traceless,rotate_order=true,verbose=true,
-                          truncation=:optimal,step_offset=0)
+                          truncation=:legacy,step_offset=0,trace=nothing,
+                          method=:star_hosvd,hosvd_tol=1e-10,observer=nothing)
+    if method==:star_hosvd
+        truncation==:legacy || throw(ArgumentError("star HOSVD uses native TensorKit dimension truncation"));
+        isnothing(trace) || throw(ArgumentError("the two-site trace callback requires method=:two_site"));
+        return itebd_honeycomb_star(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
+            convention,rotate_order,verbose,step_offset,trun_tol=hosvd_tol,observer);
+    end
+    method==:two_site || throw(ArgumentError("method must be :star_hosvd or :two_site"));
     dt>0 && tau>=0 && Dmax>=1 || throw(ArgumentError("require dt>0, tau>=0, Dmax>=1"));
     truncation in (:optimal,:legacy) || throw(ArgumentError("use truncation=:optimal or :legacy"));
     budget=truncation==:optimal ? WholeMultipletBudget(Dmax) : Dmax;
@@ -200,18 +210,19 @@ function itebd_honeycomb(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
     for ct=1:steps
         offset=rotate_order ? mod(ct+step_offset-1,3) : 0;
         a,b,c=ntuple(k->directions[mod1(k+offset,3)],3);
-        for (direction,g) in ((a,gate_half),(b,gate_half),(c,gate),(b,gate_half),(a,gate_half))
+        for (layer,(direction,g)) in enumerate(((a,gate_half),(b,gate_half),(c,gate),(b,gate_half),(a,gate_half)))
             for bond in bonds
                 bond.direction==direction || continue;
                 cx,cy=bond.site1;
                 try
+                    isnothing(trace) || trace(:begin_update;sweep=step_offset+ct,layer,bond);
                     for info in _honeycomb_incident_weights(lambdax_set,lambday_set,bond)
                         _require_honeycomb_lambda(info.lambda,"$(info.axis) $(info.site)");
                     end
                     if bond.axis==:horizontal
-                        tebd_xbond(1,T_set,lambdax_set,lambday_set,g,cx+0.5,cy,budget);
+                        tebd_xbond(1,T_set,lambdax_set,lambday_set,g,cx+0.5,cy,budget;trace);
                     else
-                        tebd_ybond(1,T_set,lambdax_set,lambday_set,g,cx,cy-0.5,budget);
+                        tebd_ybond(1,T_set,lambdax_set,lambday_set,g,cx,cy-0.5,budget;trace);
                     end
                     updated=bond.axis==:horizontal ? lambdax_set[bond.site2...] : lambday_set[bond.site1...];
                     result=_require_honeycomb_lambda(updated,"output of $(bond.direction) $(bond.site1)");
@@ -220,6 +231,7 @@ function itebd_honeycomb(parameters,T_set,lambdax_set,lambday_set,tau,dt,Dmax;
                         n=norm(T_set[site...]);
                         isfinite(n) && n>0 || error("zero/nonfinite output tensor at $site");
                     end
+                    isnothing(trace) || trace(:committed;T_set,lambdax_set,lambday_set);
                 catch err
                     details=[(axis=info.axis,site=info.site,summary=_honeycomb_lambda_summary(info.lambda))
                         for info in _honeycomb_incident_weights(lambdax_set,lambday_set,bond)];

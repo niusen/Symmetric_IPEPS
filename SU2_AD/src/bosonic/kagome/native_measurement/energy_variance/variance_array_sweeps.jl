@@ -45,8 +45,9 @@ function variance_column_update!(cs,ts,Q,R,chi,cx,d,cfg,L)
     nothing
 end
 
-function large_cell_sweeps(ctx,positions;chi,sweeps=2,callback=nothing,storage=:array)
-    storage==:tuple && return large_cell_sweeps_reference(ctx,positions;chi,sweeps,callback)
+function large_cell_sweeps(ctx,positions;chi,sweeps=2,callback=nothing,storage=:array,
+        extra_bottom_warmup::Bool=false)
+    storage==:tuple && return large_cell_sweeps_reference(ctx,positions;chi,sweeps,callback,extra_bottom_warmup)
     storage==:array || error("variance sweep storage must be :array or :tuple")
     L=ctx.L;set_dimensions(L,L)
     cfg=C.LS_CTMRG_settings(CTM_trun_tol=1e-12,grad_checkpoint=false,use_sub_checkpoint=false)
@@ -57,7 +58,11 @@ function large_cell_sweeps(ctx,positions;chi,sweeps=2,callback=nothing,storage=:
         variance_column_update!(cs,ts,Q,R,chi,move_origin(j,d,L),d,cfg,L)
         isnothing(callback) || callback((direction=d,absorbed_coordinate=j))
     end
-    absorb(xmax,3);absorb(ymax,4)
+    # Default: only the right warmup used by the paper's horizontal example.
+    # The former additional bottom warmup is retained only for explicit checks.
+    # This flag does NOT remove the normal bottom scan in each sweep below.
+    absorb(xmax,3)
+    extra_bottom_warmup && absorb(ymax,4)
     for sweep in 1:sweeps
         for j in xmin-1:L-1;absorb(j,1);end
         for j in xmax+1:-1:2;absorb(j,3);end

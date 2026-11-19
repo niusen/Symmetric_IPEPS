@@ -105,7 +105,8 @@ function move_origin(j,d,L)
     d in (1,2) ? j-1 : j+1
 end
 # Retained as the small-cell numerical oracle for the measurement-only array path.
-function large_cell_sweeps_reference(ctx,positions;chi,sweeps=2,callback=nothing)
+function large_cell_sweeps_reference(ctx,positions;chi,sweeps=2,callback=nothing,
+        extra_bottom_warmup::Bool=false)
     L=ctx.L;set_dimensions(L,L)
     cfg=C.LS_CTMRG_settings(CTM_trun_tol=1e-12,grad_checkpoint=false,use_sub_checkpoint=false)
     Q=C.LayerGrid(tuple_grid(ctx.Q));R=C.LayerGrid(tuple_grid(ctx.R))
@@ -115,8 +116,10 @@ function large_cell_sweeps_reference(ctx,positions;chi,sweeps=2,callback=nothing
         cs,ts=C.ctm_update_single_cx(chi,move_origin(j,d,L),L,cs,ts,Q,R,d,cfg,L,L)
         isnothing(callback) || callback((direction=d,absorbed_coordinate=j))
     end
-    # Warm up immediately outside the enlarged central bond(s).
-    absorb(xmax,3);absorb(ymax,4)
+    # Match the array path: right-only by default. The former extra bottom move
+    # is opt-in for numerical comparisons; ordinary bottom scans remain below.
+    absorb(xmax,3)
+    extra_bottom_warmup && absorb(ymax,4)
     for sweep in 1:sweeps
         for j in xmin-1:L-1;absorb(j,1);end
         for j in xmax+1:-1:2;absorb(j,3);end

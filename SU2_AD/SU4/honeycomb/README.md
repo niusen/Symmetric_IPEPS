@@ -1,7 +1,9 @@
 # SU(4) honeycomb
 
 常用入口只有 `run_star_su.sh`：从严格 D=9 星形覆盖态出发，在一个后台任务内完成
-simple update 和 CTMRG 能量、键观测量计算。默认4×4 cell，更新上限 Dmax=24。
+四站点 star HOSVD simple update 和 CTMRG 能量、键观测量计算。默认4×4 cell，
+初态仍为 D=9，更新上限 Dmax=24；三个模式从同一个 cluster 张量截断并共同投影，
+沿用 kagome 的 HOSVD 方法，不做额外的核心二次 HOSVD。
 
 从 `SU2_AD` 目录启动：
 
@@ -70,13 +72,29 @@ SU4_SRC_DIR=/path/to/existing/src sh run_star_su.sh
 src/bosonic/honeycomb/
 ├── Honeycomb_SU4.jl
 ├── honeycomb_SimpleUpdate.jl
+├── honeycomb_StarSimpleUpdate.jl
 ├── honeycomb_spin_model.jl
 ├── multiplet_truncation.jl
 └── star/
     ├── honeycomb_star_state.jl
     ├── StarRunConfig.jl
-    └── StarSimpleUpdateRun.jl
+    ├── StarSimpleUpdateRun.jl
+    └── StarUpdateTrace.jl       旧两站点方法的诊断工具
 ```
 
-本次整理只移动文件和修正路径，保留全部旧数据。配置移入 `config/` 后，正式输出
-仍为 `SU4/honeycomb/server_runs/star_D24/`，旧服务器检查点可按原输出位置续跑。
+默认输出为 `SU4/honeycomb/server_runs/star_hosvd_D24/`，与旧两站点结果分开。
+旧方法需显式指定配置 `method="two_site"` 或函数参数 `method=:two_site`。
+演化方法写入检查点，旧两站点检查点不能直接作为 HOSVD 的同一次演化自动续跑。
+# Two-site full update
+
+`sh SU4/honeycomb/run_full_update.sh --dry-run` previews
+`config/FullUpdate.toml`; remove `--dry-run` to launch evolution and CTMRG
+observables in the same background job. It reuses `run_star_su.sh` for logs,
+PID and automatic resume, and the existing shared `src` for algorithms.
+
+The default starts from the original D=9 star RVB and uses
+`space_policy="fixed_space"`: keep the input irreps and their multiplicities
+on each real bond, while optimizing tensor entries with the CTM environment.
+`space_policy="tensorkit"` uses native `truncdim(Dmax)` and allows the spaces
+to change. Use a separate output directory for each policy. Details and
+limitations are in [the server guide](docs/server.md#two-site-full-update).

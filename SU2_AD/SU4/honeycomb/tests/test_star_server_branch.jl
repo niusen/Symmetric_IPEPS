@@ -13,7 +13,7 @@ const HC=HoneycombStarRun.HoneycombSU4
         jldsave(source;schema_version=1,physics=(Lx=2,Ly=2,J=1.),T_set=T,
             lambdax_set=lx,lambday_set=ly,progress);
         raw=Dict("run"=>Dict("Lx"=>2,"Ly"=>2,"J"=>1.,"Dmax"=>24,
-            "output_dir"=>"branch","identity_sweeps"=>0,"local_energy_every"=>0),
+            "output_dir"=>"branch","identity_sweeps"=>0,"local_energy_every"=>0,"method"=>"two_site"),
             "schedule"=>[Dict("steps"=>3,"dt"=>.002)],"ctm"=>Dict("enabled"=>false));
         path=joinpath(dir,"branch.toml");open(io->TOML.print(io,raw),path,"w");
         c=read_star_config(path);

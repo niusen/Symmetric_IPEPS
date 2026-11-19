@@ -1,11 +1,14 @@
 # Initial tensor is always the exact D=9, 1+4+4bar star-covering PEPS.
 # Dmax is the allowed UPDATED bond dimension, including irrep dimensions.
+# Kagome-style simultaneous HOSVD on four-site stars; native dimension truncation.
 [run]
 Lx = 4
 Ly = 4
 J = 1.0
 Dmax = 24
-output_dir = "../server_runs/star_D24"
+output_dir = "../server_runs/star_hosvd_D24"
+method = "star_hosvd"
+hosvd_tol = 1e-10
 identity_sweeps = 0
 checkpoint_every = 20
 keep_every = 200

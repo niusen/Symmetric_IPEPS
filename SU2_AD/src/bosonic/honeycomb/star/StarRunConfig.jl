@@ -17,6 +17,8 @@ struct StarRunConfig
     ctm_tol::Float64
     ctm_energy_tol::Float64
     ctm_threads::Int
+    method::Symbol
+    hosvd_tol::Float64
     raw::Dict{String,Any}
 end
 
@@ -30,10 +32,16 @@ function read_star_config(path;output_dir=nothing)
     _known_keys(raw,("run","schedule","ctm"),"top-level");
     r=get(raw,"run",Dict{String,Any}());c=get(raw,"ctm",Dict{String,Any}());
     _known_keys(r,("Lx","Ly","J","Dmax","output_dir","identity_sweeps",
-        "checkpoint_every","keep_every","local_energy_every","blas_threads","max_seconds"),"run");
+        "checkpoint_every","keep_every","local_energy_every","blas_threads","max_seconds","method","hosvd_tol"),"run");
     _known_keys(c,("enabled","chis","iterations","tol","energy_tol","blas_threads"),"ctm");
     lx=Int(get(r,"Lx",4));ly=Int(get(r,"Ly",4));
+    method=Symbol(get(r,"method","star_hosvd"));
+    method in (:star_hosvd,:two_site) || throw(ArgumentError("method must be star_hosvd or two_site"));
+    hosvd_tol=Float64(get(r,"hosvd_tol",1e-10));
+    isfinite(hosvd_tol) && hosvd_tol>=0 || throw(ArgumentError("hosvd_tol must be finite and non-negative"));
     lx>=2 && ly>=2 && iseven(lx) && iseven(ly) || throw(ArgumentError("cell dimensions must be even and >=2"));
+    method==:star_hosvd && (lx%4!=0 || ly%4!=0) &&
+        throw(ArgumentError("star_hosvd requires cell dimensions divisible by 4"));
     cap=Int(get(r,"Dmax",24));cap>=9 || throw(ArgumentError("Dmax must be >=9 for the exact initial state"));
     stages=NamedTuple{(:steps,:dt,:Dmax),Tuple{Int,Float64,Int}}[];
     for s in get(raw,"schedule",Any[])
@@ -43,7 +51,7 @@ function read_star_config(path;output_dir=nothing)
         push!(stages,(steps=steps,dt=dt,Dmax=d));
     end
     isempty(stages) && throw(ArgumentError("at least one [[schedule]] stage is required"));
-    out=isnothing(output_dir) ? get(r,"output_dir","server_runs/star_D24") : output_dir;
+    out=isnothing(output_dir) ? get(r,"output_dir","server_runs/star_hosvd_D24") : output_dir;
     out=abspath(isabspath(out) ? out : joinpath(dirname(abspath(path)),out));
     gauge=Int(get(r,"identity_sweeps",0));checkpoint=Int(get(r,"checkpoint_every",20));
     keep=Int(get(r,"keep_every",200));energy=Int(get(r,"local_energy_every",100));
@@ -58,15 +66,19 @@ function read_star_config(path;output_dir=nothing)
     iterations>0 && isfinite(tol) && tol>0 && isfinite(etol) && etol>0 && ct>0 || throw(ArgumentError("invalid CTMRG controls"));
     enabled && !((lx,ly) in ((2,2),(4,4))) && throw(ArgumentError("the existing CTMRG interface requires 2x2 or 4x4"));
     return StarRunConfig(lx,ly,j,stages,out,gauge,checkpoint,keep,energy,threads,seconds,
-        enabled,chis,iterations,tol,etol,ct,raw)
+        enabled,chis,iterations,tol,etol,ct,method,hosvd_tol,raw)
 end
 
 star_physics(c::StarRunConfig)=(Lx=c.Lx,Ly=c.Ly,J=c.J,initial="strict_star_D9",
-    identity_sweeps=c.identity_sweeps,stages=c.stages,convention="permutation");
+    identity_sweeps=c.identity_sweeps,stages=c.stages,convention="permutation",
+    truncation="TensorKit_truncdim",method=string(c.method),hosvd_tol=c.hosvd_tol,
+    lambda_storage="balanced_sqrt_S");
 
 function describe_star_run(c::StarRunConfig)
     println("Ansatz origin: exact SU(4) star PEPS, V=1+4+4bar, D=9; cell=",(c.Lx,c.Ly));
     println("Schedule: ",c.stages,"; total imaginary time=",sum(s.steps*s.dt for s in c.stages));
     println("Output: ",c.output_dir,"; checkpoint every ",c.checkpoint_every," sweeps");
     println("Evolution BLAS threads: ",c.blas_threads,"; automatic CTMRG: ",c.ctm_enabled);
+    println("Truncation: TensorKit truncdim(Dmax), as in the original simple update");
+    println("Update method: ",c.method,"; HOSVD tolerance: ",c.hosvd_tol);
 end

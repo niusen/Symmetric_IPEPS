@@ -35,7 +35,7 @@ end
 
 @testset "All five Trotter layers on the server's 4x4 D24 state" begin
     T,lx,ly,_=HC.initial_honeycomb_star_iPEPS(Lx=4,Ly=4);
-    HC.itebd_honeycomb(Dict("J"=>1.),T,lx,ly,.01,.01,24;convention=:permutation,verbose=false);
+    HC.itebd_honeycomb(Dict("J"=>1.),T,lx,ly,.01,.01,24;convention=:permutation,verbose=false,method=:two_site);
     @test isnothing(HC._check_honeycomb_state(T,lx,ly;maxdim=24))
     @test all(isfinite(norm(t)) && norm(t)>0 for t in T)
 end
@@ -46,4 +46,29 @@ end
     text=sprint(showerror,error);
     @test occursin("sweep=7",text) && occursin("Dmax=24",text)
     @test occursin("TensorKit=",text) && occursin("empty lambda",text)
+end
+
+@testset "Explicit two-site update matches the original TensorKit dimension truncation" begin
+    T,lx,ly,_=HC.initial_honeycomb_star_iPEPS(Lx=2,Ly=2);
+    reference,rx,ry=deepcopy((T,lx,ly));
+    H=HC.Hamiltonian_honeycomb_SU4(space(T[1],5);convention=:permutation);
+    gate,half=HC.trotter_gate(H,.01);
+    # Direct calls to the old two-site routines with integer Dmax, rather
+    # than passing a custom truncation strategy through the wrapper.
+    for (direction,g) in ((:x,half),(:y,half),(:z,gate),(:y,half),(:x,half))
+        for bond in HC.honeycomb_bonds(2,2)
+            bond.direction==direction || continue;
+            x,y=bond.site1;
+            if bond.axis==:horizontal
+                HC.tebd_xbond(1,reference,rx,ry,g,x+.5,y,24);
+            else
+                HC.tebd_ybond(1,reference,rx,ry,g,x,y-.5,24);
+            end
+        end
+    end
+    HC.itebd_honeycomb(Dict("J"=>1.),T,lx,ly,.01,.01,24;
+        convention=:permutation,verbose=false,method=:two_site);
+    @test all(norm(T[i]-reference[i])<1e-12 for i in eachindex(T))
+    @test all(norm(lx[i]-rx[i])<1e-12 for i in eachindex(lx))
+    @test all(norm(ly[i]-ry[i])<1e-12 for i in eachindex(ly))
 end

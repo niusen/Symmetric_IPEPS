@@ -1,0 +1,36 @@
+ArgumentError: cannot truncate an empty singular spectrum
+Stacktrace:
+  [1] optimal_multiplet_counts(spectra::TensorKit.SectorVector{Float64, SU4Irrep, Vector{Float64}}, maxdim::Int64)
+    @ Main.HoneycombSU4 D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\honeycomb\multiplet_truncation.jl:19
+  [2] findtruncated
+    @ D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\honeycomb\multiplet_truncation.jl:58 [inlined]
+  [3] findtruncated_svd
+    @ C:\Users\senni\.julia\dev\TensorKit\src\factorizations\truncation.jl:159 [inlined]
+  [4] truncate(::typeof(svd_trunc!), ::Tuple{TensorMap{ComplexF64, GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}, 2, 1, Vector{ComplexF64}}, DiagonalTensorMap{Float64, GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}, Vector{Float64}}, TensorMap{ComplexF64, GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}, 1, 2, Vector{ComplexF64}}}, strategy::WholeMultipletBudget)
+    @ TensorKit.Factorizations C:\Users\senni\.julia\dev\TensorKit\src\factorizations\truncation.jl:72
+  [5] svd_trunc!
+    @ C:\Users\senni\.julia\packages\MatrixAlgebraKit\VsdYk\src\implementations\svd.jl:234 [inlined]
+  [6] svd_trunc!
+    @ C:\Users\senni\.julia\packages\MatrixAlgebraKit\VsdYk\src\algorithms.jl:368 [inlined]
+  [7] svd_trunc(A::TensorMap{ComplexF64, GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}, 2, 2, Vector{ComplexF64}}, alg::MatrixAlgebraKit.TruncatedAlgorithm{MatrixAlgebraKit.SafeDivideAndConquer{@NamedTuple{}}, WholeMultipletBudget})
+    @ MatrixAlgebraKit C:\Users\senni\.julia\packages\MatrixAlgebraKit\VsdYk\src\algorithms.jl:358
+  [8] svd_trunc
+    @ C:\Users\senni\.julia\packages\MatrixAlgebraKit\VsdYk\src\algorithms.jl:357 [inlined]
+  [9] #tsvd#9
+    @ D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\Settings.jl:306 [inlined]
+ [10] tebd_ybond(ct::Int64, Tset::Matrix{Any}, lambdaxset::Matrix{Any}, lambdayset::Matrix{Any}, gate::TensorMap{Float64, GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}, 2, 2, Vector{Float64}}, px::Int64, py::Float64, Dmax::WholeMultipletBudget)
+    @ Main.HoneycombSU4 D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\triangle\simple_update\triangle_SimpleUpdate_iPEPS.jl:211
+ [11] itebd_honeycomb(parameters::Dict{String, Float64}, T_set::Matrix{Any}, lambdax_set::Matrix{Any}, lambday_set::Matrix{Any}, tau::Float64, dt::Float64, Dmax::Int64; convention::Symbol, rotate_order::Bool, verbose::Bool, truncation::Symbol)
+    @ Main.HoneycombSU4 D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\honeycomb\honeycomb_SimpleUpdate.jl:138
+ [12] run_star_simple_update(; Dmax::Int64, L::Int64, schedule::NTuple{5, Tuple{Int64, Float64}}, identity_sweeps::Int64, measure::Bool)
+    @ Main D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\SU4\honeycomb\SimpleUpdate_star_RVB.jl:82
+ [13] run_star_simple_update()
+    @ Main D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\SU4\honeycomb\SimpleUpdate_star_RVB.jl:35
+ [14] top-level scope
+    @ D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\SU4\honeycomb\SimpleUpdate_star_RVB.jl:128
+ [15] include(mod::Module, _path::String)
+    @ Base .\Base.jl:562
+ [16] exec_options(opts::Base.JLOptions)
+    @ Base .\client.jl:323
+ [17] _start()
+    @ Base .\client.jl:531

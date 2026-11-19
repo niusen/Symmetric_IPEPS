@@ -1,0 +1,17 @@
+Julia CTMRG 1: corner-spectrum error=Inf
+Julia CTMRG 2: corner-spectrum error=0.1732952927795852
+Julia CTMRG 3: corner-spectrum error=0.019197388597791104
+Julia CTMRG 4: corner-spectrum error=0.0010961923066574385
+Julia CTMRG 5: corner-spectrum error=6.90036658531513e-5
+Julia CTMRG 6: corner-spectrum error=5.788028864418578e-6
+Julia CTMRG 7: corner-spectrum error=3.9061029922272467e-7
+Julia CTMRG 8: corner-spectrum error=4.036754916816668e-8
+Julia CTMRG 9: corner-spectrum error=2.9606316735338514e-9
+Test Summary:                                              | Pass  Total  Time
+saved U1 D4: exact same-bond identity before LC truncation |   20     20  3.0s
+Saved U1 D4 LC central bond = 0.1571700810577551 - 1.3540133058464594e-18im
+Test Summary:                                              | Pass  Total  Time
+saved U1 D4: mixed enlarged charge spaces through LC sweep |    1      1  1.0s
+Test Summary:                                                            | Pass  Total   Time
+saved U1 D4: checkpoint transport and all result tables, one anchor only |    7      7  39.7s
+SAVED U1 D4 PASSED; maximum exact insertion error=4.163723390206299e-16

@@ -1,0 +1,48 @@
+SU D9 seed=2025 stage=3
+ArgumentError: reducing over an empty collection is not allowed; consider supplying `init` to the reducer
+Stacktrace:
+  [1] _empty_reduce_error()
+    @ Base .\reduce.jl:319
+  [2] reduce_empty(f::Function, T::Type)
+    @ Base .\reduce.jl:320
+  [3] mapreduce_empty(::typeof(identity), op::Function, T::Type)
+    @ Base .\reduce.jl:369
+  [4] reduce_empty(op::Base.MappingRF{typeof(identity), typeof(max)}, ::Type{Float64})
+    @ Base .\reduce.jl:358
+  [5] reduce_empty_iter
+    @ .\reduce.jl:381 [inlined]
+  [6] mapreduce_empty_iter(f::Function, op::Function, itr::Vector{Float64}, ItrEltype::Base.HasEltype)
+    @ Base .\reduce.jl:377
+  [7] _mapreduce
+    @ .\reduce.jl:429 [inlined]
+  [8] _mapreduce_dim
+    @ .\reducedim.jl:337 [inlined]
+  [9] mapreduce
+    @ .\reducedim.jl:329 [inlined]
+ [10] _maximum
+    @ .\reducedim.jl:987 [inlined]
+ [11] _maximum
+    @ .\reducedim.jl:986 [inlined]
+ [12] maximum
+    @ .\reducedim.jl:982 [inlined]
+ [13] my_pinv(T::DiagonalTensorMap{Float64, GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}, Vector{Float64}})
+    @ Main.HoneycombSU4 D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\AD_lib.jl:30
+ [14] tebd_ybond(ct::Int64, Tset::Matrix{Any}, lambdaxset::Matrix{Any}, lambdayset::Matrix{Any}, gate::TensorMap{Float64, GradedSpace{SU4Irrep, TensorKit.SortedVectorDict{SU4Irrep, Int64}}, 2, 2, Vector{Float64}}, px::Int64, py::Float64, Dmax::Int64)
+    @ Main.HoneycombSU4 D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\triangle\simple_update\triangle_SimpleUpdate_iPEPS.jl:223
+ [15] itebd_honeycomb(parameters::Dict{String, Float64}, T_set::Matrix{Any}, lambdax_set::Matrix{Any}, lambday_set::Matrix{Any}, tau::Float64, dt::Float64, Dmax::Int64; convention::Symbol, rotate_order::Bool, verbose::Bool)
+    @ Main.HoneycombSU4 D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\honeycomb\honeycomb_SimpleUpdate.jl:133
+ [16] itebd_honeycomb
+    @ D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\src\bosonic\honeycomb\honeycomb_SimpleUpdate.jl:109 [inlined]
+ [17] run_small_D_SU4(; seeds::Tuple{Int64, Int64}, measure::Bool)
+    @ Main D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\SU4\honeycomb\Test_small_D_SU4.jl:84
+ [18] run_small_D_SU4()
+    @ Main D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\SU4\honeycomb\Test_small_D_SU4.jl:51
+ [19] top-level scope
+    @ D:\My Documents\Code\Julia_codes\Tensor network\Symmetric_IPEPS\SU2_AD\SU4\honeycomb\Test_small_D_SU4.jl:161
+ [20] include(mod::Module, _path::String)
+    @ Base .\Base.jl:562
+ [21] exec_options(opts::Base.JLOptions)
+    @ Base .\client.jl:323
+ [22] _start()
+    @ Base .\client.jl:531
+

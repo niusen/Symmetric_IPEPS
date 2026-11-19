@@ -7,23 +7,25 @@
 
 下载或克隆仓库后，用浏览器直接打开：
 
-- [h₀ 依赖标记版（推荐）](ctmrg_h0_influence_interactive.html)：暂停、播放、逐步前进，并切换投影/待写回/写回阶段。
-- [环境读写版](ctmrg_moves_interactive.html)：查看每个 move 的读取位置、写入位置及此前更新记录。
+- [当前默认：55 步 h₀ 依赖标记版（推荐）](without_bottom/ctmrg_without_bottom_interactive.html)：只有 right 预备，可暂停、逐步前进和切换阶段。
+- [旧版56步 h₀ 标记](ctmrg_h0_influence_interactive.html)、[旧版环境读写](ctmrg_moves_interactive.html)：保留额外 bottom 预备操作，供历史对照。
 
 两个网页均可离线播放，无须 Python、Julia、网络或 Codex。
 GitHub 文件预览不会执行交互网页，需将 HTML 下载后打开。
 
 GIF 便于快速查看；网页更适合停在某一步分析：
 
-![带 h₀ 依赖标记的扫描](animations/ctmrg_h0_influence_56.gif)
+![当前默认：只有 right 预备的扫描](without_bottom/ctmrg_without_bottom_55.gif)
 
-[普通环境读写 GIF](animations/ctmrg_moves_56.gif)
+[旧版 h₀ 标记 GIF](animations/ctmrg_h0_influence_56.gif)、[旧版环境读写 GIF](animations/ctmrg_moves_56.gif)
 
 ## 去掉 bottom 预备操作的对照（2026-11-08）
 
 [新版播放器与对照说明](without_bottom/README.md)仅删除初始化的 bottom y=6，
 保留正常四方向扫描，共 55 个 move。原版 56 步动画保留供比较。
-这里只改变动画与结构依赖模型，Julia 数值算法尚未改动。
+Julia 数值代码现已默认采用这份 55 步流程；旧流程通过
+`extra_bottom_warmup=true` 显式启用，默认是 false。
+
 ## 固定坐标与示例
 
 x 向右，y 向下；C1/C2/C3/C4 分别为左上/右上/右下/左下，
@@ -36,7 +38,7 @@ T1/T2/T3/T4 分别为上/右/下/左。所有坐标从 1 开始。
 
 ## 当前代码的实际顺序
 
-预备：right x=7，然后 bottom y=6。
+默认预备：只做 right x=7。额外 bottom y=6 仅保留为旧流程对照选项。
 
 每一轮按以下顺序执行，重复两轮，预备步骤不重复：
 
@@ -73,9 +75,10 @@ T1/T2/T3/T4 分别为上/右/下/左。所有坐标从 1 开始。
 [第 II.3 节](https://arxiv.org/html/2511.22669v2#S2.SS3)。
 
 论文的水平源示例仅先做一次 right(x=m+1) 预备更新，然后进行四方向扫描；
-竖直源将整套流程旋转 90°。当前实现无条件先做 right(xmax) 和 bottom(ymax)。
-额外的 bottom 预备更新不是论文明确要求的步骤，其必要性和精度影响尚未单独验证。
-本次整理保留数值代码和动画原有顺序，没有悄悄删除或更换这一步。
+竖直源将整套流程旋转 90°。当前默认只保留 right(xmax) 预备，
+原先无条件增加的 bottom(ymax) 已改为显式对照选项。
+固定随机 D2 态的完整18源对照中，额外预备操作造成的窗口方差差异由
+一轮约1e-6降至两轮约1e-9；这不是对大D或独立收缩准确性的证明。
 
 kagome 的下三角形包含在方格网络上呈对角线的物理最近邻 bond。
 当前实现通过两段虚拟路径传递算符辅助指标，修改两端及中间三角形张量。

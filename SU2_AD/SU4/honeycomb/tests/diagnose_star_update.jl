@@ -1,8 +1,9 @@
 # Small-cell diagnostic for the first invalid bond; no CTMRG or long evolution.
-using LinearAlgebra,TensorKit,SUNRepresentations
-include("../../../src/bosonic/honeycomb/Honeycomb_SU4.jl")
-using .HoneycombSU4
-const HC=HoneycombSU4
+using LinearAlgebra,TensorKit,SUNRepresentations,Dates
+include("../../../src/bosonic/honeycomb/star/StarSimpleUpdateRun.jl")
+using .HoneycombStarRun
+using .HoneycombStarRun.HoneycombSU4
+const HC=HoneycombStarRun.HoneycombSU4
 BLAS.set_num_threads(1)
 
 function bond_info(s)
@@ -10,7 +11,9 @@ function bond_info(s)
         norm=norm(s),sectors=[(Tuple(Int.(SUNRepresentations.dynkin_label(c))),size(b,1)) for (c,b) in blocks(s)])
 end
 
-function diagnose_star_update(;L=2,Dmax=24,dt=.01,sweeps=1)
+function diagnose_star_update(;L=2,Dmax=24,dt=.01,sweeps=1,truncation=:legacy)
+    truncation in (:legacy,:optimal) || throw(ArgumentError("use :legacy or :optimal"));
+    budget=truncation==:legacy ? Dmax : WholeMultipletBudget(Dmax);
     T,lx,ly,_=initial_honeycomb_star_iPEPS(Lx=L,Ly=L)
     H=Hamiltonian_honeycomb_SU4(space(T[1],5);convention=:permutation)
     gate,half=HC.trotter_gate(H,dt)
@@ -23,9 +26,9 @@ function diagnose_star_update(;L=2,Dmax=24,dt=.01,sweeps=1)
                 println("UPDATE ",(sweep=sweep,direction=direction,site=bond.site1));flush(stdout)
                 try
                     if bond.axis==:horizontal
-                        HC.tebd_xbond(1,T,lx,ly,g,x+.5,y,WholeMultipletBudget(Dmax))
+                        HC.tebd_xbond(1,T,lx,ly,g,x+.5,y,budget)
                     else
-                        HC.tebd_ybond(1,T,lx,ly,g,x,y-.5,WholeMultipletBudget(Dmax))
+                        HC.tebd_ybond(1,T,lx,ly,g,x,y-.5,budget)
                     end
                     s=bond.axis==:horizontal ? lx[bond.site2...] : ly[bond.site1...]
                     println("OUTPUT ",bond_info(s));flush(stdout)
@@ -42,5 +45,12 @@ function diagnose_star_update(;L=2,Dmax=24,dt=.01,sweeps=1)
 end
 
 if abspath(PROGRAM_FILE)==@__FILE__
-    diagnose_star_update()
+    if !isempty(ARGS) && first(ARGS)=="--trace"
+        folder=length(ARGS)>=2 ? ARGS[2] : joinpath(@__DIR__,"../logs/trace_"*Dates.format(now(),"yyyymmdd_HHMMSS"));
+        sweeps=length(ARGS)>=3 ? parse(Int,ARGS[3]) : 100;
+        result=trace_star_simple_update(;folder,sweeps);
+        result.status==:finished || exit(2);
+    else
+        diagnose_star_update()
+    end
 end

@@ -1,3 +1,4 @@
 Manifest.toml
 results/
 logs/
+!run_u1_D9_D10_chi_check.sh

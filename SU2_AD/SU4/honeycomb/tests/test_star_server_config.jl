@@ -9,10 +9,12 @@ include("../server/run_star_simple_update.jl")
     @test all(s.Dmax==24 for s in c.stages)
     @test sum(s.steps*s.dt for s in c.stages)≈11.
     @test c.ctm_enabled
-    @test c.output_dir==normpath(joinpath(@__DIR__,"../server_runs/star_D24"))
+    @test c.output_dir==normpath(joinpath(@__DIR__,"../server_runs/star_hosvd_D24"))
+    @test c.method==:star_hosvd
     pilot=read_star_config(joinpath(@__DIR__,"../config/StarSimpleUpdate_pilot.toml"));
     @test !pilot.ctm_enabled # Only the explicit lightweight pilot skips observables.
-    @test pilot.output_dir==normpath(joinpath(@__DIR__,"../server_runs/star_D24_pilot"))
+    @test pilot.output_dir==normpath(joinpath(@__DIR__,"../server_runs/star_hosvd_D24_pilot"))
+    @test pilot.method==:star_hosvd
     mktempdir() do dir
         raw=TOML.parsefile(template);
         path=joinpath(dir,"config.toml");

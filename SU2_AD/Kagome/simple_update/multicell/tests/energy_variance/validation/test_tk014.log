@@ -1,0 +1,66 @@
+Test Summary:                                           | Pass  Total  Time
+LC reverse moves use the original coordinate convention |   28     28  0.0s
+Julia CTMRG 1: corner-spectrum error=Inf
+Julia CTMRG 2: corner-spectrum error=0.0
+Variance anchor 1/18: (representative = 1, orientation = :up, edge = 1) at (5, 5)
+Variance anchor 2/18: (representative = 1, orientation = :up, edge = 2) at (5, 5)
+Variance anchor 3/18: (representative = 1, orientation = :up, edge = 3) at (5, 5)
+Variance anchor 4/18: (representative = 1, orientation = :down, edge = 1) at (5, 5)
+Variance anchor 5/18: (representative = 1, orientation = :down, edge = 2) at (5, 5)
+Variance anchor 6/18: (representative = 1, orientation = :down, edge = 3) at (5, 5)
+Variance anchor 7/18: (representative = 2, orientation = :up, edge = 1) at (5, 4)
+Variance anchor 8/18: (representative = 2, orientation = :up, edge = 2) at (5, 4)
+Variance anchor 9/18: (representative = 2, orientation = :up, edge = 3) at (5, 4)
+Variance anchor 10/18: (representative = 2, orientation = :down, edge = 1) at (5, 4)
+Variance anchor 11/18: (representative = 2, orientation = :down, edge = 2) at (5, 4)
+Variance anchor 12/18: (representative = 2, orientation = :down, edge = 3) at (5, 4)
+Variance anchor 13/18: (representative = 3, orientation = :up, edge = 1) at (4, 5)
+Variance anchor 14/18: (representative = 3, orientation = :up, edge = 2) at (4, 5)
+Variance anchor 15/18: (representative = 3, orientation = :up, edge = 3) at (4, 5)
+Variance anchor 16/18: (representative = 3, orientation = :down, edge = 1) at (4, 5)
+Variance anchor 17/18: (representative = 3, orientation = :down, edge = 2) at (4, 5)
+Variance anchor 18/18: (representative = 3, orientation = :down, edge = 3) at (4, 5)
+Test Summary:                                                        | Pass  Total     Time
+all source/target bonds: analytic D1 product state, radius and shift | 1032   1032  3m57.7s
+Julia CTMRG 1: corner-spectrum error=Inf
+Julia CTMRG 2: corner-spectrum error=0.0
+Variance anchor 1/18: (representative = 1, orientation = :up, edge = 1) at (5, 5)
+Variance anchor 2/18: (representative = 1, orientation = :up, edge = 2) at (5, 5)
+Variance anchor 3/18: (representative = 1, orientation = :up, edge = 3) at (5, 5)
+Variance anchor 4/18: (representative = 1, orientation = :down, edge = 1) at (5, 5)
+Variance anchor 5/18: (representative = 1, orientation = :down, edge = 2) at (5, 5)
+Variance anchor 6/18: (representative = 1, orientation = :down, edge = 3) at (5, 5)
+Variance anchor 7/18: (representative = 2, orientation = :up, edge = 1) at (5, 4)
+Variance anchor 8/18: (representative = 2, orientation = :up, edge = 2) at (5, 4)
+Variance anchor 9/18: (representative = 2, orientation = :up, edge = 3) at (5, 4)
+Variance anchor 10/18: (representative = 2, orientation = :down, edge = 1) at (5, 4)
+Variance anchor 11/18: (representative = 2, orientation = :down, edge = 2) at (5, 4)
+Variance anchor 12/18: (representative = 2, orientation = :down, edge = 3) at (5, 4)
+Variance anchor 13/18: (representative = 3, orientation = :up, edge = 1) at (4, 5)
+Variance anchor 14/18: (representative = 3, orientation = :up, edge = 2) at (4, 5)
+Variance anchor 15/18: (representative = 3, orientation = :up, edge = 3) at (4, 5)
+Variance anchor 16/18: (representative = 3, orientation = :down, edge = 1) at (4, 5)
+Variance anchor 17/18: (representative = 3, orientation = :down, edge = 2) at (4, 5)
+Variance anchor 18/18: (representative = 3, orientation = :down, edge = 3) at (4, 5)
+Test Summary:                                                  | Pass  Total  Time
+quantum trimer-product: exact 2D connected energy correlations |  974    974  6.9s
+Test Summary:                                         | Pass  Total     Time
+small entangled dense D2: central-bond algebra, no SU |    6      6  3m19.9s
+VARIANCE CHECKS PASSED
+Julia CTMRG 1: corner-spectrum error=Inf
+Julia CTMRG 2: corner-spectrum error=0.1732952927795864
+Julia CTMRG 3: corner-spectrum error=0.019197388597795892
+Julia CTMRG 4: corner-spectrum error=0.001096192306653982
+Julia CTMRG 5: corner-spectrum error=6.900366585042024e-5
+Julia CTMRG 6: corner-spectrum error=5.788028866459439e-6
+Julia CTMRG 7: corner-spectrum error=3.9061029718260436e-7
+Julia CTMRG 8: corner-spectrum error=4.036755026318672e-8
+Julia CTMRG 9: corner-spectrum error=2.960631922751465e-9
+Test Summary:                                              | Pass  Total  Time
+saved U1 D4: exact same-bond identity before LC truncation |   20     20  3.6s
+Saved U1 D4 LC central bond = 0.15717008105775504 - 4.720624426415197e-19im
+Test Summary:                                              | Pass  Total  Time
+saved U1 D4: mixed enlarged charge spaces through LC sweep |    1      1  0.6s
+Test Summary:                                                            | Pass  Total   Time
+saved U1 D4: checkpoint transport and all result tables, one anchor only |    7      7  21.0s
+SAVED U1 D4 PASSED; maximum exact insertion error=3.6083026991075763e-16

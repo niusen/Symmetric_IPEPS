@@ -60,7 +60,7 @@ function run_initialization_control()
             " bonds=",ob.bond_energy," norm=",torus_norm(T));flush(stdout);
         previous=ob.energy_per_site; tau=0.0; history=NamedTuple[];
         for (stage,(steps,dt)) in enumerate(((120,0.02),(120,0.01),(240,0.005),(300,0.002)))
-            itebd_honeycomb(parameters,T,lx,ly,steps*dt,dt,15;verbose=false);
+            itebd_honeycomb(parameters,T,lx,ly,steps*dt,dt,15;verbose=false,method=:two_site);
             ob=honeycomb_energy_simple(parameters,T,lx,ly);tau+=steps*dt;
             dims=[dim(space(s,1)) for s in real_bond_spectra(lx,ly)];
             row=(initialization=initialization,stage=stage,dt=dt,tau=tau,

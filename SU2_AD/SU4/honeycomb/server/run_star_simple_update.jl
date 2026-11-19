@@ -1,5 +1,5 @@
 const STAR_HELP="""
-SU(4) honeycomb: exact D=9 star PEPS -> two-site simple update.
+SU(4) honeycomb: exact D=9 star PEPS -> star HOSVD simple update (default).
 The standard configuration runs SU and then CTMRG observables in the SAME job.
 
   julia --startup-file=no run_star_simple_update.jl [options]

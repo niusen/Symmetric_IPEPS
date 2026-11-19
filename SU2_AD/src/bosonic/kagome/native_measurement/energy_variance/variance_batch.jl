@@ -49,6 +49,7 @@ function update_variance_summaries(out,records)
     for data in records
         s=data["settings"];r=data["result"];t=data["run_timing"]
         base=Dict("D"=>s["D"],"chi"=>s["chi"],"contraction_Lmax"=>s["L"],"sweeps"=>s["sweeps"],
+            "extra_bottom_warmup"=>s["extra_bottom_warmup"],
             "exchange_energy_per_spin"=>r["exchange_energy_per_spin"],"ctm_converged"=>r["ctm"]["converged"],
             "ctm_iterations"=>r["ctm"]["iterations"],"ctm_error"=>r["ctm"]["error"],
             "actual_corner_dimensions"=>join(r["ctm"]["actual_corner_dimensions"],";"),
@@ -81,7 +82,8 @@ function run_variance_case(cfg,job,settings,f,prepared,shared)
     batch_log("START D=$(job.D) chi=$(job.chi) contraction Lmax=$(job.L); extract L=$(cfg.sizes)")
     result=exchange_variance(f;L=job.L,window_sizes=cfg.sizes,chi=job.chi,
         ctm_iterations=cfg.ctm_iterations,ctm_tolerance=cfg.ctm_tolerance,
-        sweeps=cfg.sweeps,source_shift=cfg.source_shift,norm_environment=prepared,verbose=true)
+        sweeps=cfg.sweeps,source_shift=cfg.source_shift,norm_environment=prepared,verbose=true,
+        extra_bottom_warmup=settings["extra_bottom_warmup"])
     Plan.file_sha256(job.checkpoint)==settings["source_sha256"] || error("Source state changed during measurement")
     result["source_checkpoint"]=job.checkpoint;result["source_sha256"]=settings["source_sha256"]
     result["D"]=job.D;result["settings"]=settings
@@ -93,7 +95,7 @@ function run_variance_case(cfg,job,settings,f,prepared,shared)
     timing=merge(shared,Dict("started_utc"=>started,"finished_utc"=>batch_utc(),
         "case_wall_seconds"=>batch_seconds(clock),"compute_seconds"=>result["seconds"],
         "note"=>"case time includes variance calculation and result export; shared load/factors/norm CTM counted separately; first calls may compile"))
-    brief=Dict(k=>result[k] for k in ("D","L","chi","sweeps","exchange_energy_per_spin","ctm","timing","cumulative","full_anchor_sum","anchor_count","n_physical_sites"))
+    brief=Dict(k=>result[k] for k in ("D","L","chi","sweeps","extra_bottom_warmup","exchange_energy_per_spin","ctm","timing","cumulative","full_anchor_sum","anchor_count","n_physical_sites"))
     data=Dict("settings"=>settings,"result"=>brief,"run_timing"=>timing,"case_directory"=>job.out)
     N.atomic_toml(joinpath(job.out,"run_timing.toml"),timing)
     N.atomic_toml(joinpath(job.out,"completed.toml"),data) # completion marker LAST
@@ -157,7 +159,8 @@ function run_variance_batch(cfg;startup_seconds=0.)
     BLAS.set_num_threads(cfg.threads);N.prepare_device!("cpu")
     N.atomic_toml(joinpath(cfg.out,"batch_run.toml"),Dict("started_utc"=>started,
         "module_load_seconds"=>startup_seconds,"planned_cases"=>length(jobs),"code_sha256"=>code_hash,
-        "dims"=>cfg.dims,"chis"=>cfg.chis,"sizes"=>cfg.sizes,"contraction_size"=>cfg.contraction_size,"threads"=>cfg.threads))
+        "dims"=>cfg.dims,"chis"=>cfg.chis,"sizes"=>cfg.sizes,"contraction_size"=>cfg.contraction_size,"threads"=>cfg.threads,
+        "extra_bottom_warmup"=>get(cfg,:extra_bottom_warmup,false)))
     run_id=Dates.format(Dates.now(Dates.UTC),dateformat"yyyymmddTHHMMSSsss")*"_"*string(getpid())
     run_dir=joinpath(cfg.out,"runs",run_id);mkpath(run_dir)
     records=Dict[]

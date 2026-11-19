@@ -88,7 +88,7 @@ end
     after=pair_matrix(HC.honeycomb_bond_wavefunction(Ts,xs,ys,bond));
     @test normalized_overlap(after,reshape(convert(Array,g),16,16)*before)>1-1e-10;
     @test sectortype(xs[2,1])==sectortype(V);
-    itebd_honeycomb(Dict("J"=>1.0),Ts,xs,ys,0.01,0.01,16;verbose=false);
+    itebd_honeycomb(Dict("J"=>1.0),Ts,xs,ys,0.01,0.01,16;verbose=false,method=:two_site);
     @test all(t->isfinite(norm(t)),Ts);
     @test all(dim(space(s,1))<=16 for s in vcat(vec(xs),vec(ys)));
 end
@@ -106,13 +106,13 @@ end
     local4=honeycomb_energy_simple(Dict("J"=>1.0),T4,lx4,ly4);
     ctm4=honeycomb_energy_CTM(Dict("J"=>1.0),T4,4,setting);
     @test ctm4.energies≈local4.energies atol=1e-10;
-    itebd_honeycomb(Dict("J"=>1.0),T,lx,ly,0.02,0.01,2;verbose=false);
+    itebd_honeycomb(Dict("J"=>1.0),T,lx,ly,0.02,0.01,2;verbose=false,method=:two_site);
     @test all(isfinite(norm(t)) for t in T);
     for x=1:2,y=1:2
         @test dim(space(T[x,y],iseven(x+y) ? 4 : 2))==1;
     end
     @test isfinite(honeycomb_energy_simple(Dict("J"=>1.0),T,lx,ly).energy_per_site);
-    itebd_honeycomb(Dict("J"=>0.0),T,lx,ly,0.01,0.01,2;verbose=false);
+    itebd_honeycomb(Dict("J"=>0.0),T,lx,ly,0.01,0.01,2;verbose=false,method=:two_site);
 end
 
 @testset "SU(4) CTMRG: exact four-site singlet chains" begin

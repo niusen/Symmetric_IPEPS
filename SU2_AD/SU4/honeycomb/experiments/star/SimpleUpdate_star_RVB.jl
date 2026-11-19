@@ -39,7 +39,7 @@ function run_star_simple_update(;Dmax=9,L=4,
     BLAS.set_num_threads(1);
     T,info=initial_star_RVB(Lx=L,Ly=L); lx,ly=star_lambdas(T);
     parameters=Dict("J"=>1.);
-    out=joinpath(@__DIR__,"../../data","star_SU_D$(Dmax)_L$(L)");mkpath(out);
+    out=joinpath(@__DIR__,"../../data","star_HOSVD_D$(Dmax)_L$(L)");mkpath(out);
     trace=joinpath(out,"evolution.csv");sectors=joinpath(out,"sectors.csv");
     write(trace,"stage,dt,tau,E_P_simple,delta_spectrum,min_D,max_D,P_x,P_y,P_z\n");
     write(sectors,"stage,bond,direction,x,y,D,dynkin,irrep_dim,multiplicity,schmidt_weight\n");

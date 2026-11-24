@@ -59,7 +59,7 @@ CTMRG. The worker verifies the actual maximum virtual dimension matches D.
 
 ## Outputs and timing
 
-Default root: `results/variance_D4_D15_chi40_L3_6_8_12_15_Lmax21_right_warmup`.
+Default root: `results/variance_D4_D15_chi40_L3_6_8_12_15_Lmax21_right_warmup_exactQR`.
 D is processed in ascending order, 4 through 15, from its existing saved state.
 There are 12 (D,chi) contractions and 60 reported (D,chi,L) estimates.
 The five windows reuse ONE contraction per D, not five independent CTMRG runs.
@@ -102,7 +102,64 @@ settings or loaded implementation hashes are rejected in existing case folders.
 Use a new output root when deliberately changing them. An exception stops the
 batch with a traceback in the log; completed data are retained.
 
-Upload the two root entry files and the seven production `.jl` files listed by
+Upload the two root entry files and the eight production `.jl` files listed by
 the shell preflight from `src/bosonic/kagome/native_measurement/energy_variance/`,
 retaining the relative layout and existing Julia library/Project/Manifest.
 The additional warmup-comparison helper is optional for diagnostics. No zip is required.
+
+
+## Exact product QR in the variance projector
+
+`src/bosonic/kagome/native_measurement/energy_variance/variance_projector_svd.jl`
+is the shared production implementation. The variance array sweeps now obtain
+`up` and `low` with the existing `C.paired_half`, without first calling get_M
+and allocating up*low. At a reducing sector, TensorKit compact QR retains ALL
+intermediate channels; the original native_svd applies the same final chi and
+truncation tolerance to the normalized core. TensorKit U1/SU2 blocks remain
+intertwiners throughout; there is no dense conversion or randomized SVD.
+Nonreducing products use the original direct path. TensorKit 0.14 leftorth and
+newer qr_compact APIs are both supported. Ordinary native CTMRG is unchanged.
+
+The default new output root ends in `_right_warmup_exactQR`, preserving earlier
+results. The additional helper is included in the loaded implementation hash.
+Do not point updated code at old case directories or rewrite their settings:
+the existing source/settings/hash checks correctly reject mixed implementations.
+Finished old results remain readable. An unfinished old (D,chi) case has no
+anchor-level checkpoint in this Julia workflow and is normally recomputed in
+the new output root. This differs from the Python anchor-resume workflow.
+
+For a server already using the current library, update these files while
+keeping their relative layout:
+
+- `src/bosonic/kagome/native_measurement/energy_variance/KagomeEnergyVariance.jl`
+- `src/bosonic/kagome/native_measurement/energy_variance/variance_projector_svd.jl` (new)
+- `src/bosonic/kagome/native_measurement/energy_variance/variance_array_sweeps.jl`
+- `src/bosonic/kagome/native_measurement/energy_variance/variance_workflow.jl`
+- `src/bosonic/kagome/native_measurement/energy_variance/variance_batch.jl`
+- `Kagome/simple_update/multicell/run_energy_variance_server.jl`
+- `Kagome/simple_update/multicell/run_energy_variance_server.sh`
+
+The server parent can remain named u1_multicell. Project/Manifest, input states,
+SU code, ordinary CTMRG files, and measurement formulas are not modified.
+
+Small-D comparison (no SU and no large-D run):
+
+```sh
+julia --project=. tests/energy_variance/test_projector_svd.jl
+```
+
+It compares original/direct and exact QR singular values, truncated products,
+and gauge-invariant oblique projectors for dense and U1 TensorMaps. It also
+compares individual connected correlations, energy and the same finite-window
+variance for a U1 D1 quantum-trimer fixture and an entangled dense D2 fixture.
+Use `projector_svd=:direct` only as the old-path numerical reference. Tuple
+storage remains a direct-SVD reference for storage-only regression tests.
+
+Validation on 2026-11-24: TensorKit 0.14.11 and 0.17.0 each passed 42
+factorization/projector checks and 120 small-D observable checks. For the dense
+D2 fixture, maximum individual connected-term differences were 1.78e-14 and
+2.03e-14, and window-variance differences were 5.07e-16 and 5.38e-16,
+respectively. U1 D1 connected-term and variance differences were zero. The 51
+batch-plan/settings checks and shell syntax check passed. No production state
+or large-D contraction was run; these checks establish numerical equivalence,
+not a measured large-D speedup.

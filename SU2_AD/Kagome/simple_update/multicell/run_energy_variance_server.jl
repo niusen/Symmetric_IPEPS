@@ -13,7 +13,7 @@ variance_settings=(
     # Automatic padding for 2x2 observable patches and the 3 representative centers.
     # This is not a second independently scanned truncation parameter.
     contraction_size=3*cld(maximum(variance_Ls)+6,3), # only this grid must tile the period-3 state
-    out=joinpath(@__DIR__,"results","variance_D4_D15_chi40_L3_6_8_12_15_Lmax21_right_warmup"),
+    out=joinpath(@__DIR__,"results","variance_D4_D15_chi40_L3_6_8_12_15_Lmax21_right_warmup_exactQR"),
     threads=10,
     ctm_iterations=50,
     ctm_tolerance=1e-8,

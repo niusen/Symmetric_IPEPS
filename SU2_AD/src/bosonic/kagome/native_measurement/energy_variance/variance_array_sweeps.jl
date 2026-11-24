@@ -7,12 +7,12 @@
 grid_value(a,x,y)=a isa AbstractMatrix ? a[x,y] : a[x][y]
 measurement_grid(a,L)=[Any[grid_value(a,x,y) for y in 1:L] for x in 1:L]
 
-function variance_column_update!(cs,ts,Q,R,chi,cx,d,cfg,L)
+function variance_column_update!(cs,ts,Q,R,chi,cx,d,cfg,L;projector_svd::Symbol=:auto)
     P=Matrix{Any}(undef,L,L);Pi=similar(P)
     edges=Vector{Any}(undef,L);uppers=similar(edges);lowers=similar(edges)
     for cy in 1:L
-        M,rmup,rmlow=C.get_M([cx,cy],d,Q,R,cs,ts,L,L)
-        u,s,v=C.native_svd(M,chi,cfg.CTM_trun_tol);s=s/norm(s)
+        u,s,v,rmup,rmlow=variance_projector_svd([cx,cy],d,Q,R,cs,ts,L,chi,cfg.CTM_trun_tol;algorithm=projector_svd)
+        s=s/norm(s)
         si=complex(C.safe_inv_sqrt(s,cfg.CTM_trun_tol))
         pi=rmlow*v'*si
         p=permute(si*u'*rmup,((2,3),(1,)))
@@ -46,7 +46,7 @@ function variance_column_update!(cs,ts,Q,R,chi,cx,d,cfg,L)
 end
 
 function large_cell_sweeps(ctx,positions;chi,sweeps=2,callback=nothing,storage=:array,
-        extra_bottom_warmup::Bool=false)
+        extra_bottom_warmup::Bool=false,projector_svd::Symbol=:auto)
     storage==:tuple && return large_cell_sweeps_reference(ctx,positions;chi,sweeps,callback,extra_bottom_warmup)
     storage==:array || error("variance sweep storage must be :array or :tuple")
     L=ctx.L;set_dimensions(L,L)
@@ -55,7 +55,7 @@ function large_cell_sweeps(ctx,positions;chi,sweeps=2,callback=nothing,storage=:
     cs=measurement_grid(ctx.Cset,L);ts=measurement_grid(ctx.Tset,L)
     xmin,xmax=extrema(first.(positions));ymin,ymax=extrema(last.(positions))
     function absorb(j,d)
-        variance_column_update!(cs,ts,Q,R,chi,move_origin(j,d,L),d,cfg,L)
+        variance_column_update!(cs,ts,Q,R,chi,move_origin(j,d,L),d,cfg,L;projector_svd)
         isnothing(callback) || callback((direction=d,absorbed_coordinate=j))
     end
     # Default: only the right warmup used by the paper's horizontal example.

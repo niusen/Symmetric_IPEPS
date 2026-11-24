@@ -13,7 +13,7 @@ command -v setsid >/dev/null 2>&1 || { echo 'setsid is required for background s
     include("run_energy_variance_server.jl")
     isfile("Project.toml") || error("Missing Project.toml")
     for name in ("KagomeEnergyVariance.jl","variance_operators.jl","variance_contraction.jl",
-                 "variance_array_sweeps.jl","variance_workflow.jl","variance_batch_plan.jl","variance_batch.jl")
+                 "variance_projector_svd.jl","variance_array_sweeps.jl","variance_workflow.jl","variance_batch_plan.jl","variance_batch.jl")
         p=joinpath(dirname(VARIANCE_LIBRARY),name)
         isfile(p) || error("Missing source: "*p)
     end

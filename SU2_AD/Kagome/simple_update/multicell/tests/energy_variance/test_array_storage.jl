@@ -15,7 +15,8 @@ array_errors=Float64[]
         V.set_dimensions(3,3)
         for d in (3,4,1,2)
             cs,ts=V.C.ctm_update_single_cx(8,1,3,cs,ts,Q,R,d,cfg,3,3)
-            V.variance_column_update!(ac,at,Q,R,8,1,d,cfg,3)
+            # Compare STORAGE with the SAME direct-SVD algorithm; QR equivalence has its own test.
+            V.variance_column_update!(ac,at,Q,R,8,1,d,cfg,3;projector_svd=:direct)
             for x in 1:3,y in 1:3,k in 1:4
                 for (a,b) in ((V.C.get_Cset(cs[x][y],k),V.C.get_Cset(ac[x][y],k)),
                               (V.C.get_Tset(ts[x][y],k),V.C.get_Tset(at[x][y],k)))

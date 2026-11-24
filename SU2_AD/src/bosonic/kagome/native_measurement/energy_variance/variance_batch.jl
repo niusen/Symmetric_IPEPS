@@ -6,7 +6,7 @@ batch_log(message)=(println("[",batch_utc(),"] ",message);flush(stdout))
 
 function variance_code_sha256()
     files=[joinpath(@__DIR__,name) for name in ("KagomeEnergyVariance.jl",
-        "variance_operators.jl","variance_contraction.jl","variance_array_sweeps.jl",
+        "variance_operators.jl","variance_contraction.jl","variance_projector_svd.jl","variance_array_sweeps.jl",
         "variance_workflow.jl","variance_batch_plan.jl","variance_batch.jl")]
     append!(files,[joinpath(native,name) for name in ("KagomeNativeMeasurement.jl",
         "conversion_layers.jl","factorized_ctm.jl","memory_bounded_ctm.jl","observables.jl")])
@@ -95,7 +95,7 @@ function run_variance_case(cfg,job,settings,f,prepared,shared)
     timing=merge(shared,Dict("started_utc"=>started,"finished_utc"=>batch_utc(),
         "case_wall_seconds"=>batch_seconds(clock),"compute_seconds"=>result["seconds"],
         "note"=>"case time includes variance calculation and result export; shared load/factors/norm CTM counted separately; first calls may compile"))
-    brief=Dict(k=>result[k] for k in ("D","L","chi","sweeps","extra_bottom_warmup","exchange_energy_per_spin","ctm","timing","cumulative","full_anchor_sum","anchor_count","n_physical_sites"))
+    brief=Dict(k=>result[k] for k in ("D","L","chi","sweeps","extra_bottom_warmup","projector_svd","exchange_energy_per_spin","ctm","timing","cumulative","full_anchor_sum","anchor_count","n_physical_sites"))
     data=Dict("settings"=>settings,"result"=>brief,"run_timing"=>timing,"case_directory"=>job.out)
     N.atomic_toml(joinpath(job.out,"run_timing.toml"),timing)
     N.atomic_toml(joinpath(job.out,"completed.toml"),data) # completion marker LAST

@@ -16,6 +16,7 @@ const C=N.CTM
 const PAIRS=((1,2),(2,3),(3,1))
 include("variance_operators.jl")
 include("variance_contraction.jl")
+include("variance_projector_svd.jl")
 include("variance_array_sweeps.jl")
 include("variance_workflow.jl")
 if !isdefined(parentmodule(@__MODULE__),:KagomeVariancePlan)

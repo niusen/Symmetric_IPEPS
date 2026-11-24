@@ -107,3 +107,15 @@ chi/L/sweeps的系统收敛检查。中心扩大虚腿及逐键重复测量的�
 多 D / 多 chi 的任务见 [ENERGY_VARIANCE_BATCH.md](ENERGY_VARIANCE_BATCH.md)。
 根目录 run_energy_variance_server.jl / .sh 已改成批量入口：一次最大区域收缩提取多个 L，不设置独立 R。
 本文中 examples/run_energy_variance.jl 的 radius 接口只保留用于历史结果兼容与小规模诊断。
+
+
+## Exact variance projector QR
+
+The production variance path now uses `energy_variance/variance_projector_svd.jl`
+to avoid materializing an enlarged up*low matrix when symmetry blocks have
+a narrower intermediate space. QR preserves every intermediate channel; the
+original TensorKit SVD/truncation rule is applied only to the smaller core.
+No ordinary native CTMRG or SU function is changed. See ENERGY_VARIANCE_BATCH.md
+for the `_exactQR` output root, eight-source-file dependency list and small-D
+direct-vs-QR tests. Existing case hashes are retained as provenance and are not
+silently migrated to authorize reuse under new code.

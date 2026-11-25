@@ -110,3 +110,26 @@ function itebd!(state,parameters,tau,dt,Dmax; trun_tol=1e-10,callback=nothing)
     end
     return history
 end
+
+# The magnetic gauge changes the down gate with column; no shared-gate shortcut.
+function itebd!(state,model::PartonModel,tau,dt,Dmax;trun_tol=1e-10,callback=nothing)
+    Lx,Ly=size(state.T_u)
+    period=magnetic_period(model)
+    Lx%period==0 || throw(ArgumentError("parton gauge requires a multiple of three columns"))
+    check_state(state)
+    isfinite(dt) && dt>0 && isfinite(tau) && tau>=0 || throw(ArgumentError("invalid time"))
+    n=round(Int,tau/dt); isapprox(n*dt,tau;atol=1e-12,rtol=1e-10) || throw(ArgumentError("tau must be a multiple of dt"))
+    up=first(trotter_gate(triangle_at(model,:up,1),dt))
+    down=[last(trotter_gate(triangle_at(model,:dn,x),dt)) for x=1:period]
+    history=NamedTuple[]
+    for step in 1:n
+        e=0.0
+        for o in (:dn,:up,:dn), y in 1:Ly, x in 1:Lx
+            e=max(e,triangle_update!(state,x,y,o,o===:up ? up : down[mod1(x,period)];Dmax,trun_tol))
+        end
+        check_state(state;Dmax)
+        r=(step=step,tau=step*dt,discarded_weight=e);push!(history,r)
+        isnothing(callback) || callback(state,r)
+    end
+    history
+end

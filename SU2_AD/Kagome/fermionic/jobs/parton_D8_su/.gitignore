@@ -1,0 +1,4 @@
+results/
+!run.sh
+!submit.sh
+!cases/*.sh

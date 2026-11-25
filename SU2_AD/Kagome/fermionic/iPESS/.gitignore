@@ -1,3 +1,6 @@
 results/
 smoke_results/
 *.log
+__pycache__/
+bundles/
+!server/*.sh

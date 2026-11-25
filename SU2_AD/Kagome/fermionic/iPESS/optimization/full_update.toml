@@ -1,0 +1,36 @@
+[model]
+t_up = 1.0
+t_dn = 1.0
+U = 4.0
+mu = 0.0
+centered = true
+
+[run]
+Lx = 1
+Ly = 1
+D_even = 1
+D_odd = 1
+D_max = 2
+seed = 888
+blas_threads = 1
+resume = ""
+simple_update_tau = 0.2
+simple_update_dt = 0.01
+output = "../results/full_update"
+
+[optimization]
+n_sweep = 4
+use_gauge = true
+solve_rtol = 1e-10
+ridge = 1e-12
+
+[[schedule]]
+tau = 0.1
+dt = 0.02
+
+[ctm]
+chi = 8
+iterations = 30
+tol = 1e-7
+measure = true
+measurement_iterations = 100

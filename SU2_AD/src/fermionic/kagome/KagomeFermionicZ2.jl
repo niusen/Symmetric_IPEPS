@@ -10,6 +10,8 @@ export KagomeFermionicState, initial_iPESS, triangle_sites, check_state,
 
 include("tensor_utils.jl")
 include("model.jl")
+include("models/parton.jl")
+export PartonModel, parton_model, parton_hoppings, hole_hubbard
 include("state.jl")
 include("simple_update.jl")
 include("observables.jl")

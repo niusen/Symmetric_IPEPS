@@ -1,0 +1,32 @@
+[model]
+t_up = 1.0
+t_dn = 1.0
+U = 2.0
+mu = 0.1
+centered = true
+
+[run]
+Lx = 1
+Ly = 1
+D_even = 1
+D_odd = 1
+D_max = 2
+seed = 2
+blas_threads = 1
+resume = ""
+output = "../results/smoke_variational"
+
+[optimization]
+maxiter = 2
+memory = 8
+step_size = 0.2
+grad_tol = 1e-6
+check_gradient = true
+gradient_check_tol = 1e-3
+
+[ctm]
+chi = 2
+iterations = 1
+tol = 1e-7
+measure = true
+measurement_iterations = 4

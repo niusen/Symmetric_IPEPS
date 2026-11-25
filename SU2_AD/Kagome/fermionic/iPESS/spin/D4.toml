@@ -1,0 +1,33 @@
+# Independent runs share this projected native GF-iPESS seed.
+[job]
+input = "../results/gfpeps_validation/ipess_D4/tensors.mat"
+output = "../results/spin_D4_h05"
+D_max = 4
+blas_threads = 1
+trun_tol = 1e-10
+
+[model]
+J = 1.0
+h = 0.5
+
+[[schedule]]
+tau = 0.01
+dt = 0.01
+
+[fu]
+chi = 8
+iterations = 8
+n_sweep = 3
+use_gauge = true
+
+[ad]
+chi = 8
+iterations = 3
+maxiter = 3
+step_size = 0.1
+memory = 0   # Backtracking gradient descent. Positive memory selects L-BFGS.
+
+[measurement]
+chi = 16
+iterations = 100
+tol = 1e-7

@@ -1,0 +1,17 @@
+# Paths are relative to this file, independent of the shell working directory.
+# Each chi starts from PBC; set job.warmstart explicitly to reuse an environment.
+[job]
+mode = "gaussian"
+family = "ipeps"
+D = 8
+input = "../../results/gfpeps_validation/ipeps_D8"
+output = "../../results/server/gaussian_ipeps_D8"
+blas_threads = 4
+
+[ctm]
+chi = [16, 32]
+maxiter = 100
+tol = 1e-7
+cutoff = 1e-8
+gauge_sweeps = 8
+update_method = "continuous_update"

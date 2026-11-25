@@ -10,6 +10,7 @@ function _local_operators()
     n_up, n_dn = c_up'*c_up, c_dn'*c_dn
     id = Matrix{ComplexF64}(I,4,4)
     return (; id, parity=diagm(ComplexF64[1,1,-1,-1]), c=(c_up,c_dn),
+             pair=c_dn*c_up,
              n=n_up+n_dn, doublon=n_up*n_dn, interaction=(n_up-id/2)*(n_dn-id/2))
 end
 
@@ -35,6 +36,7 @@ function _triangle_operators()
     cs = [[_embed(ops.c[spin],site; odd=true) for spin in 1:2] for site in 1:3]
     hops = [sum(cs[i][s]'*cs[j][s] for s in 1:2) for (i,j) in ((1,2),(2,3),(3,1))]
     return (; c=cs, hops, n=[_embed(ops.n,i) for i in 1:3],
+             pair=[_embed(ops.pair,i) for i in 1:3],
              doublon=[_embed(ops.doublon,i) for i in 1:3],
              interaction=[_embed(ops.interaction,i) for i in 1:3])
 end
@@ -48,10 +50,14 @@ end
 Triangle Hubbard Hamiltonian, ordered (a,b,c). Directed hoppings are
 `-t_ab c_a†c_b -t_bc c_b†c_c -t_ca c_c†c_a + h.c.` (sum over spin).
 Each kagome site belongs to two triangles: each gate gets HALF the onsite
-term `U(n_up-1/2)(n_dn-1/2) - μ n`. Set centered=false for U n_up n_dn.
+term `U(n_up-1/2)(n_dn-1/2) - μ n + Δ c_up† c_dn† + conj(Δ) c_dn c_up`.
+`parameters["pairing"]` is Δ (default zero); it may be complex.
+Set centered=false for U n_up n_dn.
 """
 function Hamiltonian_triangle(parameters; orientation=:up, onsite_fraction=0.5)
     U, μ = get(parameters,"U",0.0), get(parameters,"μ",0.0)
+    Δ = get(parameters,"pairing",0.0)
+    Δ isa Number && isfinite(Δ) || throw(ArgumentError("pairing must be a finite scalar"))
     isreal(U) && isreal(μ) && isfinite(U) && isfinite(μ) ||
         throw(ArgumentError("U and μ must be finite real numbers"))
     ops = _triangle_operators()
@@ -61,17 +67,21 @@ function Hamiltonian_triangle(parameters; orientation=:up, onsite_fraction=0.5)
         H -= ts[k]*ops.hops[k] + conj(ts[k])*ops.hops[k]'
         interaction = get(parameters,"centered",true) ? ops.interaction[k] : ops.doublon[k]
         H += onsite_fraction*(U*interaction-μ*ops.n[k])
+        iszero(Δ) || (H += onsite_fraction*(Δ*ops.pair[k]'+conj(Δ)*ops.pair[k]))
     end
     return _physical_map(H)
 end
 
 function trotter_gate(H, dt)
     isfinite(dt) && dt >= 0 || throw(ArgumentError("dt must be finite and nonnegative"))
-    # Only the 64-dimensional physical Hilbert space is materialized.
-    M = reshape(convert(Array,H),64,64)
+    dense = convert(Array,H)
+    M = reshape(dense,dim(codomain(H)),dim(domain(H)))
     isapprox(M,M'; atol=1e-12) || throw(ArgumentError("Hamiltonian must be Hermitian"))
     e = eigen(Hermitian(M))
     # An overall scalar is discarded in normalized imaginary-time evolution.
-    gate(step) = _physical_map(e.vectors*Diagonal(exp.(-step*(e.values .- minimum(e.values))))*e.vectors')
+    function gate(step)
+        dense_gate = e.vectors*Diagonal(exp.(-step*(e.values .- minimum(e.values))))*e.vectors'
+        TensorMap(reshape(dense_gate,size(dense)),codomain(H),domain(H))
+    end
     return gate(dt), gate(dt/2)
 end

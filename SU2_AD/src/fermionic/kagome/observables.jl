@@ -8,20 +8,23 @@ function su_observables(state,parameters)
     energies = zeros(ComplexF64,Lx,Ly,2)
     n = zeros(ComplexF64,Lx,Ly,3,2)
     doublon = similar(n)
+    pairing = similar(n)
     ops = _triangle_operators()
     for (o,orientation) in enumerate((:up,:dn))
-        H = Hamiltonian_triangle(parameters;orientation)
+        gates = [triangle_at(parameters,orientation,x) for x in 1:magnetic_period(parameters)]
         for y in 1:Ly, x in 1:Lx
             W = triangle_wavefunction(state,x,y,orientation)
-            energies[x,y,o] = _triangle_expectation(W,H)
+            energies[x,y,o] = _triangle_expectation(W,gates[mod1(x,length(gates))])
             for k in 1:3
                 n[x,y,k,o] = _triangle_expectation(W,_physical_map(ops.n[k]))
                 doublon[x,y,k,o] = _triangle_expectation(W,_physical_map(ops.doublon[k]))
+                pairing[x,y,k,o] = _triangle_expectation(W,_physical_map(ops.pair[k]))
             end
         end
     end
     return (;energy_per_site=real(sum(energies))/(3Lx*Ly),triangle_energies=energies,
              density=real(sum(n))/length(n),double_occupancy=real(sum(doublon))/length(doublon),
+             pair_amplitude=sum(pairing)/length(pairing),pair_amplitude_set=pairing,
              n,double_occupancy_set=doublon,method=:simple_update_product_environment)
 end
 
@@ -38,11 +41,12 @@ function build_A_kagome(state,x,y)
     M = TensorKit.permute(W,((1,2,3,4,5),(6,))) *
         TensorKit.permute(T,((1,),(2,3)))
     A = fpermute(M,(1,7,6,4,2,3,5)) # ea,c_dn,a_dn,ec,pa,pb,pc
-    # Match the incoming-left-edge ordering of build_double_layer_swap and
-    # hopping_x/y/diagonala. The attached down-simplex branch has parity
-    # q_b = q_R + q_D; routing it past L contributes (-1)^(q_L*(q_R+q_D)).
-    # This is a virtual crossing, not an extra physical Jordan-Wigner string.
-    A = _crossing(_crossing(A,1,2),1,3)
+    # Match the incoming-edge ordering of the legacy fermionic square CTM.
+    # Route the down-simplex branch past L AND exchange its a/c outer legs:
+    # (-1)^(q_L*(q_D+q_R) + q_D*q_R). The D/R exchange is essential for a
+    # triangle with all three bonds active; isolated dimers cannot detect it
+    # together with the corresponding diagonal-hopping orientation sign.
+    A = _crossing(_crossing(_crossing(A,1,2),1,3),2,3)
     P = physical_space()
     U_phy = unitary(fuse(P*P*P),P*P*P)
     @tensor A_fused[-1,-2,-3,-4,-5] := A[-1,-2,-3,-4,1,2,3]*U_phy[-5,1,2,3]
